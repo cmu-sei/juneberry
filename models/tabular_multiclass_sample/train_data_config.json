@@ -4,7 +4,7 @@
         "algorithm": "none",
         "arguments": {}
     },
-    "formatVersion": "3.1.0",
+    "formatVersion": "3.2.0",
     "labelNames": {
         "0": "label_0",
         "1": "label_1",

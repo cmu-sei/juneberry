@@ -3,7 +3,7 @@
     "dataSetConfigPath": "models/tabular_multiclass_sample/train_data_config.json",
     "description": "Mutliclass csv dataset for unit testing",
     "epochs": 100,
-    "formatVersion": "3.1.0",
+    "formatVersion": "3.3.0",
     "platform": "pytorch",
 
     "modelArchitecture": {
