@@ -1,0 +1,25 @@
+{
+    "numModelClasses": 3,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "formatVersion": "3.1.0",
+    "labelNames": {
+        "0": "label_0",
+        "1": "label_1",
+        "2": "label_2"
+    },
+    "dataType": "csv",
+    "data_root" : "relative",
+    "csvData": {
+        "sources":
+        [
+            {
+                "root": "relative",
+                "path": "test_data.csv"
+            }
+        ],
+        "labelIndex": 2
+    }
+}

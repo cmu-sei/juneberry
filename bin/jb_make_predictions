@@ -1,0 +1,306 @@
+#! /usr/bin/env python3
+
+# ==========================================================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
+#  or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+#  Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
+#      Copyright 2018 the adversarial robustness toolbox authors.
+#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
+#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#
+#  DM20-1149
+#
+# ==========================================================================================================================================================
+
+import argparse
+import datetime
+import json
+import logging
+from pathlib import Path
+import sys
+import torch
+
+from sklearn.metrics import balanced_accuracy_score
+
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.training import TrainingConfig
+import juneberry.data as jbdata
+import juneberry.filesystem as jbfs
+import juneberry.jb_logging
+import juneberry.pytorch.util as pyt_utils
+import juneberry.scripting as jbscripting
+
+
+def classify_inputs(eval_list, predictions, classify_topk, mapping, alt_mapping):
+    """
+    Determines the top-K predicted classes for a list of inputs.
+    :param eval_list: The list of input files and their true labels.
+    :param predictions: The predictions that were made for the inputs.
+    :param classify_topk: How many classifications we would like to show.
+    :param mapping: A mapping of the class integers to the human readable labels.
+    :param alt_mapping: An alternative mapping of class integers to human readable labels (Full Imagenet hack).
+    :return: A list of which classes were predicted for each input.
+    """
+    # Some tensor operations on the predictions; softmax converts the values to percentages.
+    prediction_tensor = torch.FloatTensor(predictions)
+    predict = torch.nn.functional.softmax(prediction_tensor, dim=1)
+    values, indices = predict.topk(classify_topk)
+    values = values.tolist()
+    indices = indices.tolist()
+
+    classification_list = []
+
+    # Each input should have a contribution to the classification list.
+    for i in range(len(eval_list)):
+
+        class_list = []
+        for j in range(classify_topk):
+            try:
+                label_name = mapping[indices[i][j]]
+            except KeyError:
+                label_name = alt_mapping[str(indices[i][j])] if alt_mapping is not None else ""
+
+            individual_dict = {'label': indices[i][j], 'labelName': label_name, 'confidence': values[i][j]}
+            class_list.append(individual_dict)
+
+        try:
+            true_label_name = mapping[eval_list[i][1]]
+        except KeyError:
+            true_label_name = alt_mapping[str(eval_list[i][1])] if alt_mapping is not None else ""
+
+        classification_dict = {'file': eval_list[i][0], 'actualLabel': eval_list[i][1],
+                               'actualLabelName': true_label_name, 'predictedClasses': class_list}
+        classification_list.append(classification_dict)
+
+    return classification_list
+
+
+def evaluate_all_data(model_manager, config, extract_validation, classify_topk):
+    """
+    Evaluates the config against the model and returns the results.
+    :param model_manager: The model manager responsible for the model being used for predictions.
+    :param config: The data spec file.
+    :param extract_validation: Boolean indicating whether or not to extract the validation split from the
+    training config.
+    :param classify_topk: An integer that controls how many of the topK predicted classes get stored in the output.
+    :return:
+    """
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+
+    output = {'testTimes': {}, 'testOptions': {}, 'testResults': {}}
+
+    # Load the training config, the data set config, and the previous training output
+    logging.info(f"Loading config files...")
+    with open(model_manager.get_model_config()) as config_file:
+        training_config = TrainingConfig(model_manager.model_name, json.load(config_file))
+    with open(training_config.data_set_path) as config_file:
+        data_set_config = DatasetConfig(json.load(config_file), training_config.data_set_path.parent)
+    with open(model_manager.get_training_out_file()) as training_output_file:
+        training_output = json.load(training_output_file)
+
+    # Set up the workers based on training hints
+    if 'numWorkers' in training_config.get('hints', {}):
+        num_workers = training_config['hints']['numWorkers']
+        logging.warning(f"Overriding number of workers. Found {num_workers} in TrainingConfig")
+        juneberry.NUM_WORKERS = num_workers
+
+    # Load the TEST data set config
+    output['testOptions']['testImages'] = str(config)
+    test_set_config = DatasetConfig(load_ds_config(config), Path(config).parent)
+
+    # Get the path to the model from the model dir
+    model_path = model_manager.get_pytorch_model_file()
+
+    # Get the mapping of label integers to label names
+    mapping = test_set_config.label_names
+
+    # If the mapping doesn't match the number of classes, substitute in the Imagenet
+    # mapping as an alternative if the number of classes is 1000. Otherwise don't use
+    # an alternative mapping.
+    alt_mapping = None
+    if len(mapping) != data_set_config.num_model_classes:
+        logging.warning(f"Mapping does not describe every class in numModelClasses.")
+        if data_set_config.num_model_classes == 1000:
+            logging.info(f"Assuming the true mapping is full Imagenet.")
+            with open('data_sets/imagenet_train.json') as imagenet_data:
+                alt_mapping = json.load(imagenet_data)['labelNames']
+        else:
+            logging.warning(f"True mapping unknown. Classifications may not have labelNames.")
+
+    # Add the mapping to the output dictionary.
+    output['testOptions']['mapping'] = mapping
+    output['testOptions']['numModelClasses'] = data_set_config.num_model_classes
+    output['testOptions']['modelName'] = training_output['trainingResults']['modelName']
+    output['testOptions']['modelHash'] = training_output['trainingResults']['modelHash']
+    found_hash = jbfs.generate_file_hash(model_path)
+    if training_output['trainingResults']['modelHash'] != found_hash:
+        logging.error(f"The hash of the model file '{model_path}' does NOT match the training output file. EXITING")
+        logging.error(f"Expected: '{training_output['trainingResults']['modelHash']}' Found: '{found_hash}'")
+        sys.exit(-1)
+
+    # Load the model architecture
+    model = pyt_utils.construct_model(training_config.model_architecture,
+                                      data_set_config.num_model_classes)
+
+    # Model tweaks if using GPU
+    if use_cuda:
+        model = torch.nn.DataParallel(model)
+        model.to(device)
+
+    pyt_utils.load_model(model_path, model)
+
+    data_manager = jbfs.DataManager(data_set_config.config, model_manager.model_version)
+
+    # Set the seed so we get the same shuffle every time
+    pyt_utils.set_seeds(training_config.seed)
+
+    # Get all of the test data and labels
+    eval_list, eval_loader = setup_data_loaders(training_config, test_set_config, data_manager, False,
+                                                extract_validation)
+
+    logging.info(f"Number of data elements in test set - {len(eval_list)}")
+
+    # Capture the start time for the prediction process
+    start_time = datetime.datetime.now().replace(microsecond=0)
+    output['testTimes']['predictionStartTime'] = start_time.isoformat()
+
+    # The real work is here
+    predictions = pyt_utils.predict_classes(eval_loader, model, device)
+
+    # Capture the end time for the prediction process
+    end_time = datetime.datetime.now().replace(microsecond=0)
+    output['testTimes']['predictionEndTime'] = end_time.isoformat()
+
+    # Calculate the duration for the prediction process
+    duration = end_time - start_time
+    output['testTimes']['predictionDuration'] = duration.total_seconds()
+
+    # Add the labels and predictions to the output dictionary
+    labels = [x[1] for x in eval_list]
+    output['testResults']['labels'] = labels
+
+    # Diagnostic for accuracy
+    # TODO: Switch to configurable and standard accuracy
+    predicted_classes = pyt_utils.continuous_predictions_to_class(predictions, test_set_config.num_model_classes == 2)
+    logging.info(f"****** Balanced Accuracy: {balanced_accuracy_score(labels, predicted_classes):.4f}")
+
+    # Save these as two classes if binary so it's consistent with other outputs
+    if test_set_config.num_model_classes == 2:
+        predictions = pyt_utils.binary_to_classes(predictions)
+    output['testResults']['predictions'] = predictions
+
+    # Get the top K classes predicted for each input.
+    if classify_topk:
+        logging.info(f"Obtaining the top {classify_topk} classes predicted for each input.")
+
+        output['testResults']['classifications'] = classify_inputs(eval_list, predictions, classify_topk,
+                                                                   mapping, alt_mapping)
+
+        logging.info(f"Classified {len(output['testResults']['classifications'])} inputs.")
+
+    return output
+
+
+def setup_data_loaders(train_config, data_set_config, data_manager, no_paging, extract_validation):
+    if data_set_config.is_image_type():
+        logging.info(f"Generating Image file lists...")
+        if extract_validation:
+            # TODO: Change this to take validation split config not full training config - COR-384
+            train_list, _ = jbdata.generate_image_list(juneberry.DATA_ROOT, data_set_config, train_config, data_manager)
+        else:
+            train_list, _ = jbdata.generate_image_list(juneberry.DATA_ROOT, data_set_config, None, data_manager)
+    elif data_set_config.is_tabular_type():
+        logging.info("Loading tabular data")
+        if extract_validation:
+            # TODO: Change this to take validation split config not full training config - COR-384
+            train_list, _ = jbdata.load_tabular_data(train_config, data_set_config)
+        else:
+            train_list, _ = jbdata.load_tabular_data(None, data_set_config)
+    else:
+        logging.error("We currently do NOT support any data type but IMAGE or CSV")
+        sys.exit(-1)
+
+    logging.info("Constructing data loader from TEST data set using prediction transforms. ")
+    training_loader = pyt_utils.make_data_loader(data_set_config, train_list,
+                                                 train_config.prediction_transforms,
+                                                 train_config.batch_size, no_paging)
+
+    return train_list, training_loader
+
+
+def load_ds_config(config_path):
+    """
+    This function is responsible for reading a data set configuration from file. It
+    performs some simple checks to make sure it's actually reading a valid data set file.
+    @param config_path: A path to the data set file we want to read.
+    @return config: A dictionary of the data that was read from the target configuration file.
+    """
+    # Read the data in the JSON file
+    with open(config_path) as json_file:
+        config = json.load(json_file)
+
+    return config
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Loads a model, evaluates against a data set, and saves results '
+                                                 'to the predictions file.')
+    # parser.add_argument("dataRoot", help="Root of data directory")
+    parser.add_argument('modelName', help='Name of the directory in models containing the \'config.json\' in '
+                                          'workspace models directory.')
+    parser.add_argument('dataSet', help="Path to data set file.")
+    parser.add_argument('--version', default="",
+                        help='Optional parameter used to control which version of a data set to use.')
+    parser.add_argument('--extractValidation', default=False, action='store_true',
+                        help='If set to True, the validation split from the training config will be '
+                             'extracted from the data set.')
+    parser.add_argument("--classify", default=0, type=int,
+                        help='Optional parameter. An integer that controls how many of the top-K predicted '
+                             'classes to record in the output.')
+
+    jbscripting.setup_args(parser)
+    args = parser.parse_args()
+
+    model_manager = jbfs.ModelManager(args.modelName, args.version)
+
+    data_set_path = Path(args.dataSet)
+
+    # Use the config file to set up the workspace, data, and logging
+    jbscripting.setup_for_single_model(args, model_manager.get_predictions_log(data_set_path.name), "", model_manager)
+
+    # Get the paths
+    output = evaluate_all_data(model_manager, data_set_path, args.extractValidation, args.classify)
+
+    # Write the run information and metrics to JSON
+    output_filename = model_manager.get_predictions(data_set_path.name)
+
+    with open(output_filename, 'w') as out_file:
+        logging.info("Emitting output to: " + str(output_filename))
+        json.dump(output, out_file, indent=4)
+
+    logging.info("Done!")
+
+
+if __name__ == "__main__":
+    main()

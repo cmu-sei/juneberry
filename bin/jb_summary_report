@@ -1,0 +1,126 @@
+#! /usr/bin/env python3
+
+# ==========================================================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
+#  or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+#  Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
+#      Copyright 2018 the adversarial robustness toolbox authors.
+#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
+#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#
+#  DM20-1149
+#
+# ==========================================================================================================================================================
+
+import argparse
+import numpy as np
+from datetime import timedelta
+import sklearn.metrics as metrics
+import json
+import csv
+import os
+
+
+def accuracy(filename):
+    """
+    This function loads necessary data from a prediction file.
+    :param filename: The file containing the data we want to extract.
+    :return accuracy: A percentage accuracy score
+    """
+    # Open up the target JSON file and read in the data
+    with open(filename, 'r') as in_file:
+        data = json.load(in_file)
+
+    # The test/score data were stored as lists (to make them serializable).
+    # They need to be converted back to numpy arrays.
+    labels = np.asarray(data['testResults']['labels'])
+    pred = np.argmax(np.asarray(data['testResults']['predictions']), axis=1)
+    return metrics.balanced_accuracy_score(labels, pred)
+
+
+def duration(filename):
+    """
+    Assumes filename is a train_out.json format file.  This will extract the total training time from the file.
+    :param filename: The file containing the data we want to extract.
+    :return time: total training time in seconds
+    """
+    with open(filename, 'r') as in_file:
+        data = json.load(in_file)
+
+    return timedelta(seconds=data["trainingTimes"]["duration"])
+
+
+def model_name(filename):
+    """
+    Assumes filename is a train_out.json format file.  This will extract the model name.
+    :param filename: The file containing the data we want to extract.
+    :return time: total training time in seconds
+    """
+    with open(filename, 'r') as in_file:
+        data = json.load(in_file)
+
+    return data["trainingResults"]["modelName"]
+
+
+def generate_summary_report(prediction_files, plot_files, summary_filename, csv_filename):
+    with open(summary_filename, "w") as outFile:
+        results = [["model", "accuracy", "duration"]]
+        outFile.write(f"# Experiment summary\nModel | Accuracy | Duration (H:M:S) | "
+                      f"Train Chart\n--- | --- | --- | ---\n")
+        for f in prediction_files:
+            d = os.path.dirname(f)
+            train_img = os.path.join(d, "train_out.png")
+            train_out = os.path.join(d, "train_out.json")
+            results.append([model_name(train_out), accuracy(f), duration(train_out)])
+            outFile.write(
+                f"{results[-1][0]} | {results[-1][1]:.2f} | {results[-1][2]} | "
+                f"[Training Chart](../../{train_img})\n")
+
+        if csv_filename is not None:
+            with open(csv_filename, "w") as f:
+                writer = csv.writer(f)
+                writer.writerows(results)
+
+        if plot_files is not None and len(plot_files) > 0:
+            outFile.write("\n# Experiment RoC Curves\n")
+            outFile.write("---\n".join([f"![RoC Image]({p.replace(' ', '%20')})\n" for p in plot_files]))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='This script will generate a markdown summary report of an experiment.')
+    parser.add_argument('-f', '--predictionFile', action='append', required=True,
+                        help="The name of a file containing the prediction data to use. The expected format is "
+                             "described in the predictions_specification. You can specify this argument multiple "
+                             "times")
+    parser.add_argument('-pf', '--plotFile', action='append', required=False,
+                        help="Name of a RoC Plot file that has been generated by the experiment.")
+    parser.add_argument('--csvFilename', default=None, required=False, help="CSV file to write summary table data"),
+    parser.add_argument('summaryFilename', help="Markdown report will be written to this file")
+
+    args = parser.parse_args()
+
+    generate_summary_report(args.predictionFile, args.plotFile, args.summaryFilename, args.csvFilename)
+
+
+if __name__ == "__main__":
+    main()

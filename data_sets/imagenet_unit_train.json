@@ -1,0 +1,68 @@
+{
+    "numModelClasses": 1000,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "description": "Subset of Imagenet. 10 images in 10 classes. 224x224, rgb",
+    "timestamp": "2020-11-06T08:18:00",
+    "formatVersion": "3.2.0",
+    "labelNames": {
+        "13": "junco",
+        "36": "terrapin",
+        "296": "ice_bear",
+        "297": "sloth_bear",
+        "588": "hamper",
+        "669": "mosquito_net",
+        "729": "plate_rack",
+        "730": "plow",
+        "767": "rubber_eraser",
+        "905": "window_shade"
+    },
+    "dataType": "image",
+    "imageData": {
+        "taskType": "classification",
+        "sources": [
+            {
+                "label": 13,
+                "directory": "ImageNetUT/train/n01534433"
+            },
+            {
+                "label": 36,
+                "directory": "ImageNetUT/train/n01667778"
+            },
+            {
+                "label": 296,
+                "directory": "ImageNetUT/train/n02134084"
+            },
+            {
+                "label": 297,
+                "directory": "ImageNetUT/train/n02134418"
+            },
+            {
+                "label": 588,
+                "directory": "ImageNetUT/train/n03482405"
+            },
+            {
+                "label": 669,
+                "directory": "ImageNetUT/train/n03788365"
+            },
+            {
+                "label": 729,
+                "directory": "ImageNetUT/train/n03961711"
+            },
+            {
+                "label": 730,
+                "directory": "ImageNetUT/train/n03967562"
+            },
+            {
+                "label": 767,
+                "directory": "ImageNetUT/train/n04116512"
+            },
+            {
+                "label": 905,
+                "directory": "ImageNetUT/train/n04590129"
+            }
+        ]
+    }
+}

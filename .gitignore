@@ -1,0 +1,32 @@
+*.h5
+*.log
+*.png
+*.pyc
+*.pt
+*.swp
+.DS_Store
+.idea/
+.vscode/
+.venv/
+.dvc/
+Juneberry.egg-info
+.coverage
+htmlcov/
+
+# We never want this
+juneberry.ini
+
+# Ignore models except the config and DVC files
+models/*/*
+!models/**/config.json
+!models/**/*.dvc
+
+experiments/*/*
+!experiments/**/*.json
+!experiments/**/*.dvc
+
+# Ignore some tool support directories
+scripts/resnet-summaries/latest
+
+# A place to hide things
+nothingtoseehere

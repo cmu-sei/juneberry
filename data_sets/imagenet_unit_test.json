@@ -1,0 +1,72 @@
+{
+    "numModelClasses": 1000,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "description": "Subset of Imagenet. 10 images in 10 classes. 5 classes accurate, 5 classes have one wrong image. 224x224, rgb",
+    "timestamp": "2020-11-06T08:18:00",
+    "formatVersion": "3.2.0",
+    "labelNames": {
+        "45": "Gila_monster",
+        "128": "black_stork",
+        "225": "malinois",
+        "319": "dragonfly",
+        "372": "baboon",
+        "402": "acoustic_guitar",
+        "629": "lipstick",
+        "778": "scale",
+        "816": "spindle",
+        "959": "carbonara"
+    },
+    "dataType": "image",
+    "imageData": {
+        "taskType": "classification",
+        "sources": [
+            {
+                "label": 45,
+                "directory": "ImageNetUT/train/n01692333"
+            },
+            {
+                "label": 128,
+                "directory": "ImageNetUT/train/n02002724"
+            },
+            {
+                "label": 225,
+                "directory": "ImageNetUT/train/n02105162"
+            },
+            {
+                "label": 319,
+                "directory": "ImageNetUT/train/n02268443"
+            },
+            {
+                "label": 372,
+                "directory": "ImageNetUT/train/n02486410"
+            },
+            {
+                "label": 402,
+                "directory": "ImageNetUT/train/n02676566"
+            },
+            {
+                "label": 629,
+                "directory": "ImageNetUT/train/n03676483"
+            },
+            {
+                "label": 778,
+                "directory": "ImageNetUT/train/n04141975"
+            },
+            {
+                "label": 816,
+                "directory": "ImageNetUT/train/n04277352"
+            },
+            {
+                "label": 959,
+                "directory": "ImageNetUT/train/n07831146"
+            }
+        ],
+        "properties": {
+            "dimensions": "224,224",
+            "colorspace": "rgb"
+        }
+    }
+}

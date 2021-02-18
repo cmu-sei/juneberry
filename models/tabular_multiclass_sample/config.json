@@ -1,0 +1,36 @@
+{
+    "batchSize": 1500,
+    "dataSetConfigPath": "models/tabular_multiclass_sample/train_data_config.json",
+    "description": "Mutliclass csv dataset for unit testing",
+    "epochs": 100,
+    "formatVersion": "3.1.0",
+    "platform": "pytorch",
+
+    "modelArchitecture": {
+        "module": "juneberry.architectures.pytorch.sample_tabular_nn.MultiClassModel",
+        "args": {
+            "num_classes": 3
+        }
+
+    },
+    "seed": 4210592948,
+    "timestamp": "2020-08-03T15:15:00",
+    "validation": {
+        "algorithm": "randomFraction",
+        "arguments": {
+            "fraction": 0.2,
+            "seed": 3554237221
+        }
+    },
+    "pytorch":{
+        "lossFunction" : "torch.nn.CrossEntropyLoss",
+        "optimizer": "torch.optim.SGD",
+        "optimizerArgs": {
+            "lr": 1.0
+        }
+    },
+    "hints": {
+        "numWorkers": 0
+    }
+
+}

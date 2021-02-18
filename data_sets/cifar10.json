@@ -1,0 +1,68 @@
+{
+    "numModelClasses": 10,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "description": "cifar10 training images, 32x32, rgb",
+    "timestamp": "2020-11-06T08:18:00",
+    "formatVersion": "3.2.0",
+    "labelNames": {
+        "0": "airplane",
+        "1": "automobile",
+        "2": "bird",
+        "3": "cat",
+        "4": "deer",
+        "5": "dog",
+        "6": "frog",
+        "7": "horse",
+        "8": "ship",
+        "9": "truck"
+    },
+    "dataType": "image",
+    "taskType": "classification",
+    "imageData": {
+        "sources": [
+            {
+                "label": 0,
+                "directory": "cifar10/train/airplane"
+            },
+            {
+                "label": 1,
+                "directory": "cifar10/train/automobile"
+            },
+            {
+                "label": 2,
+                "directory": "cifar10/train/bird"
+            },
+            {
+                "label": 3,
+                "directory": "cifar10/train/cat"
+            },
+            {
+                "label": 4,
+                "directory": "cifar10/train/deer"
+            },
+            {
+                "label": 5,
+                "directory": "cifar10/train/dog"
+            },
+            {
+                "label": 6,
+                "directory": "cifar10/train/frog"
+            },
+            {
+                "label": 7,
+                "directory": "cifar10/train/horse"
+            },
+            {
+                "label": 8,
+                "directory": "cifar10/train/ship"
+            },
+            {
+                "label": 9,
+                "directory": "cifar10/train/truck"
+            }
+        ]
+    }
+}
