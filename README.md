@@ -4,7 +4,8 @@ README
 
 # Introduction
 
-Juneberry is a framework for running machine learning experiments. Think of it as an "automated grad student."
+Juneberry improves the experience of machine learning experimentation by providing a framework for automating the 
+training, evaluation and comparison of multiple models against multiple datasets, reducing errors and improving reproducibility.
 
 This README describes how to use the Juneberry framework to execute machine learning tasks.
 Juneberry follows a (mostly) declarative programming model composed of sets of config files 
