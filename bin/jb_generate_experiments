@@ -1,58 +1,74 @@
 #! /usr/bin/env python3
 
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
-import os
-import sys
-import json
-import random
-import logging
 import argparse
+from copy import deepcopy
 import datetime
 import itertools
-from copy import deepcopy
+import logging
+import os
+import random
+import sys
 
+import juneberry.config.experiment as jb_experiment
+from juneberry.config.experiment import ExperimentConfig, ReportType
+import juneberry.config.experiment_outline as jb_exp_outline
+from juneberry.config.experiment_outline import ExperimentOutline
+from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
 import juneberry.scripting as jbscripting
-from juneberry.config.training import TrainingConfig
-from juneberry.config.experiment_outline import ExperimentOutline
-import juneberry.config.experiment as jb_experiment
+
+logger = logging.getLogger("juneberry.jb_generate_experiments")
 
 
-def generate_combined_roc(report, models):
+def generate_combined_roc(in_report, models):
     """
-    This function is responsible for converting a report type of 'all' into a 'plotROC'
+    This function is responsible for converting a report type of 'all_roc' into a 'plot_roc'
     that will plot all of the ROC curves for a particular test onto a single graph.
-    :param report: A dictionary containing the parameters of the ROC report we'd like to generate.
+    :param in_report: A dictionary containing the parameters of the ROC report we'd like to generate.
     :param models: A list of every model in the experiment.
     :return: A list containing a ROC report dictionary that defines the combined plot.
     """
@@ -60,63 +76,119 @@ def generate_combined_roc(report, models):
     # Start with an empty list
     roc_report_list = []
 
-    # Create a copy of the report outline so we don't modify the original.
-    report_dict = deepcopy(report)
+    # Copy the report into our output format without the test_tag
+    as_dict = in_report.to_dict()
+    del as_dict['test_tag']
+    out_report = jb_experiment.Report.from_dict(as_dict)
 
-    # Change the report type from "all" to "plotROC" and derive the outputName
-    report_dict['type'] = "plotROC"
-    report_dict['outputName'] = report_dict['testTag'] + "_all_combined.png"
-    report_dict['plotTitle'] = f"ROC - All Tests Combined"
+    # Change the report type from "all" to "plot_roc" and derive the outputName
+    out_report.type = ReportType.PLOT_ROC.value
+    out_report.output_name = in_report.test_tag + "_all_combined.png"
+    out_report.plot_title = f"ROC - All Tests Combined"
 
     # Now we're going to create a list of tests to include, one for each model
     # in the experiment.
-    report_dict['tests'] = []
+    out_report.tests = []
     for model in models:
-        test = {'tag': report_dict['testTag'] + "_" + model}
-        report_dict['tests'].append(test)
-
-    # We no longer need the testTag, so get rid of it.
-    del report_dict['testTag']
+        test = {'tag': in_report.test_tag + "_" + model}
+        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
 
     # Append the report to the list, log the results, and return
-    roc_report_list.append(report_dict)
-    logging.info(f"Added 1 combined plotROC report for {report['testTag']} to the experiment config.")
+    roc_report_list.append(out_report)
+    logger.info(f"Added 1 combined plot_roc report for {in_report['test_tag']} to the experiment config.")
 
     return roc_report_list
 
 
-def generate_roc_reports(report, models):
+def generate_roc_reports(in_report, models):
     """
-    This function is responsible for taking a report of type 'plotROC' and applying
+    This function is responsible for taking a report of type 'plot_roc' and applying
     the desired report parameters to each possible model in the experiment.
-    :param report: A dictionary containing the parameters of the ROC report we'd like to run for every model
+    :param in_report: A dictionary containing the parameters of the ROC report we'd like to run for every model.
     :param models: A list of the every model in the experiment.
-    :return: A list of ROC report dictionaries; one for each model in the experiment
+    :return: A list of ROC report dictionaries; one for each model in the experiment.
     """
     roc_report_list = []
 
     # Loop over every model in the experiment
     for model in models:
-        # We want to manipulate a copy of the initial report dictionary, so
-        # the changes don't propagate to later models.
-        report_dict = deepcopy(report)
+        # Copy the report into our output format
+        as_dict = in_report.to_dict()
+        del as_dict['test_tag']
+        out_report = jb_experiment.Report.from_dict(as_dict)
 
         # Derive the correct tag name and outputName; add them to the dictionary
-        tag = report['testTag'] + "_" + model
-        report_dict['tests'] = [{"tag": tag}]
-        report_dict['outputName'] = report_dict['testTag'] + "_" + model + ".png"
-        report_dict['plotTitle'] = f"ROC - {model}"
-
-        # The testTag is no longer needed and shouldn't be in the experiment
-        # config, so delete it
-        del report_dict['testTag']
+        tag = in_report.test_tag + "_" + model
+        out_report.tests = [jb_experiment.ReportTest(tag=tag)]
+        out_report.output_name = in_report.test_tag + "_" + model + ".png"
+        out_report.plot_title = f"ROC - {model}"
 
         # Append the dictionary to the list of reports
-        roc_report_list.append(report_dict)
+        roc_report_list.append(out_report)
 
-    logging.info(f"Added {len(roc_report_list)} plotROC reports for {report['testTag']} to the experiment config.")
+    logger.info(f"Added {len(roc_report_list)} plot_roc reports for {in_report['test_tag']} to the experiment config.")
 
     return roc_report_list
+
+
+def generate_combined_pr(in_report, models):
+    """
+    This function is responsible for converting a report type of 'all_pr' into a 'plot_pr'
+    that will plot all of the PR curves for a particular test onto a single graph.
+    :param in_report: A dictionary containing the parameters of the PR report we'd like to generate.
+    :param models: A list of every model in the experiment.
+    :return: A list containing a PR report dictionary that defines the combined plot.
+    """
+    # Start with an empty list.
+    pr_report_list = []
+
+    # Copy the report into our output format without the test_tag.
+    as_dict = in_report.to_dict()
+    del as_dict['test_tag']
+    out_report = jb_experiment.Report.from_dict(as_dict)
+
+    # Change the report type from "all" to "plot_pr" and derive the outputName.
+    out_report.type = ReportType.PLOT_PR.value
+    out_report.output_dir = in_report.test_tag + "_all_combined"
+
+    # Now we're going to create a list of tests to include, one for each model
+    # in the experiment.
+    out_report.tests = []
+    for model in models:
+        test = {'tag': in_report.test_tag + "_" + model}
+        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
+
+    # Append the report to the list, log the results, and return.
+    pr_report_list.append(out_report)
+    logger.info(f"Added 1 combined plot_PR report for {in_report['test_tag']} to the experiment config.")
+
+    return pr_report_list
+
+
+def generate_pr_reports(in_report, models):
+    """
+    This function is responsible for taking a report of type 'plot_pr' and applying
+    the desired report parameters to each possible model in the experiment.
+    :param in_report: A dictionary containing the parameters of the PR report we'd like to run for every model.
+    :param models: A list of the every model in the experiment.
+    :return: A list of PR report dictionaries; one for each model in the experiment.
+    """
+    pr_report_list = []
+
+    for model in models:
+        as_dict = in_report.to_dict()
+        del as_dict['test_tag']
+        out_report = jb_experiment.Report.from_dict(as_dict)
+
+        tag = in_report.test_tag + "_" + model
+        out_report.tests = [jb_experiment.ReportTest(tag=tag)]
+        out_report.output_dir = in_report.test_tag + " - " + model
+
+        pr_report_list.append(out_report)
+
+    logger.info(f"Added {len(pr_report_list)} plot_PR reports for {in_report['test_tag']} to the experiment config.")
+
+    return pr_report_list
 
 
 def generate_reports_list(outline, model_names):
@@ -128,7 +200,7 @@ def generate_reports_list(outline, model_names):
     :return: A list of all the reports that should be included in the experiment config.
     """
 
-    logging.info(f"********** REPORTS **********")
+    logger.info(f"********** REPORTS **********")
 
     reports_list = []
 
@@ -141,23 +213,29 @@ def generate_reports_list(outline, model_names):
 
         # If the report is for a ROC plot, we want to generate a version of that
         # report for every model in the experiment.
-        if report['type'] == 'plotROC':
+        if report.type == ReportType.PLOT_ROC:
             reports_list.extend(generate_roc_reports(report, model_names))
+
+        elif report.type == ReportType.ALL_ROC:
+            reports_list.extend(generate_combined_roc(report, model_names))
+
+        elif report.type == ReportType.PLOT_PR:
+            reports_list.extend(generate_pr_reports(report, model_names))
+
+        elif report.type == ReportType.ALL_PR:
+            reports_list.extend(generate_combined_pr(report, model_names))
 
         # If the report type is a summary , we only need one and can use the
         # parameters as-is.
-        elif report['type'] == 'summary':
+        elif report.type == ReportType.SUMMARY:
             reports_list.append(report)
-            logging.info(f"Added 1 summary report for this experiment.")
-
-        elif report['type'] == 'all':
-            reports_list.extend(generate_combined_roc(report, model_names))
+            logger.info(f"Added 1 summary report for this experiment.")
 
         # Log an error if the report type is unrecognized.
         else:
-            logging.error(f"Report type {report['type']} is invalid.")
+            logger.error(f"Report type {report['type']} is invalid.")
 
-    logging.info(f"Added {len(reports_list)} total reports to the experiment config.")
+    logger.info(f"Added {len(reports_list)} total reports to the experiment config.")
 
     return reports_list
 
@@ -172,7 +250,7 @@ def generate_models_list(outline, experiment_name, model_names):
     :return:
     """
 
-    logging.info(f"********** MODELS **********")
+    logger.info(f"********** MODELS **********")
 
     models_list = []
 
@@ -188,19 +266,23 @@ def generate_models_list(outline, experiment_name, model_names):
 
         # Build a dictionary for the model using the unique name and a copy of all
         # the tests.
-        model_dict = dict({'name': name, 'tests': tests})
+        out_model = jb_experiment.Model(name=name, tests=tests)
 
         # For each test, we want to make sure the tag is updated to reflect the
         # current model name and that a classify flag is present.
-        for test in model_dict['tests']:
-            test['tag'] += "_" + model
+        for test in out_model.tests:
+            test.tag += "_" + model
             if 'classify' not in test:
                 test['classify'] = 0
 
-        # Add the current model dictionary to the overall model list.
-        models_list.append(model_dict)
+        # If they specified filters then add them to the model
+        if outline.model is not None:
+            out_model.filters = outline.model.filters
 
-    logging.info(f"Added {len(models_list)} total models to the experiment config.")
+        # Add the current model dictionary to the overall model list.
+        models_list.append(out_model)
+
+    logger.info(f"Added {len(models_list)} total models to the experiment config.")
 
     return models_list
 
@@ -216,29 +298,29 @@ def generate_experiment_config(experiment_creator, outline, experiment_name, mod
     :return:
     """
 
-    logging.info(f"Attempting to create a config.json for {experiment_name}...")
+    logger.info(f"Attempting to create a config.json for {experiment_name}...")
 
     # Generate the dictionary that will go into config.json
-    config_content = {'description': "Generated using jb_generate_experiments",
-                      'models': generate_models_list(outline, experiment_name, model_names),
-                      'reports': generate_reports_list(outline, model_names),
-                      'formatVersion': jb_experiment.FORMAT_VERSION,
-                      'timestamp': str(datetime.datetime.now().replace(microsecond=0).isoformat())
-                      }
+    out_config = jb_experiment.ExperimentConfig()
+    out_config.description = "Generated using jb_generate_experiments"
+    out_config.models = generate_models_list(outline, experiment_name, model_names)
+    out_config.reports = generate_reports_list(outline, model_names)
+    out_config.format_version = ExperimentConfig.FORMAT_VERSION
+    out_config.timestamp = str(datetime.datetime.now().replace(microsecond=0).isoformat())
+    out_config.filters = outline.filters
 
     # Get the location where we should save the config information.
     exp_config_file = experiment_creator.get_experiment_config_file()
 
     # Write the config content to the config file.
-    with open(exp_config_file, 'w') as output_file:
-        json.dump(config_content, output_file, indent=4)
+    out_config.save(exp_config_file)
 
-    logging.info(f"Experiment config for {experiment_name} written to {exp_config_file}.")
+    logger.info(f"Experiment config for {experiment_name} written to {exp_config_file}.")
 
     return
 
 
-def get_combo_name(chosen: dict, possible_options: dict):
+def get_combo_name(chosen: dict, possible_options: list):
     """
     This function is responsible for deriving the correct name of the combination
     based on which properties were selected. A combination name takes the form
@@ -247,7 +329,7 @@ def get_combo_name(chosen: dict, possible_options: dict):
     that is present in the config for that variable. For example, a combo name of 2_1_0
     has three variables, and its config.json was built using variables A[2], B[1], and C[0].
     :param chosen: A dictionary that contains the variables that were selected for this combination.
-    :param possible_options: A dictionary that contains lists of all possible values for the variables. The
+    :param possible_options: A list that contains entries of all possible values for the variables. The
     variables in the "chosen" dictionary should all have come from these lists.
     :return: The name of the combination, as a string
     """
@@ -262,14 +344,15 @@ def get_combo_name(chosen: dict, possible_options: dict):
     for key in chosen:
 
         # Locate the variable in the list
+        option: jb_exp_outline.Variable
         for option in possible_options:
-            if option['configField'] == key:
+            if option.config_field == key:
 
                 # Add the nickname in the combo_name if there is one
-                if option['nickname']:
-                    combo_name += option['nickname'] + "_" + str(option['values'].index(chosen[key])) + "_"
+                if option.nickname:
+                    combo_name += option.nickname + "_" + str(option.vals.index(chosen[key])) + "_"
                 else:
-                    combo_name += str(option['values'].index(chosen[key])) + "_"
+                    combo_name += str(option.vals.index(chosen[key])) + "_"
 
                 # We've identified the correct variable, so move on to the next one.
                 continue
@@ -278,25 +361,28 @@ def get_combo_name(chosen: dict, possible_options: dict):
     return combo_name[:-1]
 
 
-def apply_nested_parameter(config: TrainingConfig, parameter: str, value):
+def apply_nested_parameter(config: dict, parameter: str, value):
     """
     This function is responsible for applying a variable to a nested parameter
-    in a TrainingConfig object. It works by traversing the TrainingConfig dictionary
-    until it reaches the desired location and then applies the variable value.
-    :param config: The TrainingConfig object to modify.
+    in a dictionary representation of a ModelConfig object. It works by traversing the
+    ModelConfig dictionary until it reaches the desired location and then applies the variable value.
+    :param config: The dictionary representation of the ModelConfig object to modify.
     :param parameter: The nested parameter to modify.
     :param value: The value to apply to the nested parameter.
-    :return: The modified TrainingConfig object.
+    :return: The modified dictionary representation of the ModelConfig object.
     """
 
-    # Establish position at the "root" of the TrainingConfig config.
-    cur_key = config.config
+    # Establish position at the "root" of the ModelConfig dictionary.
+    cur_key = config
 
     # Split up the nested parameter into its component parts.
     components = parameter.split(".")
 
     # Traverse the dictionary, stopping at the final component.
     for component in components[:-1]:
+        if not isinstance(cur_key, dict) or component not in cur_key:
+            logger.error(f"Failed to find '{parameter}' in config. Check parameter validity. EXITING")
+            sys.exit(-1)
         cur_key = cur_key[component]
 
     # Set the value of the final component to the desired variable value.
@@ -305,21 +391,21 @@ def apply_nested_parameter(config: TrainingConfig, parameter: str, value):
     return config
 
 
-def apply_parameter(config: TrainingConfig, parameter: str, value):
+def apply_parameter(config: dict, parameter: str, value):
     """
     This function is responsible for applying the value of a variable to the
-    appropriate parameter in a TrainingConfig object. There are a few special cases
-    that we need to handle, such as nested parameters and parameters that should
+    appropriate parameter in a dictionary representation of a ModelConfig object. There are a few
+    special cases that must be handled, such as nested parameters and parameters that should
     be grouped together.
-    :param config: The TrainingConfig object that will receive the changes.
-    :param parameter: The parameter in the TrainingConfig that is being changed.
-    :param value: The value that the parameter in the TrainingConfig is being changed to.
-    :return: The modified TrainingConfig object.
+    :param config: A dictionary representation of a ModelConfig object whose properties will be changed.
+    :param parameter: The parameter in the ModelConfig that is being changed.
+    :param value: The value that the parameter in the ModelConfig is being changed to.
+    :return: The modified dictionary representation of the ModelConfig object.
     """
 
-    if "seed" in parameter and "RANDOM" in value:
+    if "seed" in parameter and value == "RANDOM":
         random.seed()
-        value = random.randint(0, 2**32-1)
+        value = random.randint(0, 2 ** 32 - 1)
 
     # "Comma notation" is how we handle parameters that need to be applied together. First we
     # must isolate the grouped parameters into individual parameters.
@@ -337,7 +423,7 @@ def apply_parameter(config: TrainingConfig, parameter: str, value):
     # If the parameter isn't grouped or nested, it's "normal" so we can set it just like it's a
     # standard dictionary.
     else:
-        config.config[parameter] = value
+        config[parameter] = value
 
     return config
 
@@ -356,29 +442,68 @@ def check_combinations(variables, combos):
 
         # Check if we have the same number of parameters in the combination as the number of possible variables.
         if len(variables) != len(combo):
-            logging.error(f"Mismatch between the number of variable names and "
-                          f"the number of variables in the combination for combo {combo}.")
+            logger.error(f"Mismatch between the number of variable names and "
+                         f"the number of variables in the combination for combo {combo}.")
             sys.exit(-1)
+
+
+def validate_variables(variables: list) -> None:
+    """
+    Check to make sure the variable structure is valid.
+    * config_field
+    * nickname
+    * vals
+    :param variables: The list of variables to check
+    :return: None
+    """
+    error_count = 0
+    for variable in variables:
+        if type(variable.vals) is list:
+            fields = variable.config_field.split(',')
+            if len(fields) > 1:
+                # If we have multiple config fields, make sure that the keys exist in every entry.
+                for i, val in enumerate(variable.vals):
+                    val_keys = list(val.keys())
+                    for key in fields:
+                        if key not in val:
+                            logger.error(
+                                f"Key {key} not found in entry {i} in '{variable.config_field}'")
+                            error_count += 1
+                        else:
+                            val_keys.remove(key)
+
+                    # If any keys remain then they were not in the config.
+                    if len(val_keys) > 0:
+                        logger.error(f"Entry {i} in '{variable.config_field}' has extra keys {val_keys}!")
+                        error_count += 1
+
+    if error_count > 0:
+        error_str = "error" if error_count == 1 else "errors"
+        logger.error(f"Found {error_count} {error_str} when validating variables. EXITING.")
+        sys.exit(-1)
 
 
 def generate_combinations(variables: list):
     """
     This functions is responsible for generating all possible combinations of variables
-    that we want to apply to a TrainingConfig.
-    :param variables: This is a list of all the variables from a training outline. Each variable
+    that we want to apply to a ModelConfig.
+    :param variables: This is a list of all the variables from a model outline. Each variable
     is a dictionary with keys describing the properties of the variable.
-    :return every_variable_name: A list of which TrainingConfig properties will be varied.
+    :return every_variable_name: A list of which ModelConfig properties will be varied.
+    :return every_variable_nickname: A list of nicknames for each variable.
     :return combinations: A list of every possible variable combination.
     """
     every_variable_name = []
     every_variable_list = []
+    every_nickname_list = []
 
     # For each config property being changed, we want to separately capture the name of
     # the variable and the values that should be substituted in for that property.
     for variable in variables:
-        if type(variable['values']) is list:
-            every_variable_name.append(variable['configField'])
-            every_variable_list.append(variable['values'])
+        if type(variable.vals) is list:
+            every_variable_name.append(variable.config_field)
+            every_nickname_list.append(variable.nickname)
+            every_variable_list.append(variable.vals)
 
     # This itertools.product does the heavy lifting to create a list of every possible
     # combination of the variables. Example: If we have 3 variables and each variable
@@ -386,37 +511,39 @@ def generate_combinations(variables: list):
     # combinations list.
     combinations = list(itertools.product(*every_variable_list))
 
-    return every_variable_name, combinations
+    return every_variable_name, every_nickname_list, combinations
 
 
-def generate_training_configs(experiment_outline: ExperimentOutline):
+def generate_model_configs(experiment_outline: ExperimentOutline):
     """
     This function is responsible for producing the various combinations of
-    TrainingConfig objects and saving them to the appropriate JSON file.
+    ModelConfig objects and saving them to the appropriate JSON file.
     :param experiment_outline: An experiment outline object which contains all of the information
-    required to build the training configs for the experiment.
+    required to build the model configs for the experiment.
     :return: A list of model names for the configs that were produced
     """
 
-    # Load the baseline training config
+    # Load the baseline model config
     model_manager = jbfs.ModelManager(experiment_outline.baseline_config, "")
-    with open(model_manager.get_model_config()) as config_file:
-        baseline_config = TrainingConfig(model_manager.model_name, json.load(config_file))
+    baseline_config = ModelConfig.load(model_manager.get_model_config())
 
     # Now we're going to do some work with the variables in the experiment.
     variables = experiment_outline.variables
+
+    # Check to make sure the variables are well formed.
+    validate_variables(variables)
 
     # We want to remove any variables that don't have a list of options so that they
     # don't affect the model name we're going to derive.
     withheld_variables = []
     for variable in list(variables):
-        if type(variable['values']) is not list:
+        if type(variable.vals) is not list:
             withheld_variables.append(variable)
             variables.remove(variable)
 
     # Convert the variables into a list of variable names and a list of all
     # possible combinations of variables.
-    variable_names, combinations = generate_combinations(variables)
+    variable_names, variable_nicknames, combinations = generate_combinations(variables)
 
     # Confirm the combinations are valid
     check_combinations(variable_names, combinations)
@@ -440,18 +567,20 @@ def generate_training_configs(experiment_outline: ExperimentOutline):
 
         # Add the withheld variables back to the changes being applied
         for variable in list(withheld_variables):
-            config_changes[variable['configField']] = variable['values']
+            config_changes[variable.config_field] = variable.vals
 
         # Initialize a new config using the baseline
-        new_config = TrainingConfig(baseline_config.model_name, baseline_config.config)
+        new_config = deepcopy(baseline_config).to_json()
 
         # Apply each of the changes to the new config
         for parameter in config_changes:
             new_config = apply_parameter(new_config, parameter, config_changes[parameter])
 
-        # Save the modified TrainingConfig to a JSON file in the appropriate directory.
-        with open(model_manager.get_model_config(), 'w') as output_file:
-            json.dump(new_config.config, output_file, indent=4)
+        # Save the summary info to the model
+        new_config['summary_info'] = dict(zip(variable_nicknames, combo))
+
+        # Save the modified ModelConfig to a JSON file in the appropriate directory.
+        jbfs.save_json(new_config, model_manager.get_model_config())
 
         # Add the name of the combo we created to the tracking list.
         model_names.append(combo_name)
@@ -471,7 +600,7 @@ def setup_args(parser) -> None:
 
 def main():
     # Setup and parse all arguments.
-    parser = argparse.ArgumentParser(description="Creates all combinations of training configs required to "
+    parser = argparse.ArgumentParser(description="Creates all combinations of model configs required to "
                                                  "run an experiment. Also creates the experiment config file "
                                                  "which can run the full experiment.")
     setup_args(parser)
@@ -481,27 +610,26 @@ def main():
     experiment_creator = jbfs.ExperimentCreator(args.experimentName)
 
     if args.dryrun:
-        log_prefix = "<< DRY_RUN >> "
+        log_prefix = "<<DRY_RUN>> "
         log_file = experiment_creator.get_experiment_creation_dryrun_log_path()
     else:
         log_prefix = ""
         log_file = experiment_creator.get_experiment_creation_log()
 
     # Use the config file to set up the workspace, data and logging
-    jbscripting.setup_for_experiment_creation(args, log_file, log_prefix, experiment_creator)
+    jbscripting.setup_for_experiment_creation(args, experiment_creator, log_file=log_file, log_prefix=log_prefix)
 
     # Initial log message for this operation
-    logging.info("Creating the experiment files for the following experiment: " + args.experimentName)
+    logger.info("Creating the experiment files for the following experiment: " + args.experimentName)
 
     # Load the experiment definition file
-    logging.info(f"Loading experiment definition file...")
-    with open(experiment_creator.get_experiment_outline()) as outline_file:
-        experiment_outline = ExperimentOutline(args.experimentName, json.load(outline_file))
+    logger.info(f"Loading experiment definition file...")
+    experiment_outline = ExperimentOutline.load(experiment_creator.get_experiment_outline(), args.experimentName)
 
     # Perform a dry run if the option was provided
     if args.dryrun:
         experiment_outline.analyze_experiment_variables()
-        variables, combos = generate_combinations(experiment_outline.variables)
+        variables, nicknames, combos = generate_combinations(experiment_outline.variables)
         check_combinations(variables, combos)
 
     # If it's not a dry run, then create the configs
@@ -512,14 +640,14 @@ def main():
             os.makedirs(config_dir)
 
         # Generate the config files
-        model_name_list = generate_training_configs(experiment_outline)
-        logging.info(f"Created {len(model_name_list)} config files in {config_dir}")
+        model_name_list = generate_model_configs(experiment_outline)
+        logger.info(f"Created {len(model_name_list)} config files in {config_dir}")
 
         # Create the config.json for this experiment
         generate_experiment_config(experiment_creator, experiment_outline,
                                    experiment_creator.experiment_name, model_name_list)
 
-    logging.info("Done!")
+    logger.info("Done!")
 
 
 if __name__ == "__main__":

@@ -1,467 +1,263 @@
 #! /usr/bin/env python3
 
-"""
-Script that runs an experiment (set of models) with corresponding test sets to make predictions then
-a set of reports.
-
-Note about working directory and config files.
-
-Each model may be built off a different data set, so we need to set the CWD to each model
-directory before calling the trainer so that the trainer can pick up each juneberry.ini if different
-for each model.
-
-"""
-
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
+
+"""
+Script that runs an experiment (set of models) with corresponding test sets to make evaluations then
+a set of reports.
+
+Note about working directory and config files:
+
+Each model may be built off a different dataset, so we need to set the CWD to each model
+directory before calling the trainer so that the trainer can pick up each juneberry.ini if different
+for each model.
+
+"""
 
 import argparse
-import json
 import logging
-import os
 from pathlib import Path
-import subprocess
 import sys
 
 # Utilities
-import juneberry
 import juneberry.filesystem as jbfs
-import juneberry.scripting as scripting
-import juneberry.config.experiment as jb_experiment
+import juneberry.scripting as jbscripting
+import juneberry.workflow as jbworkflow
+
+logger = logging.getLogger("juneberry.jb_run_experiment")
 
 
-class StepCounter:
-    def __init__(self):
-        self.step = 0
-        self.total = 0
-        self.msg = ""
-
-    def calc_total(self, config, dry_run):
-        total = len(config['models'])
-        if not dry_run:
-            total += len(make_test_pairs(config)) + len(config['reports'])
-        self.total = total
-
-    def sync_step(self):
-        self.step = self.step + 1
-        self.msg = "[Step " + str(self.step) + "/" + str(self.total) + "]"
-
-
-def run_command(operation_message, args, commit, show_command, add_roots=True):
-    if add_roots:
-        args.extend(['-w', juneberry.WORKSPACE_ROOT,
-                     '-d', juneberry.DATA_ROOT])
-
-    # Convert all args to strings for subprocess and printing.
-    args = [sys.executable] + [str(x) for x in args]
-    if show_command:
-        quoted_args = []
-        for arg in args:
-            if arg.find(' ') != -1:
-                quoted_args.append(f'"{arg}"')
-            else:
-                quoted_args.append(arg)
-        logging.info(f"CMD: {' '.join(quoted_args)}")
-
-    if commit:
-        result = subprocess.run(args)
-        if result.returncode != 0:
-            logging.error(f"{operation_message} returned error code {result.returncode}. EXITING!!")
-            exit(-1)
-
-
-def make_test_pairs(config):
-    test_pairs = []
-    for model in config['models']:
-        for test in model['tests']:
-            test_pairs.append([model['name'], model.get('version', ""), test['datasetPath'], test['classify']])
-    return test_pairs
-
-
-def get_predictions_file_dict(config):
-    pred_dict = {}
-    for model in config['models']:
-
-        model_manager = jbfs.ModelManager(model['name'], model.get('version', ""))
-
-        for test in model['tests']:
-            pred_dict[test['tag']] = model_manager.get_predictions(test['datasetPath'])
-    return pred_dict
-
-
-def check_json(json_path):
+def remove_for_regen(file_path: Path, commit) -> None:
     """
-    Checks the json file for validation.
-    :param json_path: The path to the json file to check
-    :return: True if the file loads ok, False if it encounters a decoder error
-    """
-    with open(json_path, "r") as json_file:
-        try:
-            json.load(json_file)
-            return True
-        except json.JSONDecodeError:
-            return False
-
-
-def clean_file(file_path: Path, commit: bool) -> None:
-    """
-    Utility function to clean a file
-    :param file_path: The file path to clean.
-    :param commit: True to actually do it.
+    Removes the file at the path if it exists and logs it.
+    :param file_path: The file to check for and remove
+    :param commit: Boolean indicating whether or not to actually remove the file.
+    :return: None
     """
     if file_path.exists():
         if commit:
-            logging.info(f"Removing: {file_path}")
+            logger.info(f"Removing {file_path} to ensure it gets regenerated.")
             file_path.unlink()
         else:
-            logging.info(f"Would remove: {file_path}")
-
-
-# =====================================================================================================================
-
-
-def train_models(counter, bin_dir, model_list, clean: bool, dry_run: bool, commit: bool, show_command: bool) -> None:
-    """
-    Trains all the models.
-    :param counter: The step counter for the experiment
-    :param bin_dir: The path describing where to run scripts from.
-    :param model_list: A list of (model_name, model_versions) to train
-    :param clean: True to clean artifacts instead of train.
-    :param dry_run: True train in dry run mode.
-    :param commit: True to actually do it instead of a dry run. Train or clean.
-    :param show_command: True to show the command we execute or would execute
-    """
-    for model in model_list:
-        model_manager = jbfs.ModelManager(*model)
-
-        config_path = model_manager.get_model_config()
-        if not config_path.exists():
-            logging.error(f"config.json in model DOES NOT EXIST - '{model_manager.model_name}'. EXITING")
-            exit(-1)
-
-        if not check_json(config_path):
-            logging.error(f"config.json invalid: JSONDecodeError - '{model_manager.model_name}'. EXITING")
-            exit(-1)
-
-        # Check to see if the model file is there, if so, don't train again
-        model_path = model_manager.get_pytorch_model_file()
-
-        if clean:
-            model_manager.clean(not commit)
-            continue
-
-        if dry_run:
-            logging.info(f"Executing DRY RUN on model. See log_train_dryrun.txt for details."
-                         f" - {model_manager.model_name}")
-            run_command("Dry Run", [bin_dir / 'jb_train', model_manager.model_name, '--dryrun'],
-                        True, show_command)
-
-        counter.sync_step()
-        if model_path.exists():
-            logging.info(f"{counter.msg} MODEL file (.pt) exists. SKIPPING. - {model_manager.model_name}")
-        else:
-            logging.info(f"{counter.msg} MODEL file (.pt) does NOT exist. TRAINING. - {model_manager.model_name}")
-            run_command("Training", [bin_dir / 'jb_train', model_manager.model_name], commit, show_command)
-
-
-def make_predictions(counter, bin_dir, test_pairs, clean: bool, commit: bool, show_command: bool) -> None:
-    """
-    Generates predictions for each model test set pair.
-    :param counter: The step counter for the experiment
-    :param bin_dir: The path describing where to run scripts from.
-    :param test_pairs: A list of tuples of [model_name, model_version, data_set_name]
-    :param clean: True to clean artifacts instead of train.
-    :param commit: True to actually do it instead of a dry run. Predict or clean.
-    :param show_command: True to show the command we execute or would execute
-    """
-    for test_pair in test_pairs:
-        model_name, model_version, data_set_path, classify = test_pair
-        model_manager = jbfs.ModelManager(model_name, model_version)
-
-        data_set_path = Path(data_set_path)
-
-        if not data_set_path.exists():
-            logging.error(f"Test set NOT FOUND {data_set_path} from {model_name}. EXITING")
-            exit(-1)
-
-        if not check_json(data_set_path):
-            logging.error(f"{model_version} invalid: JSONDecodeError - '{model_name}'. EXITING")
-            exit(-1)
-
-        pred_path = model_manager.get_predictions(data_set_path)
-
-        counter.sync_step()
-        if clean:
-            if pred_path.exists():
-                logging.info(f"{counter.msg} PREDICTIONS file exists. REMOVING. - {pred_path}")
-                if commit:
-                    os.remove(pred_path)
-        else:
-            if pred_path.exists():
-                logging.info(f"{counter.msg} PREDICTIONS file exists. SKIPPING. - {pred_path}")
-            else:
-                logging.info(f"{counter.msg} PREDICTIONS does NOT exist. EXECUTING. - {pred_path}")
-                run_command("Make predictions", [bin_dir / 'jb_make_predictions', model_name, data_set_path,
-                                                 "--classify", classify], commit, show_command)
-
-
-def plot_roc(counter, bin_dir, experiment_manager, pred_dict, report, clean, commit: bool, show_command: bool) -> None:
-    """
-    Plots the roc curve for the specific report.
-    :param counter: The step counter for the experiment
-    :param bin_dir: The path describing where to run scripts from.
-    :param experiment_manager: The object responsible for managing the current experiment.
-    :param pred_dict: A dictionary of tag -> prediction file name
-    :param report: The list of reports.
-    :param clean: True to clean artifacts instead of train.
-    :param commit: True to actually do it.
-    :param show_command: True to show the command we execute or would execute
-    """
-    output_path = experiment_manager.get_experiment_file(report['outputName'])
-    # TODO: At one point we used to append png because they didn't. For now, add a warning,
-    if not output_path.suffix == '.png':
-        logging.warning(f"Output path {output_path} does NOT end in '.png' append.  Please update your config.")
-        # NOTE: We really only need this for clean, because matplotlib appends '.png' if the title isn't specified
-        output_path = output_path.with_suffix(".png")
-
-    arg_list = [bin_dir / 'jb_plot_roc', output_path]
-
-    for test in report['tests']:
-        arg_list.append('-f')
-        arg_list.append(str(pred_dict[test['tag']]))
-        arg_list.append('-p')
-        if 'classes' in test:
-            arg_list.append(test['classes'])
-        else:
-            arg_list.append(report['classes'])
-
-    if 'plotTitle' in report:
-        arg_list.append('--title')
-        arg_list.append(report['plotTitle'])
-
-    if clean:
-        clean_file(output_path, commit)
-        return
-
-    logging.info(f"{counter.msg} Plotting ROC for: {report['description']} to {output_path}")
-    run_command("Plotting ROC", arg_list, commit, show_command, add_roots=False)
-
-
-def generate_summary(counter, bin_dir, experiment_manager, config, pred_dict, report, clean, commit: bool,
-                     show_command: bool) -> None:
-    """
-    Generates a markdown file containing a summary of this experiment
-    :param counter: Counter tracking experiment steps.
-    :param bin_dir: The path describing where to run scripts from.
-    :param experiment_manager: The object responsible for managing the current experiment.
-    :param config: The summary configuration
-    :param pred_dict: A dictionary of tag -> prediction file name
-    :param report: The list of reports.
-    :param clean: True to clean artifacts instead of generate.
-    :param commit: True to actually do it.
-    :param show_command: True to show the command we execute or would execute
-    """
-    output_path = experiment_manager.get_experiment_file(report['outputName'])
-    arg_list = [bin_dir / 'jb_summary_report', output_path]
-    if 'csvName' in report:
-        csv_path = experiment_manager.get_experiment_file(report['csvName'])
-        arg_list.extend(['--csvFilename', csv_path])
-    else:
-        csv_path = None
-
-    for k in pred_dict.keys():
-        arg_list.append('-f')
-        arg_list.append(pred_dict[k])
-
-    for r in config:
-        if r["type"] != "plotROC":
-            continue
-        arg_list.append('-pf')
-        arg_list.append(r['outputName'])
-
-    if clean:
-        clean_file(Path(str(output_path)), commit)
-        if csv_path is not None:
-            clean_file(Path(str(csv_path)), commit)
-        return
-
-    logging.info(f"{counter.msg} Generating summary report for: {report['description']} to {output_path}")
-    run_command("Summary generation", arg_list, commit, show_command, add_roots=False)
-
-
-# TODO REIMPLEMENT
-# def generate_csv(bin_dir, experiment_manager, pred_dict, report, clean: bool, commit: bool) -> None:
-#     """
-#     Generates a CSV file containing metrics such as TPR/FPR
-#    :param bin_dir: The path to the where to run scripts from.
-#     :param experiment_manager: The object responsible for managing the current experiment.
-#     :param pred_dict: A dictionary of tag -> prediction file name
-#     :param report: The list of reports.
-#     :param clean: True to clean artifacts instead of train.
-#     :param commit: True to actually do it.
-#     """#
-#     output_path = experiment_manager.get_experiment_file(report['outputName'])
-#
-#     arg_list = [bin_dir / './format_experiment_output.py']
-#     for test in report['tests']:
-#         arg_list.append(pred_dict[test['tag']])
-#
-#     if 'options' in report:
-#         if report['options'] == 'summary':
-#             arg_list.append('--summary')
-#
-#     if clean:
-#         # TODO: Hack that we pass in path WITHOUT png
-#         clean_file(Path(str(output_path) + ".png"), commit)
-#         return
-#
-#     if commit:
-#         logging.info(f"Generating TPR/FPR CSV for: {report['description']} to {output_path}")
-#         with open(output_path + '.csv', "w") as output_file:
-#             result = subprocess.run(arg_list, stdout=output_file)
-#             if result.returncode != 0:
-#                 logging.error(f"Generating CSV file returned {result.returncode}. EXITING!!")
-#                 exit(-1)
-
-
-def generate_reports(counter, bin_dir, experiment_manager, config, clean: bool, commit: bool,
-                     show_command: bool) -> None:
-    """
-    Generates all the reports based on the config file.
-    :param counter: The step counter for the experiment
-    :param bin_dir: The path describing where to run scripts from.
-    :param experiment_manager: The object responsible for managing the current experiment.
-    :param config: The experiment config.
-    :param clean: True to clean artifacts instead of train.
-    :param commit: True to actually do it instead of a dry run. Generate or clean.
-    :param show_command: True to show the command we execute or would execute
-    """
-    if not clean:
-        logging.info(f"Generating reports to experiments/{experiment_manager.experiment_name}")
-    predictions_dict = get_predictions_file_dict(config)
-
-    for report in config['reports']:
-        counter.sync_step()
-        if report['type'] == 'plotROC':
-            plot_roc(counter, bin_dir, experiment_manager, predictions_dict, report, clean, commit, show_command)
-        elif report['type'] == 'CSV':
-            # generate_csv(experiment_manager, predictions_dict, report, clean, commit)
-            logging.error("CSV output currently unsupported.")
-        elif report['type'] == 'summary':
-            generate_summary(counter, bin_dir, experiment_manager, config['reports'], predictions_dict, report, clean,
-                             commit, show_command)
-        else:
-            logging.error("Unsupported report type: " + report['type'])
-
-
-def run_experiment(counter, bin_dir, experiment_manager, clean: bool, dry_run: bool, commit: bool,
-                   show_command: bool) -> None:
-    """
-    Run the entire experiment based on the experiment file name.
-    :param counter: The step counter for the experiment
-    :param bin_dir: The path to the where to run scripts from.
-    :param experiment_manager: The object responsible for managing the current experiment.
-    :param clean: True to clean artifacts.
-    :param dry_run: True train in dry run mode.
-    :param commit: True to actually do it.
-    :param show_command: True to show the command we execute or would execute
-    """
-    with open(experiment_manager.get_experiment_config()) as config_file:
-        config = json.load(config_file)
-
-    # Check formatVersion
-    format_version = config.get("formatVersion", None)
-    jbfs.version_check("EXPERIMENT", format_version, jb_experiment.FORMAT_VERSION, True)
-
-    # Calculate total number of steps for experiment
-    counter.calc_total(config, dry_run)
-
-    if clean:
-        experiment_manager.clean(not commit)
-
-    train_models(counter, bin_dir, [(x['name'], x.get('version', "")) for x in config['models']], clean, dry_run,
-                 commit, show_command)
-
-    if not dry_run:
-        make_predictions(counter, bin_dir, make_test_pairs(config), clean, commit, show_command)
-        generate_reports(counter, bin_dir, experiment_manager, config, clean, commit, show_command)
+            logger.info(f"WOULD Remove {file_path} so that it gets regenerated.")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train a set of models, run a set of tests against them and "
-                                                 "produce a series of outputs into the experimentName directory. "
-                                                 "NOTE: By default this script reports what it WOULD do but does"
-                                                 "not perform any action. See --commit."
-                                                 "NOTE: This script executes other scripts in the same directory. ")
-    parser.add_argument('experimentName', help='Name of the experiment in the experiments directory.')
-    parser.add_argument('--commit', default=False, action='store_true',
-                        help='Actually EXECUTE the work rather than just describe what it would do.')
-    parser.add_argument('--clean', default=False, action='store_true',
-                        help='Clean the model, predictions and work files. Also requires --commit for results.')
-    parser.add_argument('--dryrun', default=False, action='store_true',
-                        help='Apply --dryrun to each model. Not compatible with --commit or --clean. ')
-    parser.add_argument('--showcmd', default=False, action='store_true',
-                        help='Set to true to show the command we execute or would execute.')
+    parser = argparse.ArgumentParser(
+        description="Train a set of models, run a set of tests against them and "
+                    "produce a series of outputs into the experimentName directory. "
+                    "NOTE: By default this script reports what it WOULD do but does"
+                    "not perform any action. See --commit."
+                    "NOTE: This script executes other scripts in the same directory. "
+    )
+    parser.add_argument(
+        "experimentName", help="Name of the experiment in the experiments directory."
+    )
+    parser.add_argument(
+        "--commit", "-X",
+        default=False,
+        action="store_true",
+        help="Add this flag to execute the task. Otherwise the experiment will run in preview mode.",
+    )
+    parser.add_argument(
+        "--clean", "-C",
+        default=False,
+        action="store_true",
+        help="Clean the model, predictions and work files. Also requires --commit for results.",
+    )
+    parser.add_argument(
+        "--dryrun", "-D",
+        default=False,
+        action="store_true",
+        help="Apply --dryrun to to see a description of what execution would look like without actually"
+             "executing. Also requires --commit for results.",
+    )
+    parser.add_argument(
+        "--showcmd", "-S",
+        default=False,
+        action="store_true",
+        help="Set to true to show the command we execute or would execute.",
+    )
+    parser.add_argument(
+        "--rules", default=False, help="Path to custom rules.json file."
+    )
+    parser.add_argument(
+        "--processes", "-N",
+        type=int,
+        default=None,
+        help="This argument will override the default experiment behavior for jb_train, which uses all available "
+             "GPUs for a single jb_train. Instead, this argument launches an instance of jb_train that uses N GPUs, "
+             "so multiple models can be trained in parallel.")
+    parser.add_argument(
+        "--regen", "-R",
+        default=False,
+        action="store_true",
+        help="When this argument is provided, any existing experiment config or rules files will be deleted and "
+             "regenerated.")
 
-    scripting.setup_args(parser, add_data_root=True)
-
-    # Args specific to this script.
+    jbscripting.setup_args(parser, add_data_root=True)
     args = parser.parse_args()
+    show_command = args.showcmd
 
-    # Find the path to this script.  This becomes the "bin" directory.
-    bin_dir = Path(__file__).parent.absolute()
-
-    # Create an experiment manager
+    # Set up logging
     experiment_manager = jbfs.ExperimentManager(args.experimentName)
-
-    # Create an experiment step counter
-    counter = StepCounter()
-
-    log_prefix = '<<DRY-RUN>> '
+    log_prefix = "<<PREVIEW>> "
     log_file = experiment_manager.get_experiment_dryrun_log_path()
     if args.commit:
-        log_prefix = '<<LIVE>> '
+        log_prefix = "<<LIVE>> "
         log_file = experiment_manager.get_experiment_log_path()
+    lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
 
-    scripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix, add_data_root=True)
+    # Find bin directory
+    bin_dir = Path(__file__).parent.absolute()
+    logger.info(f"Using bin directory: {bin_dir}")
 
-    if args.dryrun and (args.commit or args.clean):
-        logging.error("dryrun (for the trainer) is not compatible with clean or commit. EXITING~")
-        sys.exit(-1)
+    # Generate appropriate dodo.py file for the workflow
+    if args.dryrun:
+        workflow = "dryrun"
+    else:
+        workflow = "main"
 
-    # Run the experiments
-    logging.info(f"Using bin directory: {bin_dir}")
-    run_experiment(counter, bin_dir, experiment_manager, args.clean, args.dryrun, args.commit, args.showcmd)
-    
-    logging.info("Done")
+    # If they want us to regenerate the config, then check for outline and delete config and its outputs
+    if args.regen:
+        # THIS IS A HACK
+        # We should NOT need to use the experiment creator.  The experiment creator
+        # class should go into the experiment manager
+        exp_creator = jbfs.ExperimentCreator(args.experimentName)
+        outline_path = Path(exp_creator.get_experiment_outline())
+        if outline_path.exists():
+            remove_for_regen(Path(experiment_manager.get_experiment_config()), args.commit)
+            remove_for_regen(Path(experiment_manager.get_experiment_rules()), args.commit)
+            remove_for_regen(Path(experiment_manager.get_experiment_dodo(workflow)), args.commit)
+        if not args.commit and not args.clean:
+            sys.exit(0)
+
+    # Generate experiment config.json
+    config_path = experiment_manager.get_experiment_config()
+    if not config_path.exists():
+        logger.info(f"config.json in experiment {args.experimentName} not found.")
+        logger.info(f"Generating experiment config.json file for {args.experimentName}.")
+        jbworkflow.run_command(
+            dependencies=[],
+            args=[bin_dir / "jb_generate_experiments", args.experimentName],
+            show_command=show_command,
+        )
+
+    # Generate rules.json
+    rules_path = experiment_manager.get_experiment_rules()
+    if not rules_path.exists():
+        logger.info(f"rules.json in experiment {args.experimentName} not found.")
+        logger.info(f"Generating experiment rules.json file for {args.experimentName}.")
+        jbworkflow.run_command(
+            dependencies=[],
+            args=[bin_dir / "jb_experiment_to_rules", args.experimentName],
+            show_command=show_command,
+        )
+
+    dodo_path = experiment_manager.get_experiment_dodo(workflow)
+    if not dodo_path.exists():
+        logger.info(f"{workflow}_dodo.py in experiment {args.experimentName} not found.")
+        logger.info(f"Generating experiment {workflow}_dodo.py file for {args.experimentName}.")
+        cmd_args = [bin_dir / "jb_rules_to_pydoit", args.experimentName, workflow]
+        if args.processes and args.processes > 0:
+            cmd_args.append('--parallel')
+        jbworkflow.run_command(
+            dependencies=[],
+            args=cmd_args,
+            show_command=show_command,
+        )
+
+    # Develop pydoit command
+    cmd_args = ["python", "-m", "doit", "-d", str(lab.workspace()), "-f", str(dodo_path.resolve())]
+
+    # If they specify the number of processes we should show it
+    if args.processes and args.commit and not args.clean:
+        cmd_args.extend(['-n', args.processes])
+
+    # Clean mode
+    if args.clean:
+        if args.commit:
+            if args.dryrun:
+                logger.info(f"Cleaning the DRYRUN workflow for {args.experimentName}")
+                cmd_args.append("clean")
+            else:
+                logger.info(f"Cleaning the MAIN workflow for {args.experimentName}")
+                cmd_args.append("clean")
+        else:
+            logger.info("The following tasks would be cleaned:")
+            cmd_args.append("list")
+            cmd_args.append("-s")
+
+    # Execution mode
+    else:
+        if args.commit:
+            if args.dryrun:
+                logger.info(f"Executing DRYRUN workflow for {args.experimentName}.")
+            else:
+                logger.info(f"Executing MAIN workflow for {args.experimentName}.")
+        else:
+            logger.info("The following tasks could be executed, check status:")
+            logger.info("R: run, U: up-to-date, I: ignored")
+            cmd_args.append("list")
+            cmd_args.append("-s")
+
+    # Run PyDoit command
+    jbworkflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
+    if not args.commit:
+        logger.info("Add --commit or -X to execute changes.")
+
+    # Lastly, remove rules.json and dodo.py files
+    if args.commit and args.clean:
+        if rules_path.exists():
+            logger.info("Removing " + str(rules_path))
+            rules_path.unlink()
+        if dodo_path.exists():
+            logger.info("Removing " + str(dodo_path))
+            dodo_path.unlink()
+
+    logger.info("Done")
 
 
 if __name__ == "__main__":

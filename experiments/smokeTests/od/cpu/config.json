@@ -1,0 +1,36 @@
+{
+    "description": "Unit test for object detection platforms using CPU training.",
+    "format_version": "0.2.0",
+    "models": [
+        {
+            "name": "text_detect/dt2/ut",
+            "tests": [
+                {
+                    "dataset_path": "data_sets/text_detect_val.json",
+                    "tag": "ut_val_dt2"
+                }
+            ]
+        }
+    ],
+    "reports": [
+        {
+            "description": "Builds PR plots for the dt2 model.",
+            "iou": 0.5,
+            "output_dir": "ut_val_dt2",
+            "tests": [
+                {
+                    "tag": "ut_val_dt2"
+                }
+            ],
+            "type": "plot_pr"
+        },
+        {
+            "csv_name": "OD System Test Summary.csv",
+            "description": "Simple OD System Test Summary",
+            "output_name": "System OD Test Summary.md",
+            "type": "summary"
+        }
+
+    ],
+    "timestamp": "2020-06-10T08:29:00"
+}

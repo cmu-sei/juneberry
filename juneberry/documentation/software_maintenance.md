@@ -50,7 +50,7 @@ if __name__ == "__main__":
 ```
 
 ## JSON
-- mixedCasenames for properties
+- snake_case names for properties
 - 4 space indent
 
 ## Git
@@ -58,6 +58,19 @@ if __name__ == "__main__":
 - We default to squash on merges
 - When branches get confusing, prefer to rebase to a new branch with the suffix "-merge"
 - Most tasks are features
+
+# Design Notes
+
+## Config files
+Juneberry is a config-driven system. Different types of config files store different concerns, for example the structure 
+of a model would be in one type of config, while the contents of a dataset would be defined in another. Regardless of 
+config type, a similar process is used to load config data, so all configs follow a similar philosophy.
+
+1) Files or blob are in common python-happy formats such as json, yaml or toml
+1) Files are loaded into pure python data structures
+1) Version conversions are performed
+1) Data structures are validated using jsonschema regardless of file format
+1) Validated structures are loaded into convenience data models such as Prodict. 
 
 # Copyright
 

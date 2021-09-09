@@ -1,0 +1,252 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "format_version": {
+            "type": "string"
+        },
+        "options": {
+            "type": "object",
+            "properties": {
+                "batch_size": {
+                    "type": "integer"
+                },
+                "colorspace": {
+                    "type": "string"
+                },
+                "dimensions": {
+                    "type": "string"
+                },
+                "epochs": {
+                    "type": "integer"
+                },
+                "model_architecture": {
+                    "type": "object"
+                },
+                "num_training_images": {
+                    "type": "integer"
+                },
+                "num_validation_images": {
+                    "type": "integer"
+                },
+                "seed": {
+                    "type": "integer"
+                },
+                "training_dataset_config_path": {
+                    "type": "string"
+                },
+                "validation_dataset_config_path": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "batch_size",
+                "epochs",
+                "model_architecture",
+                "seed",
+                "training_dataset_config_path"
+            ]
+        },
+        "results": {
+            "type": "object",
+            "properties": {
+                "accuracy": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "batch_loss": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "false_negative": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "fg_cls_accuracy": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "learning_rate": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_bbox": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_box_reg": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_cls": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_rpn_bbox": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_rpn_cls": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "loss_rpn_loc": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "model_hash": {
+                    "type": "string"
+                },
+                "model_name": {
+                    "type": "string"
+                },
+                "num_bg_samples": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "num_fg_samples": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "num_neg_anchors": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "num_pos_anchors": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "test_error": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "timetest": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "train_error": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_accuracy": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_error": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_loss": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_loss_bbox": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_loss_cls": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_loss_rpn_bbox": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "val_loss_rpn_cls": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            },
+            "required": [
+                "accuracy",
+                "loss",
+                "model_hash",
+                "model_name",
+                "val_accuracy",
+                "val_loss"
+            ]
+        },
+        "times": {
+            "type": "object",
+            "properties": {
+                "duration": {
+                    "type": "number"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "epoch_duration_sec": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "start_time": {
+                    "type": "string"
+                }
+            },
+            "required": [
+            ]
+        }
+    },
+    "required": [
+        "options",
+        "results"
+    ]
+}

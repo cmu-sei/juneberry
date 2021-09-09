@@ -1,0 +1,25 @@
+{
+    "data_type": "image",
+    "description": "Juneberry metadata files created using detectron2 text detection example.",
+    "format_version": "0.2.0",
+    "url": "https://cocodataset.org/#download",
+    "image_data": {
+        "sources": [
+            {
+                "directory": "detectron2-text-detection/train/coco_annotations.json"
+            }
+        ],
+        "task_type": "object_detection"
+    },
+    "label_names": {
+        "0": "HINDI",
+        "1": "ENGLISH",
+        "2": "OTHER"
+    },
+    "num_model_classes": 3,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "timestamp": "2021-03-03T12:25:00"
+}

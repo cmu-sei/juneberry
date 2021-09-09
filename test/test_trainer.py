@@ -1,51 +1,69 @@
 #! /usr/bin/env python3
 
-"""
-Unit test for the trainer base class.
-"""
-
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
+"""
+Unit test for the trainer base class.
+"""
+
+import json
+import time
 import inspect
 import logging
-import time
+
+from pathlib import Path
 
 from juneberry.trainer import EpochTrainer
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.training import TrainingConfig
+from juneberry.config.model import ModelConfig
+import juneberry.filesystem as jbfs
+from juneberry.lab import Lab
 
 import test_data_set
-import test_training_config
+import test_model_config
 
 import functools
 
@@ -75,11 +93,10 @@ def log_func(func):
 
 
 class EpochTrainerHarness(EpochTrainer):
-    def __init__(self, training_config, data_set_config, **kw_args):
-        super().__init__(training_config, data_set_config, **kw_args)
+    def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
+        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.setup_calls = []
-        self.dry_run_calls = []
         self.start_epoch_training_calls = []
         self.start_epoch_evaluation_calls = []
         self.process_batch_calls = []
@@ -88,7 +105,7 @@ class EpochTrainerHarness(EpochTrainer):
         self.summarize_metrics_calls = []
         self.checkpoint_calls = []
         self.finalize_results_calls = []
-        self.close_calls = []
+        self.serialize_results_calls = []
 
         self.expected_metrics = None
         self.expected_results = None
@@ -113,11 +130,6 @@ class EpochTrainerHarness(EpochTrainer):
             [[10, 20], [1, 0]],
             [[11, 22], [0, 1]]
         ]
-
-    @log_func
-    def dry_run(self) -> None:
-        self.dry_run_calls.append(self.step)
-        self.step += 1
 
     @log_func
     def start_epoch_phase(self, train: bool):
@@ -171,7 +183,7 @@ class EpochTrainerHarness(EpochTrainer):
         self.step += 1
 
     @log_func
-    def end_epoch(self, elapsed_secs: float) -> None:
+    def end_epoch(self) -> None:
         self.checkpoint_calls.append(self.step)
         self.step += 1
         self.epochs -= 1
@@ -183,19 +195,20 @@ class EpochTrainerHarness(EpochTrainer):
         self.finalize_results_calls.append(self.step)
         self.step += 1
 
-    @log_func
-    def close(self) -> None:
-        self.close_calls.append(self.step)
-        self.step += 1
-
     # -----------------------------------------------
     # Utility functions I don't know what to do with
     @log_func
     def get_labels(self, targets):
         return []
 
+    @log_func
+    def _serialize_results(self):
+        # override so we don't actually write to disk
+        self.serialize_results_calls.append(self.step)
+        self.step += 1
 
-def test_epoch_trainer():
+
+def test_epoch_trainer(tmp_path):
     """
     >> 0 setup
     >> 1 start_epoch_training
@@ -253,18 +266,28 @@ def test_epoch_trainer():
     >> 53 summarize_metrics
     >> 54 end_epoch
     >> 55 finalize_results
+    >> 56 serialize_results_calls
     """
 
     print("Starting")
     logging.basicConfig(level=logging.INFO)
+    lab = Lab(workspace='.', data_root=',')
     dsc = test_data_set.make_basic_config()
-    data_set_config = DatasetConfig(dsc)
-    tc = test_training_config.make_basic_config()
-    training_config = TrainingConfig("simple_model", tc)
+    data_set_config = DatasetConfig.construct(dsc)
+    tc = test_model_config.make_basic_config()
+    config_path = Path(tmp_path, "config.json")
 
-    trainer = EpochTrainerHarness(training_config, data_set_config)
+    with open(config_path, 'w') as out_file:
+        json.dump(tc, out_file, indent=4)
 
-    trainer.train_model()
+    # TODO: Switch this to just use the internal data structure
+    model_config = ModelConfig.load(config_path)
+
+    model_manager = jbfs.ModelManager("foo")
+
+    trainer = EpochTrainerHarness(lab, model_manager, model_config, data_set_config, log_level=logging.INFO)
+
+    trainer.train_model(None)
     assert trainer.setup_calls == [0]
     assert trainer.start_epoch_training_calls == [1, 19, 37]
 
@@ -276,24 +299,8 @@ def test_epoch_trainer():
     assert trainer.summarize_metrics_calls == [11, 17, 29, 35, 47, 53]
     assert trainer.checkpoint_calls == [18, 36, 54]
     assert trainer.finalize_results_calls == [55]
-    assert trainer.close_calls == [56]
+    assert trainer.serialize_results_calls == [56]
 
     trainer.timer.log_metrics()
-
-    print("Done")
-
-
-def test_dry_run():
-    logging.basicConfig(level=logging.INFO)
-    dsc = test_data_set.make_basic_config()
-    data_set_config = DatasetConfig(dsc)
-    tc = test_training_config.make_basic_config()
-    training_config = TrainingConfig("simple_model", tc)
-
-    trainer = EpochTrainerHarness(training_config, data_set_config, dry_run=True)
-
-    trainer.train_model()
-    assert trainer.setup_calls == [0]
-    assert trainer.dry_run_calls == [1]
 
     print("Done")

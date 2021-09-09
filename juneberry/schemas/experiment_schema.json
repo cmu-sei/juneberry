@@ -1,0 +1,110 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "description": { "type": "string" },
+        "format_version": { "type": "string" },
+        "filter": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "tag": { "type": "string" },
+                    "cmd": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "inputs": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    }
+                }
+            }
+        },
+        "models": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "filters": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "tests": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "classify": { "type": "integer" },
+                                "dataset_path": { "type": "string" },
+                                "filters": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "tag": { "type": "string" },
+                                "use_train_split": { "type": "boolean" },
+                                "use_val_split": { "type": "boolean" }
+                            },
+                            "required": [ "dataset_path", "tag" ]
+                        }
+                    },
+                    "version": { "type": "string" }
+                },
+                "required": [ "name", "tests" ]
+            },
+            "minItems": 1
+        },
+        "reports": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "description": { "type": "string" },
+                    "type": {
+                        "type": "string",
+                        "enum": [ "plot_pr", "plot_roc", "summary" ]
+                    },
+                    "classes": { "type": "string" },
+                    "tests": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tag": { "type": "string" },
+                                "classes": { "type": "string" }
+                            },
+                            "required": [ "tag" ]
+                        }
+                    },
+                    "output_dir": { "type": "string" },
+                    "output_name": { "type": "string" },
+                    "csv_name": { "type": "string" },
+                    "plot_title": { "type": "string" }
+                },
+                "required": [
+                    "type"
+                ],
+                "anyOf": [
+                    {
+                        "properties": { "type": { "const": "plot_roc" } },
+                        "required": [ "description", "tests", "output_name", "plot_title" ]
+                    },
+                    {
+                        "properties": { "type": { "const": "plot_pr" } },
+                        "required": [ "description", "tests", "output_dir" ]
+                    },
+                    {
+                        "properties": { "type": { "const": "summary" } },
+                        "required": [ "description", "output_name" ]
+                    }
+                ]
+            }
+        },
+        "timestamp": { "type": "string" }
+    },
+    "required": [
+        "models",
+        "reports"
+    ]
+}

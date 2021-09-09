@@ -1,72 +1,96 @@
 {
-  "description": "This is an example experiment generator config.",
-  "formatVersion": "1.0.0",
-  "timestamp": "2020-07-27T07:45:00",
-  "tests": [
-    {
-      "tag": "Test 1",
-      "datasetPath": "data_sets/imagenet_unit_test.json",
-      "classify": 0
-    }
-  ],
-  "reports": [
-    {
-      "type": "plotROC",
-      "description": "Builds a ROC plot for classes 45, 128, 225, 319, and 372",
-      "testTag": "Test 1",
-      "classes": "45,128,225,319,372"
-    },
-    {
-      "type": "summary",
-      "description": "Experiment Summary",
-      "outputName": "Experiment Summary.md"
-    },
-    {
-      "type": "all",
-      "description": "Builds a combined ROC plot for classes 45, 128, 225, 319, and 372",
-      "testTag": "Test 1",
-      "classes": "45,128,225,319,372"
-    }
-  ],
-  "baselineConfig": "imagenet_224x224_rgb_unit_test_pyt_resnet50",
-  "variables": [
-    {
-      "nickname": "lr",
-      "configField": "pytorch.optimizerArgs.lr",
-      "values": [
-        0.02,
-        0.01
-      ]
-    },
-    {
-      "nickname": "lrSched",
-      "configField": "pytorch.lrSchedule,pytorch.lrScheduleArgs",
-      "values": [
+    "baseline_config": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+    "description": "This is an example experiment generator config.",
+    "filters": [
         {
-          "pytorch.lrSchedule": "MultiStepLR",
-          "pytorch.lrScheduleArgs": {
-            "milestones": [3, 5],
-            "gamma": 0.5
-          }
+            "cmd": [
+                "cp",
+                "{train_output}",
+                "{train_output.parent}/{train_output.stem}-copy.json"
+            ],
+            "inputs": [
+                "{train_output}"
+            ],
+            "tag": "train_out_cp"
+        }
+    ],
+    "format_version": "0.2.0",
+    "model": {
+        "filters": [
+            "train_out_cp"
+        ]
+    },
+    "reports": [
+        {
+            "classes": "0,217,482,491,497",
+            "description": "Builds a ROC plot for classes 0,217,482,491 and 497",
+            "test_tag": "Test 1",
+            "type": "plot_roc"
         },
         {
-          "pytorch.lrSchedule": "MultiStepLR",
-          "pytorch.lrScheduleArgs": {
-            "milestones": [2, 4],
-            "gamma": 0.75
-          }
+            "description": "Experiment Summary",
+            "output_name": "Experiment Summary.md",
+            "type": "summary"
+        },
+        {
+            "classes": "566,569,571,574,701",
+            "description": "Builds a combined ROC plot for classes 566,569,571,574 and 701",
+            "test_tag": "Test 1",
+            "type": "all_roc"
         }
-      ]
-    },
-    {
-      "nickname": "",
-      "configField": "seed",
-      "values": "RANDOM"
-    },
-    {
-      "nickname": "",
-      "configField": "validation.arguments.seed",
-      "values": "RANDOM"
-    }
-  ]
+    ],
+    "tests": [
+        {
+            "classify": 0,
+            "dataset_path": "data_sets/imagenette_unit_test.json",
+            "tag": "Test 1"
+        }
+    ],
+    "timestamp": "2021-02-278T10::00",
+    "variables": [
+        {
+            "config_field": "pytorch.optimizer_args.lr",
+            "nickname": "lr",
+            "vals": [
+                0.02,
+                0.01
+            ]
+        },
+        {
+            "config_field": "pytorch.lr_schedule,pytorch.lr_schedule_args",
+            "nickname": "lrSched",
+            "vals": [
+                {
+                    "pytorch.lr_schedule": "MultiStepLR",
+                    "pytorch.lr_schedule_args": {
+                        "gamma": 0.5,
+                        "milestones": [
+                            3,
+                            5
+                        ]
+                    }
+                },
+                {
+                    "pytorch.lr_schedule": "MultiStepLR",
+                    "pytorch.lr_schedule_args": {
+                        "gamma": 0.75,
+                        "milestones": [
+                            2,
+                            4
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "config_field": "seed",
+            "nickname": "",
+            "vals": "RANDOM"
+        },
+        {
+            "config_field": "validation.arguments.seed",
+            "nickname": "",
+            "vals": "RANDOM"
+        }
+    ]
 }

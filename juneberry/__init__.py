@@ -1,9 +1,12 @@
-# We assume that cwd is the set to WORKSPACE root
-WORKSPACE_ROOT = None
-DATA_ROOT = None
+#! /usr/bin/env python3
 
-# The number of workers to use in various multi-threading or multi-processing operations.
-NUM_WORKERS = 0
+from enum import Enum
 
-# If not none, where we should place Tensorboard files
-TENSORBOARD_ROOT = None
+__version__ = 0.4
+
+class Platforms(str, Enum):
+    """ A list of different supported platforms """
+    DT2 = "detectron2"
+    MMD = "mmdetection"
+    PYT = "pytorch"
+    PYT_PRIVACY = "pytorch_privacy"

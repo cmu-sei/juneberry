@@ -1,0 +1,36 @@
+{
+    "batch_size": 4,
+    "description": "Unit test for an object detector on the TextDetection data set.",
+    "epochs": 6,
+    "evaluation_transforms": [],
+    "format_version": "0.2.0",
+    "hints": {
+        "num_workers": 1
+    },
+    "mmdetection": {
+        "load_from": "https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco_20201028_233851-b33d21b9.pth",
+        "overrides": {
+            "model.roi_head.bbox_head.num_classes": 3,
+            "optimizer.lr": 0.003
+        }
+    },
+    "model_architecture": {
+        "module": "faster_rcnn/faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py"
+    },
+    "platform": "mmdetection",
+    "pytorch": {
+        "deterministic": true
+    },
+    "seed": 4210592948,
+    "task": "objectDetection",
+    "timestamp": "2021-03-03T10:00:00",
+    "training_dataset_config_path": "data_sets/text_detect_val.json",
+    "training_transforms": [],
+    "validation": {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "fraction": 0.2,
+            "seed": 3554237221
+        }
+    }
+}

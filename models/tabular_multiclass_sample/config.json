@@ -1,36 +1,36 @@
 {
-    "batchSize": 1500,
-    "dataSetConfigPath": "models/tabular_multiclass_sample/train_data_config.json",
+    "batch_size": 1500,
     "description": "Mutliclass csv dataset for unit testing",
     "epochs": 100,
-    "formatVersion": "3.3.0",
-    "platform": "pytorch",
-
-    "modelArchitecture": {
-        "module": "juneberry.architectures.pytorch.sample_tabular_nn.MultiClassModel",
+    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
+    "format_version": "0.2.0",
+    "hints": {
+        "max_gpus": 1,
+        "num_workers": 0
+    },
+    "model_architecture": {
         "args": {
             "num_classes": 3
-        }
-
+        },
+        "module": "juneberry.architectures.pytorch.sample_tabular_nn.MultiClassModel"
+    },
+    "platform": "pytorch",
+    "pytorch": {
+        "loss_fn": "torch.nn.CrossEntropyLoss",
+        "optimizer_args": {
+            "lr": 1.0
+        },
+        "optimizer_fn": "torch.optim.SGD"
     },
     "seed": 4210592948,
-    "timestamp": "2020-08-03T15:15:00",
+    "task": "classification",
+    "timestamp": "2021-03-01T10:00:00",
+    "training_dataset_config_path": "models/tabular_multiclass_sample/train_data_config.json",
     "validation": {
-        "algorithm": "randomFraction",
+        "algorithm": "from_file",
         "arguments": {
-            "fraction": 0.2,
-            "seed": 3554237221
+            "file_path": "models/tabular_multiclass_sample/val_data_config.json"
         }
-    },
-    "pytorch":{
-        "lossFunction" : "torch.nn.CrossEntropyLoss",
-        "optimizer": "torch.optim.SGD",
-        "optimizerArgs": {
-            "lr": 1.0
-        }
-    },
-    "hints": {
-        "numWorkers": 0
     }
-
 }

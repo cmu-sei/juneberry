@@ -1,0 +1,194 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "definitions": {
+        "transform_item": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "fqcn" ]
+        }
+    },
+    "type": "object",
+    "description": "A configuration for training and running a model file.",
+    "properties": {
+        "batch_size": { "type": "integer" },
+        "description": { "type": "string" },
+        "detectron2": {
+            "type": "object",
+            "properties": {
+                "metric_interval": { "type": "integer"},
+                "overrides": { "type": "array" }
+            },
+            "required": [ ]
+        },
+        "epochs": { "type": "integer" },
+        "evaluation_output_fqcn": { "type": "string" },
+        "evaluation_procedure": { "type": "string" },
+        "evaluation_transforms": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "evaluation_target_transforms": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "format_version": { "type": "string" },
+        "hints": {
+            "type": "object",
+            "properties": {
+                "num_workers": {
+                    "type": "integer"
+                }
+            },
+            "required": [ ]
+        },
+        "label_mapping": { "type": [ "string", "object" ] },
+        "mmdetection": {
+            "type": "object",
+            "properties": {
+                "load_from": { "type": "string" },
+                "overrides": { "type": "object" },
+                "test_pipeline_stages": { "type": "array" },
+                "train_pipeline_stages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "mode": { "type": "string" },
+                            "name": { "type": "string" },
+                            "stage": { "type": "object" },
+                            "tupleize": { "type": "boolean" }
+                        },
+                        "required": [ "name", "stage" ]
+                    }
+                }
+            },
+            "required": [ "load_from" ]
+        },
+        "model_architecture": {
+            "type": "object",
+            "properties": {
+                "args": { "type": "object" },
+                "module": { "type": "string" },
+                "previous_model": { "type": "string" },
+                "previous_model_version": { "type": "string" }
+            },
+            "required": [ "module" ]
+        },
+        "model_transforms": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "platform": {
+            "type": "string",
+            "enum": [ "pytorch", "detectron2", "mmdetection", "pytorch_privacy" ]
+        },
+        "preprocessors": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "pytorch": {
+            "type": "object",
+            "properties": {
+                "accuracy_args": { "type": "object" },
+                "accuracy_fn": { "type": "string" },
+                "loss_args": { "type": "object" },
+                "loss_fn": { "type": "string" },
+                "lr_schedule_fn": { "type": "string" },
+                "lr_schedule_args": { "type": "object" },
+                "lr_step_frequency": {
+                    "type": "string",
+                    "enum": [ "epoch", "batch" ]
+                },
+                "optimizer_fn": { "type": "string" },
+                "optimizer_args": { "type": "object" }
+            },
+            "required": [ ]
+        },
+        "seed": { "type": "integer" },
+        "stopping_criteria": {
+            "type": "object",
+            "properties": {
+                "direction": { "type": "string", "enum": ["le", "ge"]},
+                "history_key": { "type": "string", "enum": ["loss", "accuracy", "val_loss", "val_accuracy"]},
+                "abs_tol": { "type": "number" },
+                "plateau_count": { "type": "integer" },
+                "threshold": { "type": "number" }
+            },
+            "required": [ ]
+        },
+        "task": {
+            "type": "string",
+            "enum": [ "classification", "objectDetection" ]
+        },
+        "timestamp": { "type": "string" },
+        "training_dataset_config_path": { "type": "string" },
+        "training_transforms": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "training_target_transforms": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/transform_item" }
+        },
+        "validation": {
+            "type": "object",
+            "properties": {
+                "algorithm": {
+                    "type": "string",
+                    "enum": [ "from_file", "none", "random_fraction", "torchvision" ]
+                },
+                "arguments": {
+                    "type": "object",
+                    "properties": {
+                        "file_path": { "type": "string" },
+                        "fraction": { "type": "number" },
+                        "seed": { "type": "integer" }
+                    },
+                    "required": [ ]
+                }
+            },
+            "oneOf": [
+                {
+                    "properties":
+                    {
+                        "algorithm": { "const": "from_file" },
+                        "arguments": { "required": [ "file_path" ] }
+                    }
+                },
+                {
+                    "properties":
+                    {
+                        "algorithm": { "const": "none" },
+                        "arguments": { "required": [  ] }
+                    }
+                },
+                {
+                    "properties":
+                    {
+                        "algorithm": { "const": "random_fraction" },
+                        "arguments": { "required": [ "fraction" ] }
+                    }
+                },
+                {
+                    "properties":
+                    {
+                        "algorithm": { "const": "torchvision" },
+                        "arguments": { "required": [  ] }
+                    }
+                }
+            ],
+            "required": [ "algorithm" ]
+        }
+    },
+    "required": [
+        "batch_size",
+        "format_version",
+        "model_architecture",
+        "platform",
+        "training_dataset_config_path",
+        "validation"
+    ]
+}

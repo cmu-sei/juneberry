@@ -1,0 +1,201 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+#
+#  DM21-0689
+#
+# ======================================================================================================================
+
+"""
+This script coverts a rules file into a dodo.py file for use with pydoit.
+
+def <task_name>():
+    <docs in comment string>
+    return {
+        'file_dep': [  ],
+        'targets': [  ],
+        'actions': [  ],
+        'clean': True
+    }
+"""
+
+import argparse
+from pathlib import Path
+
+from juneberry.config.rule_list import RulesList
+import juneberry.filesystem as jbfs
+
+
+def stringify(some_list, ):
+    """
+    Takes an array and turns it into an single string of quoted arguments suitable
+    for printing to a file.
+    :param some_list: A list of arguments.
+    :return:
+    """
+    return ", ".join([f'"{str(x)}"' for x in some_list])
+
+
+def lineify(some_list, indent):
+    lines = []
+    if some_list is not None:
+        for idx, item in enumerate(some_list):
+            if idx == len(some_list) - 1:
+                lines.append(f'{indent}"{str(item)}"\n')
+            else:
+                lines.append(f'{indent}"{str(item)}",\n')
+    return lines
+
+
+def make_action(command, parallelism) -> str:
+    if parallelism and command[0] == "jb_train":
+        # Return a string containing two quoted arguments with spaces
+        joined = " ".join(command)
+        return f"\"jb_gpu_runner\", \"{joined}\""
+    else:
+        return stringify(command)
+
+
+def make_clean_partial(out_file, rule):
+    if not rule.clean_extras:
+        return False
+
+    # Make the clean function partial
+    out_file.write(f"    clean_fn = partial(clean_glob_paths, [\n")
+    out_file.writelines(lineify(rule.clean_extras, "        "))
+    out_file.write(f"        ])\n")
+
+    return True
+
+
+def make_task(out_file, rule, parallelism) -> None:
+    out_file.write(f"\n\ndef task_{rule['id']}():\n")
+    # If the rule has clean targets then we need to make a clean function
+    custom_clean = make_clean_partial(out_file, rule)
+    out_file.write("    return {\n")
+    out_file.write(f"        'doc': \"{rule['doc']}\",\n")
+    out_file.write(f"        'file_dep': [\n")
+    out_file.writelines(lineify(rule["inputs"], "            "))
+    out_file.write(f"        ],\n")
+    out_file.write(f"        'targets': [\n")
+    out_file.writelines(lineify(rule["outputs"], "            "))
+    out_file.write(f"        ],\n")
+    out_file.write(f"        'actions': [[{make_action(rule['command'], parallelism)}]],\n")
+    if custom_clean:
+        out_file.write(f"        'clean': [clean_fn, clean_targets]\n")
+    else:
+        out_file.write(f"        'clean': [clean_targets]\n")
+    out_file.write("    }\n\n")
+
+
+# def make_group(out_file, group, tasks):
+#     out_file.write(f"\ndef task_{group}():\n")
+#     out_file.write("    return {\n")
+#     out_file.write(f"        'actions': None,\n")
+#     out_file.write(f"        'task_dep': [{stringify(tasks)}],\n")
+#     out_file.write(f"        'clean': True\n")
+#     out_file.write("    }\n\n")
+
+
+def set_default(out_file, reader):
+    defaults = []
+    for workflow in reader["workflows"]:
+        defaults.append(workflow["name"])
+
+    out_file.write("\nDOIT_CONFIG = {\n")
+    out_file.write(f"    'default_tasks': [{stringify(defaults)}]\n")
+    out_file.write("    }\n\n")
+
+
+def write_file(out_file, reader: RulesList, workflow_name, parallelism=False):
+    out_file.write("# ! /usr/bin/doit -f\n\n")
+    out_file.write(f'# dodo.py file for the {workflow_name} workflow\n\n')
+
+    # Some imports for the cleaning functions
+    out_file.write("from functools import partial\n")
+    out_file.write("from pathlib import Path\n")
+    out_file.write("from doit.task import clean_targets\n\n")
+
+    # Emit the clean function
+    out_file.write("def clean_glob_paths(paths: list):\n")
+    out_file.write("    for path in paths:\n")
+    out_file.write("        p = Path(path)\n")
+    out_file.write("        for item in p.parent.glob(p.name):\n")
+    out_file.write("            print(f'removing file {str(item)}')\n")
+    out_file.write("            item.unlink()\n")
+
+    # Emit workflows
+    for workflow in reader["workflows"]:
+        if workflow["name"] == workflow_name:
+            for rule in workflow["rules"]:
+                make_task(out_file, rule, parallelism)
+            break
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Creates a python execution script for the dryrun and main workflows from the rules.json file."
+    )
+    parser.add_argument("experimentName", help="Name of experiment.")
+    parser.add_argument("workflow", help="The name of the workflow which is being converted to a dodo file.")
+    parser.add_argument("--rules", default=False, help="Path to rules.json config file.")
+    parser.add_argument("--parallel", default=False, action='store_true', help="True to turn on parallelism wrapper.")
+    args = parser.parse_args()
+
+    # Set rules and dodo paths
+    if args.rules:
+        rules_path = Path(args.rules)
+        dodo_path = str(rules_path.parent / f"{args.workflow}_dodo.py")
+    else:
+        experiment_manager = jbfs.ExperimentManager(args.experimentName)
+        rules_path = experiment_manager.get_experiment_rules()
+        dodo_path = str(experiment_manager.get_experiment_dodo(args.workflow))
+
+    # Open rules file
+    rules = RulesList.load(rules_path)
+
+    # Write main dodo file
+    with open(dodo_path, "w") as main_out_file:
+        write_file(main_out_file, rules, args.workflow, args.parallel)
+
+
+if __name__ == "__main__":
+    main()

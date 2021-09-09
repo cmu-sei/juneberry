@@ -1,64 +1,82 @@
 #! /usr/bin/env python3
 
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
 #  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
 import datetime
 import logging
-import json
 import math
 import os
+import sys
 
 import numpy as np
 
 import torch
 import torch.backends.cudnn as cudnn
+import torch.distributed as dist
 
 import juneberry
-from juneberry.config.dataset import DatasetConfig
-from juneberry.config.training import TrainingConfig
-from juneberry.trainer import EpochTrainer
+import juneberry.config.dataset as jb_dataset
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
 import juneberry.plotting
-from juneberry.pytorch.acceptance_checker import AcceptanceChecker
+import juneberry.pytorch.processing as processing
 import juneberry.pytorch.util as pyt_utils
 import juneberry.tensorboard as jbtb
 
+from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
+from juneberry.jb_logging import setup_logger
+from juneberry.pytorch.acceptance_checker import AcceptanceChecker
+from juneberry.trainer import EpochTrainer
+from juneberry.transform_manager import TransformManager
+
+logger = logging.getLogger(__name__)
+
 
 class ClassifierTrainer(EpochTrainer):
-    def __init__(self, model_manager, training_config, data_set_config, *,
-                 no_paging=False,
-                 **kwargs):
-        super().__init__(training_config, data_set_config, **kwargs)
+    def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
+        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         # Assigned during setup
         self.loss_function = None
@@ -68,73 +86,104 @@ class ClassifierTrainer(EpochTrainer):
         self.evaluator = None
         self.acceptance_checker = None
 
-        self.model_manager = model_manager
-
         # We should probably be given a data manager
         self.data_version = model_manager.model_version
-        self.data_manager = None
-        self.binary = data_set_config.is_binary
-        self.pytorch_options = training_config.pytorch
+        self.binary = dataset_config.is_binary
+        self.pytorch_options: PytorchOptions = model_config.pytorch
 
         # Should we load all the data at one time.  Edge case optimization.
-        self.no_paging = no_paging
+        self.no_paging = False
 
         self.tb_mgr = None
 
-        # This is the model we use
+        # This model is for saving
+        self.unwrapped_model = None
+
+        # This model is for training
         self.model = None
 
-        # Where we store all the results
+        # Where we store all the in-flight results
         self.history = {}
 
-        # Tracking whether we are using cuda or not
-        self.use_cuda = False
+        # This is the pytorch device we are associated with
         self.device = None
 
         self.num_batches = -1
 
         self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
 
+        # These properties are used for DistributedDataParallel (if necessary)
+        self.training_loss_list = None
+        self.training_accuracy_list = None
+
+        self.lr_step_frequency = LRStepFrequency.EPOCH
+
+        # Added for the acceptance checker
+        self.history_key = None
+        self.direction = None
+        self.abs_tol = None
+
     # ==========================================================================
-    # Overrides of EpochTrainer
-    def setup(self):
-        # Construct helper objects
-        self.data_manager = jbfs.DataManager(self.data_set_config.config, self.data_version)
-
-        if juneberry.TENSORBOARD_ROOT:
-            self.tb_mgr = jbtb.TensorBoardManager(juneberry.TENSORBOARD_ROOT, self.model_manager)
-
-        pyt_utils.set_seeds(self.training_config.seed)
-
-        self.setup_hardware()
-        self.setup_data_loaders()
-        self.setup_model()
-
-        self.loss_function = pyt_utils.make_criterion(self.pytorch_options, self.binary)
-        self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
-        self.lr_scheduler = pyt_utils.make_lr_scheduler(self.pytorch_options, self.optimizer)
-        self.accuracy_function = pyt_utils.make_accuracy(self.pytorch_options, self.binary)
-        self.setup_acceptance_checker()
-
-        self.num_batches = len(self.training_iterable)
-
-        self.history = {'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': [], 'epoch_duration': [], 'lr': []}
-
     def dry_run(self) -> None:
-        summary_path = self.model_manager.get_pytorch_model_summary_file()
-        if self.data_set_config.is_image_type():
+        # Setup is the same for dry run
+        self.setup()
+
+        summary_path = self.model_manager.get_pytorch_model_summary_path()
+        if self.dataset_config.is_image_type():
             # Save some sample images to verify augmentations
             image_shape = pyt_utils.generate_sample_images(self.training_iterable, 5,
                                                            self.model_manager.get_dryrun_imgs_dir())
             pyt_utils.output_summary_file(self.model, image_shape, summary_path)
 
-        elif self.data_set_config.is_tabular_type():
+        elif self.dataset_config.is_tabular_type():
             # TODO Emit sample row modified data
             data, labels = next(iter(self.training_iterable))
             pyt_utils.output_summary_file(self.model, data[0].shape, summary_path)
 
         else:
-            self.logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. EXITING")
+            logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. EXITING")
+
+    # ==========================================================================
+
+    def establish_loggers(self) -> None:
+
+        # In a distributed training situation, the root Juneberry logger must be set up again for each
+        # rank process. In non-distributed training, the Trainer can continue to use the root Juneberry
+        # logger that was set up earlier, thus no additional actions are required.
+        if self.distributed:
+            setup_logger(self.model_manager.get_training_log(), "", dist_rank=self.gpu, level=self.log_level)
+
+    def setup(self):
+
+        # Construct helper objects
+        if self.lab.tensorboard:
+            self.tb_mgr = jbtb.TensorBoardManager(self.lab.tensorboard, self.model_manager)
+
+        pyt_utils.set_seeds(self.model_config.seed)
+
+        self.setup_hardware()
+        self.setup_data_loaders()
+        self.setup_model()
+
+        self.loss_function = pyt_utils.make_loss(self.pytorch_options, self.model, self.binary)
+        self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
+        self.lr_scheduler = pyt_utils.make_lr_scheduler(self.pytorch_options, self.optimizer, self.model_config.epochs)
+        self.accuracy_function = pyt_utils.make_accuracy(self.pytorch_options, self.binary)
+        self.setup_acceptance_checker()
+        if self.pytorch_options.lr_step_frequency == LRStepFrequency.BATCH:
+            self.lr_step_frequency = LRStepFrequency.BATCH
+
+        self.num_batches = len(self.training_iterable)
+
+        self.history = {'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': [], 'epoch_duration': [], 'lr': []}
+
+    def finish(self):
+        super().finish()
+        if self.tb_mgr is not None:
+            self.tb_mgr.close()
+            self.tb_mgr = None
+
+    # ==========================================================================
 
     def start_epoch_phase(self, train: bool):
         if train:
@@ -144,7 +193,13 @@ class ClassifierTrainer(EpochTrainer):
             self.model.eval()
             torch.set_grad_enabled(False)
 
-        # Start of with empty metrics
+        # In distributed training, each process will have a different loss/accuracy value. These lists are used to
+        # collect the values from each process, so we need one tensor in the list for every process in the "world".
+        if self.distributed:
+            self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
+            self.training_accuracy_list = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
+
+        # Start off with empty metrics
         return {'losses': [], 'accuracies': []}
 
     def process_batch(self, train: bool, data, targets):
@@ -164,10 +219,31 @@ class ClassifierTrainer(EpochTrainer):
     def update_metrics(self, train: bool, metrics, results) -> None:
         # Unpack the results we returned on process batch
         loss, accuracy = results
-        # Losses is a tensorflow thing
+
+        # If we're doing distributed training, the process is a little different.
+        if self.distributed:
+            # Convert the accuracy to a tensor, so it can be gathered.
+            acc_tensor = torch.from_numpy(np.asarray(accuracy, dtype=float)).to(self.device)
+
+            # Make sure the loss can be gathered
+            loss_on_device = loss.to(self.device)
+
+            # Create a barrier to wait for all processes to reach this point. Once they do, gather up
+            # the loss and accuracy from each process and place it in the appropriate tensor list.
+            dist.barrier()
+            dist.all_gather(self.training_loss_list, loss_on_device)
+            dist.all_gather(self.training_accuracy_list, acc_tensor)
+
+            # Take the value from each tensor in the tensor list and place it in the corresponding metric.
+            for tensor in self.training_loss_list:
+                metrics['losses'].append(tensor.item())
+            for tensor in self.training_accuracy_list:
+                metrics['accuracies'].append(tensor.item())
+            return
+
+        # Record the loss/accuracy values in the metrics dictionary.
         metrics['losses'].append(loss.item())
         metrics['accuracies'].append(accuracy)
-        pass
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
@@ -177,6 +253,9 @@ class ClassifierTrainer(EpochTrainer):
         loss.backward()
         self.optimizer.step()
 
+        if self.lr_scheduler is not None and self.lr_step_frequency == LRStepFrequency.BATCH:
+            self.lr_scheduler.step()
+
     def summarize_metrics(self, train, metrics) -> None:
         if train:
             self.history['loss'].append(float(np.mean(metrics['losses'])))
@@ -185,49 +264,84 @@ class ClassifierTrainer(EpochTrainer):
             self.history['val_loss'].append(float(np.mean(metrics['losses'])))
             self.history['val_accuracy'].append(float(np.mean(metrics['accuracies'])))
 
-    def end_epoch(self, elapsed_secs: float) -> str:
+    def end_epoch(self) -> str:
         if self.lr_scheduler is not None:
-            self.lr_scheduler.step()
+            if self.lr_step_frequency == LRStepFrequency.EPOCH:
+                self.lr_scheduler.step()
+            # TODO: Should we try to average learning rate for reporting here?
             self.history['lr'].append(self.lr_scheduler.get_last_lr()[0])
         else:
             for param_group in self.optimizer.param_groups:
                 self.history['lr'].append(param_group['lr'])
 
         # Pass the model and value we want to check to the acceptance checker
-        # For now, we do validation loss
-        self.done = self.acceptance_checker.add_checkpoint(self.model, self.history['val_loss'][-1])
+        self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.history[self.history_key][-1],
+                                                           allow_save=(self.gpu is None or self.gpu == 0))
+
+        # TODO: Check if loss when nan.
 
         # Capture the data for TensorBoard (if necessary)
         if self.tb_mgr is not None:
             self.tb_mgr.update(self.history, self.epoch - 1)
 
-        self.history['epoch_duration'].append(elapsed_secs)
-
         self.show_memory_summary(False)
 
         # Make a nice metric message for the epoch output
-        return f"lr: {self.history['lr'][-1]:.2E}, " \
-               f"loss: {self.history['loss'][-1]:.4f}, accuracy: {self.history['accuracy'][-1]:.4f}, " \
-               f"val_loss: {self.history['val_loss'][-1]:.4f}, val_accuracy: {self.history['val_accuracy'][-1]:.4f}"
+        metric_str = ""
+        for x in self.history:
+            if len(self.history[x]) > 0:
+                if 'accuracy' in x or 'loss' in x:
+                    metric_str += f"{x}: {self.history[x][-1]:.4f}, "
+                else:
+                    metric_str += f"{x}: {self.history[x][-1]:.2E}, "
+
+        return metric_str
 
     def finalize_results(self) -> None:
-        logging.info(f"Training stopped because: >> {self.acceptance_checker.stop_message} <<")
+        # If we're in distributed mode, only one process needs to perform these actions (since all processes should
+        # have the same model).
+        if self.distributed and not self.gpu == 0:
+            return
+
+        logger.info(f"Training stopped because: >> {self.acceptance_checker.stop_message} <<")
 
         # Add a hash of the model
-        self.history['modelHash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_file())
+        self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
 
-        logging.info("Generating and saving output...")
-        output = generate_output(self.train_start_time, self.training_config, self.data_set_config, self.history)
-        with open(self.model_manager.get_training_out_file(), 'w') as output_file:
-            json.dump(output, output_file, indent=4)
+        logger.info("Generating and saving output...")
+        history_to_results(self.history, self.results)
 
-        logging.info("Generating summary plot...")
-        juneberry.plotting.plot_training_summary_chart(self.model_manager)
+        logger.info("Generating summary plot...")
+        juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
-    def close(self):
-        if self.tb_mgr is not None:
-            self.tb_mgr.close()
-            self.tb_mgr = None
+    # ==========================================================================
+
+    def check_gpu_availability(self, required: int = None):
+        return processing.determine_gpus(required)
+
+    def train_distributed(self, num_gpus) -> None:
+        # This call initializes this base object before we spawn multiple processes
+        # which get copies.  For the most part, everything can come through via this
+        # object except we use the environment variables for the address and port
+        # as is traditional.
+        self.distributed = True
+        self.num_gpus = num_gpus
+
+        # Setup the hardware (cuda/multiprocessing) for distributed
+        processing.prepare_for_distributed()
+
+        # Use the number of GPUs detected and adjust the batch size so that the batch size
+        # specified in the config is evenly distributed among all processes in the "world".
+        # TODO: Inject learning rate scaling code
+        new_batch_size = int(self.model_config.batch_size / self.num_gpus)
+        if self.model_config.batch_size != new_batch_size:
+            logger.info(f"Adjusting batch size from {self.model_config.batch_size} "
+                        f"to {new_batch_size} for distributed training...")
+            self.model_config.batch_size = new_batch_size
+            logger.warning("!!! NOT ADJUSTING LEARNING RATE")
+
+        # Start up the processes
+        processing.start_distributed(self.train_model, self.num_gpus)
 
     # ==========================================================================
 
@@ -241,87 +355,118 @@ class ClassifierTrainer(EpochTrainer):
     #                      |_|
 
     def setup_hardware(self):
-        # Setup for cuda
-        self.use_cuda = torch.cuda.is_available()
-        if self.use_cuda:
-            self.device = torch.device("cuda:0")
-            self.logger.info(f"** Using {torch.cuda.device_count()} GPUs.")
-        else:
-            self.device = torch.device("cpu")
+        self.device = processing.setup_cuda_device(self.num_gpus, self.gpu)
+        if self.distributed:
+            processing.setup_distributed(self.num_gpus, self.gpu)
+        processing.log_cuda_configuration(self.num_gpus, self.gpu, logger)
 
-        # These two options must be set in order to achieve
-        # reproducibility on a GPU.
-        if self.training_config.pytorch.get("deterministic", False):
+        # These two options must be set in order to achieve reproducibility.
+        if self.model_config.pytorch.get("deterministic", False):
             cudnn.deterministic = True
             cudnn.benchmark = False
 
     def setup_data_loaders(self):
-        logging.info(f"Preparing data loaders...")
-        self.training_iterable, self.evaluation_iterable = \
-            jbdata.setup_data_loaders(self.training_config, self.data_set_config,
-                                      self.data_manager, self.no_paging)
+        logger.info(f"Preparing data loaders...")
+
+        # If we're doing distributed training, then we need to set up a sampler for the data loader to make
+        # sure individual processes don't use the same images as input.
+        sampler_args = (self.num_gpus, self.gpu) if self.distributed else None
+
+        if self.dataset_config.data_type == jb_dataset.DataType.TORCHVISION:
+            if self.model_config.validation is not None:
+                logger.warning("Using a Torchvision Dataset. Ignoring validation split.")
+
+            self.training_iterable, self.evaluation_iterable = pyt_utils.construct_torchvision_dataloaders(
+                self.lab, self.dataset_config.torchvision_data, self.model_config,
+                self.dataset_config.get_sampling_config(),
+                sampler_args=sampler_args)
+
+        else:
+            train_list, val_list = jbdata.dataspec_to_manifests(
+                self.lab,
+                dataset_config=self.dataset_config,
+                splitting_config=self.model_config.get_validation_split_config(),
+                preprocessors=TransformManager(self.model_config.preprocessors))
+
+            self.training_iterable, self.evaluation_iterable = \
+                pyt_utils.make_data_loaders(self.lab,
+                                            self.dataset_config,
+                                            self.model_config,
+                                            train_list,
+                                            val_list,
+                                            no_paging=self.no_paging,
+                                            sampler_args=sampler_args)
 
     def setup_model(self):
-        logging.info(f"Constructing the model {self.training_config.model_architecture['module']} "
-                     f"with args: {self.training_config.model_architecture['args']} ...")
-        self.model = pyt_utils.construct_model(self.training_config.model_architecture,
-                                               self.data_set_config.num_model_classes)
+        logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "
+                    f"with args: {self.model_config.model_architecture['args']} ...")
+        self.model = pyt_utils.construct_model(self.model_config.model_architecture,
+                                               self.dataset_config.num_model_classes)
+        # Save off a reference to the unwrapped model for saving
+        self.unwrapped_model = self.model
 
-        previous_model, prev_model_version = self.training_config.get_previous_model()
+        previous_model, prev_model_version = self.model_config.get_previous_model()
         if previous_model is not None:
-            self.logger.info(f"Loading weights from previous model: {previous_model}, version: {prev_model_version}")
+            logger.info(f"Loading weights from previous model: {previous_model}, version: {prev_model_version}")
 
             prev_model_manager = jbfs.ModelManager(previous_model, prev_model_version)
 
             pyt_utils.load_weights_from_model(prev_model_manager, self.model)
 
-        if self.use_cuda:
-            self.model = torch.nn.DataParallel(self.model)
+        # Apply model transforms
+        if self.model_config.model_transforms is not None:
+            transforms = TransformManager(self.model_config.model_transforms)
+            transforms.transform(self.model)
 
-        # Move the model to the device
-        # Q: Do we need to do this for cpu?
-        logging.info(f"Moving the model to device={self.device}")
-        self.model.to(self.device)
+        # Prepare the model for cuda and/or distributed use
+        self.model = processing.prepare_model(self.distributed, self.num_gpus, self.gpu, self.model, self.device)
         self.show_memory_summary(True)
 
     def setup_acceptance_checker(self) -> None:
         """
         Creates an acceptance checker based on the parameters in the training config
         """
-        stopping_options = self.training_config.get('stopping', {})
-        tol = stopping_options['plateau_abs_tol']
+        stopping_options = self.model_config.stopping_criteria
+        if stopping_options is None:
+            stopping_options = StoppingCriteria()
+        self.history_key = stopping_options.history_key
+        self.direction = stopping_options.direction
+        self.abs_tol = stopping_options.abs_tol
+        logger.info(
+            f"Adding '{self.history_key}' '{self.direction}' with tolerance '{self.abs_tol}' "
+            f"as the acceptance checking condition.")
+
         self.acceptance_checker = AcceptanceChecker(self.model_manager,
+                                                    comparator=lambda x, y: self.acceptance_comparator(x, y),
                                                     max_epochs=self.max_epochs,
-                                                    threshold=stopping_options.get('threshold'),
-                                                    plateau_count=stopping_options.get('plateau_count'),
-                                                    comparator=lambda x, y: acceptance_loss_comparator(x, y, tol))
+                                                    threshold=stopping_options.get('threshold', None),
+                                                    plateau_count=stopping_options.get('plateau_count', None))
 
     def show_memory_summary(self, model_loading):
         """Used to show a memory summary at appropriate times."""
-        if not self.use_cuda or self.memory_summary_freq == 0:
+        if not self.gpu or self.memory_summary_freq == 0:
             return
 
         if model_loading or self.epoch == 1 or (self.epoch - 1) % self.memory_summary_freq == 0:
             if model_loading:
-                logging.info(f"CUDA memory summary after model load")
+                logger.info(f"CUDA memory summary after model load")
             else:
-                logging.info(f"CUDA memory summary for epoch {self.epoch}")
-            logging.info(torch.cuda.memory_summary(self.device))
+                logger.info(f"CUDA memory summary for epoch {self.epoch}")
+            logger.info(torch.cuda.memory_summary(self.device))
+
+    def acceptance_comparator(self, x, y):
+        if math.isclose(x, y, abs_tol=self.abs_tol):
+            return 0
+        elif self.direction == 'ge':
+            return x - y
+        elif self.direction == 'le':
+            return y - x
+        else:
+            logger.error(f"acceptance_comparator requires a direction of 'ge' or 'le'.")
+            sys.exit(-1)
 
 
 # ==================================================================================================
-
-def acceptance_loss_comparator(x, y, abs_tol):
-    """
-    Simple function for comparing loss with tolerance for plateaus where is X is "better" than Y.
-    :param x: The x value to compare.
-    :param y: Y value to compare.
-    :param abs_tol: Absolute different.
-    :return: Number indicating difference.  Less than, 0 or greater than.
-    """
-    if math.isclose(x, y, abs_tol=abs_tol):
-        return 0
-    return -x - -y
 
 
 def compute_preliminary_eta(num_batches, batch_mean, epoch_start, max_epochs, validation_scale):
@@ -332,54 +477,25 @@ def compute_preliminary_eta(num_batches, batch_mean, epoch_start, max_epochs, va
     total_duration = epoch_duration * max_epochs * validation_scale
     eta = epoch_start + datetime.timedelta(seconds=total_duration)
 
-    logging.info(f"PRELIMINARY ROUGH Estimate of epoch duration {epoch_duration:.3f} seconds, "
-                 f"total ETA {eta.strftime('%H:%M:%S')} ")
+    logger.info(f"PRELIMINARY ROUGH Estimate of epoch duration {epoch_duration:.3f} seconds, "
+                f"total ETA {eta.strftime('%H:%M:%S')} ")
 
 
-def generate_output(start_time,
-                    training_config: TrainingConfig,
-                    data_set_config: DatasetConfig,
-                    history):
+def history_to_results(history, results):
     """
-    Generates a combined output suitable for JSON output. (Uses JSON style.)
-    :param start_time: When the run was started
-    :param training_config: The training configuration
-    :param data_set_config: The data set configuration
+    Places our history into the results for final output. (Uses JSON style.)
     :param history: A history of the training
-    :return: A combined data structure of our output to be written to JSON.
+    :param results: Where to store the information so it can be retrieved when constructing the final output.
     """
-    end_time = datetime.datetime.now().replace(microsecond=0)
-    output = {'trainingTimes': {}, 'trainingOptions': {}, 'trainingResults': {}}
+    # The learning rate can change over time...
+    results['options']['learning_rate'] = history['lr']
 
-    duration = end_time - start_time
+    results['results']['model_hash'] = history['model_hash']
+    results['results']['loss'] = history['loss']
+    results['results']['accuracy'] = history['accuracy']
 
-    output['trainingTimes']['startTime'] = start_time.isoformat()
-    output['trainingTimes']['endTime'] = end_time.isoformat()
-    output['trainingTimes']['duration'] = duration.total_seconds()
-    output['trainingTimes']['epochDurationSec'] = history['epoch_duration']
-
-    output['trainingOptions']['dataConfig'] = str(training_config.data_set_path)
-
-    output['trainingOptions']['nnArchitecture'] = training_config.model_architecture
-    output['trainingOptions']['epochs'] = training_config.epochs
-    output['trainingOptions']['batchSize'] = training_config.batch_size
-    output['trainingOptions']['seed'] = training_config.seed
-    output['trainingOptions']['learningRate'] = history['lr']
-
-    output['trainingOptions']['dataType'] = str(data_set_config.data_type.name)
-
-    # Populate parts from the history
-    output['trainingResults']['modelName'] = training_config.model_name
-    output['trainingResults']['modelHash'] = history['modelHash']
-    output['trainingResults']['loss'] = history['loss']
-    output['trainingResults']['accuracy'] = history['accuracy']
-
-    output['trainingResults']['valLoss'] = history['val_loss']
-    output['trainingResults']['valAccuracy'] = history['val_accuracy']
-
-    output['formatVersion'] = "1.2.0"
-
-    return output
+    results['results']['val_loss'] = history['val_loss']
+    results['results']['val_accuracy'] = history['val_accuracy']
 
 
 def main():

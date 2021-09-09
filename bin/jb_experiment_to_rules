@@ -1,0 +1,364 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+#
+#  DM21-0689
+#
+# ======================================================================================================================
+
+# Read the experiment config and splat it out to a graph.
+
+import argparse
+import logging
+from pathlib import Path
+import sys
+
+from juneberry.config.model import ModelConfig
+from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportType
+from juneberry.config.rule_list import RuleListBuilder
+import juneberry.filesystem as jbfs
+from juneberry.filesystem import ModelManager
+
+logger = logging.getLogger(__name__)
+
+JB_TRAIN_COMMAND = 'jb_train'
+JB_EVALUATE_COMMAND = 'jb_evaluate_data'
+JB_PLOT_PR_COMMAND = 'jb_plot_pr'
+JB_PLOT_ROC_COMMAND = 'jb_plot_roc'
+JB_SUMMARY_COMMAND = 'jb_summary_report'
+
+
+class RuleMaker:
+    def __init__(self, experiment_name):
+        self.experiment_name = experiment_name
+        self.tag_map = {}
+        self.experiment_manager = jbfs.ExperimentManager(self.experiment_name)
+        self.experiment_config = ExperimentConfig.load(self.experiment_manager.get_experiment_config())
+        self.builder = RuleListBuilder("")
+
+        self.filter_map = {}
+        if self.experiment_config.filters:
+            self.filter_map = {i.tag: i for i in self.experiment_config.filters}
+
+    def save(self, file_path):
+
+        self.add_training()
+        self.add_eval()
+        self.add_reports()
+
+        self.builder.rules_list.save(file_path)
+
+    def add_training(self):
+        for model in self.experiment_config.models:
+            model_mgr = jbfs.ModelManager(model.name)
+            model_config = ModelConfig.load(model_mgr.get_model_config())
+
+            # Training rules
+            workflow = self.builder.get_workflow("main")
+            inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
+            outputs = model_mgr.get_training_output_list()
+            command = [JB_TRAIN_COMMAND, model_mgr.model_name]
+            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name}"
+            clean_extras = model_mgr.get_training_clean_extras_list()
+            requirements = []
+
+            # Add a temporary property for now
+            model['train_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+            # Dry run rules
+            workflow = self.builder.get_workflow("dryrun")
+            inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
+            outputs = model_mgr.get_dry_run_output_list()
+            command = [JB_TRAIN_COMMAND, model_mgr.model_name, '--dryrun']
+            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name} --dryrun"
+            clean_extras = model_mgr.get_dry_run_clean_extras_list()
+            requirements = []
+
+            # Add a temporary property for now
+            model['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+            if model.filters is not None:
+                self.add_filters(model.filters, model_mgr, model_config.training_dataset_config_path,
+                                 model['train_rule_id'])
+
+    def add_eval(self):
+        self.tag_map = {}
+
+        for model in self.experiment_config.models:
+            model_mgr = jbfs.ModelManager(model.name)
+
+            workflow = self.builder.get_workflow("main")
+            """
+                "tag": <internal tag that reports references>,
+                "datasetPath": <A path to a data set config file>,
+                "classify": <Integer that controls how many of the top predicted classes get recorded>
+            """
+
+            # Predictions
+            if model.tests:
+                for test in model.tests:
+                    inputs = [model_mgr.get_pytorch_model_path(), test.dataset_path]
+                    outputs = model_mgr.get_predictions_output_list(test.dataset_path)
+                    command = [JB_EVALUATE_COMMAND, model_mgr.model_name, test.dataset_path]
+                    if test.classify:
+                        command.extend(["--topK", test.classify])
+                    if test.use_train_split:
+                        command.append('--useTrainSplit')
+                    if test.use_val_split:
+                        command.append('--useValSplit')
+                    doc = f"{JB_EVALUATE_COMMAND} {model_mgr.model_name}  {test.dataset_path}"
+                    clean_extras = model_mgr.get_predictions_clean_extras_list()
+                    requirements = [model['train_rule_id']]
+
+                    cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+                    # Save the rule id and file for the report
+                    eval_dir_mgr = model_mgr.get_eval_dir_mgr(test.dataset_path)
+                    self.tag_map[test.tag] = {
+                        'dataset': test.dataset_path,
+                        'filename': eval_dir_mgr.get_predictions_path(),
+                        'id': cmd_id,
+                        'model': model.name
+
+                    }
+
+                    if test.filters:
+                        self.add_filters(test.filters, model_mgr, test.dataset_path, cmd_id)
+
+    def add_reports(self):
+        for report in self.experiment_config.reports:
+            if report.type == ReportType.PLOT_ROC:
+                self.add_plot_roc(report)
+            elif report.type == ReportType.PLOT_PR:
+                self.add_plot_pr(report)
+            elif report.type == ReportType.SUMMARY:
+                self.add_summary(report)
+
+    def add_plot_pr(self, report: Report):
+        # Obtain the output directory as a string.
+        output_dir = str(self.experiment_manager.get_experiment_file(report.output_dir))
+
+        # Accumulate all the tests into one report.
+        inputs = []
+        requirements = []
+        command = [JB_PLOT_PR_COMMAND, '--outputDir', output_dir]
+
+        # Retrieve the desired IoU value for the command.
+        if report.iou:
+            command.append(f'--iou')
+            command.append(report.iou)
+
+        # Add all tests to the command.
+        for test in report.tests:
+
+            # The presence of this prediction file indicates an evaluation has occurred for this
+            # model / dataset combination. The plot_pr script relies on the data in the predictions file.
+            predictions_file = str(self.tag_map[test.tag]['filename'])
+            inputs.append(predictions_file)
+
+            # Add the model and eval dataset arguments to the command.
+            command.append('-m')
+            command.append(str(self.tag_map[test.tag]['model']))
+            command.append('-e')
+            command.append(str(self.tag_map[test.tag]['dataset']))
+
+            requirements.append(self.tag_map[test.tag]['id'])
+
+        outputs = [Path(output_dir, "pr_curve.png"), Path(output_dir, "pc_curve.png"),
+                   Path(output_dir, "rc_curve.png"), Path(output_dir, "eval_metrics.csv")]
+
+        doc = f"{JB_PLOT_PR_COMMAND} --outputDir {output_dir}"
+        clean_extras = []
+        workflow = self.builder.get_workflow("main")
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+    def add_plot_roc(self, report: Report):
+
+        # Everything gets put into one output
+        output_path = str(self.experiment_manager.get_experiment_file(report.output_name))
+
+        # Accumulate all the tests (predictions) into one report
+        inputs = []
+        requirements = []
+        command = [JB_PLOT_ROC_COMMAND, output_path]
+        for test in report.tests:
+            predictions_file = str(self.tag_map[test.tag]['filename'])
+            inputs.append(predictions_file)
+
+            command.append('-f')
+            command.append(predictions_file)
+            command.append('-p')
+            if test.classes:
+                command.append(test.classes)
+            else:
+                command.append(report.classes)
+
+            requirements.append(self.tag_map[test.tag]['id'])
+
+        if report.plot_title:
+            command.append('--title')
+            command.append(report.plot_title)
+
+        outputs = [output_path]
+
+        doc = f"{JB_PLOT_ROC_COMMAND} {output_path}"
+        clean_extras = []
+        workflow = self.builder.get_workflow("main")
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+    def add_summary(self, report: Report):
+
+        inputs = []
+        requirements = []
+
+        output_path = self.experiment_manager.get_experiment_file(report.output_name)
+        outputs = [output_path]
+
+        command = [JB_SUMMARY_COMMAND, output_path]
+        if report.csv_name:
+            csv_path = self.experiment_manager.get_experiment_file(report.csv_name)
+            command.extend(['--csvFilename', csv_path])
+            outputs.append(str(csv_path))
+
+        for entry in self.tag_map.values():
+            command.append('-f')
+            command.append(entry['filename'])
+            inputs.append(entry['filename'])
+            requirements.append(entry['id'])
+
+        # We need all the output file names. Depending on the report type, different plots may
+        # get added to the summary file.
+        for r in self.experiment_config.reports:
+
+            # Add ROC plots to the summary file, if necessary.
+            if r.type == ReportType.PLOT_ROC:
+                command.append('-pf')
+                command.append(r.output_name)
+                inputs.append(self.experiment_manager.experiment_dir / r.output_name)
+
+            # Add PR plots to the summary file, if necessary.
+            elif r.type == ReportType.PLOT_PR:
+
+                # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
+                plot_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
+
+                for file in plot_files:
+                    command.append('-pf')
+                    command.append(f"{r.output_dir}/{file}")
+                    inputs.append(self.experiment_manager.experiment_dir / r.output_dir / file)
+
+            else:
+                continue
+
+        doc = f"{JB_SUMMARY_COMMAND} {output_path}"
+        clean_extras = []
+
+        workflow = self.builder.get_workflow("main")
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+    # ==============================================================================================
+
+    #  _____ _ _ _
+    # |  ___(_) | |_ ___ _ __ ___
+    # | |_  | | | __/ _ \ '__/ __|
+    # |  _| | | | ||  __/ |  \__ \
+    # |_|   |_|_|\__\___|_|  |___/
+
+    def add_filters(self, filters, model_mgr: ModelManager, dataset_path, cmd_id: int):
+        for tag in filters:
+            # Grab the filter from our map and fill in the entries.
+            my_filter: Filter = self.filter_map.get(tag, None)
+            if my_filter is None:
+                logger.error(f"Can't find filter {tag} in filter list. EXITING")
+                sys.exit(-1)
+
+            # Convert the replacement fields.
+            command = [self.format_arg(i, model_mgr, dataset_path, tag) for i in my_filter.cmd]
+            inputs = []
+            if my_filter.inputs is not None:
+                inputs = [self.format_arg(i, model_mgr, dataset_path, tag) for i in my_filter.inputs]
+            outputs = []
+            if my_filter.outputs is not None:
+                outputs = [self.format_arg(i, model_mgr, dataset_path, tag) for i in my_filter.outputs]
+            requirements = [cmd_id]
+
+            # We are guessing here.
+            doc = f"Filter - '{model_mgr.model_name}' with '{command[0]}'"
+            clean_extras = []
+
+            workflow = self.builder.get_workflow("main")
+            workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+    def format_arg(self, arg: str, model_mgr: ModelManager, dataset_path: str, filter_tag: str):
+        # This is basically just a glorified format string
+        replace_map = {
+            'model_name': Path(model_mgr.model_name),
+            'train_output': Path(model_mgr.get_training_out_file())
+        }
+        if dataset_path is not None:
+            replace_map['dataset_path'] = Path(dataset_path)
+            replace_map['eval_predictions'] = model_mgr.get_eval_dir_mgr(dataset_path).get_predictions_path()
+
+        # TODO: Add support for workspace and dataroot
+
+        try:
+            return arg.format(**replace_map)
+        except KeyError:
+            logger.error(f"Failed to convert the arg '{arg}' in filter '{filter_tag}' during replacement. EXITING!")
+            sys.exit(-1)
+
+
+# ==================================================================================================
+
+def main():
+    parser = argparse.ArgumentParser(description="Generates a rules list in the experiment directory from an "
+                                                 "experiment config.")
+    parser.add_argument('experimentName', help='Name of the experiment in the experiments directory.')
+
+    args = parser.parse_args()
+
+    maker = RuleMaker(args.experimentName)
+    experiment_manager = jbfs.ExperimentManager(args.experimentName)
+    maker.save(experiment_manager.get_experiment_rules())
+
+
+if __name__ == "__main__":
+    main()

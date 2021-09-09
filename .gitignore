@@ -24,9 +24,17 @@ models/*/*
 experiments/*/*
 !experiments/**/*.json
 !experiments/**/*.dvc
+experiments/**/rules.json
+
+
+# The checkpoints directory will contain checkpoints from the container
+checkpoints/
 
 # Ignore some tool support directories
 scripts/resnet-summaries/latest
 
 # A place to hide things
 nothingtoseehere
+
+# We don't want doit stuff
+**/.doit.db

@@ -1,0 +1,70 @@
+{
+    "description": "Unit test for object detection platforms using GPU training.",
+    "format_version": "0.2.0",
+    "models": [
+        {
+            "name": "text_detect/dt2/ut",
+            "tests": [
+                {
+                    "dataset_path": "data_sets/text_detect_val.json",
+                    "tag": "ut_val_dt2"
+                }
+            ]
+        },
+        {
+            "name": "text_detect/mmd/ut",
+            "tests": [
+                {
+                    "dataset_path": "data_sets/text_detect_val.json",
+                    "tag": "ut_val_mmd"
+                }
+            ]
+        }
+    ],
+    "reports": [
+        {
+            "description": "Builds PR plots for the dt2 model.",
+            "iou": 0.5,
+            "output_dir": "ut_val_dt2",
+            "tests": [
+                {
+                    "tag": "ut_val_dt2"
+                }
+            ],
+            "type": "plot_pr"
+        },
+        {
+            "description": "Builds PR plots for the mmd model.",
+            "iou": 0.5,
+            "output_dir": "ut_val_mmd",
+            "tests": [
+                {
+                    "tag": "ut_val_mmd"
+                }
+            ],
+            "type": "plot_pr"
+        },
+        {
+            "description": "Combines PR curves for both platforms on the same plot. Slight increase to IoU.",
+            "iou": 0.55,
+            "output_dir": "ut_val_combined",
+            "tests": [
+                {
+                    "tag": "ut_val_dt2"
+                },
+                {
+                    "tag": "ut_val_mmd"
+                }
+            ],
+            "type": "plot_pr"
+        },
+        {
+            "csv_name": "OD System Test Summary.csv",
+            "description": "Simple OD System Test Summary",
+            "output_name": "System OD Test Summary.md",
+            "type": "summary"
+        }
+
+    ],
+    "timestamp": "2020-06-10T08:29:00"
+}

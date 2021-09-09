@@ -1,0 +1,112 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+#
+#  DM21-0689
+#
+# ======================================================================================================================
+
+import argparse
+import fcntl
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+import tempfile
+import time
+
+
+def run_with_gpu(cmd, gpu_num: int):
+    # Use the python temp directory because it checks a variety of environment variables
+    lock_file_path = Path(tempfile.gettempdir()) / Path(f"gpu_{gpu_num}.lockfile")
+    lock_file_path.touch(exist_ok=True)
+
+    with open(lock_file_path, "r") as lock_file:
+        try:
+            # Get the lock and run the code 
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            env = os.environ.copy()
+            env['CUDA_VISIBLE_DEVICES'] = str(gpu_num)
+            subprocess.run(cmd, env=env)
+            return True
+        except BlockingIOError as e:
+            # We get this when we can't get the lock
+            return False
+        except FileNotFoundError as e:
+            # We get this when the desired command can't be found
+            print(f"Failed to find command: '{' '.join(cmd)}'")
+            return True
+        except:
+            print(f"Unknown error: {sys.exc_info()[0]}")
+            return True
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(
+        description="Script to allocate a GPU, set CUDA_VISIBLE_DEVICES, and execute the command. "
+                    "If num_gpus is -1, one attempt will be made to find the first available device. "
+                    "Lockfiles stored in the temporary directory track which resources are in use.")
+    parser.add_argument('-n', '--num_gpus', action='store', default=-1, type=int,
+                        help="Maximum number of GPUs. Default is -1.")
+    parser.add_argument('-s', '--sleep', action='store', default=10, type=int,
+                        help="Number of seconds to sleep before retrying. Default is 10.")
+    parser.add_argument('-a', '--attempts', action='store', default=20, type=int,
+                        help="Number of attempts. Default is 20")
+    # We could have a gpu-map instead of assuming 0,1,2,etc.
+    parser.add_argument('command', help="Quoted command to execute.")
+
+    args = parser.parse_args()
+    cmd = shlex.split(args.command)
+
+    if args.num_gpus == -1:
+        # Just find an open spot
+        for gpu_num in range(100):
+            if run_with_gpu(cmd, gpu_num):
+                sys.exit(0)
+    else:
+        # Loop some number of times over all gpus and try to find an open one
+        for attempt in range(args.attempts):
+            for gpu_num in range(args.num_gpus):
+                if run_with_gpu(cmd, gpu_num):
+                    sys.exit(0)
+            time.sleep(args.sleep)

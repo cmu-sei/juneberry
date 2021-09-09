@@ -1,0 +1,73 @@
+{
+    "data_type": "image",
+    "description": "Imagenette. 160x160, rgb",
+    "format_version": "0.2.0",
+    "url": "https://github.com/fastai/imagenette",
+    "image_data": {
+        "url": "https://github.com/fastai/imagenette",
+        "sources": [
+            {
+                "directory": "imagenette2-160/val/n01440764",
+                "label": 0
+            },
+            {
+                "directory": "imagenette2-160/val/n02102040",
+                "label": 217
+            },
+            {
+                "directory": "imagenette2-160/val/n02979186",
+                "label": 482
+            },
+            {
+                "directory": "imagenette2-160/val/n03000684",
+                "label": 491
+            },
+            {
+                "directory": "imagenette2-160/val/n03028079",
+                "label": 497
+            },
+            {
+                "directory": "imagenette2-160/val/n03394916",
+                "label": 566
+            },
+            {
+                "directory": "imagenette2-160/val/n03417042",
+                "label": 569
+            },
+            {
+                "directory": "imagenette2-160/val/n03425413",
+                "label": 571
+            },
+            {
+                "directory": "imagenette2-160/val/n03445777",
+                "label": 574
+            },
+            {
+                "directory": "imagenette2-160/val/n03888257",
+                "label": 701
+            }
+        ],
+        "task_type": "classification"
+    },
+    "label_names": {
+        "0": "tench",
+        "217": "English_springer",
+        "482": "cassette_player",
+        "491": "chain_saw",
+        "497": "church",
+        "566": "French_horn",
+        "569": "garbage_truck",
+        "571": "gas_pump",
+        "574": "golf_ball",
+        "701": "parachute"
+    },
+    "num_model_classes": 1000,
+    "sampling": {
+        "algorithm": "random_quantity",
+        "arguments": {
+            "count": 10,
+            "seed": 98754321
+        }
+    },
+    "timestamp": "2020-11-06T08:18:00"
+}
