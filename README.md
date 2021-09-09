@@ -18,7 +18,8 @@ This README contains:
 * Details about building your own models and experiments
 
 As an alternative to this README, there are some vignettes located in the `juneberry/documentation/vignettes` directory 
-which offer more structured walkthroughs of some common Juneberry operations.
+which offer more structured walkthroughs of some common Juneberry operations. A good start is 
+(Replicating a Classic Machine Learning Result with Juneberry)[./juneberry/documentation/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md].
 
 # TL;DR
 
@@ -457,7 +458,9 @@ after model load and again after epochs 1, 11, 21, 31, etc.
 
 As a reminder, the `juneberry/documentation/vignettes` directory contains more detailed walkthroughs of various 
 Juneberry tasks. The vignettes provide helpful examples of how to construct various Juneberry configuration files, 
-including datasets, models, and experiments.
+including datasets, models, and experiments. A good start is 
+(Replicating a Classic Machine Learning Result with Juneberry)[./juneberry/documentation/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md].
+
 
 # Copyright
 
