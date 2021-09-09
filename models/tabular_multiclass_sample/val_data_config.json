@@ -1,0 +1,25 @@
+{
+    "num_model_classes": 3,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "format_version": "0.2.0",
+    "label_names": {
+        "0": "label_0",
+        "1": "label_1",
+        "2": "label_2"
+    },
+    "data_type": "tabular",
+    "data_root" : "relative",
+    "tabular_data": {
+        "sources":
+        [
+            {
+                "root": "relative",
+                "path": "val_data.csv"
+            }
+        ],
+        "label_index": 2
+    }
+}

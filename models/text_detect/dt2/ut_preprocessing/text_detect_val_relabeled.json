@@ -1,0 +1,28 @@
+{
+    "dataType": "image",
+    "numModelClasses": 6,
+    "labelNames": {
+        "0": "unused1",
+        "1": "unused2",
+        "2": "unused3",
+        "3": "Does",
+        "4": "Not",
+        "5": "Matter"
+    },
+    "imageData": {
+        "taskType": "objectDetection",
+        "sources": [
+            {
+                "root": "workspace",
+                "directory": "models/text_detect_ut_dt2_preprocessing/coco_annotations_relabeled.json"
+            }
+        ]
+    },
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "description": "Detectron2 text detection unit unit test with relabeling in pre-processing.",
+    "timestamp": "2021-03-05T10:00:00",
+    "formatVersion": "3.2.0"
+}

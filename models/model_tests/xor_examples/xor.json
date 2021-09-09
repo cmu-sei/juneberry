@@ -1,0 +1,24 @@
+{
+    "data_type": "tabular",
+    "description": "xor truth table",
+    "format_version": "0.2.0",
+    "tabular_data": {
+        "sources": [
+            {
+                "root": "workspace",
+                "path": "models/model_tests/xor_examples/xor.csv"
+            }
+        ],
+        "label_index": 2
+    },
+    "label_names": {
+        "0": "false",
+        "1": "true"
+    },
+    "num_model_classes": 2,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "timestamp": "2021-08-16T10:00:00"
+}

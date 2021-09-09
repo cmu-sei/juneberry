@@ -1,0 +1,69 @@
+{
+    "num_model_classes": 10,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    },
+    "description": "cifar10 test images, 32x32, rgb",
+    "timestamp": "2021-05-25T11:18:00",
+    "format_version": "3.2.0",
+    "url": "https://www.cs.toronto.edu/~kriz/cifar.html",
+    "label_names": {
+        "0": "airplane",
+        "1": "automobile",
+        "2": "bird",
+        "3": "cat",
+        "4": "deer",
+        "5": "dog",
+        "6": "frog",
+        "7": "horse",
+        "8": "ship",
+        "9": "truck"
+    },
+    "data_type": "image",
+    "image_data": {
+        "task_type": "classification",
+        "sources": [
+            {
+                "label": 0,
+                "directory": "cifar10/test/airplane"
+            },
+            {
+                "label": 1,
+                "directory": "cifar10/test/automobile"
+            },
+            {
+                "label": 2,
+                "directory": "cifar10/test/bird"
+            },
+            {
+                "label": 3,
+                "directory": "cifar10/test/cat"
+            },
+            {
+                "label": 4,
+                "directory": "cifar10/test/deer"
+            },
+            {
+                "label": 5,
+                "directory": "cifar10/test/dog"
+            },
+            {
+                "label": 6,
+                "directory": "cifar10/test/frog"
+            },
+            {
+                "label": 7,
+                "directory": "cifar10/test/horse"
+            },
+            {
+                "label": 8,
+                "directory": "cifar10/test/ship"
+            },
+            {
+                "label": 9,
+                "directory": "cifar10/test/truck"
+            }
+        ]
+    }
+}

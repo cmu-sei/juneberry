@@ -1,0 +1,77 @@
+#! /usr/bin/env bash
+
+# =================================================================================================
+# WARNING: These containers and scripts create containers with NO SECURITY PRACTICES, such as
+# separate user accounts, unprivileged users, etc.**
+#
+# USE AT YOUR OWN RISK
+# =================================================================================================
+
+# This is a sample startup script for the Juneberry container.  Please feel free to copy
+# and modify as needed.
+
+# === DOCKER BUILD ===
+# This assumes the Juneberry container was built with a tag of "juneberry/<type>:dev", such as:
+# docker build -f cudadev.Dockerfile -t juneberry/cudadev:dev .
+# or
+# docker build -f cpudev.Dockerfile -t juneberry/cpudev:dev .
+
+# === PROXIES ===
+# To set proxies during the build, specify them via build args. For example:
+# docker build --build-arg HTTP_PROXY=${HTTP_PROXY} ... -f juneberry.Dockerfile -t juneberry/cudadev:dev .
+
+# === PROJECT LAYOUT ===
+# When starting this container, a variety of directories for organizing the current code, data,
+# tensorboard output, caches, and workspaces (optional) will get mounted (not copied) into the container.
+# This script assumes a single "project" directory (passed in as the one argument), with the mounted directories
+# organized as subdirectories according to the following layout:
+# <project>/
+#   juneberry <- This is the Juneberry repo that was pulled
+#   datasets <- This is where the source data is located, i.e. the Juneberry "dataroot".
+#   tensorboard <- This is where tensorboard outputs will be stored.
+#   cache <- This where the model downloads are cached.
+#   workspace <- This is an optional external workspace directory, see docker/README.md for details
+
+# Get the project root from the first argument.
+if [ ${#} -ne 1 ]; then
+  echo "This script requires one argument: a path to the 'project' root."
+fi
+# PROJ=${HOME}/proj
+PROJ=${1}
+
+# The -rm means the container is destroyed upon exit.  This is okay because the useful data persists
+# in the mounted locations.
+BASE="-it --rm --network=host --ipc=host"
+ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy"
+NAME="--name ${USER}"
+CONTAINER="juneberry/cudadev:dev"
+#CONTAINER="juneberry/cpudev:dev"
+
+# These are all the mount points into the container so the code, data, and outputs persist across container starts.
+# Feel free to change the paths to the left of the colon as needed. These sub-directories are not required to all be in
+# the same project directory.
+JB="-v ${PROJ}/juneberry:/juneberry -w /juneberry"
+DATA="-v ${PROJ}/datasets:/datasets:ro"
+TB="-v ${PROJ}/tensorboard:/tensorboard"
+HUB_CACHE="-v ${PROJ}/cache/hub:/root/.cache/torch/hub"
+TORCH_CACHE="-v ${PROJ}/cache/torch:/root/.torch"
+
+# === GPU SELECTION ===
+# This value determines which GPUs the container will be aware of.  "all" is default.  Set to "" for none.
+# Specific GPUs can be set by listing the devices as one would with CUDA_VISIBLE_DEVICES.
+GPUS="--gpus all"
+# GPUS=""
+# GPUS="--gpus \"device=2,3\""
+# GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
+
+# ==== CUSTOM WORKSPACE ===
+# To use a different workspace, simply mount it into the container. After entering the container and installing
+# Juneberry, switch to /workspace.  Remember to set up a juneberry.ini that sets `workspace_root = /workspace` to use
+# /workspace instead of /juneberry.
+WS=""
+# WS="-v ${PROJ}/workspace:/workspace"
+
+# Assemble the command, show it, and run it.
+CMD="docker run ${BASE} ${ENVS} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"
+echo "${CMD}"
+${CMD}

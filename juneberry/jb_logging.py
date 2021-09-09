@@ -1,75 +1,123 @@
 #! /usr/bin/env python3
-"""
-Logging handler
-"""
-# https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings
 
-
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
 #  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
+"""
+Logging handler.
+"""
+# https://stackoverflow.com/questions/11232230/logging-to-two-files-with-different-settings
+
+import atexit
 import logging
+from logging import Logger
+import functools
+
+from pathlib import Path
 
 
-def setup_logger(log_file, log_prefix, log_to_console=True, level=logging.INFO):
-    """Sets up the root logger. Appends necessary handlers."""
-    format_string = f'{log_prefix}%(asctime)s %(levelname)s %(message)s'
+@functools.lru_cache()
+def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_console=True, level=logging.INFO):
+    """Sets up the Juneberry logger. Appends necessary handlers."""
+
+    # Fetch the logger by name, set its level, and make sure the changes don't propagate.
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.propagate = False
+
+    # Determine the proper format string and apply it to the logger.
+    format_string = f'{log_prefix}%(asctime)s %(levelname)s (%(name)s:%(lineno)d): %(message)s' \
+        if level is logging.DEBUG else f'{log_prefix}%(asctime)s %(levelname)s %(message)s'
     formatter = logging.Formatter(format_string)
 
-    # Assemble the handlers
-    handlers = []
+    # Set up logging to console for the rank 0 process.
+    if dist_rank == 0 and log_to_console:
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+    # Set up logging to file.
     if log_file is not None:
-        handlers.append(add_file_log_handler(formatter, log_file, level))
-    if log_to_console:
-        handlers.append(add_console_handler(formatter, level))
 
-    logger = logging.getLogger()
-    logger.setLevel(level)
+        # Processes other than the rank 0 process get their own unique log file.
+        if dist_rank:
+            log_file = Path(log_file.parent, f"{log_file.stem}_rank{dist_rank}.txt")
 
-    # We set the handler this way because the system may have set the basic logger to bootstrap
-    # configuration. We want to get rid of those handlers.
-    logger.handlers = handlers
+            # If the unique log file already exists, clear out the content.
+            if log_file.exists():
+                with open(log_file, 'w'):
+                    pass
 
-
-def add_console_handler(formatter, level=logging.INFO):
-    """Creates and returns a handler that streams to the console at the logging level specified"""
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    ch.setLevel(level)
-    return ch
+        fh = logging.StreamHandler(_cached_log_stream(log_file))
+        fh.setLevel(level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
 
-def add_file_log_handler(formatter, log_file, level=logging.INFO):
-    """Creates and returns a handler that streams to the file at the logging level specified"""
-    fh = logging.FileHandler(log_file, mode='w')
-    fh.setFormatter(formatter)
-    fh.setLevel(level)
-    return fh
+# cache the opened file object, so that different calls to `setup_logger`
+# with the same file name can safely write to the same file.
+@functools.lru_cache(maxsize=None)
+def _cached_log_stream(filename):
+    io = Path(filename).open(mode='a', buffering=-1)
+    atexit.register(io.close)
+    return io
+
+
+def log_banner(logger: Logger, msg, *, width=100, level=logging.INFO):
+    """
+    Prints a very noticeable banner for the log to help identify sections.
+    :param logger: The logger to use (so we get the right name)
+    :param msg: The message
+    :param width: Optional - width of the banner
+    :param level: Optional - the logging level
+    :return:
+    """
+    # The 2 is for spacing around the message
+    edges = width - len(msg) - 2
+    left = int(edges / 2)
+    right = edges - left
+    logger.log(level, f"# {'=' * width}")
+    logger.log(level, f"# {'=' * left} {msg} {'=' * right}")
+    logger.log(level, f"# {'=' * width}")

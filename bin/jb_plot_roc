@@ -1,74 +1,89 @@
 #! /usr/bin/env python3
 
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
 #  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
-import re
-import sys
-import json
-import logging
 import argparse
-import numpy as np
+import logging
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc
+import numpy as np
+from pathlib import Path
+import re
+from sklearn.metrics import auc, roc_curve
+import sys
 
+from juneberry.config.eval_output import EvaluationOutput
 import juneberry.scripting as jbscripting
+
+logger = logging.getLogger("juneberry.jb_plot_roc")
 
 
 def load_roc_data(filename):
     """
     This function is responsible for retrieving the required information from
-    a ROC data file.
+    a predictions file.
     :param filename: The file containing the data we want to extract.
     :return y_test: A numpy array containing the correct labels for the test images.
     :return y_score: A numpy array containing the predictions for all of the test images.
     :return mapping: A dictionary which translates label integers to labelNames.
     """
-    # Open up the target JSON file and read in the data
-    with open(filename, 'r') as in_file:
-        data = json.load(in_file)
+    # Open up the target predictions file and read in the data
+    prediction_file_content = EvaluationOutput.load(filename)
 
-    # Retrieve the mapping dictionary.
-    mapping = data['testOptions']['mapping']
-    num_classes = data['testOptions']['numModelClasses']
+    # Retrieve the mapping dictionary and number of model classes from the predictions file.
+    mapping = prediction_file_content.options.dataset.classes
+    num_classes = prediction_file_content.options.model.num_classes
 
     # Convert test_labels to y_test. Right now the roc_curve function cannot
     # process our test_labels as-is.
-    labels = np.asarray(data['testResults']['labels'])
+    labels = np.asarray(prediction_file_content.results.labels)
     y_test = np.zeros((labels.size, num_classes))
     for i in range(labels.size):
         j = labels[i]
         y_test[i][j] = 1
 
-    y_score = np.asarray(data['testResults']['predictions'])
+    y_score = np.asarray(prediction_file_content.results.predictions)
 
     return y_test, y_score, mapping
 
@@ -144,8 +159,8 @@ def check_and_convert_classes(files: list, orig_class_list: list):
         current_file = files[orig_class_list.index(group)]
 
         # Load the mapping from the identified file
-        with open(current_file, 'r') as prediction_file:
-            mapping = json.load(prediction_file)['testOptions']['mapping']
+        prediction_file_content = EvaluationOutput.load(current_file)
+        mapping = prediction_file_content.options.dataset.classes
 
         if group == 'all':
             new_class_list.append(group)
@@ -182,7 +197,7 @@ def check_and_convert_classes(files: list, orig_class_list: list):
     # If the process generated any error messages, log them and then exit.
     if len(error_messages):
         for message in error_messages:
-            logging.error(message)
+            logger.error(message)
         sys.exit(-1)
 
     # If there weren't any errors, it is safe to return the list of converted strings.
@@ -230,11 +245,11 @@ def generate_roc_plot(file_list, classes_list, outfile, plot_title: str, legend_
     # Scaling of 1.12 for 50 items results in magic of 0.28
     magic = magic * legend_scaling
 
-    logging.info(f"Classes - original form: {classes_list}")
+    logger.info(f"Classes - original form: {classes_list}")
 
     classes_list = check_and_convert_classes(file_list, classes_list)
 
-    logging.info(f"Classes -  integer form: {classes_list}")
+    logger.info(f"Classes -  integer form: {classes_list}")
 
     # Figure out how many labels we have.
     num_labels = get_label_count(file_list, classes_list)
@@ -256,7 +271,7 @@ def generate_roc_plot(file_list, classes_list, outfile, plot_title: str, legend_
         # Get the matching list of classes to plot for this file
         plot_arg = classes_list[file_list.index(file)]
 
-        logging.info(f"Plotting ROC curves for classes {plot_arg} using data in {file}")
+        logger.info(f"Plotting ROC curves for classes {plot_arg} using data in {file}")
 
         # Get the labels, predictions, and label mapping from the input file.
         y_test, y_score, mapping = load_roc_data(file)
@@ -306,8 +321,9 @@ def generate_roc_plot(file_list, classes_list, outfile, plot_title: str, legend_
             # Calculate the TPR, FPR, and AUC for this particular plot.
             tpr, fpr, roc_auc = compute_roc_data(test_data, score_data)
 
-            # For the legend, we need to isolate which file the curve came from.
-            file_string = file.split("/")[-1]
+            # The legend should indicate which eval dataset produced the curve.
+            prediction_file_content = EvaluationOutput.load(file)
+            file_string = prediction_file_content.options.dataset.config.split("/")[-1]
 
             # Plot the TPR, FPR, and associate the data with the correct label.
             ax.plot(fpr, tpr, lw=lw, label=f"{file_string} - class {class_string} (area = {roc_auc:0.2f})")
@@ -316,7 +332,7 @@ def generate_roc_plot(file_list, classes_list, outfile, plot_title: str, legend_
 
     # Save the figure to the file
     plt.tight_layout()
-    logging.info(f"Saving ROC curves to {outfile}")
+    logger.info(f"Saving ROC curves to {outfile}")
     plt.savefig(outfile)
 
 
@@ -347,6 +363,9 @@ def setup_args(parser) -> None:
                              "For example, a scaling of 1.36 is good for around 25 items "
                              "while 1.12 is good for 50 items. You may need to fiddle with it a bit.")
     parser.add_argument('figureFilename', help="The name of the output file.")
+    parser.add_argument('--outputDir', default=None,
+                        help="Directory where figures will be saved. If this field is left unspecified, the figure "
+                             "will be saved to the current working directory.")
 
 
 def main():
@@ -356,23 +375,26 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+    # If an output directory was not provided, default to the current working directory.
+    output_dir = Path.cwd() if args.outputDir is None else Path(args.outputDir)
+    output_path = Path(output_dir, "log_plot_roc.txt")
+    jbscripting.setup_workspace(args, log_file=output_path)
 
     # Some enforcement to make sure each file has a list of which classes to plot.
     if len(args.predictionFile) != len(args.plotClasses):
-        logging.error("Number of predictionFile args does not match number of plotClasses args. Each "
-                      "predictionFile should have a string of classes to plot.")
+        logger.error("Number of predictionFile args does not match number of plotClasses args. Each "
+                     "predictionFile should have a string of classes to plot.")
         sys.exit(-1)
 
     # Some enforcement to make sure each prediction file in the list is unique
     if len(args.predictionFile) != len(set(args.predictionFile)):
-        logging.error("Duplicates detected in the list of predictionFiles. You should only "
-                      "specify a predictionFile once. Consider combining the class strings.")
+        logger.error("Duplicates detected in the list of predictionFiles. You should only "
+                     "specify a predictionFile once. Consider combining the class strings.")
         sys.exit(-1)
 
     generate_roc_plot(args.predictionFile, args.plotClasses, args.figureFilename, args.title, args.legendScaling)
 
-    logging.info("Done")
+    logger.info("Done")
 
 
 if __name__ == "__main__":

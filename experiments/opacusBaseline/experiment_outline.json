@@ -1,0 +1,71 @@
+{
+    "baseline_config": "model_tests/opacus_baselines/resnet20_dpsgd_a",
+    "description": "Experiment config to baseline opacus models",
+    "format_version": "0.2.0",
+    "reports": [
+        {
+            "description": "Experiment Summary",
+            "output_name": "Experiment Summary.md",
+            "type": "summary"
+        }
+    ],
+    "tests": [
+        {
+            "classify": 0,
+            "dataset_path": "data_sets/cifar10_test.json",
+            "tag": "CIFAR-10 Test"
+        }
+    ],
+    "timestamp": "2021-06-238T10::00",
+    "variables": [
+        {
+            "config_field": "model_architecture.module",
+            "nickname": "arch",
+            "vals": [
+                "juneberry.architectures.pytorch.torchvision.PreActResnet32x32",
+                "juneberry.architectures.pytorch.torchvision.Resnet32x32"
+            ]
+        },
+        {
+            "config_field": "pytorch.privacy_engine.target_epsilon",
+            "nickname": "epsilon",
+            "vals": [
+                2,
+                5,
+                10
+            ]
+        },
+        {
+            "config_field": "pytorch.privacy_engine.max_grad_norm",
+            "nickname": "grad_clip",
+            "vals": [
+                0.8333,
+                1,
+                1.2
+            ]
+        },
+        {
+            "config_field": "pytorch.lr_schedule_args.max_lr",
+            "nickname": "max_lr",
+            "vals": [
+                0.01,
+                0.1,
+                1.0
+            ]
+        },
+        {
+            "config_field": "epochs,pytorch.lr_schedule_args.epochs",
+            "nickname": "epochs",
+            "vals": [
+                {
+                    "epochs": 25,
+                    "pytorch.lr_schedule_args.epochs": 25
+                },
+                {
+                    "epochs": 50,
+                    "pytorch.lr_schedule_args.epochs": 50
+                }
+            ]
+        }
+    ]
+}

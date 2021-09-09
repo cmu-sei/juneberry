@@ -1,111 +1,228 @@
 #! /usr/bin/env python3
 
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
 #  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
 import argparse
-import numpy as np
-from datetime import timedelta
-import sklearn.metrics as metrics
-import json
 import csv
-import os
+import logging
+from pathlib import Path
+import sys
+
+from juneberry.config.eval_output import EvaluationOutput
+from juneberry.config.training_output import TrainingOutput
+from juneberry.filesystem import ModelManager
+
+logger = logging.getLogger("juneberry.jb_summary_report")
 
 
-def accuracy(filename):
+def determine_shared_metric(prediction_file_list: list) -> str:
     """
-    This function loads necessary data from a prediction file.
-    :param filename: The file containing the data we want to extract.
-    :return accuracy: A percentage accuracy score
+    This function iterates through the list of specified predictions files and determines if
+    the report is summarizing classification or object detection metrics. If a mismatch is
+    detected, this function will terminate execution.
+    :param prediction_file_list: A list of the predictions files that were provided as arguments
+    to jb_summary_report.
+    :return: A string ("Balanced Accuracy" | "mAP") indicating which metric the prediction files
+    all have in common.
     """
-    # Open up the target JSON file and read in the data
-    with open(filename, 'r') as in_file:
-        data = json.load(in_file)
 
-    # The test/score data were stored as lists (to make them serializable).
-    # They need to be converted back to numpy arrays.
-    labels = np.asarray(data['testResults']['labels'])
-    pred = np.argmax(np.asarray(data['testResults']['predictions']), axis=1)
-    return metrics.balanced_accuracy_score(labels, pred)
+    # Start with an empty list of metrics.
+    metric_list = []
+
+    # Loop through the list of predictions files and load the evaluation data.
+    for prediction_file in prediction_file_list:
+        eval_data = EvaluationOutput.load(prediction_file)
+
+        # Check which metric is present in the evaluation output and add it to
+        # the metrics list.
+        if eval_data.results.metrics.balanced_accuracy is not None:
+            metric_list.append("Balanced Accuracy")
+        elif eval_data.results.metrics.bbox is not None:
+            metric_list.append("mAP")
+        else:
+            metric_list.append("None")
+
+    # If each prediction file contains the same type of metric, then the set of the metrics list should be 1. If it's
+    # more than 1, then there's a mismatch in the evaluation types.
+    if len(set(metric_list)) > 1:
+        logger.error(f"Discrepancy detected in the metrics of the desired predictions files. Were all the evaluations "
+                     f"for the same type of task (classification | object detection) ?")
+        sys.exit(-1)
+
+    logging.info(f"Building a report to summarize {metric_list[0]}.")
+
+    return metric_list[0]
 
 
-def duration(filename):
+def retrieve_summary_data(model_mgr: ModelManager, prediction_data: EvaluationOutput, metric: str) -> list:
     """
-    Assumes filename is a train_out.json format file.  This will extract the total training time from the file.
-    :param filename: The file containing the data we want to extract.
-    :return time: total training time in seconds
+    This function is responsible for retrieving the data that will be used to populate
+    the Experiment Summary table in the summary report.
+    :param model_mgr: A Juneberry model manager corresponding to the model whose training
+    data is being added to the report.
+    :param prediction_data: The data read in from the requested prediction file.
+    :param metric: A string ('Balanced Accuracy' | 'mAP') indicating which metric is being
+    retrieved for the summary report.
+    :return: A list of the values that were retrieved for the summary report.
     """
-    with open(filename, 'r') as in_file:
-        data = json.load(in_file)
 
-    return timedelta(seconds=data["trainingTimes"]["duration"])
+    # Use the model manager to fetch the data from the model's output.json.
+    train_data = TrainingOutput.load(model_mgr.get_training_out_file())
+
+    # Obtain the desired metrics for the summary from the training and evaluation output.
+    duration = train_data.times.duration
+    name = prediction_data.options.model.name
+    eval_data_name = prediction_data.options.dataset.config
+
+    # Fetch the correct evaluation metric from the results.
+    if metric == 'Balanced Accuracy':
+        metric_value = prediction_data.results.metrics.balanced_accuracy
+    elif metric == 'mAP':
+        metric_value = prediction_data.results.metrics.bbox['mAP']
+    else:
+        metric_value = "N/A"
+
+    return [name, duration, eval_data_name, metric_value]
 
 
-def model_name(filename):
+def generate_summary_report(prediction_files: list, plot_files: list, summary_filename: str, csv_filename: str) -> None:
     """
-    Assumes filename is a train_out.json format file.  This will extract the model name.
-    :param filename: The file containing the data we want to extract.
-    :return time: total training time in seconds
+    This function is responsible for producing the summary report file, and the summary
+    CSV (if necessary).
+    :param prediction_files: A list of the predictions files that were provided as arguments
+    to jb_summary_report.
+    :param plot_files: A list of the plot files that should be included in the summary report.
+    :param summary_filename: A string indicating the filename for the summary report file.
+    :param csv_filename: A string indicating the filename for the CSV file, if one was requested.
+    :return: Nothing.
     """
-    with open(filename, 'r') as in_file:
-        data = json.load(in_file)
 
-    return data["trainingResults"]["modelName"]
+    # TODO: Translate the variables in the model names (those that were
+    #  generated during an experiment) into table columns.
 
+    # Figure out which metric the prediction files have in common.
+    metric = determine_shared_metric(prediction_files)
 
-def generate_summary_report(prediction_files, plot_files, summary_filename, csv_filename):
+    # Generate the header of the summary report.
+    header = f"# Experiment summary\nModel | Duration (seconds) | Eval Dataset | {metric} | " \
+             f"Train Chart\n--- | --- | --- | --- | ---\n"
+
+    # Begin writing the summary report to file.
     with open(summary_filename, "w") as outFile:
-        results = [["model", "accuracy", "duration"]]
-        outFile.write(f"# Experiment summary\nModel | Accuracy | Duration (H:M:S) | "
-                      f"Train Chart\n--- | --- | --- | ---\n")
-        for f in prediction_files:
-            d = os.path.dirname(f)
-            train_img = os.path.join(d, "train_out.png")
-            train_out = os.path.join(d, "train_out.json")
-            results.append([model_name(train_out), accuracy(f), duration(train_out)])
-            outFile.write(
-                f"{results[-1][0]} | {results[-1][1]:.2f} | {results[-1][2]} | "
-                f"[Training Chart](../../{train_img})\n")
 
+        # Establish the results list.
+        results = [["model", "duration", "eval_dataset", {metric}]]
+
+        # Add the header to the report file.
+        outFile.write(header)
+
+        # Loop through the prediction files.
+        for file in prediction_files:
+
+            logging.info(f"Adding the data from {file} to the summary report.")
+
+            prediction_data = EvaluationOutput.load(file)
+            model_name = prediction_data.options.model.name
+
+            # Use the model name to create a model manager.
+            model_mgr = ModelManager(model_name)
+
+            # The goal is to obtain the location of the training summary plot relative to the location
+            # of the summary file. Start by obtaining the absolute path of each file, break that path
+            # down into its component parts, then convert those parts into a list.
+            train_img_parts = list(model_mgr.get_training_summary_plot().resolve().parts)
+            summary_file_parts = list(Path(summary_filename).resolve().parts)
+
+            # Starting from index 0, the goal here is to determine how many of the component parts
+            # match between the two files.
+            similar_count = 0
+            floor = min(len(train_img_parts), len(summary_file_parts))
+            for i in range(0, floor):
+                if train_img_parts[i] == summary_file_parts[i]:
+                    similar_count += 1
+                else:
+                    break
+
+            # Trim the similar components from the summary file.
+            summary_file_parts = summary_file_parts[similar_count:]
+
+            # Now construct a path to the training summary plot that is relative to the location of the
+            # summary file. The remaining length of the summary file parts minus 1 (because you don't count
+            # the summary file itself) indicates how many directories you need to "move back" before you find
+            # a common parent between the training summary plot and the summary file. So prepend N number of
+            # "../" strings to the location of the model's training summary plot.
+            train_img_str = "../" * (len(summary_file_parts) - 1) + str(model_mgr.get_training_summary_plot())
+
+            # Retrieve the summary data for this predictions file and append it to the results list.
+            summary = retrieve_summary_data(model_mgr, prediction_data, metric)
+            results.append(summary)
+
+            # Write the retrieved data to the report file. The format for this line is different
+            # depending on which metric is being summarized.
+            if metric == 'Balanced Accuracy':
+                outFile.write(f"{summary[0]} | {summary[1]} | {summary[2]} | {summary[3]:.2%} | "
+                              f"[Training Chart]({train_img_str})\n")
+            elif metric == 'mAP':
+                outFile.write(f"{summary[0]} | {summary[1]} | {summary[2]} | {summary[3]} | "
+                              f"[Training Chart]({train_img_str})\n")
+
+        # Produce the CSV file (if necessary).
         if csv_filename is not None:
             with open(csv_filename, "w") as f:
                 writer = csv.writer(f)
                 writer.writerows(results)
 
+        # Add any plot files to the report.
         if plot_files is not None and len(plot_files) > 0:
-            outFile.write("\n# Experiment RoC Curves\n")
-            outFile.write("---\n".join([f"![RoC Image]({p.replace(' ', '%20')})\n" for p in plot_files]))
+            outFile.write("\n# Experiment Plots\n")
+            outFile.write("---\n".join([f"![Plot Image]({p.replace(' ', '%20')})\n" for p in plot_files]))
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+
     parser = argparse.ArgumentParser(
         description='This script will generate a markdown summary report of an experiment.')
     parser.add_argument('-f', '--predictionFile', action='append', required=True,
@@ -113,12 +230,11 @@ def main():
                              "described in the predictions_specification. You can specify this argument multiple "
                              "times")
     parser.add_argument('-pf', '--plotFile', action='append', required=False,
-                        help="Name of a RoC Plot file that has been generated by the experiment.")
-    parser.add_argument('--csvFilename', default=None, required=False, help="CSV file to write summary table data"),
+                        help="Name of a Plot file that has been generated by the experiment.")
     parser.add_argument('summaryFilename', help="Markdown report will be written to this file")
+    parser.add_argument('--csvFilename', default=None, required=False, help="CSV file to write summary table data")
 
     args = parser.parse_args()
-
     generate_summary_report(args.predictionFile, args.plotFile, args.summaryFilename, args.csvFilename)
 
 

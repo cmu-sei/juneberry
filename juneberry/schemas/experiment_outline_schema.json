@@ -1,0 +1,92 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "baseline_config": { "type": "string" },
+        "description": { "type": "string" },
+        "filters": { "type": "array" },
+        "format_version": { "type": "string" },
+        "model": {
+            "type": "object",
+            "properties": {
+                "filters": { "type": "array" }
+            }
+        },
+        "reports": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [ "all_pr", "all_roc", "plot_pr", "plot_roc", "summary" ]
+                    },
+                    "description": { "type": "string" },
+                    "test_tag": { "type": "string" },
+                    "classes": { "type": "string" },
+                    "output_name": { "type": "string" },
+                    "iou": { "type": "number"}
+                },
+                "required": [
+                    "type",
+                    "description"
+                ],
+                "anyOf": [
+                    {
+                        "properties": { "type": { "const": "plot_roc" } },
+                        "required": [ "test_tag", "classes" ]
+                    },
+                    {
+                        "properties": { "type": { "const": "summary" } },
+                        "required": [ "output_name" ]
+                    },
+                    {
+                        "properties": { "type": { "const": "all_roc" } },
+                        "required": [ ]
+                    },
+                    {
+                        "properties": { "type": { "const": "all_pr" } },
+                        "required": [ "iou" ]
+                    },
+                    {
+                        "properties": { "type": { "const": "plot_pr" } },
+                        "required": [ "iou", "test_tag" ]
+                    }
+                ]
+            }
+        },
+        "tests": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "tag": { "type": "string" },
+                    "dataset_path": { "type": "string" },
+                    "classify": { "type": "integer" }
+                },
+                "required": [ "classify", "dataset_path", "tag" ]
+            }
+        },
+        "timestamp": {
+            "type": "string"
+        },
+        "variables": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "nickname": { "type": "string" },
+                    "config_field": { "type": "string" },
+                    "vals": {
+                        "anyof": [
+                            { "type": "array" },
+                            { "type": "string" }
+                        ]
+                    }
+                },
+                "required": [ "config_field", "nickname", "vals" ]
+            }
+        }
+    },
+    "required": [ "baseline_config", "reports", "tests", "variables" ]
+}

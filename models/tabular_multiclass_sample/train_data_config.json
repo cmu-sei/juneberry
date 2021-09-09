@@ -1,18 +1,18 @@
 {
-    "numModelClasses": 3,
+    "num_model_classes": 3,
     "sampling": {
         "algorithm": "none",
         "arguments": {}
     },
-    "formatVersion": "3.2.0",
-    "labelNames": {
+    "format_version": "0.2.0",
+    "label_names": {
         "0": "label_0",
         "1": "label_1",
         "2": "label_2"
     },
-    "dataType": "tabular",
+    "data_type": "tabular",
     "data_root" : "relative",
-    "tabularData": {
+    "tabular_data": {
         "sources":
         [
             {
@@ -20,6 +20,6 @@
                 "path": "train_data.csv"
             }
         ],
-        "labelIndex": 2
+        "label_index": 2
     }
 }

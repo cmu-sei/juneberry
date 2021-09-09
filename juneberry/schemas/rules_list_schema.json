@@ -1,0 +1,51 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "description": { "type": "string" },
+        "format_version": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "workflows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "rules": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "clean_extras": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "command": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "doc": { "type": "string" },
+                                "id": { "type": "integer" },
+                                "inputs": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "outputs": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                },
+                                "requirements": {
+                                    "type": "array",
+                                    "items": { "type": "integer" }
+                                }
+                            },
+                            "required": [ "command", "doc", "id", "inputs" ]
+                        }
+                    }
+                },
+                "required": [ "name", "rules" ]
+            }
+        }
+    },
+    "required": [ "workflows" ]
+}

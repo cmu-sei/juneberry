@@ -1,0 +1,90 @@
+{
+    "description": "Unit test for classification training.",
+    "filters": [
+        {
+            "cmd": [
+                "cp",
+                "{train_output}",
+                "{train_output.parent}/{train_output.stem}-copy.json"
+            ],
+            "inputs": [
+                "{train_output}"
+            ],
+            "outputs":[
+                "{train_output.parent}/{train_output.stem}-copy.json"
+            ],
+            "tag": "train_out_cp"
+        }
+    ],
+    "format_version": "0.2.0",
+    "models": [
+        {
+            "filters": [
+                "train_out_cp"
+            ],
+            "name": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+            "tests": [
+                {
+                    "classify": 3,
+                    "dataset_path": "data_sets/imagenette_unit_test.json",
+                    "tag": "Test1"
+                }
+            ]
+        },
+        {
+            "name": "tabular_binary_sample",
+            "tests": [
+                {
+                    "classify": 0,
+                    "dataset_path": "models/tabular_binary_sample/test_data_config.json",
+                    "tag": "Test2"
+                }
+            ]
+        }
+    ],
+    "reports": [
+        {
+            "classes": "0,English_springer,482,491,church",
+            "description": "Simple Unit Test Report",
+            "output_name": "System Test 1 ROC class 0,217,482,491,497.png",
+            "plot_title": "Test 1 - First 5 Classes",
+            "tests": [
+                {
+                    "tag": "Test1"
+                }
+            ],
+            "type": "plot_roc"
+        },
+        {
+            "description": "Simple System Test Report",
+            "output_name": "System Test 1 ROC class 566,569,571.574,701.png",
+            "plot_title": "Test 1 - Next 5 Classes",
+            "tests": [
+                {
+                    "classes": "566,garbage_truck,571,golf_ball,701",
+                    "tag": "Test1"
+                }
+            ],
+            "type": "plot_roc"
+        },
+        {
+            "description": "Simple Binary Test",
+            "output_name": "Simple binary test ROC.png",
+            "plot_title": "System Test - Binary Test Results",
+            "tests": [
+                {
+                    "classes": "0",
+                    "tag": "Test2"
+                }
+            ],
+            "type": "plot_roc"
+        },
+        {
+            "csv_name": "System Test Summary.csv",
+            "description": "Simple System Test Summary",
+            "output_name": "System Test Summary.md",
+            "type": "summary"
+        }
+    ],
+    "timestamp": "2020-06-10T08:29:00"
+}

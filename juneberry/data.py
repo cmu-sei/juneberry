@@ -1,252 +1,537 @@
 #! /usr/bin/env python3
 
-"""
-Contains utilities for setting up data sets, sampling data, splitting data and making labels.
-"""
-
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
-import os
-import csv
-import sys
-import json
-import random
-import logging
+"""
+Contains utilities for setting up data sets, sampling data, splitting data and making labels.
+"""
 
-from pathlib import Path
 from collections import defaultdict
+import copy
+import csv
+import json
+import logging
+import os
+from pathlib import Path
+import random
+import sys
 from typing import Any, Dict, List, Tuple
 
-import juneberry
-import juneberry.pytorch.util as pyt_utils
+import juneberry.config.coco_utils as coco_utils
+from juneberry.config.coco_utils import COCOImageHelper
+import juneberry.config.dataset as jb_dataset
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig, SplittingConfig
+import juneberry.filesystem as jbfs
+from juneberry.filesystem import ModelManager
+from juneberry.lab import Lab
+from juneberry.transform_manager import TransformManager
+
+logger = logging.getLogger(__name__)
 
 
-def setup_data_loaders(train_config, data_set_config, data_manager, no_paging, collate_fn=None):
+# NOTE Dataspec is the new name for Dataset
+def dataspec_to_manifests(lab: Lab, dataset_config, *,
+                          splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                          preprocessors: TransformManager = None):
     """
-    Creates the appropriate data loaders based on the training and data set configurations.
-    :param train_config: The training config that has transforms and validation options.
-    :param data_set_config: The data set config that describes the data.
-    :param data_manager: A filesystem data manager that provides paths to data files.
-    :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
-    :param collate_fn: Function that controls how samples are collated into batches.
-    :return: training_iterable, prediction_iterable
+    Creates the appropriate data loaders based on the training and dataset configurations.
+    :param lab: The Juneberry Lab in which this operation occurs.
+    :param dataset_config: The dataset config that describes the data.
+    :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into
+    a separate subset. Specify None for no splitting.
+    :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
+    :return: This function returns data_loader, split_loader
     """
-    if data_set_config.is_image_type():
-        logging.info(f"Generating Image file lists...")
-        train_list, val_list = generate_image_list(juneberry.DATA_ROOT, data_set_config, train_config,
-                                                   data_manager)
-    elif data_set_config.is_tabular_type():
-        logging.info("Loading tabular data...")
-        train_list, val_list = load_tabular_data(train_config, data_set_config)
+    # In case folks pass in None for the config
+    if splitting_config is None:
+        splitting_config = SplittingConfig(None, None, None)
+
+    if dataset_config.is_image_type():
+        # If it's an object detection task, build lists of metadata files
+        if dataset_config.is_object_detection_task():
+            logger.info(f"Generating metadata lists...")
+            loader = CocoMetadataMarshal(lab, dataset_config, splitting_config=splitting_config,
+                                         preprocessors=preprocessors)
+            return loader.load()
+
+        # If it's not object detection but a list of images
+        else:
+            logger.info(f"Generating image lists...")
+            loader = ListMarshall(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+            return loader.load()
+
+    elif dataset_config.is_tabular_type():
+        logger.info("Loading tabular data...")
+        return load_tabular_data(lab, dataset_config, splitting_config=splitting_config)
+
     else:
-        logging.error("We currently do NOT support any data type but IMAGE or TABULAR")
+        logger.error("We currently do NOT support any data type but IMAGE or TABULAR.")
         sys.exit(-1)
 
-    logging.info("Constructing TRAINING data loader.")
-    training_loader = pyt_utils.make_data_loader(data_set_config,
-                                                 train_list,
-                                                 train_config.training_transforms,
-                                                 train_config.batch_size,
-                                                 no_paging, collate_fn)
 
-    logging.info("Constructing VALIDATION data loader.")
-    validation_loader = pyt_utils.make_data_loader(data_set_config,
-                                                   val_list,
-                                                   train_config.prediction_transforms,
-                                                   train_config.batch_size,
-                                                   no_paging, collate_fn)
-
-    return training_loader, validation_loader
-
-
-def listdir_nohidden(path):
+def generate_image_manifests(lab: Lab, dataset_config: DatasetConfig, *,
+                             splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                             preprocessors: TransformManager = None):
     """
-    Acts like os.listdir except all hidden files are omitted. 
-    :param path: The path to the directory you to be listed out
-    :return: array of files paths that do not start with '.' 
-    """
-    files = []
-    for file in os.listdir(path):
-        if not file.startswith('.'):
-            files.append(file)
-    return files
-
-
-def generate_image_list(data_root, data_set_config, train_config, data_manager):
-    """
-    Produces the file lists from the data set including sampling and validation splitting.
+    Produces the file lists from the dataset, including sampling and validation splitting.
     Each list is an array of pairs of path and label. So [[<path>, int-label]*]
     NOTE: This can also be used to load sampled testing data.
-    :param data_root: The root of the data directory.
-    :param data_set_config: The data_set configuration
-    :param train_config: OPTIONAL training config for validation split information or NONE for no split.
-    :param data_manager: A data manager used to provide the data files.
+    :param lab: The Juneberry Lab in which this operation occurs.
+    :param dataset_config: The dataset configuration
+    :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into
+    a separate subset. Specify None for no splitting.
+    :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
     :return: train_list, val_list
     """
+    if splitting_config is None:
+        splitting_config = SplittingConfig(None, None, None)
 
-    logger = logging.getLogger()
-
-    # We store the file lists into the data set structure
-    source_list = data_set_config.get_image_sources()
-
-    # Step 1, load all the files into a track
-    for data_set in source_list:
-        full_path = os.path.join(data_root, data_set['directory'])
-        data_set['train'] = listdir_nohidden(full_path)
-        data_set['valid'] = []
-
-    # Step 2, perform sampling if they want that on each set
-    if data_set_config.has_sampling():
-        sample_data_sets(source_list, *data_set_config.get_sampling_config())
-
-    # Step 3, do the validation split on each set
-    if train_config is not None and train_config.has_validation_split():
-        split_data_sets(source_list, *train_config.get_validation_split_config())
-
-    # Step 4: Aggregate everything into file and label pairs
-    # This also looks in the cache for the image size and color space
-    train_list = []
-    val_list = []
-    train_class_counts = defaultdict(int)
-    validation_class_counts = defaultdict(int)
-
-    cache_hits = 0
-    cache_misses = 0
-    for data_set in source_list:
-        for filename in data_set['train']:
-            relative_path, used_cache = data_manager.check_cache(data_root, data_set['directory'],
-                                                                 os.path.join(data_set['directory'], filename))
-            train_list.append([os.path.join(data_root, relative_path), data_set['label']])
-
-            # This will be used to establish how many classes we loaded data for
-            train_class_counts[data_set['label']] += 1
-
-            if used_cache:
-                cache_hits += 1
-            else:
-                cache_misses += 1
-
-        for filename in data_set['valid']:
-            relative_path, used_cache = data_manager.check_cache(data_root, data_set['directory'],
-                                                                 os.path.join(data_set['directory'], filename))
-            val_list.append([os.path.join(data_root, relative_path), data_set['label']])
-            if used_cache:
-                cache_hits += 1
-            else:
-                cache_misses += 1
-
-            validation_class_counts[data_set['label']] += 1
-
-    logger.info(f"Training labels and counts: " +
-                ", ".join([f"{k}: {train_class_counts[k]}" for k in sorted(train_class_counts.keys())]))
-    logger.info(f"Validation labels and counts: " +
-                ", ".join([f"{k}: {validation_class_counts[k]}" for k in sorted(validation_class_counts.keys())]))
-    logger.info(f"Total Image count: {len(train_list)} training images, {len(val_list)} validation images")
-    logger.info(f"Cache results: cache hits {cache_hits} cache misses {cache_misses}")
-
-    return train_list, val_list
+    loader = ListMarshall(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+    loader.load()
+    return loader.train, loader.val
 
 
-def generate_metadata_list(data_root, data_set_config, train_config):
+def generate_metadata_manifests(lab: Lab, dataset_config: DatasetConfig, *,
+                                splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                                preprocessors: TransformManager = None):
     """
     Produces file lists of metadata from a glob style path; performs sampling and splitting. Each
     element in the list will be a PosixPath.
-    :param data_root: The root of the data directory.
-    :param data_set_config: The data_set configuration.
-    :param train_config: OPTIONAL training config for validation split information or NONE for no split.
-    :return:
+    NOTE: The dataset labels are updated from the metadata
+    :param lab: The Juneberry Lab in which this operation occurs.
+    :param dataset_config: The dataset configuration.
+    :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into
+    a separate subset. Specify None for no splitting.
+    :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
+    :return: Training file list and validation list
     """
-    logger = logging.getLogger()
+    if splitting_config is None:
+        splitting_config = SplittingConfig(None, None, None)
 
-    logger.info(f"Creating metadata file lists...")
-
-    # Retrieve the sources from the data set structure
-    source_list = data_set_config.get_image_sources()
-
-    # Step 1, load all the files into a track
-    for data_set in source_list:
-        data_set['train'] = list(Path(data_root).glob(data_set['directory']))
-        data_set['valid'] = []
-
-    # Step 2, perform sampling if they want that on each set
-    if data_set_config.has_sampling():
-        sample_data_sets(source_list, *data_set_config.get_sampling_config())
-
-    # Step 3, do the validation split on each set
-    if train_config is not None and train_config.has_validation_split():
-        split_data_sets(source_list, *train_config.get_validation_split_config())
-
-    # Step 4, combine the training / validation contributions from each directory into
-    # one list of all training files and one list of all validation files
-    train_list = list()
-    val_list = list()
-
-    for data_set in source_list:
-        train_list.extend(data_set['train'])
-        val_list.extend(data_set['valid'])
-
-    logger.info(f"Loaded metadata files from {len(source_list)} directories.")
-    logger.info(f"File count: {len(train_list)} training files, {len(val_list)} validation files")
-
-    return train_list, val_list
+    loader = CocoMetadataMarshal(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+    loader.load()
+    return loader.train, loader.val
 
 
-def load_tabular_data(train_config, data_set_config):
-    # TODO: Change this to take validation split config not full training config - COR-384
-    logging.info(f"Identifying CSV sources...")
-    file_list, label_index = data_set_config.get_resolved_tabular_source_paths_and_labels()
+def make_split_metadata_manifest_files(lab: Lab,
+                                       dataset_config: DatasetConfig,
+                                       model_config: ModelConfig,
+                                       model_manager: ModelManager,
+                                       ):
+    """
+    Some object detection systems want coco style annotation files to ingest so we use our
+    manifests to create some temporary coco annotation files that are the nice and accurate lists of the
+    images and annotations.
+    :param lab: The lab in which we are executing.
+    :param dataset_config: The dataset config.
+    :param model_config: The model config with split config and transformers.
+    :param model_manager: The model manager of where to save the files.
+    :return: The manifests that were converted to coco style annotations
+    """
+    # Make the file lists.
+    train_meta, split_meta = generate_metadata_manifests(
+        lab,
+        dataset_config,
+        splitting_config=model_config.get_validation_split_config(),
+        preprocessors=TransformManager(model_config.preprocessors))
 
-    logging.info(f"Loading data from {len(file_list)} sources...")
-    train_dict = load_labeled_csvs(file_list, label_index)
+    # Convert out COCO like intermediate list format into pure coco file.
+    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, dataset_config.retrieve_label_names())
+    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, dataset_config.retrieve_label_names())
 
-    if data_set_config.has_sampling():
-        logging.info(f"Sampling data...")
-        sample_labeled_tabular_data(train_dict, *data_set_config.get_sampling_config())
+    # Serialize
+    train_path = model_manager.get_training_data_manifest_path()
+    jbfs.save_json(train_coco_meta, train_path)
+
+    split_path = model_manager.get_validation_data_manifest_path()
+    jbfs.save_json(split_coco_meta, split_path)
+
+    # TODO: JB should output manifests
+    logger.info(f"Saving training data manifest: {train_path}")
+    logger.info(f"Saving validation data manifest: {split_path}")
+
+    return train_meta, split_meta
+
+
+def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
+                            model_config: ModelConfig,
+                            model_manager: ModelManager,
+                            use_train_split=False, use_val_split=False):
+    """
+    Creates a single manifest file based on the transforms.
+    :param lab: The lab in which we are executing.
+    :param dataset_config: The dataset config.
+    :param model_config: The model config with split config and transformers.
+    :param model_manager: The model manager of where to save the files.
+    :param use_train_split: Boolean indicating if the training portion of the split
+    dataset should be used for evaluation.
+    :param use_val_split: Boolean indicating if the validation portion of the split
+    dataset should be used for evaluation.
+    :return: The evaluation list and the coco formatted file.
+    """
+
+    splitting_config = None
+    if use_train_split or use_val_split:
+        logger.info(f"Splitting the dataset according to the model's validation split instructions.")
+        splitting_config = model_config.get_validation_split_config()
+
+    eval_list, split = generate_metadata_manifests(
+        lab,
+        dataset_config,
+        splitting_config=splitting_config,
+        preprocessors=TransformManager(model_config.preprocessors))
+
+    if use_train_split:
+        logger.info("Evaluating using ONLY the training portion of the split data.")
+
+    elif use_val_split:
+        logger.info("Evaluating using ONLY the validation portion of the split data.")
+        eval_list = split
+
+    output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
+
+    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, dataset_config.retrieve_label_names())
+    jbfs.save_json(coco_style, output_path)
+
+    logger.info(f"Saving evaluation data manifest: {output_path}")
+
+    return eval_list, coco_style
+
+
+#  ____        _                 _   __  __                _           _
+# |  _ \  __ _| |_ __ _ ___  ___| |_|  \/  | __ _ _ __ ___| |__   __ _| |
+# | | | |/ _` | __/ _` / __|/ _ \ __| |\/| |/ _` | '__/ __| '_ \ / _` | |
+# | |_| | (_| | || (_| \__ \  __/ |_| |  | | (_| | |  \__ \ | | | (_| | |
+# |____/ \__,_|\__\__,_|___/\___|\__|_|  |_|\__,_|_|  |___/_| |_|\__,_|_|
+
+
+class DatasetMarshal:
+    """
+    Dataset Marshalls are used to load and process various types of data configs into "datasets"
+    that are basically lists of data items (pytorch Datasets that support __len__ and __getitem__)
+    that can be fed to data loaders.
+    """
+
+    def __init__(self, lab, dataset_config: DatasetConfig, *,
+                 splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                 preprocessors: TransformManager = None):
+        """
+        Constructs the base object for getting the dataset specified by the data source list
+        and loading it into memory.
+        :param lab: The Juneberry Lab in which this operation occurs.
+        :param dataset_config: The dataset config that describes the data to load.
+        :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into a separate
+        subset. Specify None for no splitting.
+        :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
+        """
+        self.lab = lab
+        self.ds_config = dataset_config
+
+        # Arrays the individual entries
+        self.train = []
+        self.val = []
+
+        # We'll need to rebuild this if we preprocess
+        # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
+        self.label_mapping = dataset_config.retrieve_label_names()
+
+        self._splitting_config = splitting_config
+        self._preprocessors = preprocessors
+
+        self._source_list = []
+        self._sampling_configs = [dataset_config.get_sampling_config(), dataset_config.get_sampling_config()]
+
+    def load(self):
+        """
+        Besides construction this is the primary method. This invokes all the steps to load, preprocess,
+        sample, split, etc. the data and returns two "datasets" that support __len__ and __getitem__.
+        :return: The training dataset and the validation dataset.
+        """
+        self.setup()
+        self.make_source_list()
+        self.validation_from_file()
+        self.expand()
+        # TODO: Preprocessing happens IN expand for metadata. Do we really want this step?
+        #       Maybe preprocessing IS expand??
+        self.preprocess()
+        self.sample()
+        self.split()
+        self.merge_sources()
+        if len(self.train) == 0:
+            logger.error("Training dataset is length 0.")
+            sys.exit(1)
+        if len(self.val) == 0:
+            logger.warning("Validation dataset is length 0.")
+        return self.train, self.val
+
+    #  _____      _                 _               ____       _       _
+    # | ____|_  _| |_ ___ _ __  ___(_) ___  _ __   |  _ \ ___ (_)_ __ | |_ ___
+    # |  _| \ \/ / __/ _ \ '_ \/ __| |/ _ \| '_ \  | |_) / _ \| | '_ \| __/ __|
+    # | |___ >  <| ||  __/ | | \__ \ | (_) | | | | |  __/ (_) | | | | | |_\__ \
+    # |_____/_/\_\\__\___|_| |_|___/_|\___/|_| |_| |_|   \___/|_|_| |_|\__|___/
+
+    def setup(self):
+        pass
+
+    def make_source_list(self):
+        add_data_sources(self.lab, self.ds_config, self._source_list, 'train')
+
+    def validation_from_file(self):
+        if self._splitting_config.algo == 'from_file':
+            logger.info(f"Found 'fromFile' validation splitter.  Loading {self._splitting_config.args['file_path']}.")
+            new_sampling = validation_from_file(self.lab, self._source_list, self._splitting_config)
+
+            # Now update our configs.  We have already split so we set it to none,
+            # but now get the new sampling config.
+            self._splitting_config = SplittingConfig(None, None, None)
+            self._sampling_configs[1] = new_sampling
+
+    def expand(self):
+        pass
+
+    def preprocess(self):
+        if self._preprocessors is not None:
+            logger.info(f"Applying ({len(self._preprocessors)}) preprocessors...")
+            apply_function(self._source_list, self._preprocessors)
+
+    def sample(self):
+        if self._sampling_configs[0].algo is not None:
+            logger.info(f"SAMPLING {self._sampling_configs[0]}")
+            sample_data_sets(self._source_list, *self._sampling_configs[0], 'train')
+        if self._sampling_configs[1].algo is not None:
+            logger.info(f"SAMPLING {self._sampling_configs[1]}")
+            sample_data_sets(self._source_list, *self._sampling_configs[1], 'valid')
+
+    def split(self):
+        if self._splitting_config.algo is not None:
+            logger.info(f"Applying splitting {self._splitting_config}.")
+            split_data_sets(self._source_list, *self._splitting_config)
+
+    def merge_sources(self):
+        pass
+
+
+class ListMarshall(DatasetMarshal):
+    def __init__(self, lab, dataset_config: DatasetConfig, *,
+                 splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                 preprocessors: SplittingConfig = None):
+        super().__init__(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+
+    def merge_sources(self):
+        train_class_counts = defaultdict(int)
+        validation_class_counts = defaultdict(int)
+
+        for data_set in self._source_list:
+            for filename in data_set['train']:
+                self.train.append([str(filename), data_set['label']])
+
+                # This will be used to establish how many classes we loaded data for
+                train_class_counts[data_set['label']] += 1
+
+            for filename in data_set['valid']:
+                self.val.append([str(filename), data_set['label']])
+
+                validation_class_counts[data_set['label']] += 1
+
+        logger.info(f"Labels and counts in main dataset: " +
+                    ", ".join([f"{k}: {train_class_counts[k]}" for k in sorted(train_class_counts.keys())]))
+        logger.info(f"Labels and counts in split dataset: " +
+                    ", ".join([f"{k}: {validation_class_counts[k]}" for k in sorted(validation_class_counts.keys())]))
+        logger.info(f"Total Image count: {len(self.train)} main dataset images, {len(self.val)} split dataset images")
+
+
+class CocoMetadataMarshal(DatasetMarshal):
+    """
+    A data marshall that loads data from coco files and places them into image-centric lists of entries.
+    """
+
+    def __init__(self, lab, dataset_config: DatasetConfig, *,
+                 splitting_config: SplittingConfig = SplittingConfig(None, None, None),
+                 preprocessors: TransformManager = None):
+        super().__init__(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+
+    def expand(self):
+        # Expand the files names into actual metadata files
+        logger.info(f"Expanding metadata files...")
+
+        for source in self._source_list:
+            for dataset_type in ['train', 'valid']:
+                new_values = []
+                for x in source[dataset_type]:
+                    self._load_metadata_file(x, new_values, source.remove_image_ids)
+                source[dataset_type] = new_values
+        logger.info("...done expanding metadata.")
+
+    def preprocess(self):
+        # We do our pre-processing during loading so we have nothing to do.
+        pass
+
+    def merge_sources(self):
+        for data_set in self._source_list:
+            self.train.extend(data_set['train'])
+            self.val.extend(data_set['valid'])
+
+        logger.info(f"Loaded metadata files from {len(self._source_list)} sources.")
+        self._summarize_set("train", self.train)
+        self._summarize_set("val", self.val)
+        logger.info(f"LabelNames: {self.ds_config.label_names}")
+
+    def _load_metadata_file(self, filepath: str, new_values: list, remove_image_ids: list):
+        # NOTE on categories
+        # Priority is preprocessors supplied ones > dataset > annotations
+        # Preprocessor - if supplied we just use those totally.  They win
+        # Data set is then used if NO preprocessor configs
+        # Then we add any more file annotation files
+
+        logger.info(f"...loading: {filepath}...")
+        with open(filepath) as json_file:
+            data = json.load(json_file)
+            if self._preprocessors is not None:
+                logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
+                orig_cats = copy.deepcopy(data['categories'])
+                data = self._preprocessors(data)
+                if orig_cats != data['categories']:
+                    logger.info(f"......changing categories because preprocessor changed them.")
+                    # The categories were changed by the preprocessors. They win out over all others
+                    # Categories is a list of id, name
+                    # Last preprocessor of all files wins
+                    # NOTE: This might not be a good idea to do it every time depending on how the
+                    # preprocessors are written, but we'll try this for a while.
+                    # TODO: Fix the dichotomy with str vs int labels
+                    str_labels = {str(x['id']): x['name'] for x in data['categories']}
+                    int_labels = {int(x['id']): x['name'] for x in data['categories']}
+                    self.ds_config.label_names = str_labels
+                    self.ds_config.update_label_names(int_labels)
+                    self.label_mapping = self.ds_config.retrieve_label_names()
+
+            # Now that we have the file loaded let's load the values
+            helper = COCOImageHelper(data)
+            if remove_image_ids:
+                [helper.remove_image(img_id) for img_id in remove_image_ids]
+            new_values.extend(helper.to_image_list())
+
+    def _summarize_set(self, label_name, data_list):
+        counts = defaultdict(int)
+        anno_count = 0
+        for item in data_list:
+            anno_count += len(item['annotations'])
+            for anno in item['annotations']:
+                counts[anno['category_id']] += 1
+
+        msg = ", ".join([f"{k}:{counts[k]}" for k in sorted(counts.keys())])
+        logger.info(f"Metadata set '{label_name}' has {len(data_list)} images with "
+                    f"{anno_count} annotations distributed as {msg}")
+
+
+#  _____     _           _
+# |_   _|_ _| |__  _   _| | __ _ _ __
+#   | |/ _` | '_ \| | | | |/ _` | '__|
+#   | | (_| | |_) | |_| | | (_| | |
+#   |_|\__,_|_.__/ \__,_|_|\__,_|_|
+
+def load_tabular_data_binned(lab, dataset_config: DatasetConfig, *, splitting_config: SplittingConfig = None):
+    """
+    Loads the tabular data set into a dict of label -> rows
+    :param lab: The Juneberry Lab in which this operation occurs.
+    :param dataset_config: The data set config.
+    :param splitting_config: Optional splitting config.
+    :return: train_list, val_list
+    """
+    logger.info(f"Identifying CSV sources...")
+    file_list, label_index = dataset_config.get_resolved_tabular_source_paths_and_labels(lab)
+
+    logger.info(f"Loading data from {len(file_list)} sources...")
+    binned_data = load_labeled_csvs(file_list, label_index)
+
+    if dataset_config.has_sampling():
+        logger.info(f"Sampling data...")
+        sample_labeled_tabular_data(binned_data, *dataset_config.get_sampling_config())
+
+    return binned_data
+
+
+# TODO: Convert the tabular loader to use the new parser/loader
+def load_tabular_data(lab, dataset_config: DatasetConfig, *, splitting_config: SplittingConfig = None):
+    """
+    Loads the tabular data set
+    :param lab: The Juneberry Lab in which this operation occurs.
+    :param dataset_config: The data set config.
+    :param splitting_config: Optional splitting config.
+    :return: train_list, val_list
+    """
+    train_dict = load_tabular_data_binned(lab, dataset_config, splitting_config=splitting_config)
 
     val_dict = {}
-    if train_config is not None:
-        logging.info(f"Pulling out validation split...")
-        val_dict = split_labeled_tabular_data(train_dict, *train_config.get_validation_split_config())
+    if splitting_config is not None:
+        if splitting_config.algo == 'from_file':
+            # For from_file it should point to an entire dataset config. We then load it (without splitting)
+            # as the val_dict
+            file_path = splitting_config.args['file_path']
+            logger.info(f"Loading validation from file {file_path}...")
+            val_config = DatasetConfig.load(file_path, Path(file_path).parent)
+            val_dict = load_tabular_data_binned(lab, val_config, splitting_config=None)
+        else:
+            logger.info(f"Pulling out validation split...")
+            val_dict = split_labeled_tabular_data(train_dict, *splitting_config)
 
     # Summarize what we have
-
-    logging.info("Training labels and counts: " +
-                 ", ".join([f"{k}: {len(train_dict[k])}" for k in sorted(train_dict.keys())]))
-    logging.info("Validation labels and counts: " +
-                 ", ".join([f"{k}: {len(val_dict[k])}" for k in sorted(val_dict.keys())]))
+    logger.info("Training labels and counts: " +
+                ", ".join([f"{k}: {len(train_dict[k])}" for k in sorted(train_dict.keys())]))
+    logger.info("Validation labels and counts: " +
+                ", ".join([f"{k}: {len(val_dict[k])}" for k in sorted(val_dict.keys())]))
 
     # Now, turn this into flat list of data and labels.
     train_list = flatten_dict_to_pairs(train_dict)
     val_list = flatten_dict_to_pairs(val_dict)
+
+    if len(train_list) == 0:
+        logger.error("Training dataset is length 0.")
+        sys.exit(1)
+    if len(val_list) == 0:
+        logger.warning("Validation dataset is length 0.")
 
     return train_list, val_list
 
@@ -263,21 +548,71 @@ def get_num_classes(data_config_files):
     for config_file in data_config_files:
         with open(config_file) as file:
             config = json.load(file)
-        if 'numModelClasses' not in config.keys():
-            logging.error(f"Config file {config_file} does not specify the number of classes.")
+        if 'num_model_classes' not in config.keys():
+            logger.error(f"Config file {config_file} does not specify the number of classes.")
             exit(-1)
         else:
-            num_classes.append(config['numModelClasses'])
+            num_classes.append(config['num_model_classes'])
             # Checks if config is a data config and if max label value in the dataset is not smaller than num_classes
             if 'data' in config.keys() and num_classes[-1] <= max([data_set['label'] for data_set in config['data']]):
                 # remember that labels are indexed at 0, so if largest label == num_classes, the label is too large
-                logging.error(f"Config file {config_file} has a label beyond the number of classes specified.")
+                logger.error(f"Config file {config_file} has a label beyond the number of classes specified.")
     # Checks if all config files specify the same number of classes
     if num_classes.count(num_classes[0]) != len(num_classes):
-        logging.warning(f"Config files do NOT specify the same number of classes. The largest number of "
-                        f"{max(num_classes)} will be used.")
+        logger.warning(f"Config files do NOT specify the same number of classes. The largest number of "
+                       f"{max(num_classes)} will be used.")
 
     return max(num_classes)
+
+
+#  ____
+# |  _ \ _ __ ___ _ __  _ __ ___   ___ ___  ___ ___
+# | |_) | '__/ _ \ '_ \| '__/ _ \ / __/ _ \/ __/ __|
+# |  __/| | |  __/ |_) | | | (_) | (_|  __/\__ \__ \
+# |_|   |_|  \___| .__/|_|  \___/ \___\___||___/___/
+#                |_|
+
+def apply_function(source_list, fn):
+    """
+    Applies the function to each entry in the list. If the function returns None,
+    the item is removed. Meaning, we don't return None elements.
+    :param source_list: The source list
+    :param fn: The function to apply
+    :return:
+    """
+    for source in source_list:
+        for dataset_type in ['train', 'valid']:
+            new_list = [fn(x) for x in source[dataset_type]]
+            source[dataset_type] = [x for x in new_list if x is not None]
+
+
+# TODO: Nothing calls this, but the functionality is in the "expand" call COCO call.
+def load_preprocess_metadata(source_list, preprocessors=None):
+    """
+    This function loads the metadata file (as a file) and then performs preprocessing
+    on the metadata.  The data is then stored in the source list instead of the path.
+    :param source_list: The sources list to preprocess.
+    :param preprocessors: The preprocessors to use.
+    :return:
+    """
+
+    # Construct a transform manager
+    transformers = TransformManager(preprocessors)
+
+    # Reset the data list, load each file, preprocess and add if not None.
+    for source in source_list:
+        for dataset_type in ['train', 'valid']:
+            input_paths = source[dataset_type]
+            source[dataset_type] = []
+            for entry in input_paths:
+                with open(entry) as json_file:
+                    data = json.load(json_file)
+
+                if preprocessors is not None:
+                    data = transformers(data)
+
+                if data is not None:
+                    source[dataset_type].append(data)
 
 
 #  ____                        _ _
@@ -288,9 +623,16 @@ def get_num_classes(data_config_files):
 #                       |_|              |___/
 
 
-def sample_data_sets(sources_list, sampling_algo: str, sampling_args, randomizer):
+def sample_data_sets(sources_list, sampling_algo: str, sampling_args, randomizer, dataset_type='train'):
+    before = []
+    after = []
     for data_source in sources_list:
-        data_source['train'] = sample_data_list(data_source['train'], sampling_algo, sampling_args, randomizer)
+        before.append(len(data_source[dataset_type]))
+        data_source[dataset_type] = sample_data_list(data_source[dataset_type], sampling_algo, sampling_args,
+                                                     randomizer)
+        after.append(len(data_source[dataset_type]))
+
+    logger.info(f"Sampled {dataset_type} data {sampling_algo}, {sampling_args}, sizes {before} -> {after}")
 
 
 def sample_labeled_tabular_data(labeled_tabular, sampling_algo: str, sampling_args, randomizer):
@@ -298,39 +640,42 @@ def sample_labeled_tabular_data(labeled_tabular, sampling_algo: str, sampling_ar
         labeled_tabular[key] = sample_data_list(labeled_tabular[key], sampling_algo, sampling_args, randomizer)
 
 
-def sample_data_list(data_list, sampling_algo: str, sampling_args, randomizer):
+def sample_data_list(data_list, algo: str, args, randomizer):
     """
     Returns a sample (subset) of the source list.
     :param data_list: The data list to sample.
-    :param sampling_algo: The sample algorithm.
-    :param sampling_args: The arguments to the sampling algorithm.
+    :param algo: The sample algorithm.
+    :param args: The arguments to the sampling algorithm.
     :param randomizer: Randomizer if needed
     :return: The sampled (reduced) data list.
     """
-    if sampling_algo == "randomFraction":
-        count = round(len(data_list) * float(sampling_args['fraction']))
+    if algo == jb_dataset.SamplingAlgo.RANDOM_FRACTION:
+        count = round(len(data_list) * float(args['fraction']))
         if count == 0:
-            logging.error("Fraction is less than 1, setting quantity to 1")
+            logger.error("Fraction is less than 1, setting quantity to 1")
             count = 1
-        data_list = randomizer.sample(data_list, count)
-    elif sampling_algo == "randomQuantity":
-        count = sampling_args['count']
-        data_list = randomizer.sample(data_list, count)
-    elif sampling_algo == "roundRobin":  # Randomize list, split list into groups, return position item from each group
-        groups = sampling_args["groups"]
-        position = sampling_args["position"]
+        if count < len(data_list):
+            data_list = randomizer.sample(data_list, count)
+    elif algo == jb_dataset.SamplingAlgo.RANDOM_QUANTITY:
+        count = args['count']
+        if count < len(data_list):
+            data_list = randomizer.sample(data_list, count)
+
+    # Randomize list, split list into groups, return position item from each group
+    elif algo == jb_dataset.SamplingAlgo.ROUND_ROBIN:
+        groups = args["groups"]
+        position = args["position"]
         if position < 0 or position > (groups - 1):
-            logging.error("position is less than zero or larger than the number size of a group")
+            logger.error("position is less than zero or larger than the number size of a group")
             sys.exit(-1)
         randomized_indexs = [x for x in range(len(data_list))]
         select_indexs = [y for y in range(position, len(data_list), groups)]
         randomizer.shuffle(randomized_indexs)
         data_list = [data_list[randomized_indexs[i]] for i in select_indexs]
-    elif sampling_algo == "none":
+    elif algo == jb_dataset.SamplingAlgo.NONE or algo is None:
         pass
     else:
-        logging.error("Unknown sampling algorithm. Adding ZERO files.")
-        data_list = []
+        logger.error(f"Unknown sampling algorithm: {algo} Returning all files.")
 
     return data_list
 
@@ -394,24 +739,27 @@ def split_labeled_tabular_data(labeled_tabular, splitter_algo: str, splitter_arg
     return split_data
 
 
-def split_data_sets(data_set_list, splitter_algo: str, splitter_args, randomizer):
-    for data_set in data_set_list:
-        data_set['valid'] = split_list(data_set['train'], splitter_algo, splitter_args, randomizer)
+def split_data_sets(dataset_list, splitter_algo: str, splitter_args, randomizer):
+    for dataset in dataset_list:
+        before = [len(dataset['train']), len(dataset['valid'])]
+        dataset['valid'] = split_list(dataset['train'], splitter_algo, splitter_args, randomizer)
+        after = [len(dataset['train']), len(dataset['valid'])]
+        logger.info(f"...split (train/valid) from {before} to {after}")
 
 
-def split_list(source_list, splitter_algo: str, splitter_args, randomizer):
+def split_list(source_list, algo: str, args, randomizer):
     """
     Removes a set of items from the source list and returns them in a new list based on the
     splitter algorithm and splitter_args;
     :param source_list: The source list to split.  It is MODIFIED.
-    :param splitter_algo: The algorithm to use to split out the data
-    :param splitter_args: The arguments to the splitting algorithm.
-    :param randomizer: Randomizer if needed
+    :param algo: The algorithm to use to split out the data.
+    :param args: The arguments to the splitting algorithm.
+    :param randomizer: Randomizer if needed.
     :return: The elements removed out of the source list.
     """
     shard = []
-    if splitter_algo == 'randomFraction':
-        count = round(len(source_list) * float(splitter_args['fraction']))
+    if algo == 'random_fraction':
+        count = round(len(source_list) * float(args['fraction']))
         val_indexes = randomizer.sample(range(0, len(source_list)), count)
         val_indexes = sorted(val_indexes, reverse=True)
 
@@ -419,7 +767,7 @@ def split_list(source_list, splitter_algo: str, splitter_args, randomizer):
             shard.append(source_list[i])
             del (source_list[i])
     else:
-        logging.error(f"Unknown validation algorithm '{splitter_algo}', not splitting list.")
+        logger.error(f"Unknown validation algorithm '{algo}', not splitting list.")
 
     return shard
 
@@ -471,7 +819,7 @@ def load_labeled_csvs(file_list, label_index):
     data = defaultdict(list)
     first_header = None
     for file_path in file_list:
-        logging.info(f"Loading - {file_path}... ")
+        logger.info(f"Loading - {file_path}... ")
         with open(file_path) as csv_file:
             reader = csv.reader(csv_file, delimiter=",")
             if first_header is None:
@@ -480,15 +828,15 @@ def load_labeled_csvs(file_list, label_index):
                 header = next(reader)
                 # All headers must be identical as we don't do ANY mapping.
                 if header != first_header:
-                    logging.error(f"Header fields of CSV entries do NOT match. EXITING! First header from "
-                                  f"{file_list[0]} doesn't match header in {file_path}")
+                    logger.error(f"Header fields of CSV entries do NOT match. EXITING! First header from "
+                                 f"{file_list[0]} doesn't match header in {file_path}")
                     sys.exit(-1)
 
             row_idx = 0
             for row in reader:
                 if len(row) <= label_index:
-                    logging.error(f"Row has length {len(row)} but we asked for labels that are "
-                                  f"column {label_index} row {row_idx}")
+                    logger.error(f"Row has length {len(row)} but we asked for labels that are "
+                                 f"column {label_index} row {row_idx}")
                 else:
                     label = int(row[label_index])
                     del row[label_index]
@@ -496,3 +844,87 @@ def load_labeled_csvs(file_list, label_index):
                 row_idx += 1
 
     return data
+
+
+def add_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_type):
+    """
+    Adds data sources and the items from the dataset_config to the source_list of the appropriate type
+    :param lab: The lab from which to gather data
+    :param dataset_config: The dataset config to load.
+    :param source_list: The source list to add the data
+    :param set_type: train or valid
+    :return:
+    """
+    for source in dataset_config.get_image_sources():
+        source_list.append(source)
+        source['train'] = []
+        source['valid'] = []
+        root = source.get("root", "dataroot")
+        source_path = source['directory']
+        if root == 'dataroot':
+            root_path = lab.data_root()
+        elif root == 'workspace':
+            root_path = lab.workspace()
+        elif root == 'relative':
+            if dataset_config.relative_path is None:
+                logger.error(f"No relative_path set in dataset for 'relative' data source. {source_path}. EXITING")
+                sys.exit(-1)
+            root_path = dataset_config.relative_path
+        else:
+            logger.error(f"Unknown source root '{root}' for source path {source_path}")
+            sys.exit(-1)
+
+        # Now load up the sources
+        source[set_type] = list_or_glob_dir(root_path, source_path)
+
+
+def validation_from_file(lab, source_list, splitting_config: SplittingConfig):
+    # Read the indicated dataset config file
+    validation_dataset_config = DatasetConfig.load(splitting_config.args['file_path'])
+    add_data_sources(lab, validation_dataset_config, source_list, 'valid')
+
+    # Return how they want the validation data sampled
+    return validation_dataset_config.get_sampling_config()
+
+
+def listdir_nohidden(path):
+    """
+    Acts like os.listdir except all hidden files are omitted.
+    :param path: The path to the directory you to be listed out
+    :return: array of files paths that do not start with '.'
+    """
+    files = []
+    for file in os.listdir(path):
+        if not file.startswith('.'):
+            files.append(file)
+    return files
+
+
+def list_or_glob_dir(data_root: Path, path: str):
+    """
+    Returns the items as Paths INCLUDING the data_root.
+    :param data_root: Path to the data root in which to look
+    :param path: glob or directory
+    :return: The items at the path
+    """
+    if '*' in path:
+        return sorted(list(data_root.glob(path)))
+    else:
+        source_item = data_root / path
+        if source_item.is_dir():
+            # Iterdir skips hidden directories
+            return sorted(list((data_root / path).iterdir()))
+        else:
+            return [source_item]
+
+
+def load_coco_json(filepath, output: list) -> None:
+    """
+    Loads the metadata json file. Validates during load.
+    :param filepath: The filepath to load.
+    :param output: The output list in which to add out content
+    """
+    with open(filepath) as json_file:
+        data = json.load(json_file)
+        helper = COCOImageHelper(data)
+        output.extend(helper.to_image_list())

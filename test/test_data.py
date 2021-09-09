@@ -1,52 +1,64 @@
 #! /usr/bin/env python3
 
-# ==========================================================================================================================================================
+# ======================================================================================================================
 #  Copyright 2021 Carnegie Mellon University.
 #
 #  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
 #  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
 #  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
 #  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT. Released under a BSD (SEI)-style license, please see license.txt
-#  or contact permission@sei.cmu.edu for full terms.
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
-#  Copyright notice for non-US Government use and distribution.
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
 #
 #  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#  1. Pytorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. adversarial robust toolbox (https://github.com/Trusted-AI/adversarial-robustness-toolbox/blob/main/LICENSE)
-#      Copyright 2018 the adversarial robustness toolbox authors.
-#  8. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  9. pylint (https://github.com/PyCQA/pylint/blob/master/COPYING) Copyright 1991 Free Software Foundation, Inc..
-#  10. python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
 #
-#  DM20-1149
+#  DM21-0689
 #
-# ==========================================================================================================================================================
+# ======================================================================================================================
 
 import csv
-import random
-import os
-
+import json
 from pathlib import Path
-
+import random
 from unittest import mock
 
 import juneberry
-import juneberry.data as jb_data
-import juneberry.filesystem as jbfs
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.training import TrainingConfig
-import juneberry.config.dataset as jb_dataset
+from juneberry.config.model import ModelConfig
+import juneberry.data as jb_data
+from juneberry.lab import Lab
+from juneberry.transform_manager import TransformManager
 
-import test_training_config
+from test_coco_utils import make_sample_coco
+import test_model_config
 
 
 def make_data():
@@ -97,37 +109,37 @@ def test_listdir_no_hidden():
 #                       |___/
 
 
-# This is a hard-code list dir that we use to test get images
-def mock_list_image_dir(path):
+# Replace our data utility function which underlies all the various pathing and globbing
+def mock_list_or_glob_dir(data_root: Path, path: str):
     if str(path).endswith("frodo"):
-        return [f'fr_{x}.png' for x in range(6)]
+        return [data_root / path / f'fr_{x}.png' for x in range(6)]
     elif str(path).endswith("sam"):
-        return [f'sm_{x}.png' for x in range(6)]
+        return [data_root / path / f'sm_{x}.png' for x in range(6)]
     else:
         return []
 
 
-def make_basic_data_set_image_config():
+def make_image_classification_config():
     return {
-        "numModelClasses": 4,
+        "num_model_classes": 4,
         "timestamp": "never",
-        "formatVersion": jb_dataset.FORMAT_VERSION,
-        "labelNames": {"0": "frodo", "1": "sam"},
-        "dataType": 'image',
-        "imageData": {
-            "taskType": "classification",
+        "format_version": DatasetConfig.FORMAT_VERSION,
+        "label_names": {"0": "frodo", "1": "sam"},
+        "data_type": 'image',
+        "image_data": {
+            "task_type": "classification",
             "sources": [
                 {
                     "directory": "frodo",
                     "label": 0,
-                    # "samplingCount": "4",
-                    # "samplingFraction": ""
+                    # "sampling_count": "4",
+                    # "sampling_fraction": ""
                 },
                 {
                     "directory": "sam",
                     "label": 1,
-                    # "samplingCount": "4",
-                    # "samplingFraction": ""
+                    # "sampling_count": "4",
+                    # "sampling_fraction": ""
                 }
             ]
         }
@@ -137,52 +149,52 @@ def make_basic_data_set_image_config():
 def make_sample_stanza(algorithm, args):
     return {
         "sampling": {
-            "algorithm": algorithm,  # < 'none', 'randomFraction', 'randomQuantity', 'roundRobin' >
+            "algorithm": algorithm,  # < 'none', 'random_fraction', 'random_quantity', 'round_robin' >
             "arguments": args  # < custom json structure depending on algorithm - see details >
         }
     }
 
 
-def assert_correct_list(test_list, frodo_indexes, sam_indexes):
-    correct_names = [str(Path('data_root', 'frodo', f'fr_{x}.png')) for x in frodo_indexes]
+def assert_correct_list(test_list, frodo_indexes, sam_indexes, data_root='data_root'):
+    correct_names = [str(Path(data_root, 'frodo', f'fr_{x}.png')) for x in frodo_indexes]
     correct_labels = [0] * len(frodo_indexes)
-    correct_names.extend([str(Path('data_root', 'sam', f'sm_{x}.png')) for x in sam_indexes])
+    correct_names.extend([str(Path(data_root, 'sam', f'sm_{x}.png')) for x in sam_indexes])
     correct_labels.extend([1] * len(sam_indexes))
+    assert len(test_list) == len(correct_names)
     for idx, train in enumerate(test_list):
-        assert train[0] == correct_names[idx]
+        assert str(train[0]) == correct_names[idx]
         assert train[1] == correct_labels[idx]
 
 
-def test_generate_image_list():
-    # Just replace listdir
-    os.listdir = mock_list_image_dir
+def test_generate_image_list(monkeypatch, tmp_path):
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
-    data_set_struct = make_basic_data_set_image_config()
+    dataset_struct = make_image_classification_config()
 
-    data_set_config = DatasetConfig(data_set_struct)
-    dm = jbfs.DataManager({})
+    lab = Lab(workspace='.', data_root='data_root')
+    dataset_config = DatasetConfig.construct(dataset_struct)
 
-    train_list, val_list = jb_data.generate_image_list('data_root', data_set_config, None, dm)
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config)
     assert len(train_list) == 12
     assert len(val_list) == 0
 
     assert_correct_list(train_list, range(6), range(6))
 
 
-def test_generate_image_sample_quantity():
+def test_generate_image_sample_quantity(monkeypatch):
     # If we pass in sampling count we should just get those
     # We know how the internal randomizer works.  We know it uses random.sample on both
     # sets in order.  This is a secret and fragile to this test.
     # With a seed of 1234 and two pulls of sampling with a count of 3, it pulls [3,0,4] and [0,4,5]
-    os.listdir = mock_list_image_dir
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
-    data_set_struct = make_basic_data_set_image_config()
-    data_set_struct.update(make_sample_stanza("randomQuantity", {'seed': 1234, 'count': 3}))
+    dataset_struct = make_image_classification_config()
+    dataset_struct.update(make_sample_stanza("random_quantity", {'seed': 1234, 'count': 3}))
 
-    data_set_config = DatasetConfig(data_set_struct)
-    dm = jbfs.DataManager({})
+    lab = Lab(workspace='.', data_root='data_root')
+    dataset_config = DatasetConfig.construct(dataset_struct)
 
-    train_list, val_list = jb_data.generate_image_list('data_root', data_set_config, None, dm)
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config)
     assert len(train_list) == 6
     assert len(val_list) == 0
 
@@ -190,20 +202,20 @@ def test_generate_image_sample_quantity():
     assert_correct_list(train_list, [3, 0, 4], [0, 4, 5])
 
 
-def test_generate_image_sample_fraction():
+def test_generate_image_sample_fraction(monkeypatch):
     # If we pass in sampling count we should just get those
     # We know how the internal randomizer works.  We know it uses random.sample on both
     # sets in order.  This is a secret and fragile to this test.
     # With a seed of 1234 and two pulls of sampling with a count of 2, it pulls [3,0] and [0,5]
-    os.listdir = mock_list_image_dir
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
-    data_set_struct = make_basic_data_set_image_config()
-    data_set_struct.update(make_sample_stanza("randomFraction", {'seed': 1234, 'fraction': 0.3333333333}))
+    dataset_struct = make_image_classification_config()
+    dataset_struct.update(make_sample_stanza("random_fraction", {'seed': 1234, 'fraction': 0.3333333333}))
 
-    data_set_config = DatasetConfig(data_set_struct)
-    dm = jbfs.DataManager({})
+    lab = Lab(workspace='.', data_root='data_root')
+    dataset_config = DatasetConfig.construct(dataset_struct)
 
-    train_list, val_list = jb_data.generate_image_list('data_root', data_set_config, None, dm)
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config)
     assert len(train_list) == 4
     assert len(val_list) == 0
 
@@ -211,30 +223,277 @@ def test_generate_image_sample_fraction():
     assert_correct_list(train_list, [3, 0], [0, 5])
 
 
-def test_generate_image_validation_split():
-    os.listdir = mock_list_image_dir
+def test_generate_image_validation_split(monkeypatch, tmp_path):
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
-    data_set_struct = make_basic_data_set_image_config()
-    data_set_config = DatasetConfig(data_set_struct)
+    lab = Lab(workspace='.', data_root='data_root')
+    dataset_struct = make_image_classification_config()
+    dataset_config = DatasetConfig.construct(dataset_struct)
 
-    train_struct = test_training_config.make_basic_config()
-    train_struct['validation'] = {
-        "algorithm": "randomFraction",
+    config = test_model_config.make_basic_config()
+    config_path = Path(tmp_path, "config.json")
+
+    with open(config_path, 'w') as out_file:
+        json.dump(config, out_file, indent=4)
+
+    # TODO: Switch this to just use the internal data structure
+    model_config = ModelConfig.load(config_path)
+    model_config.validation = {
+        "algorithm": "random_fraction",
         "arguments": {
             "seed": 1234,
             "fraction": 0.3333333
         }
     }
-    train_config = TrainingConfig('', train_struct)
-    dm = jbfs.DataManager({})
 
-    train_list, val_list = jb_data.generate_image_list('data_root', data_set_config, train_config, dm)
+    split_config = model_config.get_validation_split_config()
+
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config, splitting_config=split_config)
     assert len(train_list) == 8
     assert len(val_list) == 4
 
     # NOTE: Another fragile secret we know is the order from the validation is is reversed
     assert_correct_list(train_list, [1, 2, 4, 5], [1, 2, 3, 4])
     assert_correct_list(val_list, [3, 0], [5, 0])
+
+
+#  __  __      _            _       _
+# |  \/  | ___| |_ __ _  __| | __ _| |_ __ _
+# | |\/| |/ _ \ __/ _` |/ _` |/ _` | __/ _` |
+# | |  | |  __/ || (_| | (_| | (_| | || (_| |
+# |_|  |_|\___|\__\__,_|\__,_|\__,_|\__\__,_|
+
+
+def mock_data_listdir_metadata(data_root: Path, path: str):
+    p = Path(path)
+    if str(path).startswith("frodo"):
+        return [data_root / p.parent / f'metadata_1.json']
+    elif str(path).startswith("sam"):
+        return [data_root / p.parent / f'metadata_2.json']
+    else:
+        return []
+
+
+def make_image_object_detection_config(include_image_removal=False):
+    """
+    This creates a simple dataset config for an objectDetection task.
+    :return: A dataset config.
+    """
+    return {
+        "task": "objectDetection:",
+        "num_model_classes": 4,
+        "timestamp": "never",
+        "format_version": DatasetConfig.FORMAT_VERSION,
+        "label_names": {"0": "frodo", "1": "sam"},
+        "data_type": 'image',
+        "image_data": {
+            "task_type": "object_detection",
+            "sources": [
+                {
+                    "directory": "frodo/*.json",
+                    "remove_image_ids": [1] if include_image_removal else []
+                },
+                {
+                    "directory": "sam/*.json",
+                }
+            ]
+        }
+    }
+
+
+def make_ids(idx):
+    # Make two images, and then 2 and 3 annotations
+    return [idx, idx + 10], [[idx, idx + 10], [idx + 20, idx + 30, idx + 40]]
+
+
+def create_meta_file(dir_path: Path, idx):
+    file_path = dir_path / f"metadata_{idx}.json"
+    data = make_sample_coco(*make_ids(idx))
+    with open(file_path, "w") as json_file:
+        json.dump(data, json_file)
+
+    return data
+
+
+def setup_metadata_files(tmp_path: Path):
+    # Create two metadata directories, each with one metadata file
+    anno_files = []
+    (tmp_path / 'frodo').mkdir()
+    anno_files.append(create_meta_file(tmp_path / 'frodo', 1))
+    (tmp_path / 'sam').mkdir()
+    anno_files.append(create_meta_file(tmp_path / 'sam', 2))
+
+    return anno_files
+
+
+def assert_correct_metadata_list(test_list, id_map):
+    assert len(test_list) == len(id_map)
+    for item in test_list:
+        assert item['id'] in id_map
+        anno_ids = id_map.get(item['id'], {})
+        assert sorted(anno_ids) == sorted([x['id'] for x in item['annotations']])
+
+
+# ==============================================================================
+
+def test_generate_metadata_list(monkeypatch, tmp_path):
+    """
+    This test is responsible for checking that lists of metadata files are being created properly.
+    """
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    setup_metadata_files(tmp_path)
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_struct = make_image_object_detection_config()
+    assert dataset_struct['image_data']['sources'][0]['remove_image_ids'] == []
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
+    # At this point we should have the stanzas refactored
+    assert_correct_metadata_list(train_list, {1: [1, 11], 11: [21, 31, 41], 2: [2, 12], 12: [22, 32, 42]})
+
+
+def test_generate_metadata_list_with_image_removal(monkeypatch, tmp_path):
+    """
+    This test is responsible for checking that lists of metadata files are being created properly
+    when we have specified image removal.
+    """
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    setup_metadata_files(tmp_path)
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_struct = make_image_object_detection_config(include_image_removal=True)
+    assert dataset_struct['image_data']['sources'][0]['remove_image_ids'] == [1]
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
+
+    # At this point we should have the stanzas refactored
+    assert_correct_metadata_list(train_list, {11: [21, 31, 41], 2: [2, 12], 12: [22, 32, 42]})
+
+
+def test_generate_image_metadata_sample_quantity(monkeypatch, tmp_path):
+    # The purpose of this test is to confirm the correct metadata file lists are created when
+    # the sampling type is a random quantity from each source.
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    setup_metadata_files(tmp_path)
+
+    dataset_struct = make_image_object_detection_config()
+    dataset_struct.update(make_sample_stanza("random_quantity", {'seed': 1234, 'count': 1}))
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
+
+    # This seed should consistently produce this order
+    assert_correct_metadata_list(train_list, {11: [21, 31, 41], 2: [2, 12]})
+
+
+def test_generate_image_metadata_sample_fraction(monkeypatch, tmp_path):
+    # The purpose of this test is to confirm the correct metadata file lists are created when
+    # the sampling type is a random fraction from each source.
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    setup_metadata_files(tmp_path)
+
+    dataset_struct = make_image_object_detection_config()
+    dataset_struct.update(make_sample_stanza("random_fraction", {'seed': 7890, 'fraction': 0.3333333333}))
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
+
+    # Make sure they are in this order
+    assert_correct_metadata_list(train_list, {1: [1, 11], 12: [22, 32, 42]})
+
+
+def test_generate_image_metadata_validation_split(monkeypatch, tmp_path):
+    # The purpose of this test is to confirm the correct metadata file lists are created when
+    # a random fraction validation split is defined in the training config.
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    setup_metadata_files(tmp_path)
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_struct = make_image_object_detection_config()
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    model_config_dict = test_model_config.make_basic_config()
+    model_config_dict.update(test_model_config.make_transforms())
+
+    config_path = Path(tmp_path, "config.json")
+
+    with open(config_path, 'w') as out_file:
+        json.dump(model_config_dict, out_file, indent=4)
+
+    # TODO: Switch this to just use the internal data structure
+    model_config = ModelConfig.load(str(config_path))
+    model_config.validation = {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "seed": 1234,
+            "fraction": 0.3333333
+        }
+    }
+    split_config = model_config.get_validation_split_config()
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config, splitting_config=split_config)
+
+    assert_correct_metadata_list(train_list, {1: [1, 11], 12: [22, 32, 42]})
+    assert_correct_metadata_list(val_list, {2: [2, 12], 11: [21, 31, 41]})
+
+
+def get_labels(meta):
+    objects = meta.get('imageProperties', {}).get('objectDetection', {}).get('objects', [])
+    return [x['label'] for x in objects]
+
+
+# The original categories in the sample coco file are as follows.
+# LABEL_MAP = {0: 'zero', 1: 'one', 2: 'two', 3: 'three'}
+
+# Since we are doubling, inject the unused ones in the middle
+DOUBLED_LABEL_MAP = {'0': 'zero', '1': 'unused1', '2': 'one', '3': 'unused2', '4': 'two', '5': 'unused3', '6': 'three'}
+
+
+class LabelDoubler:
+    def __call__(self, meta):
+        for anno in meta['annotations']:
+            anno['category_id'] *= 2
+
+        meta["categories"] = [{"id": str(k), "name": v} for k, v in DOUBLED_LABEL_MAP.items()]
+
+        return meta
+
+
+def test_generate_image_metadata_preprocessing(monkeypatch, tmp_path):
+    # This test checks to see if the metadata preprocessor can modify the labels
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
+    coco_files = setup_metadata_files(tmp_path)
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_struct = make_image_object_detection_config()
+    dataset_config = DatasetConfig.construct(dataset_struct)
+
+    preprocessors = TransformManager([{"fqcn": "test_data.LabelDoubler"}])
+
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config, preprocessors=preprocessors)
+    assert len(train_list) == 4
+    assert len(val_list) == 0
+
+    # They should all be there and match
+    assert_correct_metadata_list(train_list, {1: [1, 11], 11: [21, 31, 41], 2: [2, 12], 12: [22, 32, 42]})
+
+    # Walk all the raw annotations and make a map of id to new label
+    doubled = {}
+    for coco_file in coco_files:
+        for anno in coco_file['annotations']:
+            doubled[anno['id']] = anno['category_id'] * 2
+
+    for img in train_list:
+        for anno in img['annotations']:
+            assert anno['category_id'] == doubled[anno['id']]
+
+    assert dataset_config.label_names == DOUBLED_LABEL_MAP
 
 
 #  _____     _           _
@@ -247,12 +506,12 @@ def test_generate_image_validation_split():
 
 def make_basic_data_set_tabular_config():
     return {
-        "numModelClasses": 4,
+        "num_model_classes": 4,
         "timestamp": "never",
-        "formatVersion": jb_dataset.FORMAT_VERSION,
-        "labelNames": {"0": "frodo", "1": "sam"},
-        "dataType": 'tabular',
-        "tabularData": {
+        "format_version": DatasetConfig.FORMAT_VERSION,
+        "label_names": {"0": "frodo", "1": "sam"},
+        "data_type": 'tabular',
+        "tabular_data": {
             "sources": [
                 {
                     "root": "dataroot",  # [ dataroot | workspace | relative ]
@@ -267,7 +526,7 @@ def make_basic_data_set_tabular_config():
                     "path": "re*.csv",  # subdirectory
                 }
             ],
-            "labelIndex": 2
+            "label_index": 2
         }
     }
 
@@ -304,13 +563,12 @@ def fill_tabular_tempdir(root_dir):
 
 def test_load_tabular_data(tmp_path):
     correct = fill_tabular_tempdir(tmp_path)
-    juneberry.WORKSPACE_ROOT = Path(tmp_path) / 'myworkspace'
-    juneberry.DATA_ROOT = Path(tmp_path) / 'mydataroot'
 
-    data_set_struct = make_basic_data_set_tabular_config()
-    data_set_config = DatasetConfig(data_set_struct, Path(tmp_path) / 'myrelative')
+    lab = Lab(workspace=Path(tmp_path) / 'myworkspace', data_root=Path(tmp_path) / 'mydataroot')
+    dataset_struct = make_basic_data_set_tabular_config()
+    dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
 
-    train_list, val_list = jb_data.load_tabular_data(None, data_set_config)
+    train_list, val_list = jb_data.load_tabular_data(lab, dataset_config)
 
     # THe sample data is three files each with 4 sample with 2 in each class.
     # THe default validation split is 2.  So 3 * 4 / 2 = 6 per list
@@ -325,15 +583,14 @@ def test_load_tabular_data(tmp_path):
 
 def test_load_tabular_data_with_sampling(tmp_path):
     correct = fill_tabular_tempdir(tmp_path)
-    juneberry.WORKSPACE_ROOT = Path(tmp_path) / 'myworkspace'
-    juneberry.DATA_ROOT = Path(tmp_path) / 'mydataroot'
+    lab = Lab(workspace=Path(tmp_path) / 'myworkspace', data_root=Path(tmp_path) / 'mydataroot')
 
     # We only need to test one sample because the sampling core is tested elsewhere
-    data_set_struct = make_basic_data_set_tabular_config()
-    data_set_struct.update(make_sample_stanza("randomQuantity", {'seed': 1234, 'count': 3}))
-    data_set_config = DatasetConfig(data_set_struct, Path(tmp_path) / 'myrelative')
+    dataset_struct = make_basic_data_set_tabular_config()
+    dataset_struct.update(make_sample_stanza("random_quantity", {'seed': 1234, 'count': 3}))
+    dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
 
-    train_list, val_list = jb_data.load_tabular_data(None, data_set_config)
+    train_list, val_list = jb_data.load_tabular_data(lab, dataset_config)
 
     # THe sample data is three files each with 4 sample with 2 in each class.
     # THe default validation split is 2.  So 3 * 4 / 2 = 6 per list
@@ -352,16 +609,22 @@ def test_load_tabular_data_with_sampling(tmp_path):
 
 def test_load_tabular_data_with_validation(tmp_path):
     correct = fill_tabular_tempdir(tmp_path)
-    juneberry.WORKSPACE_ROOT = Path(tmp_path) / 'myworkspace'
-    juneberry.DATA_ROOT = Path(tmp_path) / 'mydataroot'
+    lab = Lab(workspace=Path(tmp_path) / 'myworkspace', data_root=Path(tmp_path) / 'mydataroot')
 
-    data_set_struct = make_basic_data_set_tabular_config()
-    data_set_config = DatasetConfig(data_set_struct, Path(tmp_path) / 'myrelative')
+    dataset_struct = make_basic_data_set_tabular_config()
+    dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
 
-    train_struct = test_training_config.make_basic_config()
-    train_config = TrainingConfig('', train_struct)
+    model_config_dict = test_model_config.make_basic_config()
+    config_path = Path(tmp_path, "config.json")
 
-    train_list, val_list = jb_data.load_tabular_data(train_config, data_set_config)
+    with open(config_path, 'w') as out_file:
+        json.dump(model_config_dict, out_file, indent=4)
+
+    # TODO: Switch this to just use the internal data structure
+    model_config = ModelConfig.load(str(config_path))
+    train_list, val_list = jb_data.load_tabular_data(lab,
+                                                     dataset_config,
+                                                     splitting_config=model_config.get_validation_split_config())
 
     # THe sample data is three files each with 4 sample with 2 in each class.
     # THe default validation split is 2.  So 3 * 4 / 2 = 6 per list
@@ -398,7 +661,7 @@ def test_sampling_random_quantity():
     randomizer = random.Random()
     randomizer.seed(1234)
     data_list = list(range(6))
-    sampled = jb_data.sample_data_list(data_list, "randomQuantity", {"count": 3}, randomizer)
+    sampled = jb_data.sample_data_list(data_list, "random_quantity", {"count": 3}, randomizer)
     for correct, test in zip([3, 0, 4], sampled):
         assert correct == test
 
@@ -407,7 +670,7 @@ def test_sampling_random_fraction():
     randomizer = random.Random()
     randomizer.seed(1234)
     data_list = list(range(6))
-    sampled = jb_data.sample_data_list(data_list, "randomFraction", {"fraction": 0.3333333333}, randomizer)
+    sampled = jb_data.sample_data_list(data_list, "random_fraction", {"fraction": 0.3333333333}, randomizer)
     for correct, test in zip([3, 0], sampled):
         assert correct == test
 
@@ -416,7 +679,7 @@ def test_sampling_round_robin():
     randomizer = random.Random()
     randomizer.seed(1234)
     data_list = list(range(9))
-    sampled = jb_data.sample_data_list(data_list, "roundRobin", {"groups": 3, "position": 1}, randomizer)
+    sampled = jb_data.sample_data_list(data_list, "round_robin", {"groups": 3, "position": 1}, randomizer)
     for correct, test in zip([3, 4, 1], sampled):
         assert correct == test
 
@@ -478,3 +741,17 @@ def test_make_balanced_dict():
     for k, v in result_dict.items():
         assert len(v) == 2
     check_allocation(data_dict, result_dict)
+
+
+def mock_generate_image_list(root, ds, model_config=None, splitting_config=None):
+    if splitting_config is not None:
+        return ['image_train'], ['image_val']
+    else:
+        return ['image_train'], []
+
+
+def mock_load_tabular_data(mc, ds):
+    if mc is not None:
+        return ['tab_train'], ['tab_val']
+    else:
+        return ['tab_train'], []

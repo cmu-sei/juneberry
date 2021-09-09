@@ -1,0 +1,169 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+#  Copyright 2021 Carnegie Mellon University.
+#
+#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
+#  Please see Copyright notice for non-US Government use and distribution.
+#
+#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+#
+#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
+#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
+#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
+#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
+#      developers.
+#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
+#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
+#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
+#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
+#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
+#                  Authors.
+#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
+#             Lambda Foundry, Inc. and PyData Development Team.
+#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
+#                  Tsung-Yi Lin.
+#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
+#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
+#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
+#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
+#               (ramazanpolat@gmail.com).
+#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+#
+#  DM21-0689
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+import sys
+from types import SimpleNamespace
+
+from juneberry.config.model import ModelConfig
+import juneberry.filesystem as jbfs
+import juneberry.scripting as jbscripting
+
+logger = logging.getLogger("juneberry.jb_evaluate_data")
+
+
+def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_split=False):
+    """
+    This function converts a set of input arguments into a SimpleNameSpace representing the selected evaluator options.
+    :param top_k: An integer that controls how many of the top-K predicted classes to record in the output.
+    :param dryrun: Flag to initiate dry run mode.
+    :param use_train_split: Flag that indicates if the training portion of the dataset should be evaluated.
+    :param use_val_split: Flag that indicates if the validation portion of the dataset should be evaluated.
+    :return: eval_options: A SimpleNamespace representing the Evaluator options that were set via
+    command line arguments.
+    """
+
+    if use_train_split and use_val_split:
+        logger.error("--useTrainSplit and --useValSplit should not be used together. Choose one and try again. "
+                     "Exiting.")
+        sys.exit(-1)
+
+    # Set up a SimpleNamespace to capture the relevant evaluation options
+    eval_options = SimpleNamespace()
+    eval_options.top_k = top_k
+    eval_options.dryrun = dryrun
+    eval_options.use_train_split = use_train_split
+    eval_options.use_val_split = use_val_split
+
+    return eval_options
+
+
+def setup_args(parser) -> None:
+    """
+    This function contains the arguments for the ArgumentParser that are unique to this script.
+    :param parser: The ArgumentParser managing the arguments for this script.
+    :return: Nothing
+    """
+    parser.add_argument('modelName', help='Name of a model directory containing the model you\'d like to evaluate.')
+
+    parser.add_argument('dataset', help="Path to a dataset file describing the data the model should evaluate.")
+
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
+
+    parser.add_argument('--useTrainSplit', default=False, action='store_true',
+                        help='This argument reads the validation split parameters from the model\'s training config, '
+                             'splits the dataset in the dataset arg according to those parameters, and then evaluates '
+                             'the training portion of the split data. '
+                             'This argument is incompatible with --useValSplit.')
+
+    parser.add_argument('--useValSplit', default=False, action='store_true',
+                        help='This argument reads the validation split parameters from the model\'s training config, '
+                             'splits the dataset in the dataset arg according to those parameters, and then evaluates '
+                             'the validation portion of the split data. '
+                             'This argument is incompatible with --useTrainSplit.')
+
+    parser.add_argument("--topK", default=0, type=int,
+                        help='Optional parameter. An integer that controls how many of the top-K predicted '
+                             'classes to record in the output.')
+
+    parser.add_argument('-n', '--num-gpus', type=int, default=None,
+                        help='The number of gpus. By default (unset) use all. Set to 0 for cpu.')
+
+
+def main():
+    # Typical argparse operations to gather the command line arguments.
+    parser = argparse.ArgumentParser(description='Loads a model, evaluates against a dataset, and saves results '
+                                                 'to a predictions file.')
+    setup_args(parser)
+    jbscripting.setup_args(parser)
+    args = parser.parse_args()
+
+    # Process arguments
+    model_name = args.modelName
+    model_manager = jbfs.ModelManager(model_name)
+    eval_dir_mgr = model_manager.get_eval_dir_mgr(args.dataset)
+    eval_dir_mgr.setup()
+    eval_options = setup_eval_options(args.topK, args.dryrun, args.useTrainSplit, args.useValSplit)
+
+    # Set up logging for the evaluation
+    log_file = eval_dir_mgr.get_log_dryrun_path() if args.dryrun else eval_dir_mgr.get_log_path()
+    log_prefix = "<<DRY_RUN>> " if args.dryrun else ""
+    lab = jbscripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix, model_name=model_name,
+                                             banner_msg=">>> Juneberry Evaluator <<<")
+    dataset = lab.load_dataset_config(args.dataset)
+
+    # Start evaluation
+    logger.info(f"Script arguments captured. Ready to start an evaluation run.")
+
+    # Load the model config to determine what type of evaluator
+    model_config = ModelConfig.load(model_manager.get_model_config())
+
+    # Create an evaluator object and use it to conduct the evaluation.
+    if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
+        from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
+        evaluator = PytorchEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
+    elif model_config.platform == "detectron2":
+        from juneberry.detectron2.dt2_evaluator import Detectron2Evaluator
+        evaluator = Detectron2Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    elif model_config.platform == "mmdetection":
+        from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
+        evaluator = MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    else:
+        logger.error(f"Unsupported platform: {model_config.platform}")
+        sys.exit(-1)
+
+    # Set the number of gpus on the evaluator
+    if not args.dryrun:
+        evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
+
+    evaluator.perform_evaluation()
+
+    logger.info("Evaluation complete.")
+
+
+if __name__ == "__main__":
+    jbscripting.run_main(main, logger)

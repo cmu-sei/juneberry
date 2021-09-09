@@ -1,0 +1,144 @@
+{
+    "batch_size": 128,
+    "description": "Quick CIFAR-10 trainer",
+    "epochs": 50,
+    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
+    "evaluation_transforms": [
+        {
+            "fqcn": "torchvision.transforms.ToTensor"
+        },
+        {
+            "fqcn": "torchvision.transforms.Normalize",
+            "kwargs": {
+                "mean": [
+                    0.485,
+                    0.456,
+                    0.406
+                ],
+                "std": [
+                    0.229,
+                    0.224,
+                    0.225
+                ]
+            }
+        }
+    ],
+    "format_version": "0.2.0",
+    "label_mapping": "data_sets/label_mappings/imagenet.json",
+    "model_architecture": {
+        "args": {
+            "channels": 3,
+            "img_height": 32,
+            "img_width": 32,
+            "layers": 20,
+            "num_classes": 10
+        },
+        "module": "juneberry.architectures.pytorch.torchvision.PreActResnet32x32"
+    },
+    "model_transforms": [
+        {
+            "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
+            "kwargs": {
+                "imageShape": [
+                    3,
+                    32,
+                    32
+                ]
+            }
+        },
+        {
+            "fqcn": "juneberry.pytorch.privacy.model_transforms.ConvertBatchnormModules",
+            "kwargs": {}
+        },
+        {
+            "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
+            "kwargs": {
+                "imageShape": [
+                    3,
+                    32,
+                    32
+                ]
+            }
+        }
+    ],
+    "platform": "pytorch_privacy",
+    "pytorch": {
+        "accuracy_args": {
+            "normalize": true
+        },
+        "accuracy_fn": "sklearn.metrics.accuracy_score",
+        "deterministic": true,
+        "loss_fn": "torch.nn.CrossEntropyLoss",
+        "lr_schedule_args": {
+            "epochs": 50,
+            "max_lr": 0.5,
+            "steps_per_epoch": 352
+        },
+        "lr_schedule_fn": "torch.optim.lr_scheduler.OneCycleLR",
+        "lr_step_frequency": "batch",
+        "optimizerComments": [
+            " From: https://arxiv.org/pdf/1708.07120.pdf, table 2, entry: ",
+            "Dataset   Architecture    CLR/SS/PL   CM/SS           WD      Epochs  Accuracy (%)",
+            "Cifar-10  wide resnet     0.1-1/23    0.95-0.85/23    10\u22124    50      91.3 \u00b1 0.1"
+        ],
+        "optimizer_args": {
+            "lr": 0.1,
+            "momentum": 0.9,
+            "weight_decay": 0.0001
+        },
+        "optimizer_fn": "torch.optim.SGD",
+        "privacy_engine": {
+            "max_grad_norm": 1.2,
+            "target_delta": 1e-05,
+            "target_epsilon": 10
+        },
+        "privacy_engine_COMMENTS": [
+            "Max Grad Norm: The maximum L2 norm of per-sample gradients before they are aggregated by the averaging step",
+            "Noise Multiplier: The amount of noise sampled and added to the average of the gradients in a batch.",
+            "\"noise_multiplier\": 0.38,",
+            "Can also use target_epsilon",
+            "Delta: The target \u03b4 of the (\u03f5,\u03b4)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. In this tutorial, it is set to $10^{\u22125}$ as the CIFAR10 dataset has 50,000 training points.",
+            "need epochs to be epochs * num_batchs because of scheduler? 352 * 50 = 17600 ??? "
+        ]
+    },
+    "seed": 4210592948,
+    "task": "classification",
+    "timestamp": "2021-06-23T10:20:00",
+    "training_dataset_config_path": "data_sets/cifar10.json",
+    "training_transforms": [
+        {
+            "fqcn": "torchvision.transforms.ToTensor"
+        },
+        {
+            "fqcn": "torchvision.transforms.Normalize",
+            "kwargs": {
+                "mean": [
+                    0.485,
+                    0.456,
+                    0.406
+                ],
+                "std": [
+                    0.229,
+                    0.224,
+                    0.225
+                ]
+            }
+        }
+    ],
+    "transformCOMMENT": {
+        "fqcn": "juneberry.transforms.random_crop_mirror.RandomCropMirror",
+        "kwargs": {
+            "height_pixels": 4,
+            "mirror": 1,
+            "width_pixels": 4
+        }
+    },
+    "validation": {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "fraction": 0.1,
+            "seed": 3554237221
+        }
+    }
+}

@@ -1,0 +1,133 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "data_type": {
+            "type": "string",
+            "enum": [ "image", "tabular", "torchvision" ]
+        },
+        "description": {
+            "type": "string"
+        },
+        "format_version": {
+            "type": "string"
+        },
+        "url": {
+            "type": "string"  
+        },
+        "image_data": {
+            "type": "object",
+            "properties": {
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "directory": {
+                                "type": "string"
+                            },
+                            "label": {
+                                "type": "integer"
+                            },
+                            "sampling_count": {
+                                "type": "integer"
+                            },
+                            "sampling_fraction": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "directory"
+                        ]
+                    }
+                },
+                "task_type": {
+                    "type": "string",
+                    "enum": [ "classification", "object_detection" ]
+                }
+            },
+            "required": [
+                "sources",
+                "task_type"
+            ]
+        },
+        "label_names": {
+            "type": "object"
+        },
+        "num_model_classes": {
+            "type": "integer"
+        },
+        "sampling": {
+            "type": "object",
+            "properties": {
+                "algorithm": {
+                    "type": "string",
+                    "enum": [ "none", "random_fraction", "random_quantity", "round_robin" ]
+                },
+                "arguments": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "algorithm"
+            ]
+        },
+        "tabular_data": {
+            "type": "object",
+            "properties": {
+                "label_index": {
+                    "type": "integer"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string"
+                            },
+                            "root": {
+                                "type": "string",
+                                "enum": [ "dataroot", "workspace", "relative" ]
+                            }
+                        },
+                        "required": [
+                            "path"
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "label_index",
+                "sources"
+            ]
+        },
+        "timestamp": {
+            "type": "string"
+        },
+        "torchvision_data": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "root": { "type": "string" },
+                "train_kwargs": { "type": "object" },
+                "val_kwargs": { "type": "object" },
+                "eval_kwargs": { "type": "object" }
+            }
+        }
+    },
+    "oneOf": [
+        {
+            "properties": { "data_type": { "const": "image" } },
+            "required": [ "data_type", "label_names", "num_model_classes", "image_data" ]
+        },
+        {
+            "properties": { "data_type": { "const": "tabular" } },
+            "required": [ "data_type", "label_names", "num_model_classes", "tabular_data" ]
+        },
+        {
+            "properties": { "data_type": { "const": "torchvision" } },
+            "required": [ "data_type", "label_names", "num_model_classes", "torchvision_data" ]
+        }
+    ]
+}

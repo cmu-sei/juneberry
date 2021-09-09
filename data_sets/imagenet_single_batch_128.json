@@ -1,0 +1,27 @@
+{
+    "data_type": "image",
+    "description": "Imagenet training images, restricted to a single sample",
+    "format_version": "0.2.0",
+    "url": "https://image-net.org/download.php",
+    "image_data": {
+        "sources": [
+            {
+                "directory": "ImageNet/train/n01440764",
+                "label": 0
+            }
+        ],
+        "task_type": "classification"
+    },
+    "label_names": {
+        "0": "tench"
+    },
+    "num_model_classes": 1000,
+    "sampling": {
+        "algorithm": "random_quantity",
+        "arguments": {
+            "count": 128,
+            "seed": 98754321
+        }
+    },
+    "timestamp": "2021-06-23T08:18:00"
+}
