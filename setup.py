@@ -52,6 +52,7 @@ install_requires = [
     "matplotlib",
     "pillow",
     "sklearn",
+    "tensorflow",
     "tensorboard",
     "torch",
     "torchvision",
@@ -63,7 +64,10 @@ install_requires = [
     "natsort",
     "prodict",
     "jsonschema",
-    "opacus"
+    "opacus",
+    "protobuf==3.16.0",
+    "onnx",
+    "onnxruntime"  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
 ]
 
 bin_scripts = [
@@ -82,7 +86,7 @@ bin_scripts = [
 
 setuptools.setup(
     name='Juneberry',
-    version='0.4',
+    version='0.5',
     description='Juneberry Machine Learning Experiment Manager',
     packages=setuptools.find_packages(),
     install_requires=install_requires,
