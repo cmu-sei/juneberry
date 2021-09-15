@@ -62,6 +62,7 @@ from torchvision import transforms
 from juneberry.config.dataset import DataType, DatasetConfig, SamplingConfig, TaskType, TorchvisionData
 from juneberry.config.model import ModelConfig, PytorchOptions, SplittingAlgo, SplittingConfig
 import juneberry.data as jb_data
+from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
@@ -447,11 +448,12 @@ def construct_model(arch_config, num_model_classes):
                                       dry_run=False)
 
 
-def save_model(model_manager, model) -> None:
+def save_model(model_manager: ModelManager, model, input_sample) -> None:
     """
     Saves the model to the specified directory using our naming scheme and format.
     :param model_manager: The model manager controlling the model being saved.
     :param model: The model file.
+    :param input_sample:
     """
     # We only want to save the non DDP version of the model, so the model without wrappers.
     # We shouldn't be passed a wrapped model.
@@ -460,9 +462,16 @@ def save_model(model_manager, model) -> None:
         traceback.print_stack()
         sys.exit(-1)
 
+    # Save the model in PyTorch format.
+    logging.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
     model_path = model_manager.get_pytorch_model_path()
     torch.save(model.state_dict(), model_path)
 
+    # Save the model in ONNX format.
+    # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
+    # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
+    logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
+    torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 def load_model(model_path, model) -> None:
     """
@@ -559,6 +568,26 @@ def predict_classes(data_generator, model, device):
                 all_outputs = output.detach().cpu().numpy()
             else:
                 all_outputs = np.concatenate((all_outputs, output.detach().cpu().numpy()))
+
+    return all_outputs.tolist()
+
+
+def predict_classes_onnx(data_generator, session):
+    input_name = session.get_inputs()[0].name
+
+    all_outputs = None
+    for i, (thing, target) in enumerate(data_generator):
+        # run the net and return prediction
+
+        for item in torch.split(thing, 1):
+
+            ort_out = session.run([], {input_name: item.data.numpy()})
+            ort_out = ort_out[0]
+
+            if all_outputs is None:
+                all_outputs = np.array(ort_out)
+            else:
+                all_outputs = np.concatenate((all_outputs, np.array(ort_out)))
 
     return all_outputs.tolist()
 

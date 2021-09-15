@@ -107,17 +107,18 @@ class AcceptanceChecker:
         if self.max_epochs is not None:
             logger.info(f"AcceptanceChecker: Will stop when epoch reaches {self.max_epochs}")
 
-    def add_checkpoint(self, model, value, allow_save=True) -> bool:
+    def add_checkpoint(self, model, input_sample, value, allow_save=True) -> bool:
         """
         Adds a single checkpoint for the model. If the value is "accepted" based on the configuration of the
         checker, then the checker's 'done' state will be set to true.
         :param model: The model to save.
+        :param input_sample:
         :param value: The value to be provided to the comparator to check for acceptance.
         :param allow_save: Boolean that enables the caller to decide if the model should be saved.
         :return self.done: Boolean status indicating if the training process should end.
         """
         if self.done:
-            logger.error(f"AcceptanceChecker called with another checkpoint when already completed! EXITING")
+            logger.error(f"AcceptanceChecker called with another checkpoint when already completed! EXITING.")
             sys.exit(-1)
 
         # We always increase epoch count
@@ -131,7 +132,7 @@ class AcceptanceChecker:
                 self.best_value = value
                 self.best_epoch = self.current_epoch
                 if allow_save:
-                    self._save_model(model)
+                    self._save_model(model, input_sample)
 
             elif self.current_epoch - self.best_epoch >= self.plateau_count - 1:
                 self.stop_message = f"Training reached plateau: {self.plateau_count}. Best epoch: {self.best_epoch}"
@@ -141,7 +142,7 @@ class AcceptanceChecker:
             self.stop_message = f"Training value {value} reached or exceeded {self.threshold}."
             self.done = True
             if allow_save:
-                self._save_model(model)
+                self._save_model(model, input_sample)
 
         if not self.done and self.max_epochs is not None:
             # Even for epoch based training we always save the best
@@ -149,7 +150,7 @@ class AcceptanceChecker:
                 self.best_value = value
                 self.best_epoch = self.current_epoch
                 if allow_save:
-                    self._save_model(model)
+                    self._save_model(model, input_sample)
 
             if self.current_epoch >= self.max_epochs:
                 self.stop_message = f"Training reached MAX EPOCH: {self.max_epochs}. Best epoch: {self.best_epoch}"
@@ -158,14 +159,15 @@ class AcceptanceChecker:
         return self.done
 
     # Internal method for mocking out during unit test
-    def _save_model(self, model) -> None:
+    def _save_model(self, model, input_sample) -> None:
         """
         Saves the model to the models directory overwriting any previous model file.
         :param model: The model to save.
+        :param input_sample:
         """
         # We need to remove any old one if it exists
         model_path = self.model_manager.get_pytorch_model_path()
         if model_path.exists():
             model_path.unlink()
 
-        pyutil.save_model(self.model_manager, model)
+        pyutil.save_model(self.model_manager, model, input_sample)

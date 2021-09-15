@@ -45,6 +45,7 @@
 # ======================================================================================================================
 
 import logging
+import onnx
 import sys
 from types import SimpleNamespace
 
@@ -233,8 +234,17 @@ class PytorchEvaluator(Evaluator):
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
         # Load the weights into the model.
-        logger.info(f"Loading model weights")
+        logger.info(f"Loading model weights.")
         pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model)
+
+        # Load the ONNX model.
+        self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
+
+        # Check that the ONNX model is well formed.
+        onnx.checker.check_model(self.onnx_model)
+
+        # TODO: Decide if this graph adds any value to the evaluation process.
+        # logger.info(f"Graph of the ONNX model:\n{onnx.helper.printable_graph(self.onnx_model.graph)}")
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

@@ -43,7 +43,6 @@
 #  DM21-0689
 #
 # ======================================================================================================================
-
 import datetime
 import logging
 import math
@@ -90,6 +89,8 @@ class ClassifierTrainer(EpochTrainer):
         self.data_version = model_manager.model_version
         self.binary = dataset_config.is_binary
         self.pytorch_options: PytorchOptions = model_config.pytorch
+
+        self.input_sample = None
 
         # Should we load all the data at one time.  Edge case optimization.
         self.no_paging = False
@@ -275,7 +276,8 @@ class ClassifierTrainer(EpochTrainer):
                 self.history['lr'].append(param_group['lr'])
 
         # Pass the model and value we want to check to the acceptance checker
-        self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.history[self.history_key][-1],
+        self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.input_sample,
+                                                           self.history[self.history_key][-1],
                                                            allow_save=(self.gpu is None or self.gpu == 0))
 
         # TODO: Check if loss when nan.
@@ -396,6 +398,14 @@ class ClassifierTrainer(EpochTrainer):
                                             val_list,
                                             no_paging=self.no_paging,
                                             sampler_args=sampler_args)
+
+            dataset = self.training_iterable.dataset
+            self.input_sample, label = dataset[0]
+
+            if type(self.input_sample) == np.ndarray:
+                self.input_sample = torch.from_numpy(self.input_sample)
+
+            self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
 
     def setup_model(self):
         logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "

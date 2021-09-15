@@ -110,6 +110,7 @@ class Evaluator:
         self.model_config_path = model_manager.get_model_config()
         self.model_config = model_config
         self.model = None
+        self.onnx_model = None
 
         # These attributes describe the dataset being evaluated. The "eval_dataset_config" is a Juneberry
         # DatasetConfig object.
@@ -138,6 +139,7 @@ class Evaluator:
         # written to an output JSON file, and (if requested) the top-K classes predicted for each piece
         # of evaluated data.
         self.raw_output = None
+        self.onnx_output = None
         self.top_k = None
 
         # Set up the evaluation output.
