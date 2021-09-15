@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -64,7 +42,9 @@ import logging
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
+import juneberry.config.training_output
 from juneberry.filesystem import ModelManager
+import juneberry.filesystem as jbfs
 from juneberry.jb_logging import log_banner
 from juneberry.lab import Lab
 from juneberry.timing import Berryometer
@@ -114,6 +94,14 @@ class Trainer:
         # A Berryometer object we use to track the times of phases. Can be used by the
         # subclasses for tracking the time of particular tasks.
         self.timer = Berryometer()
+
+        # This is where all the results of the training process are placed
+        # that we can serialize at the end.
+        self.results = TrainingOutput()
+        self.results.options = juneberry.config.training_output.Options()
+        self.results.times = juneberry.config.training_output.Times()
+        self.results.times.epoch_duration_sec = []
+        self.results.results = juneberry.config.training_output.Results()
 
     # ==========================
 
@@ -188,6 +176,47 @@ class Trainer:
         """
         logger.warning("train_distributed() not implemented in the base Trainer.")
 
+    # ==========================
+    # Some utility methods
+
+    def _finalize_results_prep(self):
+        end_time = datetime.datetime.now().replace(microsecond=0)
+
+        duration = end_time - self.train_start_time
+
+        model_config = self.model_config
+        dataset_config = self.dataset_config
+
+        # Add all the times
+        # TODO Switch to use the new training_output script
+        self.results['times']['start_ime'] = self.train_start_time.isoformat()
+        self.results['times']['end_time'] = end_time.isoformat()
+        self.results['times']['duration'] = duration.total_seconds()
+
+        # Copy in relevant parts of our training options
+        self.results['options']['training_dataset_config_path'] = str(model_config.training_dataset_config_path)
+        self.results['options']['model_architecture'] = model_config.model_architecture
+        self.results['options']['epochs'] = model_config.epochs
+        self.results['options']['batch_size'] = model_config.batch_size
+        self.results['options']['seed'] = model_config.seed
+
+        # This couples us to one dataset
+        self.results['options']['data_type'] = dataset_config.data_type
+
+        # This should move into the training options
+        self.results['results']['model_name'] = self.model_manager.model_name
+
+        self.results['format_version'] = TrainingOutput.FORMAT_VERSION
+
+    def _serialize_results(self):
+
+        if self.gpu:
+            logger.info("Only the rank 0 process is responsible for writing the training results to file.")
+
+        else:
+            logger.info(f"Writing output file: {self.model_manager.get_training_out_file()}")
+            jbfs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
+
 
 #  _____                  _   _____          _
 # | ____|_ __   ___   ___| |_|_   _| __ __ _(_)_ __   ___ _ __
@@ -226,10 +255,6 @@ class EpochTrainer(Trainer):
         # These must be initialized during setup.
         self.training_iterable = None
         self.evaluation_iterable = None
-
-        # This is where all the results of the training process are placed
-        # that we can serialize at the end.
-        self.results = {'times': {"epoch_duration_sec": []}, 'options': {}, 'results': {}}
 
     # -----------------------------------------------
     #  _____     _                 _              ______     _       _
@@ -421,45 +446,6 @@ class EpochTrainer(Trainer):
         # Now that we have finished all the batches, summarize the metrics.
         with self.timer("summarize_train"):
             self.summarize_metrics(train, metrics)
-
-    def _serialize_results(self):
-
-        if self.gpu:
-            logger.info("Only the rank 0 process is responsible for writing the training results to file.")
-
-        else:
-            logger.info(f"Writing output file: {self.model_manager.get_training_out_file()}")
-            with open(self.model_manager.get_training_out_file(), 'w') as output_file:
-                json.dump(self.results, output_file, indent=4, sort_keys=True)
-
-    def _finalize_results_prep(self):
-        end_time = datetime.datetime.now().replace(microsecond=0)
-
-        duration = end_time - self.train_start_time
-
-        model_config = self.model_config
-        dataset_config = self.dataset_config
-
-        # Add all the times
-        # TODO Switch to use the new training_output script
-        self.results['times']['start_ime'] = self.train_start_time.isoformat()
-        self.results['times']['end_time'] = end_time.isoformat()
-        self.results['times']['duration'] = duration.total_seconds()
-
-        # Copy in relevant parts of our training options
-        self.results['options']['training_dataset_config_path'] = str(model_config.training_dataset_config_path)
-        self.results['options']['model_architecture'] = model_config.model_architecture
-        self.results['options']['epochs'] = model_config.epochs
-        self.results['options']['batch_size'] = model_config.batch_size
-        self.results['options']['seed'] = model_config.seed
-
-        # This couples us to one dataset
-        self.results['options']['data_type'] = dataset_config.data_type
-
-        # This should move into the training options
-        self.results['results']['model_name'] = self.model_manager.model_name
-
-        self.results['format_version'] = TrainingOutput.FORMAT_VERSION
 
 
 def main():

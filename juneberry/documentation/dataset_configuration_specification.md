@@ -36,7 +36,7 @@ configuration file as part of the input.
     }
     "num_model_classes": <int>,
     "sampling": {
-        "algorithm": <'none', 'randomFraction', 'randomQuantity', 'roundRobin'>, 
+        "algorithm": <'none', 'random_fraction', 'random_quantity', 'round_robin'>, 
         "arguments": <custom json structure depending on algorithm - see details>
     },    
     "tabular_data": {
@@ -48,6 +48,10 @@ configuration file as part of the input.
         ],
         "label_index": <integer of the column of the labels>
     },
+    "tensorflow_data": {
+        "name": <The name of the tensorflow dataset, e.g. 'mnist'>,
+        "load_kwargs": <OPTIONAL: kwards to pass to load function>,
+    }
     "timestamp": <OPTIONAL last modified - isoformat() with 0 microseconds>
     "torchvision_data": {
         "fqcn": <fully qualified class name e.g., torchvision.datasets.ImageNet>,
@@ -159,16 +163,16 @@ the subsequent row is passed to the transformer.
 ### algorithm
 This can be:
 * none - All images are used.
-* randomFraction - A random fraction is used to select a subset of images,
+* random_fraction - A random fraction is used to select a subset of images,
 with optional random seed.
-* randomQuantity - A specific total quantity is pulled randomly from the images,
+* random_quantity - A specific total quantity is pulled randomly from the images,
 with optional random seed.
-* roundRobin - The dataset is split into groups selecting a specific group,
+* round_robin - The dataset is split into groups selecting a specific group,
 with optional random seed.  The same seed with different groups will produce a reproducible 
 randomized split of a dataset.
 
 ### arguments
-For **randomFraction**:
+For **random_fraction**:
 ```
 {
     "seed": <optional integer seed for the randomizer>
@@ -176,7 +180,7 @@ For **randomFraction**:
 }
 ```
 
-For **roundRobin**:
+For **round_robin**:
 ```
 {
     "seed": <optional (but recommended) integer seed for the randomizer>
@@ -185,13 +189,30 @@ For **roundRobin**:
 }
 ```
 
-For **randomQuantity**:
+For **random_quantity**:
 ```
 {
     "seed": <optional integer seed for the randomizer>
     "count": <specific count of images to provide, can be overridden by set specific quantity>
 }
 ```
+
+## tensorflow_data
+
+This section is used for TensorFlow based data sets such as are loaded by tensorflow-data package.
+See (https://www.tensorflow.org/datasets) for details.
+
+### name
+
+The string name of the tensorflow dataset such as "mnist".
+
+### load_kwargs
+
+Additionaly keyword args to be passed into the dataset during load. The "as_supervised=True" will
+automatically be added by juneberry to set the dataset format properly for the training. The split 
+is usually set by Juneberry based on the "validation" stanza in the model config. However, if the
+validation split is set to "tensorflow" then any split in the keyword args is honored otherwise
+the splits are set to the default "train" and "test."
 
 ## timestamp
 **Optional** Time stamp (ISO format with 0 microseconds) for when this file was last updated.

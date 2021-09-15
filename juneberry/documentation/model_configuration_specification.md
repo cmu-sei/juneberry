@@ -59,20 +59,20 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "previous_model": <OPTIONAL: name of model directory from which to load weights before training>,
         "previous_modelVersion": <OPTIONAL: version of the model directory from which to load weights>
     },  
-    "model_transforms" : [ <array of transforms - see below> ],
+    "model_transforms" : [ <array of plugins - see below> ],
     "platform": <The machine learning platform this config is compatible with
-                 Currently supported platforms: ["pytorch", "detectron2", "mmdetection"]>,
-    "preprocessors": [ <array of transforms - see below> ],
+                 Currently supported platforms: ["detectron2", "mmdetection", "pytorch", "pytorch_privacy", tensorflow"]>,
+    "preprocessors": [ <array of plugins - see below> ],
     "pytorch": {
-        "loss_fn": <Name of loss function in pytorch. e.g. torch.nn.CrossEntropyLoss>,
-        "loss_args": <kwargs to pass to the loss function>,
-        "optimizer_fn": <Pytorch optimizer_fn : e.g. torch.optim.SGD>,
-        "optimizer_fnArgs": <kwargs to pass to the optimizer_fn>,
-        "lr_schedule_fn": <A pytorch lr_scheduler : e.g. MultiStepLR>,
-        "lr_schedule_fnArgs": <kwargs to pass to the lr_scheduler>,
+        "loss_fn": <FQCN of a loss function: e.g. torch.nn.CrossEntropyLoss>,
+        "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
+        "optimizer_fn": <FQCN of an optimizer: e.g. torch.optim.SGD>,
+        "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
+        "lr_schedule_fn": <FQCN of a learning rate scheduler: e.g. torch.optim.lr_scheduler.MultiStepLR>,
+        "lr_schedule_args": <OPTINAL kwargs to pass when constructing lr_scheduler_fn>,
         "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn. >
-        "accuracy_fn": <OPTIONAL fully qualified accuracy function>,
-        "accuracy_args": <OPTIONAL arguments to be passed to the accuracy function>
+        "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
+        "accuracy_args": <OPTIONAL kwargs to be passed to the function call accuracy_fn>
     },
     "seed": <OPTIONAL integer seed value for controlling randomization>,
     "stopping_criteria": {
@@ -85,13 +85,23 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "summary_info": { <OPTIONAL set of descriptive properties to use when making summary outputs.> }
     "task": <OPTIONAL type of task the model is compatible with
              Currently supported tasks: ["classification", "objectDetection"]>,
+    "tensorflow": {
+        "callbacks": [ <array of callbacks - see below >]
+        "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
+        "loss_fn": <FQCN of a loss function: e.g. tensorflow.keras.losses.SparseCategoricalCrossentropy>
+        "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
+        "lr_schedule_fn": <OPTIONAL FQCN of a learning rate scheduler: e.g. tensorflow.keras.optimizers.schedules.ExponentialDecay>,
+        "metrics": [ < OPTIONAL array of string names of metrics plugins.>] - Default is ["accuracy"] 
+        "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
+        "optimizer_fn": <FQCN of an optimizer: e.g. tensorflow.keras.optimizers.SGD>,
+    },
     "timestamp": <OPTIONAL ISO timestamp for when this file was last updated>,
     "training_dataset_config_path": <The path to a dataset configuration file describing the dataset to use for training.>,
-    "training_transforms": [ <array of transforms - see below> ], 
-    "training_target_transforms": [ <array of transforms - see below> ],
+    "training_transforms": [ <array of plugins - see below> ], 
+    "training_target_transforms": [ <array of plugins - see below> ],
     "validation": {
         "algorithm": <The type of algorithm to use when sampling images from the dataset to construct a validation set
-                      Currently supported algorithms: ["from_file", "none", "random_fraction", "torchvision"]>,
+                      Currently supported algorithms: ["from_file", "none", "random_fraction", "tensorflow", "torchvision"]>,
         "arguments": {
             "seed": <OPTIONAL integer seed value to use for controlling randomization during the creation of 
                      the validation portion of the dataset>,
@@ -103,21 +113,21 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
 }
 ```
 
-## Transform Structure
+## Plugin Structure
 
-There are many times that something (data, targets, models, etc.) may need to be transformed 
-in Juneberry. All transforms use a similar pattern in which a chain of transforms is constructed 
-then applied (in order) to the input. Each individual transform is specified with a Fully 
+There are a variety of places in Juneberry that need to import, construct and execute a custom
+python extension.  Examples: when transforming data, construct a loss function or training callbacks.
+All these uses have a similar pattern where a class is specified with a Fully 
 Qualified Class Name (FQCN) and a dictionary of keyword arguments to be passed
-in during construction.  The transform must have a `__call__(self)` method, which is invoked 
+in during construction.  The plugin must have a `__call__(self)` method, which is invoked 
 for each data input. Different transforms may have different parameters to `__call__`, depending on 
 their specific use case. Refer to the details or arguments when invoking each transform property.
 
-The general schema for the transforms is:
+The general schema for the plugin is:
 
 ```
 {
-    "fqcn": <fully qualified name of transformer class that supports __call__(self, *args)>,
+    "fqcn": <fully qualified name of class that supports __call__(self, *args)>,
     "kwargs": { <kwargs to be passed (expanded) to __init__ on construction> }
 }
 ```
@@ -353,7 +363,8 @@ The same idea as the train_pipeline_stages but instead applied to the test pipel
 ## model_architecture
 The trainer will instantiate a model via code. This specifies the python class
 (model factory) to be instantiated and invoked (via `__call__`) to generate a model.
-The `__call__` method should take the following arguments:
+NOTE: all arguments are passed by name, not position so the names must match.
+The `__call__` method for image data sets should take the following arguments:
 
 * img_width : width in pixels
 * img_height : height in pixels
@@ -363,6 +374,18 @@ The `__call__` method should take the following arguments:
 ```
 class <MyClass>
     def __call__(self, img_width, img_height, channels, num_classes):
+
+        ... make the model here ...
+        return model
+```
+
+For tabular data the `__call__` method should take:
+
+* num_classes : The number of output classes of the model
+
+```
+class <MyClass>
+    def __call__(self, num_classes):
 
         ... make the model here ...
         return model
@@ -473,7 +496,7 @@ Keyword args to be provided to the loss function.
 The name of a pytorch optimizer_fn such as "torch.optim.SGD." Note, these
 are not dynamically found, but identified by string name comparison.
 
-### optimizer_fnArgs
+### optimizer_args
 Keyword args to be provided to the optimizer_fn function.
 
 ### lr_schedule_fn
@@ -483,12 +506,12 @@ extends the pytorch LRScheduler, such as torch.optim.lr_scheduler.CyclicLR. Any 
 is automatically provided the "optimizer_fn" and, if desired, the "epochs" (with those parameter names) 
 during `__init__`.
 
-### lr_schedule_fnArgs
+### lr_schedule_args
 A dictionary of arguments used by the lr_scheduler. The number and type of arguments 
 required will vary based on the type of scheduler.  NOTE: The learning rate schedules are 
 factors applied to the base learning rate of the optimizer_fn.
 
-If the type is **LambdaLR** then the lr_schedule_fnArgs should be:
+If the type is **LambdaLR** then the lr_schedule_args should be:
 
 ```
 {
@@ -566,6 +589,39 @@ the unique properties of the model when summarizing all the models belonging to 
 Supported values for this field are: "classification" or "objectDetection". When this field is not provided, 
 Juneberry will assume that the task is "classification".
 
+## tensorflow
+Specific parameters for the TensorFlow usage. NOTE: Fully qualified paths for tensorflow must start with
+`tensorflow` and not `tf`.
+
+### callbacks
+A list of callbacks to be added to the callbacks list.  Like plugins in Juneberry, these entries
+consist of a FQCN and optional kwargs to be used at construction.  The callbacks should subclass
+`tensorflow.keras.callbacks.Callback` and are called using those APIs not `__call__(self)`.
+
+### loss_fn
+The fully qualified name of a TensorFlow loss function such as "tensorflow.keras.losses.SparseCategoricalCrossentropy."
+
+### loss_args
+Keyword args to be provided to the loss function during construction.
+
+### lr_schedule_fn
+A string that indicates which type of learning rate schedule function to use us such as 
+"tensorflow.keras.optimizers.schedules.ExponentialDecay".
+
+### lr_schedule_args
+Keyword args to be provided to the lr_schedule_fn function during construction.
+
+### metrics
+A list of either metric names (e.g. "accuracy") or plugins that have a FQCN and optional kwargs.
+
+### optimizer_fn
+The name of a optimizer functions such as "tensorflow.keras.optimizers.SGD." If a learning rate scheduler is
+specified via (lr_schedule_fn) it will be constructed and supplied to the optimizer during optimizer construction
+as `learning_rate`.
+
+### optimizer_args
+Keyword args to be provided to the optimizer_fn function during construction.
+
 ## timestamp
 **Optional:** Timestamp (ISO format) indicating when the config was last modified.
 
@@ -592,6 +648,9 @@ This can be:
 * from_file - The validation dataset will be constructed using a Juneberry dataset configuration file.
 * none - Don't do validation.
 * random_fraction - A random fraction is used to select a subset of images, with optional random seed.
+* tensorflow - Only valid for datasets of type "tensorflow". In this case the validation split uses
+the default "train" and "test" splits from tensorflow, unless `split` is explicitly specified in the
+kwargs for construction in which case it will use the specified split strings. 
 * torchvision - Only valid for datasets of type "torchvision". In this case, the validation dataset
 will be constructed using the "val_kwargs" stanza from the "torchvision_data" configuration.  The arguments
 are ignored for this.
@@ -611,7 +670,6 @@ For **from_file**:
     "file_path": <The path to a Juneberry dataset configuration file>
 }
 ```
-
 
 # Version History
 

@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -69,31 +47,55 @@ def determine_shared_metric(prediction_file_list: list) -> str:
     """
 
     # Start with an empty list of metrics.
-    metric_list = []
+    from collections import defaultdict
+    counts = defaultdict(list)
 
     # Loop through the list of predictions files and load the evaluation data.
     for prediction_file in prediction_file_list:
         eval_data = EvaluationOutput.load(prediction_file)
 
-        # Check which metric is present in the evaluation output and add it to
-        # the metrics list.
+        # Identify the metrics.  In the case of the classification metrics both may be there
+        # so we need to count them.
+        found = False
+        if eval_data.results.metrics.accuracy is not None:
+            counts['Acc'].append(prediction_file)
+            found = True
         if eval_data.results.metrics.balanced_accuracy is not None:
-            metric_list.append("Balanced Accuracy")
-        elif eval_data.results.metrics.bbox is not None:
-            metric_list.append("mAP")
-        else:
-            metric_list.append("None")
+            counts['BalAcc'].append(prediction_file)
+            found = True
+        if eval_data.results.metrics.bbox is not None:
+            counts['mAP'].append(prediction_file)
+            found = True
+        if not found:
+            counts['None'].append(prediction_file)
 
-    # If each prediction file contains the same type of metric, then the set of the metrics list should be 1. If it's
-    # more than 1, then there's a mismatch in the evaluation types.
-    if len(set(metric_list)) > 1:
-        logger.error(f"Discrepancy detected in the metrics of the desired predictions files. Were all the evaluations "
-                     f"for the same type of task (classification | object detection) ?")
+    # If we have some that we didn't identify, then show the files and bail
+    if len(counts['None']) > 0:
+        logger.error(f"Found prediction files without known metrics: {counts['None']}. EXITING")
         sys.exit(-1)
 
-    logging.info(f"Building a report to summarize {metric_list[0]}.")
+    # If we have Classification AND OD metrics at the same time, they are not comparable. Bail.
+    if (len(counts['ACc']) > 0 or len(counts['BalAcc']) > 0) and \
+            len(counts['mAP']) > 0:
+        logger.error(f"Found a mixture of classification and object detection metrics in the prediction files. "
+                     f"Classification files={counts['Acc']} or {counts['BalAcc']}, "
+                     f"object detection files={counts['mAP']}. EXITING")
+        sys.exit(-1)
 
-    return metric_list[0]
+    # If we have mAP use that, else figure out which classification is larger and use it
+    if len(counts['mAP']):
+        metric = "mAP"
+    elif len(counts['BalAcc']) > len(counts['Acc']):
+        assert len(counts['BalAcc']) == len(prediction_file_list)
+        metric = "Balanced Accuracy"
+    else:
+        assert len(counts['Acc']) == len(prediction_file_list)
+        metric = "Accuracy"
+
+    # If each prediction file contains the same type of metric, then the set of the metrics list should be 1. If it's
+    logging.info(f"Building a report to summarize {metric}.")
+
+    return metric
 
 
 def retrieve_summary_data(model_mgr: ModelManager, prediction_data: EvaluationOutput, metric: str) -> list:
@@ -117,7 +119,9 @@ def retrieve_summary_data(model_mgr: ModelManager, prediction_data: EvaluationOu
     eval_data_name = prediction_data.options.dataset.config
 
     # Fetch the correct evaluation metric from the results.
-    if metric == 'Balanced Accuracy':
+    if metric == 'Accuracy':
+        metric_value = prediction_data.results.metrics.accuracy
+    elif metric == 'Balanced Accuracy':
         metric_value = prediction_data.results.metrics.balanced_accuracy
     elif metric == 'mAP':
         metric_value = prediction_data.results.metrics.bbox['mAP']
@@ -201,7 +205,7 @@ def generate_summary_report(prediction_files: list, plot_files: list, summary_fi
 
             # Write the retrieved data to the report file. The format for this line is different
             # depending on which metric is being summarized.
-            if metric == 'Balanced Accuracy':
+            if metric == 'Accuracy' or metric == 'Balanced Accuracy':
                 outFile.write(f"{summary[0]} | {summary[1]} | {summary[2]} | {summary[3]:.2%} | "
                               f"[Training Chart]({train_img_str})\n")
             elif metric == 'mAP':

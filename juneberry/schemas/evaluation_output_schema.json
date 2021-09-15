@@ -2,51 +2,30 @@
     "$schema": "https://json-schema.org/draft-07/schema",
     "type": "object",
     "properties": {
-        "format_version": {
-            "type": "string"
-        },
+        "format_version": { "type": "string" },
         "options": {
             "type": "object",
             "properties": {
                 "dataset": {
                     "type": "object",
                     "properties": {
-                        "classes": {
-                            "type": "object"
-                        },
-                        "config": {
-                            "type": "string"
-                        },
-                        "histogram": {
-                            "type": "object"
-                        }
+                        "classes": { "type": "object" },
+                        "config": { "type": "string" },
+                        "histogram": { "type": "object" }
                     },
-                    "required": [
-                        "config"
-                    ]
+                    "required": [ "config" ]
                 },
                 "model": {
                     "type": "object",
                     "properties": {
-                        "hash": {
-                            "type": "string"
-                        },
-                        "name": {
-                            "type": "string"
-                        },
-                        "num_classes": {
-                            "type": "number"
-                        }
+                        "hash": { "type": "string" },
+                        "name": { "type": "string" },
+                        "num_classes": { "type": "number" }
                     },
-                    "required": [
-                        "name"
-                    ]
+                    "required": [ "name", "num_classes" ]
                 }
             },
-            "required": [
-                "dataset",
-                "model"
-            ]
+            "required": [ "dataset", "model" ]
         },
         "results": {
             "type": "object",
@@ -56,29 +35,17 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "file": {
-                                "type": "string"
-                            },
-                            "actualLabel": {
-                                "type": "number"
-                            },
-                            "actualLabelName": {
-                                "type": "string"
-                            },
+                            "file": { "type": "string" },
+                            "actualLabel": { "type": "number" },
+                            "actualLabelName": { "type": "string" },
                             "predictedClasses": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "label": {
-                                            "type": "number"
-                                        },
-                                        "labelName": {
-                                            "type": "string"
-                                        },
-                                        "confidence": {
-                                            "type": "number"
-                                        }
+                                        "label": { "type": "number" },
+                                        "labelName": { "type": "string" },
+                                        "confidence": { "type": "number" }
                                     }
                                 }
                             }
@@ -87,60 +54,36 @@
                 },
                 "labels": {
                     "type": "array",
-                    "items": {
-                        "type": "number"
-                    }
+                    "items": { "type": "number" }
                 },
                 "metrics": {
                     "type": "object",
                     "properties": {
-                        "accuracy": {
-                            "type": "number"
-                        },
-                        "balanced_accuracy": {
-                            "type": "number"
-                        },
-                        "bbox": {
-                            "type": "object"
-                        },
-                        "bbox_per_class": {
-                            "type": "object"
-                        }
+                        "accuracy": { "type": "number" },
+                        "balanced_accuracy": { "type": "number" },
+                        "bbox": { "type": "object" },
+                        "bbox_per_class": { "type": "object" }
                     },
-                    "required": [
-
-                    ]
+                    "required": [ ]
                 },
                 "predictions": {
                     "type": "array",
                     "items": {
                         "type": "array",
-                        "items": {
-                            "type": "number"
-                        }
+                        "items": { "type": "number" }
                     }
                 }
             },
-            "required": [
-
-            ]
+            "required": [ ]
         },
         "times": {
             "type": "object",
             "properties": {
-                "duration": {
-                    "type": "number"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "start_time": {
-                    "type": "string"
-                }
+                "duration": { "type": "number" },
+                "end_time": { "type": "string" },
+                "start_time": { "type": "string" }
             },
-            "required": [
-
-            ]
+            "required": [ ]
         }
     },
     "required": [

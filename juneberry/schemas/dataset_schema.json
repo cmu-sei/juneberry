@@ -4,17 +4,11 @@
     "properties": {
         "data_type": {
             "type": "string",
-            "enum": [ "image", "tabular", "torchvision" ]
+            "enum": [ "image", "tabular", "tensorflow", "torchvision" ]
         },
-        "description": {
-            "type": "string"
-        },
-        "format_version": {
-            "type": "string"
-        },
-        "url": {
-            "type": "string"  
-        },
+        "description": { "type": "string" },
+        "format_version": { "type": "string" },
+        "url": { "type": "string" },
         "image_data": {
             "type": "object",
             "properties": {
@@ -46,17 +40,10 @@
                     "enum": [ "classification", "object_detection" ]
                 }
             },
-            "required": [
-                "sources",
-                "task_type"
-            ]
+            "required": [ "sources", "task_type" ]
         },
-        "label_names": {
-            "type": "object"
-        },
-        "num_model_classes": {
-            "type": "integer"
-        },
+        "label_names": { "type": "object" },
+        "num_model_classes": { "type": "integer" },
         "sampling": {
             "type": "object",
             "properties": {
@@ -64,47 +51,40 @@
                     "type": "string",
                     "enum": [ "none", "random_fraction", "random_quantity", "round_robin" ]
                 },
-                "arguments": {
-                    "type": "object"
-                }
+                "arguments": { "type": "object" }
             },
-            "required": [
-                "algorithm"
-            ]
+            "required": [ "algorithm" ]
         },
         "tabular_data": {
             "type": "object",
             "properties": {
-                "label_index": {
-                    "type": "integer"
-                },
+                "label_index": { "type": "integer" },
                 "sources": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "path": {
-                                "type": "string"
-                            },
+                            "path": { "type": "string" },
                             "root": {
                                 "type": "string",
                                 "enum": [ "dataroot", "workspace", "relative" ]
                             }
                         },
-                        "required": [
-                            "path"
-                        ]
+                        "required": [ "path" ]
                     }
                 }
             },
-            "required": [
-                "label_index",
-                "sources"
-            ]
+            "required": [ "label_index", "sources" ]
         },
-        "timestamp": {
-            "type": "string"
+        "tensorflow_data": {
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" },
+                "load_kwargs": { "type": "object" }
+            },
+            "required": [ "name" ]
         },
+        "timestamp": { "type": "string" },
         "torchvision_data": {
             "type": "object",
             "properties": {
@@ -113,7 +93,8 @@
                 "train_kwargs": { "type": "object" },
                 "val_kwargs": { "type": "object" },
                 "eval_kwargs": { "type": "object" }
-            }
+            },
+            "required": [ "fqcn" ]
         }
     },
     "oneOf": [
@@ -124,6 +105,10 @@
         {
             "properties": { "data_type": { "const": "tabular" } },
             "required": [ "data_type", "label_names", "num_model_classes", "tabular_data" ]
+        },
+        {
+            "properties": { "data_type": { "const": "tensorflow" } },
+            "required": [ "data_type", "label_names", "num_model_classes", "tensorflow_data" ]
         },
         {
             "properties": { "data_type": { "const": "torchvision" } },
