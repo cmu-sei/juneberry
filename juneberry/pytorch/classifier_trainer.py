@@ -309,6 +309,7 @@ class ClassifierTrainer(EpochTrainer):
 
         # Add a hash of the model
         self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
+        self.history['onnx_model_hash'] = jbfs.generate_file_hash(self.model_manager.get_onnx_model_path())
 
         logger.info("Generating and saving output...")
         history_to_results(self.history, self.results)
@@ -501,6 +502,7 @@ def history_to_results(history, results):
     results['options']['learning_rate'] = history['lr']
 
     results['results']['model_hash'] = history['model_hash']
+    results['results']['onnx_model_hash'] = history['onnx_model_hash']
     results['results']['loss'] = history['loss']
     results['results']['accuracy'] = history['accuracy']
 

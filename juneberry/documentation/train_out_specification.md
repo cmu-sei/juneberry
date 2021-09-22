@@ -39,6 +39,7 @@ PYTHONPATH.)
     "results": {
         "model_name": <name of model trained>,
         "model_hash": <hash of the model file produced>,
+        "onnx_model_hash": <hash of the onnx model file produced>,
         "loss": [
             <float>,
         ],
@@ -153,6 +154,9 @@ Name of the model.
 
 ### model_hash
 Hash (sha256) of the model file produced.
+
+### onnx_model_hash
+Hash (sha256) of the onnx model file produced.
 
 ### loss
 An array of floats representing the loss of the model on the training data for each epoch.

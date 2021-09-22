@@ -74,23 +74,8 @@ class OnnxEvaluationProcedure:
         """
 
         # Perform the evaluation; saving the raw data to the correct evaluator attribute.
-        evaluator.raw_output = pyt_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
-
         ort_session = ort.InferenceSession(str(evaluator.model_manager.get_onnx_model_path()))
         evaluator.onnx_output = pyt_utils.predict_classes_onnx(evaluator.eval_loader, ort_session)
-
-        # # TODO: Uncomment this to compare the raw data between the two eval formats.
-        # for i in range(len(evaluator.raw_output)):
-        #     for j in range(len(evaluator.raw_output[i])):
-        #         logger.info(f"Input index {i}, Label {j} (normal): {evaluator.raw_output[i][j]}")
-        #         logger.info(f"Input index {i}, Label {j} (onnx)  : {evaluator.onnx_output[i][j]}")
-        #         logger.info(f"")
-        #     logger.info(f"Normal JB evaluation predicted label "
-        #                 f"{evaluator.raw_output[i].index(max(evaluator.raw_output[i]))}")
-        #     logger.info(f"--ONNX--  evaluation predicted label "
-        #                 f"{evaluator.onnx_output[i].index(max(evaluator.onnx_output[i]))}")
-        #     logger.info(f"EXITING")
-        #     sys.exit(0)
 
 
 class OnnxEvaluationOutput:
@@ -114,54 +99,50 @@ class OnnxEvaluationOutput:
         # Diagnostic for accuracy
         # TODO: Switch to configurable and standard accuracy
         is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
         onnx_predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.onnx_output, is_binary)
 
         # Calculate the accuracy and add it to the output.
         logger.info(f"Computing the accuracy.")
-        accuracy = accuracy_score(labels, predicted_classes)
         onnx_accuracy = accuracy_score(labels, onnx_predicted_classes)
-        evaluator.output.results.metrics.accuracy = accuracy
+        evaluator.output.results.metrics.accuracy = onnx_accuracy
 
         # Calculate the balanced accuracy and add it to the output.
         logger.info(f"Computing the balanced accuracy.")
-        balanced_acc = balanced_accuracy_score(labels, predicted_classes)
         onnx_balanced_acc = balanced_accuracy_score(labels, onnx_predicted_classes)
-        evaluator.output.results.metrics.balanced_accuracy = balanced_acc
+        evaluator.output.results.metrics.balanced_accuracy = onnx_balanced_acc
 
         # Log the the accuracy values.
-        logger.info(f"******          Accuracy: {accuracy:.4f}")
-        logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
-        logger.info(f"$$$$$$$$$$$$     ONNX BELOW     $$$$$$$$$$$$")
         logger.info(f"******          Accuracy: {onnx_accuracy:.4f}")
         logger.info(f"****** Balanced Accuracy: {onnx_balanced_acc:.4f}")
 
         # Save these as two classes if binary so it's consistent with other outputs.
         if is_binary:
-            evaluator.raw_output = pyt_utils.binary_to_classes(evaluator.raw_output)
+            evaluator.onnx_output = pyt_utils.binary_to_classes(evaluator.onnx_output)
 
-        # Add the raw prediction data to the output.
-        evaluator.output.results.predictions = evaluator.raw_output
+        # Add the prediction data to the output.
+        evaluator.output.results.predictions = evaluator.onnx_output
 
         # Add the dataset mapping and the number of classes the model is aware of to the output.
         evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
         evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
+        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
 
         # If Juneberry was used to train the model, we can retrieve the hash from the training output file
         # and verify that the hash matches the model we used to evaluate the data.
         training_output_file_path = evaluator.model_manager.get_training_out_file()
         if training_output_file_path.is_file():
             training_output = TrainingOutput.load(training_output_file_path)
-            hash_from_output = training_output.results.model_hash
+            hash_from_output = training_output.results.onnx_model_hash
+            logger.info(f"Model hash retrieved from training output: {hash_from_output}")
             if hash_from_output != evaluated_model_hash:
-                logger.error(
-                    f"The hash of the model used for evaluation does NOT match the hash in the training "
-                    f"output file. EXITING.")
+                logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training output "
+                             f"file. EXITING.")
                 logger.error(f"Expected: '{hash_from_output}' Found: '{evaluated_model_hash}'")
                 sys.exit(-1)
+            else:
+                logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")
 
         # Add the hash of the model used for evaluation to the output.
         evaluator.output.options.model.hash = evaluated_model_hash
@@ -199,7 +180,7 @@ def top_k_classifications(evaluator, dataset_mapping):
 
     # Add the top-K classification information to the output.
     evaluator.output.results.classifications = classify_inputs(evaluator.eval_name_targets,
-                                                               evaluator.raw_output,
+                                                               evaluator.onnx_output,
                                                                evaluator.top_k,
                                                                dataset_mapping,
                                                                model_mapping)

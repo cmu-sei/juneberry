@@ -442,7 +442,7 @@ class EpochTrainer(Trainer):
 
         # Add all the times
         # TODO Switch to use the new training_output script
-        self.results['times']['start_ime'] = self.train_start_time.isoformat()
+        self.results['times']['start_time'] = self.train_start_time.isoformat()
         self.results['times']['end_time'] = end_time.isoformat()
         self.results['times']['duration'] = duration.total_seconds()
 

@@ -575,21 +575,16 @@ def predict_classes(data_generator, model, device):
 def predict_classes_onnx(data_generator, session):
     input_name = session.get_inputs()[0].name
 
-    all_outputs = None
+    all_outputs = list()
     for i, (thing, target) in enumerate(data_generator):
-        # run the net and return prediction
 
         for item in torch.split(thing, 1):
 
             ort_out = session.run([], {input_name: item.data.numpy()})
-            ort_out = ort_out[0]
+            ort_out = np.array(ort_out[0]).tolist()
+            all_outputs.append(ort_out[0])
 
-            if all_outputs is None:
-                all_outputs = np.array(ort_out)
-            else:
-                all_outputs = np.concatenate((all_outputs, np.array(ort_out)))
-
-    return all_outputs.tolist()
+    return all_outputs
 
 
 def set_seeds(seed: int):
