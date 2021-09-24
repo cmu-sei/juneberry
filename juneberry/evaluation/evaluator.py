@@ -73,8 +73,8 @@ class Evaluator:
     This class encapsulates the process of evaluating a model.
     """
 
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 eval_options: SimpleNamespace = None):
+    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
+                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
@@ -100,7 +100,7 @@ class Evaluator:
         # TODO: Dry run should be supported as a base evaluator concept.
         self.dryrun = False
 
-        # How many gpus to use.  0 is cpu.
+        # How many gpus to use. 0 is cpu.
         self.num_gpus = 0
 
         # These attributes describe the model being evaluated. The "model_config" is a Juneberry ModelConfig
@@ -110,7 +110,6 @@ class Evaluator:
         self.model_config_path = model_manager.get_model_config()
         self.model_config = model_config
         self.model = None
-        self.onnx_model = None
 
         # These attributes describe the dataset being evaluated. The "eval_dataset_config" is a Juneberry
         # DatasetConfig object.

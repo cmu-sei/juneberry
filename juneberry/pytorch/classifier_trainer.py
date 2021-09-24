@@ -160,7 +160,7 @@ class ClassifierTrainer(EpochTrainer):
         if self.lab.tensorboard:
             self.tb_mgr = jbtb.TensorBoardManager(self.lab.tensorboard, self.model_manager)
 
-        pyt_utils.set_seeds(self.model_config.seed)
+        pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
         self.setup_hardware()
         self.setup_data_loaders()

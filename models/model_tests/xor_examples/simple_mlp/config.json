@@ -2,8 +2,8 @@
     "batch_size": 4,
     "description": "XOR config",
     "epochs": 500,
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
+    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
     "format_version": "0.2.0",
     "model_architecture": {
         "module": "juneberry.architectures.pytorch.sample_tabular_nn.XORModel",

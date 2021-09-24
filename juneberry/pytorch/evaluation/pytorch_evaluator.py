@@ -53,6 +53,7 @@ import torch
 from torch import Tensor
 
 import juneberry.config.dataset as jb_dataset
+import juneberry.utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
@@ -137,20 +138,20 @@ class PytorchEvaluator(Evaluator):
             self.lab.num_workers = num_workers
 
         # Set the seeds using the value from the ModelConfig.
-        pyt_utils.set_seeds(self.model_config.seed)
+        pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
-        logger.info(f"Pytorch setups steps are complete.")
+        logger.info(f"PyTorch setup steps are complete.")
 
     def obtain_dataset(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for obtaining the dataset
+        This is the PyTorch version of the extension point that's responsible for obtaining the dataset
         being used in the evaluation.
         :return: Nothing.
         """
         # Create the dataloader and data list for the evaluation data.
 
         if self.eval_dataset_config.data_type == jb_dataset.DataType.TORCHVISION:
-            logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
+            logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files.")
 
             tv_data = self.eval_dataset_config.torchvision_data
             data_transforms = None
@@ -173,8 +174,7 @@ class PytorchEvaluator(Evaluator):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(
-                self.lab, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -237,15 +237,6 @@ class PytorchEvaluator(Evaluator):
         logger.info(f"Loading model weights.")
         pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model)
 
-        # Load the ONNX model.
-        self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
-
-        # Check that the ONNX model is well formed.
-        onnx.checker.check_model(self.onnx_model)
-
-        # TODO: Decide if this graph adds any value to the evaluation process.
-        # logger.info(f"Graph of the ONNX model:\n{onnx.helper.printable_graph(self.onnx_model.graph)}")
-
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:
             logger.info(f"Detected CUDA. Wrapping the model in DataParallel.")
@@ -272,7 +263,7 @@ class PytorchEvaluator(Evaluator):
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
         logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 
-        pyt_utils.invoke_evaluator_method(self, self.eval_method)
+        juneberry.utils.invoke_evaluator_method(self, self.eval_method)
 
         logger.info(f"EVALUATION COMPLETE")
 
@@ -285,4 +276,4 @@ class PytorchEvaluator(Evaluator):
         """
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
 
-        pyt_utils.invoke_evaluator_method(self, self.eval_output_method)
+        juneberry.utils.invoke_evaluator_method(self, self.eval_output_method)

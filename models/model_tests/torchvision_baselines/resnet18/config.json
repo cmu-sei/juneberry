@@ -2,8 +2,8 @@
     "batch_size": 128,
     "description": "Unit test to check is jb_train and jb_evaluate produce the same top-1 accuracy",
     "epochs": 1,
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
+    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "torchvision.transforms.Resize",

@@ -20,14 +20,14 @@
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
 #  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
 #  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
 #  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
 #  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
 #                  Authors.
 #  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
 #             Lambda Foundry, Inc. and PyData Development Team.
@@ -44,26 +44,28 @@
 #
 # ======================================================================================================================
 
-import json
 import logging
+import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
+
 from torch import FloatTensor
 from torch.nn.functional import softmax
 
 from juneberry.config.training_output import TrainingOutput
+from juneberry.evaluation.onnx_evaluator import OnnxEvaluator
 import juneberry.filesystem as jbfs
-from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
 import juneberry.pytorch.util as pyt_utils
 
 logger = logging.getLogger(__name__)
 
 
-class DefaultEvaluationProcedure:
+class OnnxEvaluationProcedure:
     """
-    This is the default Pytorch evaluation class used for evaluating data in Juneberry.
+    Attempt at an ONNX eval procedure.
     """
-    def __call__(self, evaluator: PytorchEvaluator):
+
+    def __call__(self, evaluator: OnnxEvaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
         of the process is raw evaluation data.
@@ -71,15 +73,28 @@ class DefaultEvaluationProcedure:
         :return: Nothing.
         """
 
-        # Perform the evaluation; saving the raw data to the correct evaluator attribute.
-        evaluator.raw_output = pyt_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
+        input_name = evaluator.ort_session.get_inputs()[0].name
+
+        output_list = list()
+
+        for item in evaluator.input_data:
+            ort_out = evaluator.ort_session.run([], {input_name: item})
+            ort_out = np.array(ort_out[0]).tolist()
+            output_list.append(ort_out[0])
+
+        evaluator.onnx_output = output_list
+
+    @staticmethod
+    def establish_evaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options):
+        return OnnxEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
 
 
-class DefaultEvaluationOutput:
+class OnnxEvaluationOutput:
     """
     This is the default Pytorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
-    def __call__(self, evaluator: PytorchEvaluator):
+
+    def __call__(self, evaluator: OnnxEvaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
@@ -95,47 +110,52 @@ class DefaultEvaluationOutput:
         # Diagnostic for accuracy
         # TODO: Switch to configurable and standard accuracy
         is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
+        # TODO: This is a PyTorch util, but it does not have a PyTorch dependency.
+        onnx_predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.onnx_output, is_binary)
 
         # Calculate the accuracy and add it to the output.
         logger.info(f"Computing the accuracy.")
-        accuracy = accuracy_score(labels, predicted_classes)
-        evaluator.output.results.metrics.accuracy = accuracy
+        onnx_accuracy = accuracy_score(labels, onnx_predicted_classes)
+        evaluator.output.results.metrics.accuracy = onnx_accuracy
 
         # Calculate the balanced accuracy and add it to the output.
         logger.info(f"Computing the balanced accuracy.")
-        balanced_acc = balanced_accuracy_score(labels, predicted_classes)
-        evaluator.output.results.metrics.balanced_accuracy = balanced_acc
+        onnx_balanced_acc = balanced_accuracy_score(labels, onnx_predicted_classes)
+        evaluator.output.results.metrics.balanced_accuracy = onnx_balanced_acc
 
         # Log the the accuracy values.
-        logger.info(f"******          Accuracy: {accuracy:.4f}")
-        logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
+        logger.info(f"******          Accuracy: {onnx_accuracy:.4f}")
+        logger.info(f"****** Balanced Accuracy: {onnx_balanced_acc:.4f}")
 
         # Save these as two classes if binary so it's consistent with other outputs.
         if is_binary:
-            evaluator.raw_output = pyt_utils.binary_to_classes(evaluator.raw_output)
+            # TODO: This is also a PyTorch util, but it does not have a PyTorch dependency.
+            evaluator.onnx_output = pyt_utils.binary_to_classes(evaluator.onnx_output)
 
-        # Add the raw prediction data to the output.
-        evaluator.output.results.predictions = evaluator.raw_output
+        # Add the prediction data to the output.
+        evaluator.output.results.predictions = evaluator.onnx_output
 
         # Add the dataset mapping and the number of classes the model is aware of to the output.
         evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
         evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
+        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
 
         # If Juneberry was used to train the model, we can retrieve the hash from the training output file
         # and verify that the hash matches the model we used to evaluate the data.
         training_output_file_path = evaluator.model_manager.get_training_out_file()
         if training_output_file_path.is_file():
             training_output = TrainingOutput.load(training_output_file_path)
-            hash_from_output = training_output.results.model_hash
+            hash_from_output = training_output.results.onnx_model_hash
+            logger.info(f"Model hash retrieved from training output: {hash_from_output}")
             if hash_from_output != evaluated_model_hash:
-                logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
-                             f"output file. EXITING.")
+                logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training output "
+                             f"file. EXITING.")
                 logger.error(f"Expected: '{hash_from_output}' Found: '{evaluated_model_hash}'")
                 sys.exit(-1)
+            else:
+                logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")
 
         # Add the hash of the model used for evaluation to the output.
         evaluator.output.options.model.hash = evaluated_model_hash
@@ -173,7 +193,7 @@ def top_k_classifications(evaluator, dataset_mapping):
 
     # Add the top-K classification information to the output.
     evaluator.output.results.classifications = classify_inputs(evaluator.eval_name_targets,
-                                                               evaluator.raw_output,
+                                                               evaluator.onnx_output,
                                                                evaluator.top_k,
                                                                dataset_mapping,
                                                                model_mapping)
@@ -192,8 +212,8 @@ def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mappi
     :return: A list of which classes were predicted for each input.
     """
     # Some tensor operations on the predictions; softmax converts the values to percentages.
-    prediction_tensor = FloatTensor(predictions)
-    predict = softmax(prediction_tensor, dim=1)
+    prediction_tensor = FloatTensor(predictions)    # TODO: This is PyTorch specific
+    predict = softmax(prediction_tensor, dim=1)     # TODO: This is also PyTorch specific
     values, indices = predict.topk(classify_topk)
     values = values.tolist()
     indices = indices.tolist()

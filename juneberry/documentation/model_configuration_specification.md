@@ -179,13 +179,13 @@ The number of epochs to train.
 This field should contain a fully qualified path to a class that will be responsible for converting 
 raw evaluation data into the desired output format. Example:
 
-`"evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput"`
+`"evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput"`
 
 ## evaluation_procedure
 This field should contain a fully qualified path to a class that will be responsible for producing raw 
 evaluation data for the model when it is paired with an evaluation dataset. Example:
 
-`"evaluation_procedure: "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure"`
+`"evaluation_procedure: "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure"`
 
 ## evaluation_transforms
 This section contains a **chain** of transforms to be applied to data during validation

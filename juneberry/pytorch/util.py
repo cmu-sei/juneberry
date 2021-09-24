@@ -69,6 +69,7 @@ import juneberry.loader as model_loader
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 from juneberry.transform_manager import TransformManager
+from juneberry.utils import set_seeds
 
 logger = logging.getLogger(__name__)
 
@@ -572,33 +573,13 @@ def predict_classes(data_generator, model, device):
     return all_outputs.tolist()
 
 
-def predict_classes_onnx(data_generator, session):
-    input_name = session.get_inputs()[0].name
-
-    all_outputs = list()
-    for i, (thing, target) in enumerate(data_generator):
-
-        for item in torch.split(thing, 1):
-
-            ort_out = session.run([], {input_name: item.data.numpy()})
-            ort_out = np.array(ort_out[0]).tolist()
-            all_outputs.append(ort_out[0])
-
-    return all_outputs
-
-
-def set_seeds(seed: int):
+def set_pytorch_seeds(seed: int):
     """
     Sets all the random seeds used by all the various pieces.
     :param seed: A random seed to use. Can not be None.
     """
-    if seed is None:
-        logger.error("Request to initialize with a seed of None. Exiting")
-        sys.exit(-1)
-
-    logger.info(f"Setting ALL seeds: {str(seed)}")
-    random.seed(seed)
-    np.random.seed(seed)
+    set_seeds(seed)
+    logger.info(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
 
@@ -796,16 +777,3 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     return img_shape
 
 
-def invoke_evaluator_method(evaluator, module_name: str):
-    """
-    This function is responsible for invoking methods during evaluation.
-    :param evaluator: A Juneberry Evaluator object that is managing the evaluation.
-    :param module_name: The module being invoked.
-    :return: Nothing.
-    """
-    split_name = module_name.split(".")
-    module_path = ".".join(split_name[:-1])
-    class_name = split_name[-1]
-    args = {"evaluator": evaluator}
-
-    jbloader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
