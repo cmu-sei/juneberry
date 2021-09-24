@@ -9,6 +9,7 @@ pytest = "*"
 
 [packages]
 juneberry = {editable = true,path = "."}
+onnxruntime = "*"
 
 [requires]
 python_version = "3.8"

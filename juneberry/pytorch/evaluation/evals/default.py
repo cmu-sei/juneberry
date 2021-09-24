@@ -74,7 +74,7 @@ class DefaultEvaluationProcedure:
         evaluator.raw_output = pyt_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
 
     @staticmethod
-    def build_evaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options):
+    def establish_evaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options):
         return PytorchEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
 
 
