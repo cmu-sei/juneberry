@@ -887,7 +887,7 @@ def main():
 
     if args.reinit:
         do_reinit(CLSFY_TEST_SET, error_summary)
-        # do_reinit(OD_TEST_SET, error_summary)
+        do_reinit(OD_TEST_SET, error_summary)
         return
 
     if not args.init:
@@ -895,7 +895,7 @@ def main():
 
     # Test jb_run_experiment (PyDoit)
     failures = do_experiment(runner, args.init, "smokeTests/classify", CLSFY_TEST_SET, error_summary)
-    # failures += do_experiment(runner, args.init, OD_EXPERIMENT, OD_TEST_SET, error_summary)
+    failures += do_experiment(runner, args.init, OD_EXPERIMENT, OD_TEST_SET, error_summary)
 
     if args.init:
         if failures == 0:

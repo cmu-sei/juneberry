@@ -48,15 +48,15 @@ import logging
 import onnx
 import onnxruntime as ort
 import sys
+from tqdm import tqdm
 from types import SimpleNamespace
 
-import juneberry.utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.evaluation.evaluator import Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
-from juneberry.utils import set_seeds
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -66,19 +66,17 @@ class OnnxEvaluator(Evaluator):
         This subclass is the ONNX-specific version of the Evaluator.
         """
 
-    def __init__(self, lab: Lab, model_config: ModelConfig, dataset: DatasetConfig, model_manager: ModelManager,
+    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
         self.input_data = []
-
         self.onnx_model = None
-
-        self.ort_session = ort.InferenceSession(str(model_manager.get_onnx_model_path()))
+        self.ort_session = None
 
     def setup(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for setting up the Evaluator.
+        This is the ONNX version of the extension point that's responsible for setting up the Evaluator.
         :return: Nothing.
         """
         # Read the evaluation methods from the ModelConfig.
@@ -93,21 +91,29 @@ class OnnxEvaluator(Evaluator):
             self.lab.num_workers = num_workers
 
         # Set the seeds using the value from the ModelConfig.
-        set_seeds(self.model_config.seed)
+        jb_utils.set_seeds(self.model_config.seed)
 
         logger.info(f"ONNX Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
+        """
+        This is the ONNX version of the extension point that's responsible for obtaining the
+        dataset to be evaluated. The input_data is expected to be a list of individual tensors,
+        where each tensor will be fed in to the evaluation procedure, one at a time.
+        :return: Nothing.
+        """
         if self.model_config.platform == "pytorch":
             from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
             from torch import split
-            evaluator = PytorchEvaluator(self.lab, self.model_config, self.eval_dataset_config, self.model_manager,
+            evaluator = PytorchEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
                                          self.eval_dir_mgr, None)
             evaluator.obtain_dataset()
             data_loader = evaluator.eval_loader
-            self.eval_name_targets = evaluator.eval_name_targets
+            self.eval_name_targets = evaluator.eval_name_targets.copy()
 
-            for i, (thing, target) in enumerate(data_loader):
+            logger.info(f"Converting the PyTorch dataloader into a format suitable for ONNX evaluation...")
+
+            for i, (thing, target) in enumerate(tqdm(data_loader)):
                 for item in split(thing, 1):
                     self.input_data.append(item.data.numpy())
 
@@ -140,14 +146,17 @@ class OnnxEvaluator(Evaluator):
         external method, usually found in juneberry.evaluation.evals.
         :return: Nothing.
         """
+
+        self.ort_session = ort.InferenceSession(str(self.model_manager.get_onnx_model_path()))
+
         if self.dryrun:
             logger.info(f"Dry run complete.")
             sys.exit(0)
 
+        logger.info(f"Will evaluate model '{self.model_manager.model_name}' using {self.eval_dataset_config_path}")
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
-        logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 
-        juneberry.utils.invoke_evaluator_method(self, self.eval_method)
+        jb_utils.invoke_evaluator_method(self, self.eval_method)
 
         logger.info(f"EVALUATION COMPLETE.")
 
@@ -156,10 +165,10 @@ class OnnxEvaluator(Evaluator):
         This is the Pytorch version of the extension point that's responsible for converting the raw
         evaluation data into the format the user wants. Much like evaluate_data, the actual process is
         usually defined in some external method, typically found in juneberry.pytorch.evaluation.
-        :return:
+        :return: Nothing.
         """
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
 
-        juneberry.utils.invoke_evaluator_method(self, self.eval_output_method)
+        jb_utils.invoke_evaluator_method(self, self.eval_output_method)
 
         logger.info(f"EVALUATION data has been formatted.")

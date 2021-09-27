@@ -62,6 +62,7 @@ from torchvision import transforms
 from juneberry.config.dataset import DataType, DatasetConfig, SamplingConfig, TaskType, TorchvisionData
 from juneberry.config.model import ModelConfig, PytorchOptions, SplittingAlgo, SplittingConfig
 import juneberry.data as jb_data
+from juneberry.evaluation.util import continuous_predictions_to_class
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jbloader
@@ -69,7 +70,7 @@ import juneberry.loader as model_loader
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 from juneberry.transform_manager import TransformManager
-from juneberry.utils import set_seeds
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -453,8 +454,9 @@ def save_model(model_manager: ModelManager, model, input_sample) -> None:
     """
     Saves the model to the specified directory using our naming scheme and format.
     :param model_manager: The model manager controlling the model being saved.
-    :param model: The model file.
-    :param input_sample:
+    :param model: The model to save.
+    :param input_sample: A single sample from the input data. The dimensions of this sample are used to
+    perform the tracing when exporting the ONNX model file.
     """
     # We only want to save the non DDP version of the model, so the model without wrappers.
     # We shouldn't be passed a wrapped model.
@@ -473,6 +475,7 @@ def save_model(model_manager: ModelManager, model, input_sample) -> None:
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
     logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
     torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
+
 
 def load_model(model_path, model) -> None:
     """
@@ -526,59 +529,12 @@ def compute_accuracy(y_pred, y_true, accuracy_function, accuracy_args, binary):
         return accuracy_function(y_pred=singular_y_pred, y_true=np_y_true, **accuracy_args)
 
 
-def binary_to_classes(binary_predictions):
-    """
-    Expands the singular binary predictions to two classes
-    :param binary_predictions:
-    :return: The predictions broken into two probabilities.
-    """
-    return [[1.0 - x[0], x[0]] for x in binary_predictions]
-
-
-def continuous_predictions_to_class(y_pred, binary):
-    """
-    Convert a set of continuous predictions to numeric class.
-    :param y_pred: The float predictions.
-    :param binary: True if the data is binary
-    :return: The classes
-    """
-    if binary:
-        return np.round(y_pred).astype(int)
-    else:
-        return np.argmax(y_pred, axis=1)
-
-
-def predict_classes(data_generator, model, device):
-    """
-    Generates predictions data for the provided data set via this model.
-    :param data_generator: The data generator to provide data.
-    :param model: The trained model.
-    :param device: The device on which to do the predictions. The model should already be on the device.
-    :return: A table of the predictions.
-    """
-    all_outputs = None
-    for local_batch, local_labels in data_generator:
-        # Transfer to GPU
-        local_batch, local_labels = local_batch.to(device), local_labels.to(device)
-
-        # Model computations
-        output = model(local_batch)
-
-        with torch.set_grad_enabled(False):
-            if all_outputs is None:
-                all_outputs = output.detach().cpu().numpy()
-            else:
-                all_outputs = np.concatenate((all_outputs, output.detach().cpu().numpy()))
-
-    return all_outputs.tolist()
-
-
 def set_pytorch_seeds(seed: int):
     """
     Sets all the random seeds used by all the various pieces.
     :param seed: A random seed to use. Can not be None.
     """
-    set_seeds(seed)
+    jb_utils.set_seeds(seed)
     logger.info(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
@@ -775,5 +731,3 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
 
     logger.info(f'{min(num_batches, quantity) + 1} sample images saved to {img_path}')
     return img_shape
-
-

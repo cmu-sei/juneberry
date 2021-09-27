@@ -47,13 +47,11 @@
 import logging
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
-from torch import FloatTensor
-from torch.nn.functional import softmax
 
+import juneberry.evaluation.util as jb_eval_utils
 from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
 from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
-import juneberry.pytorch.util as pyt_utils
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +60,7 @@ class DefaultEvaluationProcedure:
     """
     This is the default Pytorch evaluation class used for evaluating data in Juneberry.
     """
+
     def __call__(self, evaluator: PytorchEvaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
@@ -71,17 +70,18 @@ class DefaultEvaluationProcedure:
         """
 
         # Perform the evaluation; saving the raw data to the correct evaluator attribute.
-        evaluator.raw_output = pyt_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
+        evaluator.raw_output = jb_eval_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
 
     @staticmethod
-    def establish_evaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options):
-        return PytorchEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
+    def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
+        return PytorchEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
 
 class DefaultEvaluationOutput:
     """
     This is the default Pytorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
+
     def __call__(self, evaluator: PytorchEvaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
@@ -98,7 +98,7 @@ class DefaultEvaluationOutput:
         # Diagnostic for accuracy
         # TODO: Switch to configurable and standard accuracy
         is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
+        predicted_classes = jb_eval_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
 
         # Calculate the accuracy and add it to the output.
         logger.info(f"Computing the accuracy.")
@@ -116,7 +116,7 @@ class DefaultEvaluationOutput:
 
         # Save these as two classes if binary so it's consistent with other outputs.
         if is_binary:
-            evaluator.raw_output = pyt_utils.binary_to_classes(evaluator.raw_output)
+            evaluator.raw_output = jb_eval_utils.binary_to_classes(evaluator.raw_output)
 
         # Add the raw prediction data to the output.
         evaluator.output.results.predictions = evaluator.raw_output
@@ -145,7 +145,7 @@ class DefaultEvaluationOutput:
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:
-            top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
+            jb_eval_utils.top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
 
         # Save the predictions portion of the evaluation output to the appropriate file.
         evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
@@ -154,75 +154,3 @@ class DefaultEvaluationOutput:
         # Save the metrics portion of the evaluation output to the appropriate file.
         evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())
         logger.info(f"Saving metrics to {evaluator.eval_dir_mgr.get_metrics_path()}")
-
-
-def top_k_classifications(evaluator, dataset_mapping):
-    """
-    This function is responsible for adding the top-K classification information to the
-    evaluation output.
-    :param evaluator: The Juneberry Evaluator object that is managing the evaluation.
-    :param dataset_mapping: The label mapping of the dataset being evaluated.
-    :return: Nothing.
-    """
-    # Retrieve the label mapping that the MODEL is aware of. Note that this dataset mapping might be
-    # different than the label mapping that the dataset is aware of. For example, a dataset might
-    # only contain labels from 10 different classes in its mapping, whereas the model might be
-    # aware of 1000 different labels.
-    model_mapping = evaluator.model_config.label_dict
-
-    # A logging message indicating top-K classification will occur
-    class_str = "class" if evaluator.top_k == 1 else f"{evaluator.top_k} classes"
-    logger.info(f"Obtaining the top {class_str} predicted for each input.")
-
-    # Add the top-K classification information to the output.
-    evaluator.output.results.classifications = classify_inputs(evaluator.eval_name_targets,
-                                                               evaluator.raw_output,
-                                                               evaluator.top_k,
-                                                               dataset_mapping,
-                                                               model_mapping)
-
-    logger.info(f"Classified {len(evaluator.output.results.classifications)} inputs.")
-
-
-def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mapping, model_mapping):
-    """
-    Determines the top-K predicted classes for a list of inputs.
-    :param eval_name_targets: The list of input files and their true labels.
-    :param predictions: The predictions that were made for the inputs.
-    :param classify_topk: How many classifications we would like to show.
-    :param dataset_mapping: The mapping of class integers to human readable labels that the DATASET is aware of.
-    :param model_mapping: The mapping of class integers to human readable labels that the MODEL is aware of.
-    :return: A list of which classes were predicted for each input.
-    """
-    # Some tensor operations on the predictions; softmax converts the values to percentages.
-    prediction_tensor = FloatTensor(predictions)
-    predict = softmax(prediction_tensor, dim=1)
-    values, indices = predict.topk(classify_topk)
-    values = values.tolist()
-    indices = indices.tolist()
-
-    classification_list = []
-
-    # Each input should have a contribution to the classification list.
-    for i in range(len(eval_name_targets)):
-
-        class_list = []
-        for j in range(classify_topk):
-            try:
-                label_name = dataset_mapping[indices[i][j]]
-            except KeyError:
-                label_name = model_mapping[str(indices[i][j])] if model_mapping is not None else ""
-
-            individual_dict = {'label': indices[i][j], 'labelName': label_name, 'confidence': values[i][j]}
-            class_list.append(individual_dict)
-
-        try:
-            true_label_name = dataset_mapping[eval_name_targets[i][1]]
-        except KeyError:
-            true_label_name = model_mapping[str(eval_name_targets[i][1])] if model_mapping is not None else ""
-
-        classification_dict = {'file': eval_name_targets[i][0], 'actualLabel': eval_name_targets[i][1],
-                               'actualLabelName': true_label_name, 'predictedClasses': class_list}
-        classification_list.append(classification_dict)
-
-    return classification_list

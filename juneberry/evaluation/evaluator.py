@@ -100,7 +100,7 @@ class Evaluator:
         # TODO: Dry run should be supported as a base evaluator concept.
         self.dryrun = False
 
-        # How many gpus to use. 0 is cpu.
+        # How many GPUs to use. 0 is CPU.
         self.num_gpus = 0
 
         # These attributes describe the model being evaluated. The "model_config" is a Juneberry ModelConfig
@@ -138,7 +138,6 @@ class Evaluator:
         # written to an output JSON file, and (if requested) the top-K classes predicted for each piece
         # of evaluated data.
         self.raw_output = None
-        self.onnx_output = None
         self.top_k = None
 
         # Set up the evaluation output.

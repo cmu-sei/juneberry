@@ -112,7 +112,8 @@ class AcceptanceChecker:
         Adds a single checkpoint for the model. If the value is "accepted" based on the configuration of the
         checker, then the checker's 'done' state will be set to true.
         :param model: The model to save.
-        :param input_sample:
+        :param input_sample: A single sample from the input data, whose dimensions are ultimately used to
+        produce the ONNX model.
         :param value: The value to be provided to the comparator to check for acceptance.
         :param allow_save: Boolean that enables the caller to decide if the model should be saved.
         :return self.done: Boolean status indicating if the training process should end.
@@ -163,7 +164,8 @@ class AcceptanceChecker:
         """
         Saves the model to the models directory overwriting any previous model file.
         :param model: The model to save.
-        :param input_sample:
+        :param input_sample: A single sample from the input data, whose dimensions are ultimately used to
+        produce the ONNX model.
         """
         # We need to remove any old one if it exists
         model_path = self.model_manager.get_pytorch_model_path()

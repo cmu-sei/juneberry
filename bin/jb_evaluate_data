@@ -50,28 +50,11 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.model import ModelConfig
+from juneberry.evaluation.util import create_evaluator
 import juneberry.filesystem as jbfs
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_evaluate_data")
-
-
-def get_eval_procedure_class(procedure_name: str):
-    """
-    This function is responsible for retrieving the class indicated by the evaluation_procedure property of the
-    model config.
-    :param procedure_name: A string corresponding to the value of the evaluation_procedure property in the
-    model config.
-    :return: The class indicated by the evaluation_procedure property of the model config.
-    """
-
-    # Some string manipulation to separate the class name from the rest of the module path.
-    split_name = procedure_name.split(".")
-    class_name = split_name[-1]
-    module_path = ".".join(split_name[:-1])
-
-    module = __import__(module_path, fromlist=[class_name])
-    return getattr(module, class_name)
 
 
 def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_split=False):
@@ -157,34 +140,17 @@ def main():
     # Start evaluation
     logger.info(f"Script arguments captured. Ready to start an evaluation run.")
 
-    # Load the model config to determine what type of evaluator
+    # Load the model config to determine what type of evaluator to create.
     model_config = ModelConfig.load(model_manager.get_model_config())
 
     # Create an evaluator object and use it to conduct the evaluation.
-    if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
-        # Fetch the desired evaluation procedure.
-        eval_proc_name = model_config.evaluation_procedure
+    evaluator = create_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
-        # Import the class from the desired evaluation procedure.
-        imported_class = get_eval_procedure_class(eval_proc_name)
-
-        # Build the appropriate evaluator using the establish_evaluator method defined for the imported class.
-        evaluator = imported_class.establish_evaluator(lab, model_config, dataset, model_manager, eval_dir_mgr,
-                                                       eval_options)
-    elif model_config.platform == "detectron2":
-        from juneberry.detectron2.dt2_evaluator import Detectron2Evaluator
-        evaluator = Detectron2Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-    elif model_config.platform == "mmdetection":
-        from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
-        evaluator = MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-    else:
-        logger.error(f"Unsupported platform: {model_config.platform}")
-        sys.exit(-1)
-
-    # Set the number of gpus on the evaluator
+    # Set the number of gpus on the evaluator.
     if not args.dryrun:
         evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
 
+    # Perform the evaluation.
     evaluator.perform_evaluation()
 
     logger.info("Evaluation complete.")
