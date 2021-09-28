@@ -20,14 +20,14 @@
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
 #  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
 #  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
 #  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
 #  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
 #                  Authors.
 #  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
 #             Lambda Foundry, Inc. and PyData Development Team.
@@ -55,336 +55,11 @@ from pathlib import Path
 import juneberry.filesystem as jbfs
 import juneberry.scripting as jbscripting
 
+from juneberry.metrics.metrics import Metrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
+
+from typing import List
+
 logger = logging.getLogger("juneberry.jb_plot_pr")
-
-
-def get_class_label_map(file):
-    """
-    This function is responsible for retrieving the class label map from the annotations file. The class
-    label map is used to convert the values in the class_label column of the detections Dataframe from
-    integers into strings.
-    :param file: The annotations file containing the class label information.
-    :return: A list containing the classes for each integer label.
-    """
-
-    # Open the annotation file and retrieve the information in the categories field.
-    with open(file) as json_file:
-        categories = json.load(json_file)["categories"]
-
-    # Create an ID list, which contains every integer value that appears as a category
-    # in the annotations file.
-    id_list = []
-    for category in categories:
-        id_list.append(category['id'])
-
-    # Set up the class label map such that there is one entry for every possible integer,
-    # even if the integer does not appear as a category in the annotations file.
-    class_label_map = [None] * (max(id_list) + 1)
-
-    # For the categories that appear in the annotations file, fill in the appropriate
-    # entry of the class label map using the string for that integer.
-    for category in categories:
-        class_label_map[category['id']] = category['name']
-
-    # Brambox expects the first item in the class label map to be for label 1, so
-    # take the first item (label 0) and move it to the end of the class label map.
-    class_label_map.append(class_label_map.pop(0))
-
-    return class_label_map
-
-
-def format_and_save_plot(axes, xlabel: str, ylabel: str, iou_threshold, output_dir, filename, figure):
-    """
-    This function is responsible for performing the formatting for each figure and saving it to
-    the desired location.
-    :param axes: The subaxes for the figure.
-    :param xlabel: The string to use for labeling the X-axis of the figure.
-    :param ylabel: The string to use for labeling the Y-axis of the figure.
-    :param iou_threshold: The IoU threshold that was used when generating the PR data.
-    :param output_dir: A directory where the figure should be saved.
-    :param filename: The filename to use when saving the figure.
-    :param figure: The figure to save.
-    :return: Nothing
-    """
-
-    handles, labels = axes.get_legend_handles_labels()
-
-    num_legend_labels = len(labels)
-
-    # The dimensions of the figure will adjust slightly depending on how many curves
-    # are in the plot. This makes it easier accommodate larger legends.
-    dimension = 7 + .1 * num_legend_labels
-
-    # Establish a fixed size for the figure.
-    figure.set_size_inches(w=dimension, h=dimension)
-
-    # Set the range for the X and Y axes.
-    axes.set_xlim([0, 1.05])
-    axes.set_ylim([0, 1.05])
-
-    # Apply the labels to the X and Y axes.
-    axes.set_xlabel(xlabel)
-    axes.set_ylabel(ylabel)
-
-    # Apply the title to the figure.
-    axes.set_title(f'{ylabel}-{xlabel} Curve (IoU = {str(iou_threshold)})')
-
-    # Move the axes up slightly to make room for a legend below the plot.
-    box = axes.get_position()
-
-    # This factor controls the placement of the plot and legend. It scales dynamically based
-    # on the number of curves that have been added to the figure.
-    factor = .025 * num_legend_labels
-
-    # Use the factor to adjust the position of the plot axes.
-    bottom = box.y0 + box.height * factor
-    top = box.height * (1 - factor)
-    axes.set_position([box.x0, bottom, box.width, top])
-
-    # The midpoint of the plot will be used to center the legend.
-    x_midpoint = (box.x0 + box.x1) / 2
-
-    # Place the legend.
-    axes.legend(loc='upper center', bbox_to_anchor=(x_midpoint, -.08 * (1 + factor)), fancybox=True, ncol=1,
-                fontsize='x-small', shadow=True)
-
-    # Construct the Path where the figure will be saved.
-    file_path = Path(output_dir, filename)
-
-    # Save the figure.
-    figure.savefig(file_path)
-
-
-def summarize_metrics(output_dir, models, datasets, pr_aucs, pc_aucs, rc_aucs, cocos, max_r, class_label_map):
-    """
-    This function is responsible for summarizing the metrics generated during the current execution of
-    this script. There are two aspects to this summary: logging messages and writing the data to CSV.
-    :param output_dir: The directory the CSV file will be written to.
-    :param models: The list of models that were plotted.
-    :param datasets: The list of datasets that were used with the models that were plotted.
-    :param pr_aucs: The AUC values for the PR curves for each model-dataset combination.
-    :param pc_aucs: The AUC values for the PC curves for each model-dataset combination.
-    :param rc_aucs: The AUC values for the RC curves for each model-dataset combination.
-    :param cocos: A list of Pandas series containing the mAP values that were computed for
-    each model-dataset combination.
-    :param max_r: A list containing the maximum recall values for the plotted curves.
-    :param class_label_map: A list of human-readable class names, where the position in the list indicates
-    the integer class label (zero-based index).
-    :return: Nothing.
-    """
-
-    # Establish the Path for the CSV file.
-    csv_path = Path(output_dir, "eval_metrics.csv")
-
-    # Write to the CSV file.
-    with open(csv_path, 'w', newline='') as csv_file:
-        writer = csv.writer(csv_file)
-
-        # Header row for the CSV file.
-        writer.writerow(["model", "dataset", "pr_auc", "pc_auc", "rc_auc", "max_r", "average mAP", "class",
-                         "per class mAP"])
-
-        # Loop through every model in the plotted model list.
-        for idx, model in enumerate(models):
-
-            # Start constructing the row of CSV data.
-            row = [model, datasets[idx], pr_aucs[idx], pc_aucs[idx], rc_aucs[idx], max_r[idx], cocos[idx].mAP_coco]
-
-            # Log messages for all the data that was just added to the CSV.
-            logger.info(f"  Model: {models[idx]}    Dataset: {datasets[idx]}")
-            logger.info(f"    PR_AUC: {round(pr_aucs[idx], 3)}, "
-                        f"PC_AUC: {round(pc_aucs[idx], 3)}, "
-                        f"RC_AUC: {round(rc_aucs[idx], 3)}")
-            logger.info(f"      max recall: {max_r[idx]}")
-            logger.info(f"      mAP: {cocos[idx].mAP_coco}")
-            logger.info(f"      mAP (per class):")
-
-            # The remaining data to be added to the CSV is on a per-class basis, meaning it is a function
-            # of the number of classes in the data. Loop through every class in the data. The class_label_map
-            # is used to enforce ordering of the labels.
-
-            # Brambox wanted the class_label_map to start with label 1, so restore the item at the end to its
-            # rightful place at position 0.
-            class_label_map.insert(0, class_label_map.pop())
-
-            for label in class_label_map:
-                row.append(label)
-
-                # Add the mAP data for that label to the CSV row.
-                try:
-                    row.append(cocos[idx].AP_coco[label])
-                    logger.info(f"        {label}: {cocos[idx].AP_coco[label]}")
-
-                # Handle cases where there might not be mAP data for that label.
-                except KeyError:
-                    row.append(None)
-                    logger.info(f"        {label}: N/A")
-
-            # Construction of the CSV row is complete, so write it to the CSV file.
-            writer.writerow(row)
-
-    logger.info(f"Metrics have been saved to {csv_path}")
-
-
-def plot_pr(model_list, dataset_list, output_dir, iou_threshold=0.5):
-    """
-    This function is responsible for generating the three types of figures Juneberry uses to evaluate the
-    performance of object detection models.
-    :param model_list: The list of model arguments provided to the script via arguments.
-    :param dataset_list: The list of dataset arguments provided to the script via arguments.
-    :param iou_threshold: The IoU threshold to use for determining detections.
-    :param output_dir: A directory where the three figures will be saved.
-    :return: Nothing.
-    """
-
-    # Set up figures and axes for the three plots.
-    fig1, ax1 = plt.subplots()
-    fig2, ax2 = plt.subplots()
-    fig3, ax3 = plt.subplots()
-
-    # This keeps track of how many curves are added to the figures.
-    curves_added = 0
-
-    # This keeps track of model, dataset pairs that weren't plotted.
-    idx_skipped = []
-
-    # These will contain the various metrics we are capturing for the model-dataset pairs.
-    pr_aucs = []
-    pc_aucs = []
-    rc_aucs = []
-    cocos = []
-    max_r = []
-
-    # This loop is responsible for adding curves to each figure. There should be one curve for each
-    # (model, dataset) pair.
-    class_label_map = {}
-    for idx, model in enumerate(model_list):
-
-        # Retrieve the desired dataset for this model.
-        dataset = dataset_list[idx]
-
-        logger.info(f"Attempting to generate curves for model '{model}' and dataset {dataset} ")
-
-        # Locate the eval directory for this model/dataset combination.
-        model_mgr = jbfs.ModelManager(model)
-        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset)
-
-        invalid_combo = False
-
-        if not eval_dir_mgr.root.exists():
-            logger.warning(f"Did not find an evaluation directory at {eval_dir_mgr.root}")
-            invalid_combo = True
-
-        else:
-
-            # Locate the annotations and detections files.
-            anno_path = Path(eval_dir_mgr.get_manifest_path())
-            det_path = Path(eval_dir_mgr.get_detections_path())
-
-            if not anno_path.exists():
-                logger.warning(f"Missing annotations file at {anno_path}")
-                invalid_combo = True
-
-            if not det_path.exists():
-                logger.warning(f"Missing detections file at {det_path}")
-                invalid_combo = True
-
-        if invalid_combo:
-            logger.warning(f"Did you run jb_evaluate_data for this model / dataset combo:")
-            logger.warning(f"    Model: {model}    Dataset: {dataset}")
-            logger.warning(f"Skipping the curves for this combination.")
-            idx_skipped.append(idx)
-            continue
-
-        # Use Brambox to load the annotations into a Pandas dataframe.
-        anno = bb.io.load('anno_coco', anno_path, parse_image_names=False)
-
-        # Retrieve the class label map from the annotations.
-        class_label_map = get_class_label_map(anno_path)
-
-        # Use Brambox to load the detections into a Pandas dataframe.
-        det = bb.io.load('det_coco', det_path, class_label_map=class_label_map)
-
-        # Use Brambox to compute AP metrics
-        coco = bb.eval.COCO(det, anno, max_det=100, tqdm=False)
-        cocos.append(coco)
-
-        # Use Brambox to generate the precision-recall data. The result is a Pandas dataframe.
-        pr = bb.stat.pr(det, anno, iou_threshold)
-
-        # Calculate the area under the PR curve.
-        pr_auc = bb.stat.auc(pr)
-
-        # Brambox issues a warning when calculating the AUC if the x-axis values aren't sorted in ascending
-        # order. Testing showed that the AUC results were the same regardless of the sort order, but performing
-        # the sort will suppress the warning.
-        pr = pr.sort_values('confidence')
-
-        # Now calculate the area under the curve for the PC and RC curves.
-        pc_auc = bb.stat.auc(pr, x='confidence', y='precision')
-        rc_auc = bb.stat.auc(pr, x='confidence', y='recall')
-
-        # Add the AUC metrics to the appropriate list
-        pr_aucs.append(pr_auc)
-        pc_aucs.append(pc_auc)
-        rc_aucs.append(rc_auc)
-
-        # Add the max recall value to the appropriate list
-        max_r.append(bb.stat.peak(pr, y='recall')['recall'])
-
-        # Plot the PR, PC, and RC curves on the appropriate figure for this model-dataset combination.
-        pr.plot('recall', 'precision',
-                drawstyle='steps', label=f'm({model}) d({dataset}) (AUC {round(pr_auc, 3)})', ax=ax1)
-        pr.plot('confidence', 'precision',
-                drawstyle='steps', label=f'm({model}) d({dataset}) (AUC {round(pc_auc, 3)})', ax=ax2)
-        pr.plot('confidence', 'recall',
-                drawstyle='steps', label=f'm({model}) d({dataset}) (AUC {round(rc_auc, 3)})', ax=ax3)
-        curves_added += 1
-
-    # Once all curves have been added, format and save each figure.
-    if curves_added:
-        format_and_save_plot(ax1, 'Recall', 'Precision', iou_threshold, output_dir, "pr_curve.png", fig1)
-        format_and_save_plot(ax2, 'Confidence', 'Precision', iou_threshold, output_dir, "pc_curve.png", fig2)
-        format_and_save_plot(ax3, 'Confidence', 'Recall', iou_threshold, output_dir, "rc_curve.png", fig3)
-    else:
-        logger.warning(f"Figures weren't saved. No curves were plotted on the figures.")
-
-    # Log which model-dataset combinations could not be plotted.
-    if idx_skipped:
-        logger.warning(f"The following (model, dataset) pairs were not plotted:")
-        for idx in idx_skipped:
-            logger.warning(f"    Model: {model_list[idx]}    Dataset: {dataset_list[idx]}")
-            model_list.pop(idx)
-            dataset_list.pop(idx)
-
-    # Log the metrics and save them to CSV.
-    if curves_added:
-        logger.info(f"Summarizing metrics...")
-        summarize_metrics(output_dir, model_list, dataset_list, pr_aucs, pc_aucs, rc_aucs, cocos, max_r,
-                          class_label_map)
-    else:
-        logger.info(f"No curves added, so no metrics summarized.")
-
-
-def iou_float(value):
-    """
-    This function is used to establish some constraints on the value provided to the IoU argument.
-    :param value: The value that the user provided to the IoU argument.
-    :return: A sanitized version of the IoU argument the user provided.
-    """
-
-    # Attempt to convert the provided value to a float
-    try:
-        value = float(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"The value provided to the IoU argument, {value}, is not a valid "
-                                         f"floating-point literal. ")
-
-    # If the value is a float, check if it falls within an appropriate range for an IoU value.
-    if value < 0.5 or value > 1.0:
-        raise argparse.ArgumentTypeError(f"The provided IoU value is not between [0.5, 1.0].")
-
-    return value
 
 
 def setup_args(parser) -> None:
@@ -400,7 +75,7 @@ def setup_args(parser) -> None:
     parser.add_argument('-e', '--evalData', action='append', required=True,
                         help="The name of a dataset that was used to evaluate the model. In order for a curve to be "
                              "added to the figure, a model must be paired with a dataset.")
-    parser.add_argument('--iou', type=iou_float, default=0.5,
+    parser.add_argument('--iou', type=float, default=0.5,
                         help="The IoU threshold to use when determining whether to count a detection as a true "
                              "positive.")
     parser.add_argument('--outputDir', default=None,
@@ -423,21 +98,29 @@ def main():
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
 
-    # Set up the workspace and logging.
-    jbscripting.setup_workspace(args, log_file=Path(output_dir, "log_plot_pr.txt"))
-
-    num_plots = len(args.model)
-
-    logger.info(f"Number of unique models: {len(set(args.model))}")
-    logger.info(f"Number of unique datasets: {len(set(args.evalData))}")
-    logger.info(f"Expected number of curves per figure: {num_plots}")
-
-    if num_plots > 10:
-        logger.warning(f"Lines in the figures will start repeating colors after the first 10 curves are plotted.")
-
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 
-    plot_pr(args.model, args.evalData, output_dir, args.iou)
+    metrics: List[Metrics] = []
+    model_mgr = None
+    eval_dir_mgr = None
+
+    for idx, val in enumerate(args.model):
+        model_mgr = jbfs.ModelManager(args.model[idx])
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
+        metrics.append(
+            Metrics.create_with_filesystem_managers(model_mgr,
+                                                    eval_dir_mgr,
+                                                    iou_threshold=args.iou))
+
+    pr_plot = PrecisionRecallPlot()
+    pc_plot = PrecisionConfidencePlot()
+    rc_plot = RecallConfidencePlot()
+
+    pr_plot.add_metrics_list(metrics)
+    pc_plot.add_metrics_list(metrics)
+    rc_plot.add_metrics_list(metrics)
+
+    Metrics.export(metrics)
 
 
 if __name__ == "__main__":

@@ -76,6 +76,7 @@ import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+import juneberry.metrics.metrics as metrics
 import juneberry.mmdetection.util as mmd_util
 import juneberry.pytorch.processing as processing
 
@@ -265,25 +266,22 @@ class MMDEvaluator(Evaluator):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        width = max([len(k) for k in result])
-        formatted_result = {}
-        per_class = {}
-        for k, v in result.items():
-            logger.info(f"{k:<{width}} = {v}")
+        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr) 
 
-            if self.cfg.evaluation.metric in k:
-                new_k = k.split('_', 1)[1]
-                formatted_result[new_k] = v
-            else:
-                per_class[k] = v
+        self.output.results.metrics.bbox = {}
+        self.output.results.metrics.bbox["mAP"] = m.mAP_coco
+        self.output.results.metrics.bbox["mAP_50"] = m.mAP_50
+        self.output.results.metrics.bbox["mAP_75"] = m.mAP_75
+        self.output.results.metrics.bbox["mAP_s"] = m.mAP_small
+        self.output.results.metrics.bbox["mAP_m"] = m.mAP_medium
+        self.output.results.metrics.bbox["mAP_l"] = m.mAP_large
+        self.output.results.metrics.bbox_per_class = m.mAP_per_class
 
-        if self.cfg.evaluation.metric == "bbox":
-            self.output.results.metrics.bbox = formatted_result
-            self.output.results.metrics.bbox_per_class = per_class
-        else:
-            logger.error(f"The desired evaluation metric '{self.cfg.evaluation.metric}' is not currently supported."
-                         f"Exiting.")
-            sys.exit(-1)
+        for k, v in self.output.results.metrics.bbox.items():
+            logger.info(k + " = " + str(v))
+
+        for k, v in self.output.results.metrics.bbox_per_class.items():
+            logger.info(k + " = " + str(v))
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
 
