@@ -51,7 +51,7 @@ from types import SimpleNamespace
 import torch
 from torch import Tensor
 
-from juneberry.config.dataset import DatasetConfig, DataType as dataset_datatype
+import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
 from juneberry.evaluation.evaluator import Evaluator
@@ -70,8 +70,8 @@ class PytorchEvaluator(Evaluator):
     This subclass is the Pytorch-specific version of the Evaluator.
     """
 
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: jb_dataset.DatasetConfig,
+                 model_manager: ModelManager, eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         """
         Creates a PytorchEvaluator object based on command line arguments and a Juneberry
         ModelManager object.
@@ -148,7 +148,7 @@ class PytorchEvaluator(Evaluator):
         """
         # Create the dataloader and data list for the evaluation data.
 
-        if self.eval_dataset_config.data_type == dataset_datatype.TORCHVISION:
+        if self.eval_dataset_config.data_type == jb_dataset.DataType.TORCHVISION:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files.")
 
             tv_data = self.eval_dataset_config.torchvision_data

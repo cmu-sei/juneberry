@@ -50,7 +50,7 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.model import ModelConfig
-from juneberry.evaluation.util import create_evaluator
+import juneberry.evaluation.util as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.scripting as jbscripting
 
@@ -140,13 +140,14 @@ def main():
     # Start evaluation
     logger.info(f"Script arguments captured. Ready to start an evaluation run.")
 
-    # Load the model config to determine what type of evaluator to create.
+    # Load the model config in order to determine the type of evaluator needed
+    # for this evaluation.
     model_config = ModelConfig.load(model_manager.get_model_config())
 
     # Create an evaluator object and use it to conduct the evaluation.
-    evaluator = create_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    evaluator = jb_eval_utils.create_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
-    # Set the number of gpus on the evaluator.
+    # Set the number of GPUs on the evaluator.
     if not args.dryrun:
         evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
 

@@ -97,7 +97,7 @@ class EpochTrainerHarness(EpochTrainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.setup_calls = []
-        self.start_epoch_training_calls = []
+        self.start_epoch_phase_calls = []
         self.start_epoch_evaluation_calls = []
         self.process_batch_calls = []
         self.update_metrics_calls = []
@@ -134,7 +134,7 @@ class EpochTrainerHarness(EpochTrainer):
     @log_func
     def start_epoch_phase(self, train: bool):
         if train:
-            self.start_epoch_training_calls.append(self.step)
+            self.start_epoch_phase_calls.append(self.step)
         else:
             self.start_epoch_evaluation_calls.append(self.step)
         self.step += 1
@@ -211,7 +211,7 @@ class EpochTrainerHarness(EpochTrainer):
 def test_epoch_trainer(tmp_path):
     """
     >> 0 setup
-    >> 1 start_epoch_training
+    >> 1 start_epoch_phase
     >> 2 process_batch
     >> 3 update_metrics
     >> 4 update_model
@@ -229,7 +229,7 @@ def test_epoch_trainer(tmp_path):
     >> 16 update_metrics
     >> 17 summarize_metrics
     >> 18 end_epoch
-    >> 19 start_epoch_training
+    >> 19 start_epoch_phase
     >> 20 process_batch
     >> 21 update_metrics
     >> 22 update_model
@@ -247,7 +247,7 @@ def test_epoch_trainer(tmp_path):
     >> 34 update_metrics
     >> 35 summarize_metrics
     >> 36 end_epoch
-    >> 37 start_epoch_training
+    >> 37 start_epoch_phase
     >> 38 process_batch
     >> 39 update_metrics
     >> 40 update_model
@@ -289,7 +289,7 @@ def test_epoch_trainer(tmp_path):
 
     trainer.train_model(None)
     assert trainer.setup_calls == [0]
-    assert trainer.start_epoch_training_calls == [1, 19, 37]
+    assert trainer.start_epoch_phase_calls == [1, 19, 37]
 
     # Check all the results.  Sequencing is important
     assert trainer.process_batch_calls == [2, 5, 8, 13, 15, 20, 23, 26, 31, 33, 38, 41, 44, 49, 51]

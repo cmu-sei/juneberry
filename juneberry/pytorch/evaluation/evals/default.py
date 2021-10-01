@@ -48,17 +48,18 @@ import logging
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 
-import juneberry.evaluation.util as jb_eval_utils
 from juneberry.config.training_output import TrainingOutput
+import juneberry.evaluation.util as jb_eval_utils
 import juneberry.filesystem as jbfs
 from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
+import juneberry.pytorch.evaluation.util as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
 
 
 class DefaultEvaluationProcedure:
     """
-    This is the default Pytorch evaluation class used for evaluating data in Juneberry.
+    This is the default PyTorch evaluation class used for evaluating data in Juneberry.
     """
 
     def __call__(self, evaluator: PytorchEvaluator):
@@ -79,14 +80,14 @@ class DefaultEvaluationProcedure:
 
 class DefaultEvaluationOutput:
     """
-    This is the default Pytorch evaluation class used for formatting raw evaluation data in Juneberry.
+    This is the default PyTorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
 
     def __call__(self, evaluator: PytorchEvaluator):
         """
-        When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
-        result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
-        then be written to a file.
+        When called, this method uses the attributes of the evaluator to format the raw evaluation data. At the
+        end of this call, the evaluator.output attribute will contain JSON-friendly data which will then be
+        written to a file.
         :param evaluator: The PytorchEvaluator object managing the evaluation.
         :return: Nothing.
         """
@@ -145,7 +146,7 @@ class DefaultEvaluationOutput:
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:
-            jb_eval_utils.top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
+            jb_pytorch_eval_utils.top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
 
         # Save the predictions portion of the evaluation output to the appropriate file.
         evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())

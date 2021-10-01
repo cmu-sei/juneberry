@@ -62,11 +62,11 @@ from torchvision import transforms
 from juneberry.config.dataset import DataType, DatasetConfig, SamplingConfig, TaskType, TorchvisionData
 from juneberry.config.model import ModelConfig, PytorchOptions, SplittingAlgo, SplittingConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.util import continuous_predictions_to_class
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
+from juneberry.pytorch.evaluation.util import compute_accuracy
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 from juneberry.transform_manager import TransformManager
@@ -499,34 +499,6 @@ def load_weights_from_model(model_manager, model) -> None:
     else:
         logger.error(f"Model path {model_path} does not exist! EXITING.")
         sys.exit(-1)
-
-
-def compute_accuracy(y_pred, y_true, accuracy_function, accuracy_args, binary):
-    """
-    Computes the accuracy from a set of predictions where the output is rows and the classes are the columns.
-    :param y_pred: The output predictions to process.
-    :param y_true: The correct labels.
-    :param accuracy_function: The actual function that does the computation
-    :param accuracy_args: Arguments that should be passed to the accuracy function
-    :param binary: True if this a binary function.
-    :return: Accuracy as a float.
-    """
-    with torch.set_grad_enabled(False):
-        # The with clause should turn off grad, but for some reason I still get the error:
-        # RuntimeError: Can't call numpy() on Variable that requires grad. Use var.detach().numpy() instead.
-        # So I am including detach. :(
-        if binary:
-            np_y_pred = y_pred.type(torch.DoubleTensor).cpu().detach().numpy()
-            np_y_true = y_true.type(torch.DoubleTensor).unsqueeze(1).cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().detach().numpy()
-            np_y_true = y_true.cpu().numpy()
-
-        # Convert the continuous predictions to single class predictions
-        singular_y_pred = continuous_predictions_to_class(np_y_pred, binary)
-
-        # Now call the function
-        return accuracy_function(y_pred=singular_y_pred, y_true=np_y_true, **accuracy_args)
 
 
 def set_pytorch_seeds(seed: int):

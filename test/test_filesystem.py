@@ -51,6 +51,35 @@ from pathlib import Path
 import juneberry.filesystem as jbfs
 
 
+def test_eval_dir():
+    mm = jbfs.ModelManager('TestModel', '1999')
+    root = Path('models') / 'TestModel' / '1999'
+    eval_dir_root = root / 'eval' / 'TestDataset'
+
+    assert mm.get_eval_root_dir() == root / 'eval'
+    assert mm.get_eval_dir('TestDataset') == eval_dir_root
+    assert mm.get_platform_eval_config('TestDataset') == eval_dir_root / 'platform_config.json'
+    assert mm.get_eval_manifest_path('TestDataset') == eval_dir_root / 'eval_manifest.json'
+
+    eval_dir_mgr = mm.get_eval_dir_mgr('TestDataset')
+    eval_dir_mgr.setup()
+
+    assert eval_dir_mgr.get_dir() == eval_dir_root
+    assert eval_dir_mgr.get_scratch_dir() == eval_dir_root / 'scratch'
+    assert eval_dir_mgr.get_dryrun_imgs_dir() == str(eval_dir_root / 'dryrun_imgs')
+    assert eval_dir_mgr.get_platform_config() == str(eval_dir_root / "platform_config.json")
+    assert eval_dir_mgr.get_manifest_path() == str(eval_dir_root / "eval_manifest.json")
+    assert eval_dir_mgr.get_detections_path() == str(eval_dir_root / "detections.json")
+    assert eval_dir_mgr.get_detections_anno_path() == str(eval_dir_root / "detections_anno.json")
+    assert eval_dir_mgr.get_log_path() == str(eval_dir_root / "log.txt")
+    assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_root / "log_TestTool.txt")
+    assert eval_dir_mgr.get_log_dryrun_path() == str(eval_dir_root / "log_dryrun.txt")
+    assert eval_dir_mgr.get_log_dryrun_path("TestTool") == str(eval_dir_root / "log_dryrun_TestTool.txt")
+    assert eval_dir_mgr.get_metrics_path() == str(eval_dir_root / "metrics.json")
+    assert eval_dir_mgr.get_predictions_path() == str(eval_dir_root / "predictions.json")
+    assert eval_dir_mgr.get_sample_detections_dir() == str(eval_dir_root / "sample_detections")
+
+
 def test_model_manager():
     mm = jbfs.ModelManager('TestModel', '1999')
     root = Path('models') / 'TestModel' / '1999'
@@ -197,3 +226,5 @@ def test_json_cleaner():
     results = json.loads(str_results)
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
+
+

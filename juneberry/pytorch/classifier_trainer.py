@@ -90,8 +90,8 @@ class ClassifierTrainer(EpochTrainer):
         self.binary = dataset_config.is_binary
         self.pytorch_options: PytorchOptions = model_config.pytorch
 
-        # A single sample from the input data. The dimensions of the sample become a
-        # factor when saving the model in ONNX format.
+        # A single sample from the input data. The dimensions of the sample matter during
+        # construction of the ONNX model.
         self.input_sample = None
 
         # Should we load all the data at one time.  Edge case optimization.
@@ -410,7 +410,7 @@ class ClassifierTrainer(EpochTrainer):
             if type(self.input_sample) == np.ndarray:
                 self.input_sample = torch.from_numpy(self.input_sample)
 
-            # Set the input sample as the tensor data, sent to a device used for training.
+            # Set the input sample as the data from the tensor and send it to a training device.
             self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
 
     def setup_model(self):

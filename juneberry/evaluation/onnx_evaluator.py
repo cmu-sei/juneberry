@@ -102,24 +102,37 @@ class OnnxEvaluator(Evaluator):
         where each tensor will be fed in to the evaluation procedure, one at a time.
         :return: Nothing.
         """
+        # If a PyTorch model is being evaluated, create a separate PyTorch specific evaluator
+        # and use it to construct a PyTorch dataloader. Once the dataloader exists, convert it
+        # into the format that ONNX expects.
         if self.model_config.platform == "pytorch":
             from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
             from torch import split
+
+            # Create a PytorchEvaluator and use it to build a PyTorch dataloader for the input data.
             evaluator = PytorchEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
                                          self.eval_dir_mgr, None)
             evaluator.obtain_dataset()
             data_loader = evaluator.eval_loader
+
+            # Retrieve the labels for the input data.
             self.eval_name_targets = evaluator.eval_name_targets.copy()
 
+            # Now convert the PyTorch dataloader into a list of tensors. TQDM provides a progress bar.
             logger.info(f"Converting the PyTorch dataloader into a format suitable for ONNX evaluation...")
+            for i, (batch, target) in enumerate(tqdm(data_loader)):
 
-            for i, (thing, target) in enumerate(tqdm(data_loader)):
-                for item in split(thing, 1):
+                # Convert the individual tensors in the batch to numpy arrays and place them in
+                # the input data list.
+                for item in split(batch, 1):
                     self.input_data.append(item.data.numpy())
 
+        # This bit will be responsible for converting the TensorFlow input data into the format ONNX expects.
         elif self.model_config.platform == "tensorflow":
             # TODO: Implement this.
             pass
+
+        # Handle cases where the model platform does not support an ONNX evaluation.
         else:
             logger.info(f"ONNX evaluations are currently NOT supported for the {self.model_config.platform} platform.")
             sys.exit(-1)
@@ -162,7 +175,7 @@ class OnnxEvaluator(Evaluator):
 
     def format_evaluation(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for converting the raw
+        This is the ONNX version of the extension point that's responsible for converting the raw
         evaluation data into the format the user wants. Much like evaluate_data, the actual process is
         usually defined in some external method, typically found in juneberry.pytorch.evaluation.
         :return: Nothing.

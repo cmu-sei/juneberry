@@ -54,10 +54,8 @@ from tqdm import tqdm
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.evaluation.evals.onnx import logger
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
-import juneberry.pytorch.evaluation.util as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
 
@@ -204,31 +202,3 @@ def predict_classes(data_generator, model, device):
                 all_outputs = np.concatenate((all_outputs, output.detach().cpu().numpy()))
 
     return all_outputs.tolist()
-
-
-def top_k_classifications(evaluator, dataset_mapping):
-    """
-    This function is responsible for adding the top-K classification information to the
-    evaluation output.
-    :param evaluator: The Juneberry Evaluator object that is managing the evaluation.
-    :param dataset_mapping: The label mapping of the dataset being evaluated.
-    :return: Nothing.
-    """
-    # Retrieve the label mapping that the MODEL is aware of. Note that this dataset mapping might be
-    # different than the label mapping that the dataset is aware of. For example, a dataset might
-    # only contain labels from 10 different classes in its mapping, whereas the model might be
-    # aware of 1000 different labels.
-    model_mapping = evaluator.model_config.label_dict
-
-    # A logging message indicating top-K classification will occur
-    class_str = "class" if evaluator.top_k == 1 else f"{evaluator.top_k} classes"
-    logger.info(f"Obtaining the top {class_str} predicted for each input.")
-
-    # Add the top-K classification information to the output.
-    evaluator.output.results.classifications = jb_pytorch_eval_utils.classify_inputs(evaluator.eval_name_targets,
-                                                                                     evaluator.onnx_output,
-                                                                                     evaluator.top_k,
-                                                                                     dataset_mapping,
-                                                                                     model_mapping)
-
-    logger.info(f"Classified {len(evaluator.output.results.classifications)} inputs.")
