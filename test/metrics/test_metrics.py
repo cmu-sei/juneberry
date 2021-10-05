@@ -36,13 +36,10 @@ import juneberry.metrics.metrics as metrics
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 from pathlib import Path
-from unittest.mock import Mock
 
 det_data = None  # detections data
 gt_data = None  # ground truth data
 m = None  # Metrics object
-
-# manual values for unittest files
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
@@ -75,7 +72,8 @@ def setup_module():
 
 
 def test_create_with_data():
-    m = metrics.Metrics.create_with_data(gt_data, det_data)
+    m_with_data = metrics.Metrics.create_with_data(gt_data, det_data)
+    assert m_with_data.mAP == m.mAP
 
 
 def test_mAP():
