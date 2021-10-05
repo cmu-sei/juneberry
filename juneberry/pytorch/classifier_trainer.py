@@ -93,6 +93,9 @@ class ClassifierTrainer(EpochTrainer):
 
         # Should we load all the data at one time.  Edge case optimization.
         self.no_paging = False
+        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
+            logger.info("Setting to no paging mode.")
+            self.no_paging = True
 
         self.tb_mgr = None
 
