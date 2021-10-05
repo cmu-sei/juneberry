@@ -269,7 +269,7 @@ class MMDEvaluator(Evaluator):
         m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr) 
 
         self.output.results.metrics.bbox = {}
-        self.output.results.metrics.bbox["mAP"] = m.mAP_coco
+        self.output.results.metrics.bbox["mAP"] = m.mAP
         self.output.results.metrics.bbox["mAP_50"] = m.mAP_50
         self.output.results.metrics.bbox["mAP_75"] = m.mAP_75
         self.output.results.metrics.bbox["mAP_s"] = m.mAP_small
