@@ -45,11 +45,7 @@
 # ======================================================================================================================
 
 import argparse
-import brambox as bb
-import csv
-import json
 import logging
-import matplotlib.pyplot as plt
 from pathlib import Path
 
 import juneberry.filesystem as jbfs
@@ -104,6 +100,7 @@ def main():
     model_mgr = None
     eval_dir_mgr = None
 
+    # Create a Metrics object for each model/dataset passed in
     for idx, val in enumerate(args.model):
         model_mgr = jbfs.ModelManager(args.model[idx])
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
@@ -112,14 +109,17 @@ def main():
                                                     eval_dir_mgr,
                                                     iou_threshold=args.iou))
 
+    # Create empty MetricsPlots
     pr_plot = PrecisionRecallPlot()
     pc_plot = PrecisionConfidencePlot()
     rc_plot = RecallConfidencePlot()
 
+    # Add metrics to the plots
     pr_plot.add_metrics_list(metrics)
     pc_plot.add_metrics_list(metrics)
     rc_plot.add_metrics_list(metrics)
 
+    # Export the metrics as a CSV
     Metrics.export(metrics)
 
 
