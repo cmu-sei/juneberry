@@ -51,6 +51,13 @@ General utilities.
 import numpy as np
 from pathlib import Path
 import re
+import logging
+from filesystem import ModelManager
+from config.training_output import TrainingOutput
+
+import json
+
+logger = logging.getLogger(__name__)
 
 
 def rekey(struct, key_map: dict, reverse=False) -> None:
@@ -208,3 +215,61 @@ def show_list(rhs, indent=0) -> None:
                 print(f"{' ' * indent}[{i}] - {elem_type}")
                 found_types[elem_type] = i
                 show_type(rhs[i], indent + 4)
+
+
+def get_dictionary(file, field):
+    dictionary = {}
+    if file.exists():
+        json_config = json.loads(file)
+        if field in json_config:
+            stanza = json_config[field]
+            for k, v in stanza:
+                dictionary[int(k)] = v
+    return dictionary
+
+
+def get_label_mapping(model_manager: ModelManager, model_config = None, train_config = None, eval_config = None):
+    """
+    Checks a hierarchy of files to determine the set of label names used by the trained model.
+    :param model_manager: ModelManager object for the model.
+    :param model_config: Model config for the model.
+    :param train_config: Training dataset config for the model.
+    :param eval_config: Evaluation dataset config for the model.
+    :return: The label names as a dict of int -> string.
+    """
+    # Check the output.json file
+    if model_manager.get_training_out_file():
+        if model_manager.get_training_out_file().exists:
+            # TODO: is there an example of this?
+            train_outfile = model_manager.get_training_out_file()
+            training_data = TrainingOutput.load(train_outfile)
+            label_names = get_dictionary(training_data, "label_names")
+            if label_names:
+                return label_names
+
+    # Check the model config file
+    if model_config:
+        label_names = get_dictionary(model_config, "label_names")
+        if label_names:
+            return label_names
+
+    if model_manager.get_model_config().exists():
+        label_names = get_dictionary(model_manager.get_model_config(), "label_names")
+        if label_names:
+            return label_names
+
+    # TODO: is there a way to access train and eval datasets given the model manager?
+    # Check the training dataset
+    if train_config:
+        label_names = get_dictionary(train_config, "label_names")
+        if label_names:
+            return label_names
+
+    # Check the eval dataset
+    if eval_config:
+        label_names = get_dictionary(eval_config, "label_names")
+        if label_names:
+            return label_names
+
+    else:
+        logger.error("No label names found.")
