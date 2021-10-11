@@ -366,8 +366,31 @@ class Metrics():
 
 class MetricsPlot():
 
-    @staticmethod
-    def _plot(data: DataFrame,
+    def __init__(self,
+                 xlabel: str = "",
+                 ylabel: str = "",
+                 autosave=True,
+                 output_file: Path = "metrics.png") -> MetricsPlot:
+        """
+        Create a MetricsPlot object.
+        :param xlabel: The x-axis label for this MetricsPlot.
+        :param ylabel: The y-axis label for this MetricsPlot.
+        :param autosave: Do we save to file automatically when a Metrics
+        object is added to this MetricsPlot?
+        :param output_file: File this MetricsPlot is saved to.
+        :return: a new MetricsPlot.
+        """
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+        MetricsPlot._format(self.fig, self.ax)
+        self.autosave = autosave
+        self.output_file = output_file
+        # TODO why am I saving metrics? (not currently using them)
+        self.metrics = []
+
+    def _plot(self,
+              data: DataFrame,
               model_name: str,
               dataset_name: str,
               auc: float,
@@ -386,12 +409,19 @@ class MetricsPlot():
         """
         xlabel: str = ax.get_xlabel()
         ylabel: str = ax.get_ylabel()
-        ax.set_title(f"{ylabel}-{xlabel} Curve (IoU = {str(iou_threshold)})")
+        ax.set_title(self._get_title({
+            "ylabel": ylabel,
+            "xlabel": xlabel,
+            "iou_threshold": iou_threshold,
+        }))
         data.plot(xlabel,
                   ylabel,
                   drawstyle="steps",
-                  label=f"m({model_name}) d({dataset_name}) \
-                      (AUC {round(auc, 3)})",
+                  label=self._get_plot_label({
+                      "model_name": model_name,
+                      "dataset_name": dataset_name,
+                      "auc": auc,
+                  }),
                   ax=ax)
 
     @staticmethod
@@ -399,7 +429,8 @@ class MetricsPlot():
                 ax: Axes) -> None:
         """
         Format a Figure and Axes to Juneberry specifications
-        for a MetricsPlot.
+        for a MetricsPlot. This can be overriden for
+        custom formatting.
         :param fig: a Matplotlib Figure
         :param ax: a Matplotlib Axes
         :return: None
@@ -443,29 +474,6 @@ class MetricsPlot():
                   fontsize="x-small",
                   shadow=True)
 
-    def __init__(self,
-                 xlabel: str = "",
-                 ylabel: str = "",
-                 autosave=True,
-                 output_file: Path = "metrics.png") -> MetricsPlot:
-        """
-        Create a MetricsPlot object.
-        :param xlabel: The x-axis label for this MetricsPlot.
-        :param ylabel: The y-axis label for this MetricsPlot.
-        :param autosave: Do we save to file automatically when a Metrics
-        object is added to this MetricsPlot?
-        :param output_file: File this MetricsPlot is saved to.
-        :return: a new MetricsPlot.
-        """
-        self.fig, self.ax = plt.subplots()
-        self.ax.set_xlabel(xlabel)
-        self.ax.set_ylabel(ylabel)
-        MetricsPlot._format(self.fig, self.ax)
-        self.autosave = autosave
-        self.output_file = output_file
-        # TODO why am I saving metrics? (not currently using them)
-        self.metrics = []
-
     # override in subclass
     def _get_auc(self, m: Metrics) -> float:
         """
@@ -474,7 +482,20 @@ class MetricsPlot():
         :param m: the Metrics object
         :return: the AUC float value
         """
+        logger.warn("Calling do-nothing superclass implementation "
+                    "of _get_auc. Implement this in your subclass.")
         pass
+
+    # override this for a custom title
+    def _get_title(self, title_data: Dict) -> str:
+        return f"{title_data['ylabel']}-{title_data['xlabel']} \
+            Curve (IoU = {title_data['iou_threshold']})"
+
+    # override this for a custom plot label
+    def _get_plot_label(self, plot_label_data: Dict) -> str:
+        return f"m({plot_label_data['model_name']}) \
+            d({plot_label_data['dataset_name']}) \
+                (AUC {round(plot_label_data['auc'], 3)})"
 
     def add_metrics(self, m: Metrics) -> None:
         """
@@ -483,16 +504,15 @@ class MetricsPlot():
         :return: None
         """
         self.metrics.append(m)
-        MetricsPlot._plot(m.pr,
-                          m.model_name,
-                          m.dataset_name,
-                          self._get_auc(m),
-                          m.iou_threshold,
-                          self.ax)
+        self._plot(m.pr,
+                   m.model_name,
+                   m.dataset_name,
+                   self._get_auc(m),
+                   m.iou_threshold,
+                   self.ax)
         if self.autosave:
             self.save()
 
-    # TODO for convenience? Nice to have but redundant...
     def add_metrics_list(self,
                          ms: List[Metrics]) -> None:
         """
@@ -506,7 +526,7 @@ class MetricsPlot():
     def save(self) -> None:
         """
         Save this metrics plot to a file.
-        :return: None 
+        :return: None
         """
         self.fig.savefig(self.output_file)
 
