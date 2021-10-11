@@ -485,7 +485,6 @@ class MetricsPlot():
         """
         logger.warn("Calling do-nothing superclass implementation "
                     "of _get_auc. Implement this in your subclass.")
-        pass
 
     # override this for a custom title
     def _get_title(self, title_data: Dict) -> str:
