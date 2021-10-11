@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import brambox as bb
 import csv
-from enum import Enum
 from functools import cached_property
 import json
 from juneberry.filesystem import EvalDirMgr, ModelManager
@@ -48,8 +47,7 @@ import matplotlib.pyplot as plt
 import os
 from pandas.core.frame import DataFrame
 from pathlib import Path
-import tempfile
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 
 logger = logging.getLogger("juneberry.metrics")
@@ -366,28 +364,7 @@ class Metrics():
         logger.info(f"Metrics have been saved to {output_file}")
 
 
-class MetricsPlot:
-
-    class PlotType(Enum):
-        """Enumeration for MetricsPlot type."""
-        PR = 1 # Precision-Recall
-        PC = 2 # Precision-Confidence
-        RC = 3 # Recall-Confidence
-
-    def _get_auc(self, m: Metrics) -> float:
-        """
-        Select the proper AUC value from the Metrics object
-        for this MetricsPlot.
-        :param m: the Metrics object
-        :return: the AUC float value
-        """
-        if self.plot_type == MetricsPlot.PlotType.PR:
-            auc = m.pr_auc
-        elif self.plot_type == MetricsPlot.PlotType.PC:
-            auc = m.pc_auc
-        elif self.plot_type == MetricsPlot.PlotType.RC:
-            auc = m.rc_auc
-        return auc
+class MetricsPlot():
 
     @staticmethod
     def _plot(data: DataFrame,
@@ -467,14 +444,12 @@ class MetricsPlot:
                   shadow=True)
 
     def __init__(self,
-                 plot_type: PlotType,
                  xlabel: str = "",
                  ylabel: str = "",
                  autosave=True,
                  output_file: Path = "metrics.png") -> MetricsPlot:
         """
         Create a MetricsPlot object.
-        :param plot_type: The type of this MetricsPlot (e.g. PR)
         :param xlabel: The x-axis label for this MetricsPlot.
         :param ylabel: The y-axis label for this MetricsPlot.
         :param autosave: Do we save to file automatically when a Metrics
@@ -483,7 +458,6 @@ class MetricsPlot:
         :return: a new MetricsPlot.
         """
         self.fig, self.ax = plt.subplots()
-        self.plot_type = plot_type
         self.ax.set_xlabel(xlabel)
         self.ax.set_ylabel(ylabel)
         MetricsPlot._format(self.fig, self.ax)
@@ -491,6 +465,16 @@ class MetricsPlot:
         self.output_file = output_file
         # TODO why am I saving metrics? (not currently using them)
         self.metrics = []
+
+    # override in subclass
+    def _get_auc(self, m: Metrics) -> float:
+        """
+        Select the proper AUC value from the Metrics object
+        for this MetricsPlot.
+        :param m: the Metrics object
+        :return: the AUC float value
+        """
+        pass
 
     def add_metrics(self, m: Metrics) -> None:
         """
@@ -536,10 +520,12 @@ class PrecisionRecallPlot(MetricsPlot):
         :param output_file: File to save this plot to.
         :return: a new PrecisionRecallPlot
         """
-        super().__init__(plot_type=super().PlotType.PR,
-                         xlabel="recall",
+        super().__init__(xlabel="recall",
                          ylabel="precision",
                          output_file=output_file)
+
+    def _get_auc(self, m: Metrics) -> float:
+        return m.pr_auc
 
 
 class PrecisionConfidencePlot(MetricsPlot):
@@ -551,10 +537,12 @@ class PrecisionConfidencePlot(MetricsPlot):
         :param output_file: File to save this plot to.
         :return: a new PrecisionConfidencePlot
         """
-        super().__init__(plot_type=super().PlotType.PC,
-                         xlabel="confidence",
+        super().__init__(xlabel="confidence",
                          ylabel="precision",
                          output_file=output_file)
+
+    def _get_auc(self, m: Metrics) -> float:
+        return m.pc_auc
 
 
 class RecallConfidencePlot(MetricsPlot):
@@ -566,7 +554,9 @@ class RecallConfidencePlot(MetricsPlot):
         :param output_file: File to save this plot to.
         :return: a new RecallConfidencePlot
         """
-        super().__init__(plot_type=super().PlotType.RC,
-                         xlabel="confidence",
+        super().__init__(xlabel="confidence",
                          ylabel="recall",
                          output_file=output_file)
+
+    def _get_auc(self, m: Metrics) -> float:
+        return m.rc_auc
