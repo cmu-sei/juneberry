@@ -149,18 +149,19 @@ class Metrics():
     @staticmethod
     def create_with_data(annotations: Dict,
                          detections: Dict,
+                         model_name: str = "unknown model",
+                         dataset_name: str = "unknown dataset",
                          iou_threshold: float = 0.5) -> Metrics:
         """
         Create a Metrics object using dictonaries containing
         annotations and detections.
         :param annotations: annotations
         :param detections: detections
+        :param model_name: model name
+        :param dataset_name: dataset name
         :param iou_threshold: iou_threshold
         :return: a Metrics object
         """
-        model_name = "create_with_data_model_name"
-        dataset_name = "create_with_data_dataset_name"
-
         with open("/tmp/anno_file." + str(os.getpid()), "w") as anno_file:
             json.dump(annotations, anno_file)
 
@@ -367,9 +368,9 @@ class Metrics():
 class MetricsPlot():
 
     def __init__(self,
-                 xlabel: str = "",
-                 ylabel: str = "",
-                 autosave=True,
+                 xlabel: str = "x",
+                 ylabel: str = "y",
+                 autosave: bool = True,
                  output_file: Path = "metrics.png") -> MetricsPlot:
         """
         Create a MetricsPlot object.
