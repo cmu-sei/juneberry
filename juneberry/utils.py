@@ -228,13 +228,14 @@ def get_dictionary(file, field):
     return dictionary
 
 
-def get_label_mapping(model_manager: ModelManager, model_config = None, train_config = None, eval_config = None):
+def get_label_mapping(model_manager: ModelManager, model_config = None, train_config = None, eval_config = None, show_source = False):
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model.
     :param model_manager: ModelManager object for the model.
     :param model_config: Model config for the model.
     :param train_config: Training dataset config for the model.
     :param eval_config: Evaluation dataset config for the model.
+    :param show_source: Set to True to return the source from which the label names were extracted.
     :return: The label names as a dict of int -> string.
     """
     # Check the output.json file
