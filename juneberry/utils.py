@@ -228,7 +228,8 @@ def get_dictionary(file, field):
     return dictionary
 
 
-def get_label_mapping(model_manager: ModelManager, model_config = None, train_config = None, eval_config = None, show_source = False):
+def get_label_mapping(model_manager: ModelManager, model_config=None, train_config=None, eval_config=None,
+                      show_source=False):
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model.
     :param model_manager: ModelManager object for the model.
@@ -245,31 +246,41 @@ def get_label_mapping(model_manager: ModelManager, model_config = None, train_co
             train_outfile = model_manager.get_training_out_file()
             training_data = TrainingOutput.load(train_outfile)
             label_names = get_dictionary(training_data, "label_names")
-            if label_names:
+            if label_names and show_source:
+                return label_names, "output"
+            elif label_names:
                 return label_names
 
     # Check the model config file
     if model_config:
         label_names = get_dictionary(model_config, "label_names")
-        if label_names:
+        if label_names and show_source:
+            return label_names, "model config"
+        elif label_names:
             return label_names
 
     if model_manager.get_model_config().exists():
         label_names = get_dictionary(model_manager.get_model_config(), "label_names")
-        if label_names:
+        if label_names and show_source:
+            return label_names, "model config"
+        elif label_names:
             return label_names
 
     # TODO: is there a way to access train and eval datasets given the model manager?
     # Check the training dataset
     if train_config:
         label_names = get_dictionary(train_config, "label_names")
-        if label_names:
+        if label_names and show_source:
+            return label_names, "training config"
+        elif label_names:
             return label_names
 
     # Check the eval dataset
     if eval_config:
         label_names = get_dictionary(eval_config, "label_names")
-        if label_names:
+        if label_names and show_source:
+            return label_names, "eval config"
+        elif label_names:
             return label_names
 
     else:

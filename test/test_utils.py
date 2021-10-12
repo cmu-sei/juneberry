@@ -125,13 +125,15 @@ def test_get_label_mapping():
 
     # Model config
     source = "model config"
-    assert expected_labels == jb_utils.get_label_mapping(model_manager, model_config=model_config)
+    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, model_config=model_config,
+                                                                 show_source=True)
 
     # Training config
     source = "training config"
-    assert expected_labels == jb_utils.get_label_mapping(model_manager, train_config=train_config)
+    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, train_config=train_config,
+                                                                 show_source=True)
 
     # Eval config
     source = "eval config"
-    assert expected_labels == jb_utils.get_label_mapping(model_manager, eval_config=eval_config)
-
+    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, eval_config=eval_config,
+                                                                 show_source=True)
