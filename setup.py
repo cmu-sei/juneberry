@@ -53,6 +53,7 @@ install_requires = [
     "pillow",
     "sklearn",
     "tensorflow",
+    "tensorflow-datasets",
     "tensorboard",
     "torch",
     "torchvision",
