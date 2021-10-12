@@ -52,8 +52,8 @@ import numpy as np
 from pathlib import Path
 import re
 import logging
-from filesystem import ModelManager
-from config.training_output import TrainingOutput
+from juneberry.filesystem import ModelManager
+# from config.training_output import TrainingOutput
 
 import json
 
@@ -244,8 +244,7 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
         if model_manager.get_training_out_file().exists:
             # TODO: is there an example of this?
             train_outfile = model_manager.get_training_out_file()
-            training_data = TrainingOutput.load(train_outfile)
-            label_names = get_dictionary(training_data, "label_names")
+            label_names = get_dictionary(train_outfile, "label_names")
             if label_names and show_source:
                 return label_names, "output"
             elif label_names:
