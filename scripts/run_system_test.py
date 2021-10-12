@@ -416,14 +416,16 @@ def get_model_train_file_patterns(model_name: str) -> list:
 
     files = [
         '/'.join(model_mgr.get_training_out_file().parts[-2:]),
-        '/'.join(model_mgr.get_training_summary_plot().parts[-2:]),
         '/'.join(model_mgr.get_training_log().parts[-2:]),
-        model_mgr.get_pytorch_model_path().name
+        model_mgr.get_model_path().name
     ]
 
+    if model_name in ["imagenette_224x224_rgb_unit_test_tf_resnet50"]:
+        return files
+
     if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18",
-                      "imagenette_224x224_rgb_unit_test_tf_resnet50",
                       "tabular_binary_sample"]:
+        files.append('/'.join(model_mgr.get_training_summary_plot().parts[-2:]))
         return files
 
     elif "text_detect" in model_name:
