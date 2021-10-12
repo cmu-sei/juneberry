@@ -22,7 +22,7 @@
                         "name": { "type": "string" },
                         "num_classes": { "type": "number" }
                     },
-                    "required": [ "name", "num_classes" ]
+                    "required": [ "name" ]
                 }
             },
             "required": [ "dataset", "model" ]
