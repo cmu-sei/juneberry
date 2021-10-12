@@ -20,14 +20,14 @@
 #  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
 #  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
 #  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
+#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
 #      developers.
 #  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
 #  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
 #  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
 #  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
 #  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
+#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
 #                  Authors.
 #  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
 #             Lambda Foundry, Inc. and PyData Development Team.
@@ -52,10 +52,10 @@ import numpy as np
 from pathlib import Path
 import re
 import logging
+import json
+import sys
 from juneberry.filesystem import ModelManager
 # from config.training_output import TrainingOutput
-
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -217,14 +217,16 @@ def show_list(rhs, indent=0) -> None:
                 show_type(rhs[i], indent + 4)
 
 
-def get_dictionary(file, field):
+def get_dictionary(file_path, field):
     dictionary = {}
-    if file.exists():
-        json_config = json.loads(file)
+    if file_path.exists():
+        file = open(file_path,)
+        json_config = json.load(file)
         if field in json_config:
             stanza = json_config[field]
-            for k, v in stanza:
+            for k, v in stanza.items():
                 dictionary[int(k)] = v
+        file.close()
     return dictionary
 
 
@@ -242,7 +244,6 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
     # Check the output.json file
     if model_manager.get_training_out_file():
         if model_manager.get_training_out_file().exists:
-            # TODO: is there an example of this?
             train_outfile = model_manager.get_training_out_file()
             label_names = get_dictionary(train_outfile, "label_names")
             if label_names and show_source:
@@ -254,33 +255,60 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
     if model_config:
         label_names = get_dictionary(model_config, "label_names")
         if label_names and show_source:
-            return label_names, "model config"
+            return label_names, "model config 1"
         elif label_names:
             return label_names
 
     if model_manager.get_model_config().exists():
         label_names = get_dictionary(model_manager.get_model_config(), "label_names")
         if label_names and show_source:
-            return label_names, "model config"
+            return label_names, "model config 2"
         elif label_names:
             return label_names
 
-    # TODO: is there a way to access train and eval datasets given the model manager?
+    # TODO: is there a better way to access train and eval datasets when the user doesn't provide them?
     # Check the training dataset
     if train_config:
         label_names = get_dictionary(train_config, "label_names")
         if label_names and show_source:
-            return label_names, "training config"
+            return label_names, "training config 1"
         elif label_names:
             return label_names
+
+    if model_manager.get_model_config().exists():
+        model_config_path = open(model_manager.get_model_config())
+        model_config_file = json.load(model_config_path)
+        if "training_dataset_config_path" in model_config_file:
+            training_config = Path(model_config_file["training_dataset_config_path"])
+            label_names = get_dictionary(training_config, "label_names")
+            if label_names and show_source:
+                return label_names, "training config 2"
+            elif label_names:
+                return label_names
 
     # Check the eval dataset
     if eval_config:
         label_names = get_dictionary(eval_config, "label_names")
         if label_names and show_source:
-            return label_names, "eval config"
+            return label_names, "eval config 1"
         elif label_names:
             return label_names
+
+    if model_manager.get_model_config().exists():
+        model_config_path = open(model_manager.get_model_config())
+        model_config_file = json.load(model_config_path)
+        if "validation" in model_config_file:
+            validation_stanza = model_config_file["validation"]
+            if "algorithm" in validation_stanza:
+                if "from_file" == validation_stanza["algorithm"]:
+                    if "arguments" in validation_stanza:
+                        if "file_path" in validation_stanza["arguments"]:
+                            eval_config = Path(validation_stanza["file_path"])
+                            label_names = get_dictionary(training_config, "label_names")
+                            if label_names and show_source:
+                                return label_names, "training config 2"
+                            elif label_names:
+                                return label_names
 
     else:
         logger.error("No label names found.")

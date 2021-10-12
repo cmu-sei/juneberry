@@ -104,36 +104,54 @@ def test_snake_case():
     assert key_map == new_map
 
 
-def setup_files():
-    model_name = "tabular_binary_sample"
-    expected_labels = {0: "outer", 1: "inner"}
-    model_manager = ModelManager(model_name)
-    model_config = model_manager.get_model_config()
-    train_config = ""
-    eval_config = ""
-
-    return expected_labels, model_manager, model_config, train_config, eval_config
-
-
 def test_get_label_mapping():
-    # Set up files for test
-    expected_labels, model_manager, model_config, train_config, eval_config = setup_files()
+    # Binary sample
+    model_name_bin = "tabular_binary_sample"
+    expected_labels_bin = {0: "outer", 1: "inner"}
+    model_manager_bin = ModelManager(model_name_bin)
+    model_config_bin = model_manager_bin.get_model_config()
+    train_config_bin = "models/tabular_binary_sample/train_data_config.json"
 
     # Output.json
-    source = "output"
-    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, show_source=True)
+    source = "training config 2"
+    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, show_source=True)
 
     # Model config
-    source = "model config"
-    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, model_config=model_config,
+    source = "training config 2"
+    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, model_config=model_config_bin,
                                                                  show_source=True)
 
     # Training config
-    source = "training config"
-    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, train_config=train_config,
+    source = "training config 1"
+    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, train_config=train_config_bin,
                                                                  show_source=True)
 
+    # Multiclass sample
+    model_name_multi = "tabular_multiclass_sample"
+    model_manager_multi = ModelManager(model_name_multi)
+    model_config_multi = model_manager_multi.get_model_config()
+    expected_labels_multi = {0: "label_0", 1: "label_1", 2: "label_2"}
+    train_config_multi = "models/tabular_multiclass_sample/train_data_config.json"
+    eval_config_multi = "models/tabular_multiclass_sample/val_data_config.json"
+
+    # Output.json
+    source = "training config 2"
+    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, show_source=True)
+
+    # Model config
+    source = "training config 2"
+    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, model_config=model_config_multi,
+                                                                   show_source=True)
+
+    # Training config
+    source = "training config 1"
+    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, train_config=train_config_multi,
+                                                                   show_source=True)
+
     # Eval config
-    source = "eval config"
-    assert expected_labels, source == jb_utils.get_label_mapping(model_manager, eval_config=eval_config,
-                                                                 show_source=True)
+    source = "eval config 1"
+    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, train_config=eval_config_multi,
+                                                                   show_source=True)
+
+
+test_get_label_mapping()
