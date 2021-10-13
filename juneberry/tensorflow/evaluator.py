@@ -65,6 +65,7 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         logger.info(f"Setting random seed: {self.model_config.seed}")
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
+        tf.random.set_seed(self.model_config.seed)
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")

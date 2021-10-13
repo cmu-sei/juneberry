@@ -122,6 +122,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # Set the seeds
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
+        tf.random.set_seed(self.model_config.seed)
 
         # Setup the data loaders
         self.setup_datasets()
