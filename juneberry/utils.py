@@ -304,9 +304,9 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
                     if "arguments" in validation_stanza:
                         if "file_path" in validation_stanza["arguments"]:
                             eval_config = Path(validation_stanza["file_path"])
-                            label_names = get_dictionary(training_config, "label_names")
+                            label_names = get_dictionary(eval_config, "label_names")
                             if label_names and show_source:
-                                return label_names, "training config 2"
+                                return label_names, "eval config 2"
                             elif label_names:
                                 return label_names
 

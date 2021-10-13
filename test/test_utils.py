@@ -149,8 +149,8 @@ def test_get_label_mapping():
                                                                    show_source=True)
 
     # Eval config
-    source = "eval config 1"
-    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, train_config=eval_config_multi,
+    source = "training config 2"
+    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, eval_config=eval_config_multi,
                                                                    show_source=True)
 
 
