@@ -91,6 +91,7 @@ class TensorFlowData(Prodict):
     name: str
     load_args: Prodict
 
+
 class TorchvisionData(Prodict):
     fqcn: str
     root: str

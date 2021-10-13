@@ -24,6 +24,7 @@
 
 import tensorflow as tf
 
+
 class EvalEpsilonCallback(tf.keras.callbacks.Callback):
     def __init__(self, model, eval_epsilon, start_at_epoch=0):
         self._model = model
@@ -44,4 +45,3 @@ class EvalEpsilonCallback(tf.keras.callbacks.Callback):
     def on_test_end(self, logs=None):
         if self._do_change:
             self._model.layers[-1].epsilon = self._last_epsilon
-

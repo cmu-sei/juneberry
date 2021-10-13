@@ -135,7 +135,6 @@ class RuleMaker:
                         'filename': eval_dir_mgr.get_predictions_path(),
                         'id': cmd_id,
                         'model': model.name
-
                     }
 
                     if test.filters:
@@ -305,7 +304,8 @@ class RuleMaker:
             workflow = self.builder.get_workflow("main")
             workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
-    def format_arg(self, arg: str, model_mgr: ModelManager, dataset_path: str, filter_tag: str):
+    @staticmethod
+    def format_arg(arg: str, model_mgr: ModelManager, dataset_path: str, filter_tag: str):
         # This is basically just a glorified format string
         replace_map = {
             'model_name': Path(model_mgr.model_name),

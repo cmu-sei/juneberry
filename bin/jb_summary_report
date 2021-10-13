@@ -54,7 +54,7 @@ def determine_shared_metric(prediction_file_list: list) -> str:
     for prediction_file in prediction_file_list:
         eval_data = EvaluationOutput.load(prediction_file)
 
-        # Identify the metrics.  In the case of the classification metrics both may be there
+        # Identify the metrics.  In the case of the classification metrics, both may be there
         # so we need to count them.
         found = False
         if eval_data.results.metrics.accuracy is not None:
@@ -69,20 +69,19 @@ def determine_shared_metric(prediction_file_list: list) -> str:
         if not found:
             counts['None'].append(prediction_file)
 
-    # If we have some that we didn't identify, then show the files and bail
+    # If we have some that we didn't identify, then show the files and bail.
     if len(counts['None']) > 0:
-        logger.error(f"Found prediction files without known metrics: {counts['None']}. EXITING")
+        logger.error(f"Found prediction files without known metrics: {counts['None']}. EXITING.")
         sys.exit(-1)
 
     # If we have Classification AND OD metrics at the same time, they are not comparable. Bail.
-    if (len(counts['ACc']) > 0 or len(counts['BalAcc']) > 0) and \
-            len(counts['mAP']) > 0:
+    if (len(counts['Acc']) > 0 or len(counts['BalAcc']) > 0) and len(counts['mAP']) > 0:
         logger.error(f"Found a mixture of classification and object detection metrics in the prediction files. "
                      f"Classification files={counts['Acc']} or {counts['BalAcc']}, "
-                     f"object detection files={counts['mAP']}. EXITING")
+                     f"object detection files={counts['mAP']}. EXITING.")
         sys.exit(-1)
 
-    # If we have mAP use that, else figure out which classification is larger and use it
+    # If we have mAP use that, else figure out which classification is larger and use it.
     if len(counts['mAP']):
         metric = "mAP"
     elif len(counts['BalAcc']) > len(counts['Acc']):
@@ -92,7 +91,7 @@ def determine_shared_metric(prediction_file_list: list) -> str:
         assert len(counts['Acc']) == len(prediction_file_list)
         metric = "Accuracy"
 
-    # If each prediction file contains the same type of metric, then the set of the metrics list should be 1. If it's
+    # If each prediction file contains the same type of metric, that metric must be the shared metric.
     logging.info(f"Building a report to summarize {metric}.")
 
     return metric

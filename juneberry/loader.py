@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def add_optional_args(kwargs: dict, optional_kwargs: dict, method) -> None:
     """
-    Adds arguments from optional_kwargs to kwargs if they exist in the method signature
+    Adds arguments from optional_kwargs to kwargs if they exist in the method signature.
     :param kwargs: The kwargs
     :param optional_kwargs: The optional_kwargs to search
     :param method: The method

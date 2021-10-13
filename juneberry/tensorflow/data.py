@@ -24,13 +24,11 @@
 
 from functools import partial
 import logging
+import numpy as np
 from pathlib import Path
+from PIL import Image
 import random
 import sys
-
-import numpy as np
-
-from PIL import Image
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -65,7 +63,7 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
         self.transforms = transforms
         self.shape_hwc = shape_hwc
 
-        # This give us floor, so we lose some of the last entries.  We could implement an oversample
+        # This give us floor, so we lose some of the last entries.  We could implement an oversample.
         self.len = len(self.data_list) // self.batch_size
 
     def __len__(self):
@@ -80,13 +78,13 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
             images.append(self._load_image(i))
             labels.append(self.data_list[i][1])
 
-        # REMEMBER Tensorflow is all HWC
+        # REMEMBER TensorFlow is all HWC
         np_images = np.array(images).reshape(-1, self.shape_hwc.height, self.shape_hwc.width, self.shape_hwc.channels)
         np_labels = np.array(labels)
         return np_images, np_labels
 
     def on_epoch_end(self):
-        # TODO: We want the random seed to be different every epoch
+        # TODO: We want the random seed to be different every epoch.
         #       We need to check to see what is going on with the random numbers here...
         pass
 
@@ -107,7 +105,7 @@ def construct_image_datasets(model_config: ModelConfig, train_list, val_list):
         model_config.batch_size,
         transform_manager,
         shape_hwc)
-    logger.info(f"Constructed training dataset with {len(train_ds)} items")
+    logger.info(f"Constructed training dataset with {len(train_ds)} items.")
 
     transform_manager = TransformManager(model_config.evaluation_transforms)
     val_ds = TFImageDataSequence(
@@ -115,7 +113,7 @@ def construct_image_datasets(model_config: ModelConfig, train_list, val_list):
         model_config.batch_size,
         transform_manager,
         shape_hwc)
-    logger.info(f"Constructed validation dataset with {len(val_ds)} items")
+    logger.info(f"Constructed validation dataset with {len(val_ds)} items.")
 
     tmp_data, tmp_labels = train_ds[0]
     logger.info(f"Train: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
@@ -126,10 +124,10 @@ def construct_image_datasets(model_config: ModelConfig, train_list, val_list):
 
 
 def call_transforms_numpy(np_image, transforms):
-    # Convert to image, apply transforms and convert back
+    # Convert to image, apply transforms, and convert back.
     # print(f"+++++++++ type={type(np_image)} shape={np_image.shape}")
     # PIL doesn't like grayscale things to have 3 dimensions, so we have
-    # to flatten in, and add it back out.
+    # to flatten it, and add it back out.
     shape = np_image.shape
     if shape[2] == 1:
         np_image = np_image.reshape(shape[0], shape[1])
@@ -151,18 +149,18 @@ def load_tf_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     tf_stanza = ds_config.tensorflow_data
 
     # Based on the validation split we will either use the native random fraction
-    # or combine the sets and then split
+    # or combine the sets and then split.
 
     val_stanza = model_config.validation
 
-    # We always need supervised so we get a tuple insted of dict as the transform (map) is
+    # We always need supervised so we get a tuple instead of dict as the transform (map) is
     # designed to get the tuple not a dict.
     load_args = {}
     if tf_stanza.load_args is not None:
         load_args = {}
     load_args['as_supervised'] = True
 
-    # Customer args based on algorithm
+    # Custom args based on algorithm.
     if val_stanza.algorithm == "tensorflow":
         if 'split' not in load_args:
             load_args['split'] = ["train", "test"]
@@ -173,17 +171,17 @@ def load_tf_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
         load_args['split'] = [train_str, test_str]
     else:
         logger.error(f"TensorFlow does not support the '{val_stanza.algorithm}' validation split algorithm. "
-                     "Please use 'random_fraction' or 'tensorflow'. EXITING")
+                     "Please use 'random_fraction' or 'tensorflow'. EXITING.")
         sys.exit(-1)
 
     # Now load it
     train_ds, val_ds = tfds.load(tf_stanza.name, **load_args)
 
     # TODO: Turn on shuffling
-    # If they have specified a shuffle size, then add that
+    # If they have specified a shuffle size, then add that.
     # train_ds = train_ds.shuffle(shuffle_buffer_size, seed)
 
-    # TRANSFORMS - THIS IS BEFORE batching! So one element each
+    # TRANSFORMS - THIS IS BEFORE batching! So one element each.
     # Map each element with our transform
     transforms = TransformManager(model_config.training_transforms)
     train_ds = train_ds.map(lambda x, y: (transform_image(x, transforms), y))
@@ -198,7 +196,7 @@ def load_tf_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     return train_ds, val_ds
 
 
-def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, model_manager:ModelManager):
+def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, model_manager: ModelManager):
     if ds_config.data_type == "image":
         train_list, val_list = jb_data.dataspec_to_manifests(
             lab,
@@ -213,26 +211,23 @@ def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig,
         # Now make the loaders
         return construct_image_datasets(model_config, train_list, val_list)
     elif ds_config.data_type == "tabular":
-        logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING")
+        logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)
     elif ds_config.data_type == "tensorflow":
         return load_tf_dataset(ds_config, model_config)
     elif ds_config.data_type == "torchvision":
-        logger.error("Torchvision datasets cannot be used with tensorflow. EXITING")
+        logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
 
 
-
-
-
-def save_sample_images(tf_ds, image_dir, label_map:dict=None, max_images:int=5):
-    # Reset the random seed so we get different images each dry run
+def save_sample_images(tf_ds, image_dir, label_map: dict = None, max_images: int = 5):
+    # Reset the random seed so we get different images each dry run.
     random.seed()
 
-    # Walk through the loader batches, sampling one from each
+    # Walk through the loader batches, sampling one from each.
     idx = 0
     for images, labels in iter(tf_ds):
-        # Only put out the number they asked for
+        # Only put out the number they asked for.
         if idx >= max_images:
             return
 
@@ -241,7 +236,7 @@ def save_sample_images(tf_ds, image_dir, label_map:dict=None, max_images:int=5):
         if isinstance(labels, tf.Tensor):
             labels = labels.numpy()
 
-        # Get a random item from the batch and save it. Note, we need to make sure it is uint8
+        # Get a random item from the batch and save it. Note, we need to make sure it is uint8.
         rand_idx = random.randrange(0, len(images))
         np_image = images[rand_idx]
         np_image = np_image.astype(np.uint8)

@@ -50,7 +50,7 @@ configuration file as part of the input.
     },
     "tensorflow_data": {
         "name": <The name of the tensorflow dataset, e.g. 'mnist'>,
-        "load_kwargs": <OPTIONAL: kwards to pass to load function>,
+        "load_kwargs": <OPTIONAL: kwargs to pass to the load function>,
     }
     "timestamp": <OPTIONAL last modified - isoformat() with 0 microseconds>
     "torchvision_data": {
@@ -199,19 +199,19 @@ For **random_quantity**:
 
 ## tensorflow_data
 
-This section is used for TensorFlow based data sets such as are loaded by tensorflow-data package.
+This section is used for TensorFlow based datasets, such as the ones loaded by the tensorflow-data package.
 See (https://www.tensorflow.org/datasets) for details.
 
 ### name
 
-The string name of the tensorflow dataset such as "mnist".
+The string name of the TensorFlow dataset, e.g. "mnist".
 
 ### load_kwargs
 
-Additionaly keyword args to be passed into the dataset during load. The "as_supervised=True" will
-automatically be added by juneberry to set the dataset format properly for the training. The split 
+Additional keyword args to be passed into the dataset during load. Juneberry will automatically add 
+the "as_supervised=True" to set the dataset format properly for the training. The split 
 is usually set by Juneberry based on the "validation" stanza in the model config. However, if the
-validation split is set to "tensorflow" then any split in the keyword args is honored otherwise
+validation split is set to "tensorflow", then any split in the keyword args is honored otherwise
 the splits are set to the default "train" and "test."
 
 ## timestamp

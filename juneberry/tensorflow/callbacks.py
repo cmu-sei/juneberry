@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class BatchLossCallback(tf.keras.callbacks.Callback):
     """
     This class logs the loss at each batch during training to the logger and to train_out.json.
-    Primarily we use this for documentinf and collecting epoch data and for generating other
+    Primarily we use this for documenting and collecting epoch data and for generating other
     diagnostics and statistics.
     """
 
@@ -85,7 +85,7 @@ class TimingCallback(tf.keras.callbacks.Callback):
         self.epoch_start_time = datetime.datetime.now()
 
     def on_epoch_end(self, epoch, logs=None):
-        # Get the time right after training so we can track training time
+        # Get the time right after training so we can track training time.
         report_time = datetime.datetime.now()
 
         train_elapsed = round((report_time - self.epoch_start_time).total_seconds(), 3)
@@ -130,28 +130,28 @@ class TrainingMetricsCallback(tf.keras.callbacks.Callback):
         self.val_key = val_key
 
     def on_epoch_begin(self, epoch, logs=None):
-        # Save weights and norm to calculate ratio of weight updates at end of epoch
+        # Save weights and norm to calculate ratio of weight updates at end of epoch.
         weights = np.concatenate([layer_weights.ravel() for layer_weights in self.model.get_weights()]).ravel()
         self.norm_before = np.linalg.norm(weights)
         self.weights_before = weights
 
     def on_epoch_end(self, epoch, logs=None):
         if self.train_key not in logs:
-            logger.error(f"TrainingMetricsCallback: Logs do not container TRAIN key '{self.train_key}'. "
+            logger.error(f"TrainingMetricsCallback: Logs do not contain TRAIN key '{self.train_key}'. "
                          f"Options: {logs.keys()}. EXITING")
             sys.exit(-1)
         if self.train_key not in logs:
-            logger.error(f"TrainingMetricsCallback: Logs do not container VAL key '{self.train_key}'. "
+            logger.error(f"TrainingMetricsCallback: Logs do not contain VAL key '{self.train_key}'. "
                          f"Options: {logs.keys()}. EXITING")
             sys.exit(-1)
 
-        # Use saved weights and updated weights to calculate ratio of weight updates
+        # Use saved weights and updated weights to calculate ratio of weight updates.
         weights = np.concatenate([layer_weights.ravel() for layer_weights in self.model.get_weights()]).ravel()
         diff = weights - self.weights_before
         self.ratio = np.linalg.norm(diff) / self.norm_before  # should be close to 1e-3 for good LR
         logger.info(f"Weight Update Ratio: {self.ratio}")
 
-        # Calculate the train and val errors and append them to the lists
+        # Calculate the train and val errors and append them to the lists.
         self.train_error.append(1 - logs[self.train_key])
         self.val_error.append(1 - logs[self.val_key])
 

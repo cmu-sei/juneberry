@@ -24,6 +24,7 @@
 
 import tensorflow as tf
 
+
 class ContinuousExponentialLrScheduler(tf.keras.callbacks.LearningRateScheduler):
     def __init__(self, schedule_string, duration):
         if schedule_string == 'fixed':
@@ -49,6 +50,7 @@ class ContinuousExponentialLrScheduler(tf.keras.callbacks.LearningRateScheduler)
                 schedule_string.endswith('_times')):
             times = int(schedule_string.split('half_')[1].split('_times')[0])
             period = duration // times
+
             def scheduler(epoch, lr):
                 if epoch % period == period - 1:
                     return lr / 2.
@@ -57,4 +59,3 @@ class ContinuousExponentialLrScheduler(tf.keras.callbacks.LearningRateScheduler)
         else:
             raise ValueError(f'unrecognized schedule string: {schedule_string}')
         super().__init__(scheduler, verbose=1)
-

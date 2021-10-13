@@ -279,7 +279,7 @@ class ModelManager:
         return self.model_dir_path / 'model.pt'
 
     def get_tensorflow_model_path(self):
-        """ :return: The path to a pytorch-compatible model file. """
+        """ :return: The path to a tensorflow-compatible model file. """
         return self.model_dir_path / 'model.h5'
 
     def get_pytorch_model_summary_path(self):
@@ -433,7 +433,7 @@ class ModelManager:
                  self.get_train_root_dir()]
 
         # Everyone but tensorflow has an output plot...
-        if not self.model_platform in ['tensorflow']:
+        if self.model_platform not in ['tensorflow']:
             files.append(self.get_training_summary_plot())
 
         if self.model_platform in ['detectron2', 'mmdetection']:

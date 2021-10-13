@@ -36,7 +36,6 @@ It provides the following features:
 """
 
 import datetime
-import json
 import logging
 
 from juneberry.config.dataset import DatasetConfig
@@ -187,23 +186,23 @@ class Trainer:
         model_config = self.model_config
         dataset_config = self.dataset_config
 
-        # Add all the times
+        # Add all the times.
         # TODO Switch to use the new training_output script
         self.results['times']['start_ime'] = self.train_start_time.isoformat()
         self.results['times']['end_time'] = end_time.isoformat()
         self.results['times']['duration'] = duration.total_seconds()
 
-        # Copy in relevant parts of our training options
+        # Copy in relevant parts of our training options.
         self.results['options']['training_dataset_config_path'] = str(model_config.training_dataset_config_path)
         self.results['options']['model_architecture'] = model_config.model_architecture
         self.results['options']['epochs'] = model_config.epochs
         self.results['options']['batch_size'] = model_config.batch_size
         self.results['options']['seed'] = model_config.seed
 
-        # This couples us to one dataset
+        # This couples us to one dataset.
         self.results['options']['data_type'] = dataset_config.data_type
 
-        # This should move into the training options
+        # This should move into the training options.
         self.results['results']['model_name'] = self.model_manager.model_name
 
         self.results['format_version'] = TrainingOutput.FORMAT_VERSION

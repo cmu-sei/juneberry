@@ -181,5 +181,3 @@ class EvaluationOutputBuilder:
 
         # Save the metrics content to file.
         metrics.save(data_path)
-
-

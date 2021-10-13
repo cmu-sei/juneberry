@@ -51,7 +51,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
                  log_level):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
-        # Grab these out of the model architecture for convenience
+        # Grab these out of the model architecture for convenience.
         self.width = self.model_config.model_architecture.args['img_width']
         self.height = self.model_config.model_architecture.args['img_height']
         self.channels = self.model_config.model_architecture.args['channels']
@@ -59,31 +59,31 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         self.train_ds = None
         self.val_ds = None
 
-        # Tensorflow uses callbacks to do things like change learning rate, etc.
+        # TensorFlow uses callbacks to do things like change learning rate, etc.
         self.callbacks = []
 
-        # The model we are going to fit
+        # The model we are going to fit.
         self.model = None
 
-        # The learning rate is the current one, the schedule changes it
+        # The learning rate is the current one, the schedule changes it.
         self.lr_schedule = None
 
-        # The loss function
+        # The loss function.
         self.loss_fn = None
         self.show_batch_loss = False
         self.bl_callback = None
 
-        # The metrics to use
+        # The metrics to use.
         self.metrics = None
 
-        # The optimizer to use
+        # The optimizer to use.
         self.optimizer = None
 
-        # Should we set tensorflow to be verbose
-        # 0 no progress bars, 1 progress bars - 1 is for live console
+        # Should we set TensorFlow to be verbose?
+        # 0 no progress bars, 1 progress bars (in live console)
         self.verbose = 1
 
-        # The values generated during train
+        # The values generated during train.
         self.history = None
 
     # ==========================
@@ -94,16 +94,16 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
 
-        # Setup the data loaders like normal
+        # Setup the data loaders like normal.
         self.setup_datasets()
 
-        # Dump some images
+        # Dump some images.
         path = Path(self.model_manager.get_dryrun_imgs_dir())
         path.mkdir(exist_ok=True)
         tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(),
                                    self.dataset_config.retrieve_label_names())
 
-        # Setup the model and dump the summary
+        # Setup the model and dump the summary.
         self.setup_model()
 
         # TODO: Change "get_pytorch_model_summary_path"
@@ -124,7 +124,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         np.random.seed(self.model_config.seed)
         tf.random.set_seed(self.model_config.seed)
 
-        # Setup the data loaders
+        # Setup the data loaders.
         self.setup_datasets()
 
         # Build the model architecture, optimizers, learning rate, etc.
@@ -147,7 +147,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             epochs=self.model_config.epochs,
             validation_split=None,
             validation_data=self.val_ds,
-            validation_freq=1,  # Validate each epoch.  We could be explicit e.g. [1,2,10]
+            validation_freq=1,  # Validate each epoch. We could be explicit e.g. [1,2,10]
             shuffle=False,
             callbacks=self.callbacks,
             # max_queue_size                    # TODO: Should we set this?
@@ -161,7 +161,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         self._finalize_results_prep()
         history = self.history.history
 
-        # TODO: Find a better way to do this. TF Callbacks don't have an output option
+        # TODO: Find a better way to do this. TF Callbacks don't have an output option.
         for item in self.callbacks:
             if isinstance(item, juneberry.tensorflow.callbacks.TrainingMetricsCallback):
                 history['train_error'] = item.train_error
@@ -181,15 +181,15 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         """
         This allows the particular backend to use its own method of determining resource
         availability.
-        :param required: The number of required gpus. 'None' will use the maximum available.
-        :return: The number of gpus the trainer can use.
+        :param required: The number of required GPUs. 'None' will use the maximum available.
+        :return: The number of GPUs the trainer can use.
         """
         return 0
 
     def train_distributed(self, num_gpus) -> None:
         """
-        Executes the training of the model in a distributed fashion.
-        :param num_gpus: The number of gpus to use for training.
+        Trains the model in a distributed fashion.
+        :param num_gpus: The number of GPUs to use for training.
         :return: None
         """
         logger.warning("train_distributed() not implemented in the base Trainer.")
@@ -207,54 +207,52 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         self.results['num_validation_images'] = len(self.val_ds) * self.model_config.batch_size
 
     def setup_model(self) -> None:
-        # Construct the basic model from the model architecture
+        # Construct the basic model from the model architecture.
         self.construct_model()
 
-        # First, construct learning rate
+        # First, construct learning rate.
         self.make_learning_rate()
 
-        # Now make the loss function
+        # Now make the loss function.
         self.make_loss_function()
 
-        # We can now make the optimizer with the loss and initial learning rate
+        # We can now make the optimizer with the loss and initial learning rate.
         self.make_optimizer()
 
-        # Make the metrics to feed into the compiler
+        # Make the metrics to feed into the compiler.
         self.make_metrics()
 
-        # Now that we have all the parts, compile it all together
+        # Now that we have all the parts, compile it all together.
         self.compile_model()
 
     def construct_model(self):
-        # Construct the basic model from the model architecture
+        # Construct the basic model from the model architecture.
         args = self.model_config.model_architecture.args
         if not args:
             args = {}
         optional_kwargs = {'labels': self.dataset_config.label_names}
         jb_data.check_num_classes(args, self.dataset_config.num_model_classes)
-        self.model = jb_loader.invoke_call_function_on_class(
-            self.model_config.model_architecture.module,
-            args,
-            optional_kwargs)
+        self.model = jb_loader.invoke_call_function_on_class(self.model_config.model_architecture.module, args,
+                                                             optional_kwargs)
 
     def make_learning_rate(self):
         tf_options = self.model_config.tensorflow
         if tf_options.lr_schedule_fn:
-            # Construct the scheduler, add it to callbacks and set the initial learning rate
+            # Construct the scheduler, add it to callbacks, and set the initial learning rate.
             fn = tf_options.lr_schedule_fn
             args = tf_options.lr_schedule_args
             logger.info(f"Instantiating lr_schedule '{fn}' with args: {args}")
             self.lr_schedule = jb_loader.construct_instance(fn, args)
 
     def make_loss_function(self):
-        # Construct a loss function
+        # Construct a loss function.
         tf_options = self.model_config.tensorflow
         fn = tf_options.loss_fn
         args = tf_options.loss_args
         logger.info(f"Instantiating loss_fn '{fn}' with args: {args}")
         self.loss_fn = jb_loader.construct_instance(fn, args)
 
-        # Establish Batch Loss Callback
+        # Establish Batch Loss Callback.
         if self.show_batch_loss:
             logger.info("Adding batch loss callback")
             self.bl_callback = tf_callbacks.BatchLossCallback()
@@ -267,7 +265,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         if not args:
             args = {}
 
-        # If we have constructed a learning rate schedule, pass it in
+        # If we have constructed a learning rate schedule, pass it in.
         if self.lr_schedule:
             args['learning_rate'] = self.lr_schedule
         logger.info(f"Instantiating optimizer '{tf_options.optimizer_fn}' with args: {tf_options.optimizer_args}")
@@ -278,7 +276,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             self.metrics = ['accuracy']
             return
 
-        # Let's walk through the metrics in the list and build them
+        # Let's walk through the metrics in the list and build them.
         self.metrics = []
         for item in self.model_config.tensorflow.metrics:
             if isinstance(item, str):
@@ -286,26 +284,23 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             elif isinstance(item, dict) and len(item) == 2:
                 self.metrics.append(jb_loader.construct_instance(item['fqcn'], item['kwargs']))
             else:
-                logger.error("Unknown metric {item}. Should be string or pair of FQCN and args.EXITING.")
+                logger.error(f"Unknown metric {item}. Should be string or pair of FQCN and args. EXITING.")
+                sys.exit(-1)
 
     def compile_model(self):
         logging.info("Compiling the model")
         if self.loss_fn is None or self.optimizer is None:
-            logger.error("Cannot compile a model without an optimizer and loss function.")
+            logger.error("Cannot compile a model without an optimizer and loss function. EXITING.")
             sys.exit(-1)
 
         logger.info(f"Compiling with:")
         logger.info(f"...optimizer: {self.optimizer}")
         logger.info(f"...loss:      {self.loss_fn}")
         logger.info(f"...metrics:   {self.metrics}")
-        self.model.compile(
-            optimizer=self.optimizer,
-            loss=self.loss_fn,
-            metrics=self.metrics
-        )
+        self.model.compile(optimizer=self.optimizer, loss=self.loss_fn, metrics=self.metrics)
 
     def setup_callbacks(self):
-        # Create the training metrics callback
+        # Create the training metrics callback.
         user_callbacks = self.model_config.tensorflow.callbacks
         opt_args = {"model": self.model}
         if user_callbacks is not None:
@@ -318,7 +313,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
 def history_to_results(history, output: TrainingOutput):
     """
     Places our history into the results for final output. (Uses JSON style.)
-    :param history: A history of the training
+    :param history: A history of the training.
     :param output: Where to store the information so it can be retrieved when constructing the final output.
     """
 
@@ -338,7 +333,7 @@ def history_to_results(history, output: TrainingOutput):
     else:
         output.results.val_accuracy = history['val_accuracy']
 
-    # These will only be there if the metrics callback was added
+    # These will only be there if the metrics callback was added.
     output.results.train_error = history.get('train_error', None)
     output.results.val_error = history.get('val_error', None)
 

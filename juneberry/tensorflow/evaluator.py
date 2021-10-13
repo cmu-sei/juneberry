@@ -54,7 +54,6 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         # TODO: Should these be in the training config?
         self.shape_hwc = self.model_config.model_architecture.get_shape_hwc()
 
-
         self.eval_results = None
         self.predictions = None
 
@@ -86,12 +85,12 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         transforms = TransformManager(self.model_config.evaluation_transforms)
         self.eval_loader = TFImageDataSequence(eval_list, self.model_config.batch_size, transforms, self.shape_hwc)
 
-        # Extract all the labels for later
-        self.eval_labels = [ x[1] for x in eval_list]
+        # Extract all the labels for later.
+        self.eval_labels = [x[1] for x in eval_list]
 
     def obtain_model(self) -> None:
         hdf5_file = self.model_manager.get_tensorflow_model_path()
-        logger.info("Loading model {hdf5_file}...")
+        logger.info(f"Loading model {hdf5_file}...")
         self.model = tf.keras.models.load_model(hdf5_file)
         logger.info("...complete")
 
@@ -102,7 +101,7 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         logger.info(f"  loss={self.eval_results[0]}, accuracy={self.eval_results[1]}")
         logger.info(f"...generating predictions...")
         self.predictions = self.model.predict(self.eval_loader)
-        logger.info(f"...evaluation complete")
+        logger.info(f"...evaluation complete.")
 
     def format_evaluation(self) -> None:
         logger.info(f"Formatting raw evaluation data")
@@ -116,4 +115,3 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         self.output.results.predictions = self.predictions.tolist()
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
         self.output_builder.save_metrics(self.eval_dir_mgr.get_metrics_path())
-

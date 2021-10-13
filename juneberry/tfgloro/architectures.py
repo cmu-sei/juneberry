@@ -22,16 +22,12 @@
 #
 # ======================================================================================================================
 
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Activation, Conv2D, Dense, Flatten, Input, Model
 
 from gloro.layers import MinMax
 
 from gloro import GloroNet
+
 
 def _add_activation(z, activation_type='relu'):
     if activation_type == 'relu':
@@ -75,7 +71,7 @@ def cnn_2C2F(
     return x, y
 
 
-class GloroCNN2C2F():
+class GloroCNN2C2F:
     def __call__(self, num_classes, img_width, img_height, channels, epsilon,
                  activation='relu', initialization='orthogonal'):
         x, y = cnn_2C2F(
@@ -84,5 +80,5 @@ class GloroCNN2C2F():
             activation=activation,
             initialization=initialization)
 
-        #return Model(x, y)
+        # return Model(x, y)
         return GloroNet(x, y, epsilon=epsilon)

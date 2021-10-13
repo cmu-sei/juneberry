@@ -69,10 +69,10 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "optimizer_fn": <FQCN of an optimizer: e.g. torch.optim.SGD>,
         "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
         "lr_schedule_fn": <FQCN of a learning rate scheduler: e.g. torch.optim.lr_scheduler.MultiStepLR>,
-        "lr_schedule_args": <OPTINAL kwargs to pass when constructing lr_scheduler_fn>,
+        "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
         "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn. >
         "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
-        "accuracy_args": <OPTIONAL kwargs to be passed to the function call accuracy_fn>
+        "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>
     },
     "seed": <OPTIONAL integer seed value for controlling randomization>,
     "stopping_criteria": {
@@ -115,15 +115,15 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
 
 ## Plugin Structure
 
-There are a variety of places in Juneberry that need to import, construct and execute a custom
-python extension.  Examples: when transforming data, construct a loss function or training callbacks.
+There are a variety of places in Juneberry that need to import, construct, and execute a custom
+python extension.  Examples: when transforming data, construct a loss function, or training callbacks.
 All these uses have a similar pattern where a class is specified with a Fully 
 Qualified Class Name (FQCN) and a dictionary of keyword arguments to be passed
 in during construction.  The plugin must have a `__call__(self)` method, which is invoked 
 for each data input. Different transforms may have different parameters to `__call__`, depending on 
 their specific use case. Refer to the details or arguments when invoking each transform property.
 
-The general schema for the plugin is:
+The general schema for a plugin is:
 
 ```
 {
@@ -363,13 +363,13 @@ The same idea as the train_pipeline_stages but instead applied to the test pipel
 ## model_architecture
 The trainer will instantiate a model via code. This specifies the python class
 (model factory) to be instantiated and invoked (via `__call__`) to generate a model.
-NOTE: all arguments are passed by name, not position so the names must match.
-The `__call__` method for image data sets should take the following arguments:
+NOTE: all arguments are passed by name, not position, so the names must match.
+The `__call__` method for image datasets should take the following arguments:
 
 * img_width : width in pixels
 * img_height : height in pixels
-* channels : integer number of channels image.
-* num_classes : The number of output classes of the model
+* channels : integer number of channels in the image.
+* num_classes : The number of output classes of the model.
 
 ```
 class <MyClass>
@@ -381,7 +381,7 @@ class <MyClass>
 
 For tabular data the `__call__` method should take:
 
-* num_classes : The number of output classes of the model
+* num_classes : The number of output classes of the model.
 
 ```
 class <MyClass>
@@ -590,22 +590,22 @@ Supported values for this field are: "classification" or "objectDetection". When
 Juneberry will assume that the task is "classification".
 
 ## tensorflow
-Specific parameters for the TensorFlow usage. NOTE: Fully qualified paths for tensorflow must start with
+Specific parameters for TensorFlow usage. NOTE: Fully qualified paths for tensorflow must start with
 `tensorflow` and not `tf`.
 
 ### callbacks
-A list of callbacks to be added to the callbacks list.  Like plugins in Juneberry, these entries
-consist of a FQCN and optional kwargs to be used at construction.  The callbacks should subclass
-`tensorflow.keras.callbacks.Callback` and are called using those APIs not `__call__(self)`.
+A list of callbacks to be added to the callbacks list. Like plugins in Juneberry, these entries
+consist of a FQCN and optional kwargs to be used at construction. The callbacks should subclass
+`tensorflow.keras.callbacks.Callback` and are called using those APIs instead of `__call__(self)`.
 
 ### loss_fn
-The fully qualified name of a TensorFlow loss function such as "tensorflow.keras.losses.SparseCategoricalCrossentropy."
+The fully qualified name of a TensorFlow loss function, such as "tensorflow.keras.losses.SparseCategoricalCrossentropy."
 
 ### loss_args
 Keyword args to be provided to the loss function during construction.
 
 ### lr_schedule_fn
-A string that indicates which type of learning rate schedule function to use us such as 
+A string indicating which type of learning rate schedule function to use, such as 
 "tensorflow.keras.optimizers.schedules.ExponentialDecay".
 
 ### lr_schedule_args
@@ -615,9 +615,9 @@ Keyword args to be provided to the lr_schedule_fn function during construction.
 A list of either metric names (e.g. "accuracy") or plugins that have a FQCN and optional kwargs.
 
 ### optimizer_fn
-The name of a optimizer functions such as "tensorflow.keras.optimizers.SGD." If a learning rate scheduler is
-specified via (lr_schedule_fn) it will be constructed and supplied to the optimizer during optimizer construction
-as `learning_rate`.
+The name of an optimizer function, such as "tensorflow.keras.optimizers.SGD." If a learning rate scheduler is
+specified via (lr_schedule_fn), it will be constructed and supplied to the optimizer as `learning_rate` during 
+optimizer construction.
 
 ### optimizer_args
 Keyword args to be provided to the optimizer_fn function during construction.
@@ -650,7 +650,7 @@ This can be:
 * random_fraction - A random fraction is used to select a subset of images, with optional random seed.
 * tensorflow - Only valid for datasets of type "tensorflow". In this case the validation split uses
 the default "train" and "test" splits from tensorflow, unless `split` is explicitly specified in the
-kwargs for construction in which case it will use the specified split strings. 
+kwargs for construction, in which case it will use the specified split strings. 
 * torchvision - Only valid for datasets of type "torchvision". In this case, the validation dataset
 will be constructed using the "val_kwargs" stanza from the "torchvision_data" configuration.  The arguments
 are ignored for this.
