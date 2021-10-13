@@ -24,6 +24,9 @@
 
 import logging
 from types import SimpleNamespace
+import random
+
+import numpy as np
 
 import tensorflow as tf
 
@@ -59,7 +62,9 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         return 0
 
     def setup(self) -> None:
-        pass
+        logger.info(f"Setting random seed: {self.model_config.seed}")
+        random.seed(self.model_config.seed)
+        np.random.seed(self.model_config.seed)
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")

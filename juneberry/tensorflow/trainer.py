@@ -90,6 +90,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
 
     def dry_run(self) -> None:
         # Set the seeds
+        logger.info(f"Setting random seed: {self.model_config.seed}")
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
 
