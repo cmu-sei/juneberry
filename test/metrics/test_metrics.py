@@ -32,10 +32,13 @@
 # ======================================================================================================================
 
 import json
-import juneberry.metrics.metrics as metrics
+from pathlib import Path
+
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from pathlib import Path
+
+import juneberry.metrics.metrics as metrics
+
 
 test_data_dir = None
 det_data = None  # detections data

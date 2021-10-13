@@ -35,19 +35,21 @@
 # will no longer be necessary starting in Python 3.10
 from __future__ import annotations
 
-import brambox as bb
 import csv
 from functools import cached_property
 import json
-from juneberry.filesystem import EvalDirMgr, ModelManager
 import logging
+from pathlib import Path
+import tempfile
+from typing import Dict, List
+
+import brambox as bb
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from pandas.core.frame import DataFrame
-from pathlib import Path
-import tempfile
-from typing import Dict, List
+
+from juneberry.filesystem import EvalDirMgr, ModelManager
 
 
 logger = logging.getLogger("juneberry.metrics")

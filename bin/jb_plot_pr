@@ -47,13 +47,12 @@
 import argparse
 import logging
 from pathlib import Path
+from typing import List
 
 import juneberry.filesystem as jbfs
+from juneberry.metrics.metrics import Metrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
 import juneberry.scripting as jbscripting
 
-from juneberry.metrics.metrics import Metrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
-
-from typing import List
 
 logger = logging.getLogger("juneberry.jb_plot_pr")
 

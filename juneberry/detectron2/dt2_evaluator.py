@@ -67,9 +67,9 @@ from juneberry.evaluation.util import get_histogram
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
 
-import juneberry.metrics.metrics as metrics
 
 logger = logging.getLogger(__name__)
 
