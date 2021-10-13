@@ -44,9 +44,9 @@ import logging
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-import os
 from pandas.core.frame import DataFrame
 from pathlib import Path
+import tempfile
 from typing import Dict, List
 
 
@@ -162,11 +162,13 @@ class Metrics():
         :param iou_threshold: iou_threshold
         :return: a Metrics object
         """
-        with open("/tmp/anno_file." + str(os.getpid()), "w") as anno_file:
-            json.dump(annotations, anno_file)
+        anno_file = tempfile.NamedTemporaryFile(mode="w+")
+        json.dump(annotations, anno_file)
+        anno_file.flush()
 
-        with open("/tmp/det_file." + str(os.getpid()), "w") as det_file:
-            json.dump(detections, det_file)
+        det_file = tempfile.NamedTemporaryFile(mode="w+")
+        json.dump(detections, det_file)
+        det_file.flush()
 
         return Metrics(Path(anno_file.name),
                        Path(det_file.name),
