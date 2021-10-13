@@ -21,7 +21,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "batch_size": <The number of data samples to use per update when training or evaluating the model.>,
     "description": <OPTIONAL text description of the model in this file>,
     "detectron2": {
-        "metric_interval": <OPTIONAL; integer; logs the training metrics to console every X iterations>
+        "metric_interval": <OPTIONAL; integer; logs the training metrics to console every X iterations>,
         "overrides": [ <array of values to add to the config using merge_from_list> ]
     },
     "epochs": <The maximum number of epochs to train>,
@@ -37,20 +37,20 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "label_mapping": <OPTIONAL: A dictionary or filepath to a JSON file containing a dictionary which translates
                      the integer class numbers the model is aware of into human-readable strings.>,
     "mmdetection": {
-        "load_from": <url or file to load weights from>
+        "load_from": <url or file to load weights from>,
         "overrides": {
-            < overrides to apply to the config.  Such as "optimizer_fn.lr" or "model.roi_head.bbox_head.num_classes" >
+            <overrides to apply to the config.  Such as "optimizer_fn.lr" or "model.roi_head.bbox_head.num_classes".>
         },
         "train_pipeline_stages": [
             {
                 "name": < Name of existing stage. >,
                 "stage": { <mmdetection stanza with "type" keyword> },
-                "mode": < optional: [ before (default) | replace | after | delete ] How we insert relative to "name">,
-                "tupleize": < optional: True to convert list values in stage to tuples before adding. Default is False. >
+                "mode": <OPTIONAL: [ before (default) | replace | after | delete ] How we insert relative to "name">,
+                "tupleize": <OPTIONAL: True to convert list values in stage to tuples before adding. Default is False.>
             }
         ],
         "test_pipeline_stages": [
-            < same as train_pipeline_stages >
+            <same as train_pipeline_stages>
         ]
     }
     "model_architecture": {
@@ -70,28 +70,28 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
         "lr_schedule_fn": <FQCN of a learning rate scheduler: e.g. torch.optim.lr_scheduler.MultiStepLR>,
         "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
-        "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn. >
+        "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn.>,
         "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
         "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>
     },
     "seed": <OPTIONAL integer seed value for controlling randomization>,
     "stopping_criteria": {
-        "direction": <OPTIONAL direction of comparison.  Should be 'le' (default) or 'ge'.)
-        "history_key": <OPTONAL field to use for the comparison. The default is 'val_loss'.)
-        "plateau_count": <OPTIONAL integer of number of epochs with no change in value> ,
-        "abs_tol": <OPTIONAL floating point tolerance (epsilon) value for plateau comparison>
+        "direction": <OPTIONAL direction of comparison.  Should be 'le' (default) or 'ge'.>,
+        "history_key": <OPTONAL field to use for the comparison. The default is 'val_loss'.>,
+        "plateau_count": <OPTIONAL integer of number of epochs with no change in value>,
+        "abs_tol": <OPTIONAL floating point tolerance (epsilon) value for plateau comparison>,
         "threshold": <OPTIONAL minimum value reached>,
     },
-    "summary_info": { <OPTIONAL set of descriptive properties to use when making summary outputs.> }
+    "summary_info": { <OPTIONAL set of descriptive properties to use when making summary outputs.> },
     "task": <OPTIONAL type of task the model is compatible with
              Currently supported tasks: ["classification", "objectDetection"]>,
     "tensorflow": {
-        "callbacks": [ <array of callbacks - see below >]
+        "callbacks": [ <array of callbacks - see below>],
         "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
-        "loss_fn": <FQCN of a loss function: e.g. tensorflow.keras.losses.SparseCategoricalCrossentropy>
+        "loss_fn": <FQCN of a loss function: e.g. tensorflow.keras.losses.SparseCategoricalCrossentropy>,
         "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
         "lr_schedule_fn": <OPTIONAL FQCN of a learning rate scheduler: e.g. tensorflow.keras.optimizers.schedules.ExponentialDecay>,
-        "metrics": [ < OPTIONAL array of string names of metrics plugins.>] - Default is ["accuracy"] 
+        "metrics": [ <OPTIONAL array of string names of metrics plugins. Default is "accuracy".> ],
         "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
         "optimizer_fn": <FQCN of an optimizer: e.g. tensorflow.keras.optimizers.SGD>,
     },
@@ -659,7 +659,7 @@ are ignored for this.
 For **random_fraction**:
 ```
 {
-    "seed": <optional integer seed for the randomizer>
+    "seed": <optional integer seed for the randomizer>,
     "fraction": <decimal fraction>
 }
 ```
