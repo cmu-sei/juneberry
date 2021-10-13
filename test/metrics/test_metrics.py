@@ -77,31 +77,32 @@ def test_create_with_data():
 
 
 def test_mAP():
-    assert m.mAP == 0.3998506166406115
+    assert m.mAP == 0.23531353135313532
 
 
 def test_mAP_50():
-    assert m.mAP_50 == 0.7243703317700196
+    assert m.mAP_50 == 0.372937293729373
 
 
 def test_mAP_75():
-    assert m.mAP_75 == 0.40277922529095006
+    assert m.mAP_75 == 0.2599009900990099
 
 
 def test_mAP_small():
-    assert m.mAP_small == 0.3979255068363979
+    assert m.mAP_small == 0.2495049504950495
 
 
 def test_mAP_medium():
-    assert m.mAP_medium == 0.5516737388024516
+    assert m.mAP_medium == 0.3226072607260726
 
 
 def test_mAP_large():
-    assert m.mAP_large == 0.2415841584158416
+    assert m.mAP_large == 0.100990099009901
 
 
 def test_mAP_per_class():
-    assert m.mAP_per_class["class_1"] == 0.3998506166406115
+    assert m.mAP_per_class["class_1"] == 0.37013201320132016
+    assert m.mAP_per_class["class_2"] == 0.10049504950495049
 
 
 def test_pr():
@@ -120,16 +121,16 @@ def test_fscore():
 
 
 def test_ap():
-    assert m.ap == 0.6767836257309942
+    assert m.ap == 0.2594444444444444
 
 
 def test_pr_auc():
-    assert m.pr_auc == 0.6767251461988304
+    assert m.pr_auc == 0.2461111111111111
 
 
 def test_pc_auc():
-    assert m.pc_auc == 0.6718530701754386
+    assert m.pc_auc == 0.4143311403508772
 
 
 def test_rc_auc():
-    assert m.rc_auc == 0.6016666666666667
+    assert m.rc_auc == 0.3533333333333334
