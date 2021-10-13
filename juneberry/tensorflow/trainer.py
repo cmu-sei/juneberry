@@ -24,7 +24,10 @@
 
 import logging
 from pathlib import Path
+import random
 import sys
+
+import numpy as np
 
 import tensorflow as tf
 
@@ -86,6 +89,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     # ==========================
 
     def dry_run(self) -> None:
+        # Set the seeds
+        random.seed(self.model_config.seed)
+        np.random.seed(self.model_config.seed)
 
         # Setup the data loaders like normal
         self.setup_datasets()
@@ -112,6 +118,10 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         logger.warning("establish_loggers() not implemented in base Trainer.")
 
     def setup(self) -> None:
+        # Set the seeds
+        random.seed(self.model_config.seed)
+        np.random.seed(self.model_config.seed)
+
         # Setup the data loaders
         self.setup_datasets()
 
