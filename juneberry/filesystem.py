@@ -444,7 +444,6 @@ class ModelManager:
             files.extend(more_files)
 
         elif self.model_platform in ['tensorflow']:
-            ext = "py" if self.model_platform == Platforms.MMD else "yaml"
             more_files = [self.get_training_data_manifest_path(),
                           self.get_validation_data_manifest_path()]
             files.extend(more_files)

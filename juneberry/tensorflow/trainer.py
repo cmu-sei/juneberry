@@ -268,9 +268,8 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             args = {}
 
         # If we have constructed a learning rate schedule, pass it in
-        # if self.lr_schedule:
-        #     args['learning_rate'] = self.lr_schedule
-        args['learning_rate'] = 0.01
+        if self.lr_schedule:
+            args['learning_rate'] = self.lr_schedule
         logger.info(f"Instantiating optimizer '{tf_options.optimizer_fn}' with args: {tf_options.optimizer_args}")
         self.optimizer = jb_loader.construct_instance(tf_options.optimizer_fn, tf_options.optimizer_args)
 
