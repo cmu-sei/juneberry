@@ -37,6 +37,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 from pathlib import Path
 
+test_data_dir = None
 det_data = None  # detections data
 gt_data = None  # ground truth data
 m = None  # Metrics object
@@ -51,13 +52,15 @@ def _pytest_assert_frame_equal(frame1, frame2):
 
 
 def setup_module():
-    global det_data, gt_data, m
+    global det_data, gt_data, m, test_data_dir
 
     gt_data = None
     det_data = None
 
-    ground_truth_filename = "data/ground_truth.json"
-    detections_filename = "data/detections.json"
+    test_data_dir = Path(__file__).resolve().parent / "data"
+
+    ground_truth_filename = test_data_dir / "ground_truth.json"
+    detections_filename = test_data_dir / "detections.json"
 
     with open(ground_truth_filename, 'r') as f:
         gt_data = json.load(f)
@@ -65,8 +68,8 @@ def setup_module():
     with open(detections_filename, 'r') as f:
         det_data = json.load(f)
 
-    m = metrics.Metrics(Path(ground_truth_filename),
-                        Path(detections_filename),
+    m = metrics.Metrics(ground_truth_filename,
+                        detections_filename,
                         "test_metrics_model_name",
                         "test_metrics_det_name")
 
@@ -106,17 +109,17 @@ def test_mAP_per_class():
 
 
 def test_pr():
-    pr = pd.read_csv("data/pr.csv")
+    pr = pd.read_csv(test_data_dir / "pr.csv")
     _pytest_assert_frame_equal(pr, m.pr)
 
 
 def test_pc():
-    pc = pd.read_csv("data/pc.csv")
+    pc = pd.read_csv(test_data_dir / "pc.csv")
     _pytest_assert_frame_equal(pc, m.pc)
 
 
 def test_fscore():
-    fscore = pd.read_csv("data/fscore.csv")
+    fscore = pd.read_csv(test_data_dir / "fscore.csv")
     _pytest_assert_frame_equal(fscore, m.fscore)
 
 
