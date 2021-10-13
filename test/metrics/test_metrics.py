@@ -34,7 +34,7 @@
 import json
 import juneberry.metrics.metrics as metrics
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from pathlib import Path
 
 det_data = None  # detections data
