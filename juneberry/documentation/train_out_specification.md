@@ -18,7 +18,7 @@ PYTHONPATH.)
     "options": {
         "training_dataset_config_path": <path to data set>,
         "validation_dataset_config_path": <optional path to dataset used for validation with 'from_file' option>,
-        "model_architecture": <the model_architecture stanza from the model file>
+        "model_architecture": <the model_architecture stanza from the model file>,
         "epochs": <int>,
         "batch_size": <int>,
         "seed": <int>,
@@ -63,7 +63,7 @@ PYTHONPATH.)
         ]
     }
     "times": {
-        "start_time": <Time stamp for when the training began>,
+        "start_time": <time stamp for when the training began>,
         "end_time": <time stamp when the training ended>,
         "duration": <duration of training, in seconds>,
         "epoch_duration_sec": [
