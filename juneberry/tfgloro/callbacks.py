@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python3
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -22,53 +22,26 @@
 #
 # ======================================================================================================================
 
-import setuptools
+import tensorflow as tf
 
-install_requires = [
-    "doit",
-    "numpy",
-    "matplotlib",
-    "pillow",
-    "sklearn",
-    "tensorflow",
-    "tensorflow-datasets",
-    "tensorboard",
-    "torch",
-    "torchvision",
-    "torch-summary>=1.4.5",
-    "pandas",
-    "pycocotools",
-    "brambox",
-    "pyyaml",
-    "natsort",
-    "prodict",
-    "jsonschema",
-    "opacus",
-    "protobuf==3.16.0",
-    "onnx",
-    "onnxruntime"  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
-]
 
-bin_scripts = [
-    'bin/jb_clean_predictions',
-    'bin/jb_evaluate_data',
-    'bin/jb_experiment_to_rules',
-    'bin/jb_generate_experiments',
-    'bin/jb_gpu_runner',
-    'bin/jb_plot_pr',
-    'bin/jb_plot_roc',
-    'bin/jb_rules_to_pydoit',
-    'bin/jb_run_experiment',
-    'bin/jb_summary_report',
-    'bin/jb_train',
-]
+class EvalEpsilonCallback(tf.keras.callbacks.Callback):
+    def __init__(self, model, eval_epsilon, start_at_epoch=0):
+        self._model = model
+        self._eval_epsilon = eval_epsilon
+        self._start_epoch = start_at_epoch
+        self._last_epsilon = None
+        self._do_change = False
 
-setuptools.setup(
-    name='Juneberry',
-    version='0.5',
-    description='Juneberry Machine Learning Experiment Manager',
-    packages=setuptools.find_packages(),
-    install_requires=install_requires,
-    scripts=bin_scripts,
-    python_requires='>=3.7',
-)
+    def on_epoch_begin(self, epoch, logs=None):
+        if self._start_epoch <= epoch:
+            self._do_change = True
+
+    def on_test_begin(self, logs=None):
+        if self._do_change:
+            self._last_epsilon = self._model.layers[-1].epsilon
+            self._model.layers[-1].epsilon = self._eval_epsilon
+
+    def on_test_end(self, logs=None):
+        if self._do_change:
+            self._model.layers[-1].epsilon = self._last_epsilon

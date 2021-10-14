@@ -1,0 +1,24 @@
+{
+    "data_type": "tensorflow",
+    "description": "MNIST set using the tensorflow dataset",
+    "format_version": "0.2.0",
+    "url": "https://www.tensorflow.org/datasets/catalog/mnist",
+    "label_names": {
+        "0": "0",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8",
+        "9": "9"
+    },
+    "num_model_classes": 10,
+    "task_type": "classification",
+    "timestamp": "2021-07-01T16:30:00",
+    "tensorflow_data": {
+        "name": "mnist"
+    }
+}
