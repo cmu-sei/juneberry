@@ -251,14 +251,15 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
             elif label_names:
                 return label_names
 
-    # Check the model config file
+    # Check the model config from argument
     if model_config:
         label_names = get_label_dict(model_config)
         if label_names and show_source:
             return label_names, "model config 1"
         elif label_names:
             return label_names
-
+    
+    # Check the model config from the model directory
     if model_manager.get_model_config().exists():
         label_names = get_label_dict(model_manager.get_model_config())
         if label_names and show_source:
@@ -266,14 +267,15 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
         elif label_names:
             return label_names
 
-    # Check the training dataset
+    # Check the training dataset from argument
     if train_config:
         label_names = get_label_dict(train_config)
         if label_names and show_source:
             return label_names, "training config 1"
         elif label_names:
             return label_names
-
+    
+    # Check the training dataset specified in the model directory
     if model_manager.get_model_config().exists():
         model_config_path = open(model_manager.get_model_config())
         model_config_file = json.load(model_config_path)
@@ -285,7 +287,7 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
             elif label_names:
                 return label_names
 
-    # Check the eval dataset
+    # Check the eval dataset from argument
     if eval_config:
         label_names = get_label_dict(eval_config)
         if label_names and show_source:
