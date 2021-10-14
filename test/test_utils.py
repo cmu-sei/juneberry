@@ -112,46 +112,13 @@ def test_get_label_mapping():
     model_config_bin = model_manager_bin.get_model_config()
     train_config_bin = "models/tabular_binary_sample/train_data_config.json"
 
-    # Output.json
     source = "training config 2"
     assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, show_source=True)
 
-    # Model config
     source = "training config 2"
     assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, model_config=model_config_bin,
                                                                  show_source=True)
 
-    # Training config
     source = "training config 1"
     assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, train_config=train_config_bin,
                                                                  show_source=True)
-
-    # Multiclass sample
-    model_name_multi = "tabular_multiclass_sample"
-    model_manager_multi = ModelManager(model_name_multi)
-    model_config_multi = model_manager_multi.get_model_config()
-    expected_labels_multi = {0: "label_0", 1: "label_1", 2: "label_2"}
-    train_config_multi = "models/tabular_multiclass_sample/train_data_config.json"
-    eval_config_multi = "models/tabular_multiclass_sample/val_data_config.json"
-
-    # Output.json
-    source = "training config 2"
-    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, show_source=True)
-
-    # Model config
-    source = "training config 2"
-    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, model_config=model_config_multi,
-                                                                   show_source=True)
-
-    # Training config
-    source = "training config 1"
-    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, train_config=train_config_multi,
-                                                                   show_source=True)
-
-    # Eval config
-    source = "training config 2"
-    assert expected_labels_multi, source == jb_utils.get_label_mapping(model_manager_multi, eval_config=eval_config_multi,
-                                                                   show_source=True)
-
-
-test_get_label_mapping()

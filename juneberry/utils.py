@@ -217,13 +217,13 @@ def show_list(rhs, indent=0) -> None:
                 show_type(rhs[i], indent + 4)
 
 
-def get_dictionary(file_path, field):
+def get_label_dict(file_path):
     dictionary = {}
     if file_path.exists():
         file = open(file_path,)
         json_config = json.load(file)
-        if field in json_config:
-            stanza = json_config[field]
+        if "label_names" in json_config:
+            stanza = json_config["label_names"]
             for k, v in stanza.items():
                 dictionary[int(k)] = v
         file.close()
@@ -245,7 +245,7 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
     if model_manager.get_training_out_file():
         if model_manager.get_training_out_file().exists:
             train_outfile = model_manager.get_training_out_file()
-            label_names = get_dictionary(train_outfile, "label_names")
+            label_names = get_label_dict(train_outfile)
             if label_names and show_source:
                 return label_names, "output"
             elif label_names:
@@ -253,23 +253,22 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
 
     # Check the model config file
     if model_config:
-        label_names = get_dictionary(model_config, "label_names")
+        label_names = get_label_dict(model_config)
         if label_names and show_source:
             return label_names, "model config 1"
         elif label_names:
             return label_names
 
     if model_manager.get_model_config().exists():
-        label_names = get_dictionary(model_manager.get_model_config(), "label_names")
+        label_names = get_label_dict(model_manager.get_model_config())
         if label_names and show_source:
             return label_names, "model config 2"
         elif label_names:
             return label_names
 
-    # TODO: is there a better way to access train and eval datasets when the user doesn't provide them?
     # Check the training dataset
     if train_config:
-        label_names = get_dictionary(train_config, "label_names")
+        label_names = get_label_dict(train_config)
         if label_names and show_source:
             return label_names, "training config 1"
         elif label_names:
@@ -280,7 +279,7 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
         model_config_file = json.load(model_config_path)
         if "training_dataset_config_path" in model_config_file:
             training_config = Path(model_config_file["training_dataset_config_path"])
-            label_names = get_dictionary(training_config, "label_names")
+            label_names = get_label_dict(training_config)
             if label_names and show_source:
                 return label_names, "training config 2"
             elif label_names:
@@ -288,27 +287,11 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
 
     # Check the eval dataset
     if eval_config:
-        label_names = get_dictionary(eval_config, "label_names")
+        label_names = get_label_dict(eval_config)
         if label_names and show_source:
             return label_names, "eval config 1"
         elif label_names:
             return label_names
-
-    if model_manager.get_model_config().exists():
-        model_config_path = open(model_manager.get_model_config())
-        model_config_file = json.load(model_config_path)
-        if "validation" in model_config_file:
-            validation_stanza = model_config_file["validation"]
-            if "algorithm" in validation_stanza:
-                if "from_file" == validation_stanza["algorithm"]:
-                    if "arguments" in validation_stanza:
-                        if "file_path" in validation_stanza["arguments"]:
-                            eval_config = Path(validation_stanza["file_path"])
-                            label_names = get_dictionary(eval_config, "label_names")
-                            if label_names and show_source:
-                                return label_names, "eval config 2"
-                            elif label_names:
-                                return label_names
 
     else:
         logger.error("No label names found.")
