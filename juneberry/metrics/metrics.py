@@ -55,7 +55,7 @@ from juneberry.filesystem import EvalDirMgr, ModelManager
 logger = logging.getLogger("juneberry.metrics")
 
 
-class Metrics():
+class Metrics:
 
     @staticmethod
     def _get_class_label_map(anno_file: Path) -> List[str]:
@@ -64,7 +64,7 @@ class Metrics():
         the annotations file. The class label map is used to convert the
         values in the class_label column of the detections Dataframe from
         integers into strings.
-        :param file: The annotations file containing the class label
+        :param anno_file: The annotations file containing the class label
         information.
         :return: A List of str containing the classes for each integer label.
         """
@@ -103,7 +103,7 @@ class Metrics():
                  det_file: Path,
                  model_name: str,
                  dataset_name: str,
-                 iou_threshold: float = 0.5) -> Metrics:
+                 iou_threshold: float = 0.5) -> None:
         """
         Create a Metrics object using annotations and detections files in
         COCO JSON format.
@@ -119,10 +119,10 @@ class Metrics():
         self.iou_threshold = iou_threshold
         self.class_label_map = Metrics._get_class_label_map(anno_file)
         self.det = bb.io.load("det_coco",
-                              det_file,
+                              str(det_file),
                               class_label_map=self.class_label_map)
         self.anno = bb.io.load("anno_coco",
-                               anno_file,
+                               str(anno_file),
                                parse_image_names=False)
 
     @staticmethod
@@ -149,27 +149,27 @@ class Metrics():
                        iou_threshold)
 
     @staticmethod
-    def create_with_data(annotations: Dict,
-                         detections: Dict,
+    def create_with_data(anno: Dict,
+                         det: Dict,
                          model_name: str = "unknown model",
                          dataset_name: str = "unknown dataset",
                          iou_threshold: float = 0.5) -> Metrics:
         """
-        Create a Metrics object using dictonaries containing
+        Create a Metrics object using dictionaries containing
         annotations and detections.
-        :param annotations: annotations
-        :param detections: detections
+        :param anno: annotations
+        :param det: detections
         :param model_name: model name
         :param dataset_name: dataset name
         :param iou_threshold: iou_threshold
         :return: a Metrics object
         """
         anno_file = tempfile.NamedTemporaryFile(mode="w+")
-        json.dump(annotations, anno_file)
+        json.dump(anno, anno_file)
         anno_file.flush()
 
         det_file = tempfile.NamedTemporaryFile(mode="w+")
-        json.dump(detections, det_file)
+        json.dump(det, det_file)
         det_file.flush()
 
         return Metrics(Path(anno_file.name),
@@ -369,13 +369,13 @@ class Metrics():
         logger.info(f"Metrics have been saved to {output_file}")
 
 
-class MetricsPlot():
+class MetricsPlot:
 
     def __init__(self,
                  xlabel: str = "x",
                  ylabel: str = "y",
                  autosave: bool = True,
-                 output_file: Path = "metrics.png") -> MetricsPlot:
+                 output_file: Path = "metrics.png") -> None:
         """
         Create a MetricsPlot object.
         :param xlabel: The x-axis label for this MetricsPlot.
@@ -452,8 +452,8 @@ class MetricsPlot():
         fig.set_size_inches(w=dimension, h=dimension)
 
         # Set the range for the X and Y axes.
-        ax.set_xlim([0, 1.05])
-        ax.set_ylim([0, 1.05])
+        ax.set_xlim(0, 1.05)
+        ax.set_ylim(0, 1.05)
 
         # Move the axes up slightly to make room for a legend below the plot.
         box = ax.get_position()
@@ -487,16 +487,19 @@ class MetricsPlot():
         :param m: the Metrics object
         :return: the AUC float value
         """
-        logger.warn("Calling do-nothing superclass implementation "
-                    "of _get_auc. Implement this in your subclass.")
+        logger.warning("Calling do-nothing superclass implementation "
+                       "of _get_auc. Implement this in your subclass.")
+        return m.pr_auc
 
     # override this for a custom title
-    def _get_title(self, title_data: Dict) -> str:
+    @staticmethod
+    def _get_title(title_data: Dict) -> str:
         return f"{title_data['ylabel']}-{title_data['xlabel']} \
             Curve (IoU = {title_data['iou_threshold']})"
 
     # override this for a custom plot label
-    def _get_plot_label(self, plot_label_data: Dict) -> str:
+    @staticmethod
+    def _get_plot_label(plot_label_data: Dict) -> str:
         return f"m({plot_label_data['model_name']}) \
             d({plot_label_data['dataset_name']}) \
                 (AUC {round(plot_label_data['auc'], 3)})"
@@ -538,7 +541,7 @@ class MetricsPlot():
 class PrecisionRecallPlot(MetricsPlot):
 
     def __init__(self,
-                 output_file="pr_curve.png") -> PrecisionRecallPlot:
+                 output_file="pr_curve.png") -> None:
         """
         Create a new PrecisionRecallPlot.
         :param output_file: File to save this plot to.
@@ -555,7 +558,7 @@ class PrecisionRecallPlot(MetricsPlot):
 class PrecisionConfidencePlot(MetricsPlot):
 
     def __init__(self,
-                 output_file="pc_curve.png") -> PrecisionConfidencePlot:
+                 output_file="pc_curve.png") -> None:
         """
         Create a new PrecisionConfidencePlot.
         :param output_file: File to save this plot to.
@@ -572,7 +575,7 @@ class PrecisionConfidencePlot(MetricsPlot):
 class RecallConfidencePlot(MetricsPlot):
 
     def __init__(self,
-                 output_file="rc_curve.png") -> RecallConfidencePlot:
+                 output_file="rc_curve.png") -> None:
         """
         Create a new RecallConfidencePlot.
         :param output_file: File to save this plot to.

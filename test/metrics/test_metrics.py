@@ -40,10 +40,21 @@ from pandas.testing import assert_frame_equal
 import juneberry.metrics.metrics as metrics
 
 
-test_data_dir = None
-det_data = None  # detections data
-gt_data = None  # ground truth data
-m = None  # Metrics object
+test_data_dir = Path(__file__).resolve().parent / "data"
+
+ground_truth_filename = test_data_dir / "ground_truth.json"
+detections_filename = test_data_dir / "detections.json"
+
+with open(ground_truth_filename, 'r') as f:
+    gt_data = json.load(f)
+
+with open(detections_filename, 'r') as f:
+    det_data = json.load(f)
+
+m = metrics.Metrics(ground_truth_filename,
+                    detections_filename,
+                    "test_metrics_model_name",
+                    "test_metrics_det_name")
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
@@ -52,29 +63,6 @@ def _pytest_assert_frame_equal(frame1, frame2):
         assert True
     except AssertionError:
         assert False
-
-
-def setup_module():
-    global det_data, gt_data, m, test_data_dir
-
-    gt_data = None
-    det_data = None
-
-    test_data_dir = Path(__file__).resolve().parent / "data"
-
-    ground_truth_filename = test_data_dir / "ground_truth.json"
-    detections_filename = test_data_dir / "detections.json"
-
-    with open(ground_truth_filename, 'r') as f:
-        gt_data = json.load(f)
-
-    with open(detections_filename, 'r') as f:
-        det_data = json.load(f)
-
-    m = metrics.Metrics(ground_truth_filename,
-                        detections_filename,
-                        "test_metrics_model_name",
-                        "test_metrics_det_name")
 
 
 def test_create_with_data():

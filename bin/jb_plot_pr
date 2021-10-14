@@ -96,8 +96,6 @@ def main():
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 
     metrics: List[Metrics] = []
-    model_mgr = None
-    eval_dir_mgr = None
 
     # Create a Metrics object for each model/dataset passed in
     for idx, val in enumerate(args.model):
