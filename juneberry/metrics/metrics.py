@@ -342,12 +342,17 @@ class Metrics:
                 # the data. Loop through every class in the data. The
                 # class_label_map is used to enforce ordering of the labels.
 
+                # Work with a copy of the class label map so we don't
+                # clobber the brambox-friendly version that lives in
+                # the Metrics object.
+                clm_copy = m.class_label_map.copy()
+
                 # Brambox wanted the class_label_map to start with label 1,
                 # so restore the item at the end to its rightful place
                 # at position 0.
-                m.class_label_map.insert(0, m.class_label_map.pop())
+                clm_copy.insert(0, clm_copy.pop())
 
-                for label in m.class_label_map:
+                for label in clm_copy:
                     row.append(label)
 
                     # Add the mAP data for that label to the CSV row.
