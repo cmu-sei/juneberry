@@ -290,8 +290,8 @@ class Metrics:
         """
 
         # Write to the CSV file.
-        with open(output_file, 'w', newline='') as output_file:
-            writer = csv.writer(output_file)
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.writer(f)
 
             # Header row for the CSV file.
             writer.writerow(["model",
