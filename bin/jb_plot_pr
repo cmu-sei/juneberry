@@ -73,7 +73,7 @@ def setup_args(parser) -> None:
     parser.add_argument('--iou', type=float, default=0.5,
                         help="The IoU threshold to use when determining whether to count a detection as a true "
                              "positive.")
-    parser.add_argument('--outputDir', default=None,
+    parser.add_argument('--outputDir', default=".",
                         help="Directory where figures will be saved. If this field is left unspecified, the figures "
                              "will be saved to the current working directory.")
 
@@ -116,8 +116,12 @@ def main():
     pc_plot.add_metrics_list(metrics)
     rc_plot.add_metrics_list(metrics)
 
+    pr_plot.save(Path(args.outputDir) / "pr_curve.png")
+    pc_plot.save(Path(args.outputDir) / "pc_curve.png")
+    rc_plot.save(Path(args.outputDir) / "rc_curve.png")
+
     # Export the metrics as a CSV
-    Metrics.export(metrics)
+    Metrics.export(metrics, Path(args.outputDir) / "eval_metrics.csv")
 
 
 if __name__ == "__main__":

@@ -279,12 +279,12 @@ class Metrics:
 
     @staticmethod
     def export(metrics: List[Metrics],
-               output_file: Path = "eval_metrics.csv") -> None:
+               output_file: Path = Path("eval_metrics.csv")) -> None:
         """
         This function is responsible for summarizing the metrics generated
         during the current execution of this script. There are two aspects to
         this summary: logging messages and writing the data to CSV.
-        :param output_file: The directory the CSV file will be written to.
+        :param output_file: The name of the output CSV file
         :param metrics: The list of metrics that were plotted.
         :return: Nothing.
         """
@@ -369,14 +369,11 @@ class MetricsPlot:
 
     def __init__(self,
                  xlabel: str = "x",
-                 ylabel: str = "y",
-                 autosave: bool = True,
-                 output_file: Path = "metrics.png") -> None:
+                 ylabel: str = "y") -> None:
         """
         Create a MetricsPlot object.
         :param xlabel: The x-axis label for this MetricsPlot.
         :param ylabel: The y-axis label for this MetricsPlot.
-        :param autosave: Do we save to file automatically when a Metrics
         object is added to this MetricsPlot?
         :param output_file: File this MetricsPlot is saved to.
         :return: a new MetricsPlot.
@@ -385,8 +382,6 @@ class MetricsPlot:
         self.ax.set_xlabel(xlabel)
         self.ax.set_ylabel(ylabel)
         MetricsPlot._format(self.fig, self.ax)
-        self.autosave = autosave
-        self.output_file = output_file
         # TODO why am I saving metrics? (not currently using them)
         self.metrics = []
 
@@ -513,8 +508,6 @@ class MetricsPlot:
                    self._get_auc(m),
                    m.iou_threshold,
                    self.ax)
-        if self.autosave:
-            self.save()
 
     def add_metrics_list(self,
                          ms: List[Metrics]) -> None:
@@ -526,26 +519,25 @@ class MetricsPlot:
         for m in ms:
             self.add_metrics(m)
 
-    def save(self) -> None:
+    def save(self, output_file: Path = Path("metrics.png")) -> None:
         """
         Save this metrics plot to a file.
+        :param output_file: the file to save this MetricPlot figure to
         :return: None
         """
-        self.fig.savefig(self.output_file)
+        self.fig.savefig(output_file)
 
 
 class PrecisionRecallPlot(MetricsPlot):
 
-    def __init__(self,
-                 output_file="pr_curve.png") -> None:
+    def __init__(self) -> None:
         """
         Create a new PrecisionRecallPlot.
         :param output_file: File to save this plot to.
         :return: a new PrecisionRecallPlot
         """
         super().__init__(xlabel="recall",
-                         ylabel="precision",
-                         output_file=output_file)
+                         ylabel="precision")
 
     def _get_auc(self, m: Metrics) -> float:
         return m.pr_auc
@@ -553,16 +545,14 @@ class PrecisionRecallPlot(MetricsPlot):
 
 class PrecisionConfidencePlot(MetricsPlot):
 
-    def __init__(self,
-                 output_file="pc_curve.png") -> None:
+    def __init__(self) -> None:
         """
         Create a new PrecisionConfidencePlot.
         :param output_file: File to save this plot to.
         :return: a new PrecisionConfidencePlot
         """
         super().__init__(xlabel="confidence",
-                         ylabel="precision",
-                         output_file=output_file)
+                         ylabel="precision")
 
     def _get_auc(self, m: Metrics) -> float:
         return m.pc_auc
@@ -570,16 +560,14 @@ class PrecisionConfidencePlot(MetricsPlot):
 
 class RecallConfidencePlot(MetricsPlot):
 
-    def __init__(self,
-                 output_file="rc_curve.png") -> None:
+    def __init__(self) -> None:
         """
         Create a new RecallConfidencePlot.
         :param output_file: File to save this plot to.
         :return: a new RecallConfidencePlot
         """
         super().__init__(xlabel="confidence",
-                         ylabel="recall",
-                         output_file=output_file)
+                         ylabel="recall")
 
     def _get_auc(self, m: Metrics) -> float:
         return m.rc_auc
