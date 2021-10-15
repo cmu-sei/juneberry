@@ -96,14 +96,14 @@ class Metrics:
                  dataset_name: str,
                  iou_threshold: float = 0.5) -> None:
         """
-        Create a Metrics object using annotations and detections files in
+        Initialize a Metrics object using annotations and detections files in
         COCO JSON format.
         :param anno_file: The annotations file in COCO JSON format.
         :param det_file: The detections file in COCO JSON format.
         :param model_name: The model name
         :param dataset_name: The dataset name
         :param iou_threshold: The iou threshold
-        :return: a Metrics object
+        :return: None
         """
         self.model_name = model_name
         self.dataset_name = dataset_name
@@ -286,7 +286,7 @@ class Metrics:
         this summary: logging messages and writing the data to CSV.
         :param output_file: The name of the output CSV file
         :param metrics: The list of metrics that were plotted.
-        :return: Nothing.
+        :return: None.
         """
 
         # Write to the CSV file.
@@ -371,12 +371,10 @@ class MetricsPlot:
                  xlabel: str = "x",
                  ylabel: str = "y") -> None:
         """
-        Create a MetricsPlot object.
+        Initialize a MetricsPlot object.
         :param xlabel: The x-axis label for this MetricsPlot.
         :param ylabel: The y-axis label for this MetricsPlot.
-        object is added to this MetricsPlot?
-        :param output_file: File this MetricsPlot is saved to.
-        :return: a new MetricsPlot.
+        :return: None
         """
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel(xlabel)
@@ -532,9 +530,8 @@ class PrecisionRecallPlot(MetricsPlot):
 
     def __init__(self) -> None:
         """
-        Create a new PrecisionRecallPlot.
-        :param output_file: File to save this plot to.
-        :return: a new PrecisionRecallPlot
+        Initialize a new PrecisionRecallPlot.
+        :return: None
         """
         super().__init__(xlabel="recall",
                          ylabel="precision")
@@ -547,9 +544,8 @@ class PrecisionConfidencePlot(MetricsPlot):
 
     def __init__(self) -> None:
         """
-        Create a new PrecisionConfidencePlot.
-        :param output_file: File to save this plot to.
-        :return: a new PrecisionConfidencePlot
+        Initialize a new PrecisionConfidencePlot.
+        :return: None
         """
         super().__init__(xlabel="confidence",
                          ylabel="precision")
@@ -562,9 +558,8 @@ class RecallConfidencePlot(MetricsPlot):
 
     def __init__(self) -> None:
         """
-        Create a new RecallConfidencePlot.
-        :param output_file: File to save this plot to.
-        :return: a new RecallConfidencePlot
+        Initialize a new RecallConfidencePlot.
+        :return: None
         """
         super().__init__(xlabel="confidence",
                          ylabel="recall")
