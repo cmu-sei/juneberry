@@ -286,7 +286,7 @@ class Metrics:
         this summary: logging messages and writing the data to CSV.
         :param output_file: The name of the output CSV file
         :param metrics: The list of metrics that were plotted.
-        :return: None.
+        :return: None
         """
 
         # Write to the CSV file.
@@ -379,17 +379,60 @@ class MetricsPlot:
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel(xlabel)
         self.ax.set_ylabel(ylabel)
-        MetricsPlot._format(self.fig, self.ax)
         # TODO why am I saving metrics? (not currently using them)
         self.metrics = []
+
+    def _format(self) -> None:
+        """
+        Format this MetricsPlot's figure and axes to Juneberry specifications.
+        This can be overriden for custom formatting.
+        :return: None
+        """
+        _, labels = self.ax.get_legend_handles_labels()
+        num_legend_labels = len(labels)
+
+        # The dimensions of the figure will adjust slightly depending on how
+        # many curves are in the plot. This makes it easier accommodate
+        # larger legends.
+        dimension = 7 + .1 * num_legend_labels
+
+        # Establish a fixed size for the figure.
+        self.fig.set_size_inches(w=dimension, h=dimension)
+
+        # Set the range for the X and Y axes.
+        self.ax.set_xlim(0, 1.05)
+        self.ax.set_ylim(0, 1.05)
+
+        # Move the axes up slightly to make room for a legend below the plot.
+        box = self.ax.get_position()
+
+        # This factor controls the placement of the plot and legend. It
+        # scales dynamically based on the number of curves that have been
+        # added to the figure.
+        factor = .025 * num_legend_labels
+
+        # Use the factor to adjust the position of the plot axes.
+        bottom = box.y0 + box.height * factor
+        top = box.height * (1 - factor)
+        self.ax.set_position([box.x0, bottom, box.width, top])
+
+        # The midpoint of the plot will be used to center the legend.
+        x_midpoint = (box.x0 + box.x1) / 2
+
+        # Place the legend.
+        self.ax.legend(loc="upper center",
+                       bbox_to_anchor=(x_midpoint, -.08 * (1 + factor)),
+                       fancybox=True,
+                       ncol=1,
+                       fontsize="x-small",
+                       shadow=True)
 
     def _plot(self,
               data: DataFrame,
               model_name: str,
               dataset_name: str,
               auc: float,
-              iou_threshold: float,
-              ax: Axes) -> None:
+              iou_threshold: float) -> None:
         """
         Plot a DataFrame according to the specifications for
         MetricPlot objects.
@@ -398,12 +441,11 @@ class MetricsPlot:
         :param dataset_name: the dataset name
         :param auc: the area under curve for this data
         :param iou_threshold: the iou threshold
-        :param ax: the Axes to plot on
         :return: None
         """
-        xlabel: str = ax.get_xlabel()
-        ylabel: str = ax.get_ylabel()
-        ax.set_title(self._get_title({
+        xlabel: str = self.ax.get_xlabel()
+        ylabel: str = self.ax.get_ylabel()
+        self.ax.set_title(self._get_title({
             "ylabel": ylabel,
             "xlabel": xlabel,
             "iou_threshold": iou_threshold,
@@ -416,57 +458,8 @@ class MetricsPlot:
                       "dataset_name": dataset_name,
                       "auc": auc,
                   }),
-                  ax=ax)
-
-    @staticmethod
-    def _format(fig: Figure,
-                ax: Axes) -> None:
-        """
-        Format a Figure and Axes to Juneberry specifications
-        for a MetricsPlot. This can be overriden for
-        custom formatting.
-        :param fig: a Matplotlib Figure
-        :param ax: a Matplotlib Axes
-        :return: None
-        """
-        _, labels = ax.get_legend_handles_labels()
-        num_legend_labels = len(labels)
-
-        # The dimensions of the figure will adjust slightly depending on how
-        # many curves are in the plot. This makes it easier accommodate
-        # larger legends.
-        dimension = 7 + .1 * num_legend_labels
-
-        # Establish a fixed size for the figure.
-        fig.set_size_inches(w=dimension, h=dimension)
-
-        # Set the range for the X and Y axes.
-        ax.set_xlim(0, 1.05)
-        ax.set_ylim(0, 1.05)
-
-        # Move the axes up slightly to make room for a legend below the plot.
-        box = ax.get_position()
-
-        # This factor controls the placement of the plot and legend. It
-        # scales dynamically based on the number of curves that have been
-        # added to the figure.
-        factor = .025 * num_legend_labels
-
-        # Use the factor to adjust the position of the plot axes.
-        bottom = box.y0 + box.height * factor
-        top = box.height * (1 - factor)
-        ax.set_position([box.x0, bottom, box.width, top])
-
-        # The midpoint of the plot will be used to center the legend.
-        x_midpoint = (box.x0 + box.x1) / 2
-
-        # Place the legend.
-        ax.legend(loc="upper center",
-                  bbox_to_anchor=(x_midpoint, -.08 * (1 + factor)),
-                  fancybox=True,
-                  ncol=1,
-                  fontsize="x-small",
-                  shadow=True)
+                  ax=self.ax)
+        self._format(self.fig, self.ax)
 
     # override in subclass
     def _get_auc(self, m: Metrics) -> float:
@@ -504,8 +497,7 @@ class MetricsPlot:
                    m.model_name,
                    m.dataset_name,
                    self._get_auc(m),
-                   m.iou_threshold,
-                   self.ax)
+                   m.iou_threshold)
 
     def add_metrics_list(self,
                          ms: List[Metrics]) -> None:
