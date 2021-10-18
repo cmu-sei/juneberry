@@ -277,6 +277,21 @@ class Metrics:
                            x="confidence",
                            y="recall")
 
+    def as_dict(self) -> Dict:
+        """
+        Convenience method to return interesting metrics
+        in a dictionary.
+        :return: Dict
+        """
+        return {
+            "mAP": self.mAP,
+            "mAP_50": self.mAP_50,
+            "mAP_75": self.mAP_75,
+            "mAP_s": self.mAP_small,
+            "mAP_m": self.mAP_medium,
+            "mAP_l": self.mAP_large,
+        }
+
     @staticmethod
     def export(metrics: List[Metrics],
                output_file: Path = Path("eval_metrics.csv")) -> None:

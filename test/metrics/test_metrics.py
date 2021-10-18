@@ -119,3 +119,14 @@ def test_pc_auc():
 
 def test_rc_auc():
     assert m.rc_auc == 0.3533333333333334
+
+
+def test_as_dict():
+    assert m.as_dict() == {
+        "mAP": m.mAP,
+        "mAP_50": m.mAP_50,
+        "mAP_75": m.mAP_75,
+        "mAP_s": m.mAP_small,
+        "mAP_m": m.mAP_medium,
+        "mAP_l": m.mAP_large,
+    }
