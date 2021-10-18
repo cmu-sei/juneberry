@@ -36,6 +36,7 @@ import juneberry.data as jbdata
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
+import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.utils as pyt_utils
 import juneberry.pytorch.processing as processing
 from juneberry.transform_manager import TransformManager
@@ -149,7 +150,7 @@ class Evaluator(EvaluatorBase):
                 data_transforms = TransformManager(self.model_config.evaluation_transforms)
             if self.model_config.evaluation_target_transforms:
                 target_transforms = TransformManager(self.model_config.evaluation_target_transforms)
-            val_dataset = pyt_utils.construct_torchvision_dataset(
+            val_dataset = pyt_data.construct_torchvision_dataset(
                 self.lab, tv_data.fqcn, tv_data.root, tv_data.eval_kwargs,
                 data_transforms=data_transforms,
                 target_transforms=target_transforms)
@@ -163,7 +164,8 @@ class Evaluator(EvaluatorBase):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(
+                self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -189,11 +191,10 @@ class Evaluator(EvaluatorBase):
             # The eval list is the already a list of name and targets
             self.eval_name_targets = eval_list
 
-            self.eval_loader = pyt_utils.make_data_loader(self.lab,
-                                                          self.eval_dataset_config,
-                                                          eval_list,
-                                                          self.model_config.evaluation_transforms,
-                                                          self.model_config.batch_size)
+            self.eval_loader = pyt_data.make_eval_data_loader(self.lab,
+                                                              self.eval_dataset_config,
+                                                              self.model_config,
+                                                              eval_list)
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")

@@ -249,7 +249,7 @@ class RuleMaker:
             if r.type == ReportType.PLOT_ROC:
                 command.append('-pf')
                 command.append(r.output_name)
-                inputs.append(self.experiment_manager.experiment_dir / r.output_name)
+                inputs.append(self.experiment_manager.experiment_dir_path / r.output_name)
 
             # Add PR plots to the summary file, if necessary.
             elif r.type == ReportType.PLOT_PR:
@@ -260,7 +260,7 @@ class RuleMaker:
                 for file in plot_files:
                     command.append('-pf')
                     command.append(f"{r.output_dir}/{file}")
-                    inputs.append(self.experiment_manager.experiment_dir / r.output_dir / file)
+                    inputs.append(self.experiment_manager.experiment_dir_path / r.output_dir / file)
 
             else:
                 continue

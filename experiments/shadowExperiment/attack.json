@@ -1,0 +1,59 @@
+{
+    "format_version": "0.1.0",
+    "models": {
+        "shadow": "model_tests/lfw_baselines/leinonet-5-d/",
+        "private": "model_tests/lfw_baselines/leinonet-dp-5-q/",
+        "meta": "model_tests/xor_examples/simple_mlp/",
+        "shadow_superset_quantity": 2,
+        "shadow_disjoint_quantity": 2
+    },
+    "data_configs": {
+        "training_data": "data_sets/cifar10.json",
+        "query_data": "data_sets/cifar10.json",
+        "in_out_builder": {
+            "fqcn": "juneberry.attack.meta_classifier.QueryToINOUT",
+            "kwargs": {
+                "strategy": "iid | per_model"
+            }
+        }
+    },
+    "watermarks": {
+        "training_watermarks": {
+            "fqcn": "juneberry.watermark.MNISTColorPairTrain",
+            "kwargs": {
+                "attribute_to_change": "digit | background",
+                "label_probs": {
+                    "0": [0.1,0.9],
+                    "1": [0.1,0.9],
+                    "2": [0.1,0.9],
+                    "3": [0.1,0.9],
+                    "4": [0.1,0.9],
+                    "5": [0.9,0.1],
+                    "6": [0.9,0.1],
+                    "7": [0.9,0.1],
+                    "8": [0.9,0.1],
+                    "9": [0.9,0.1]
+                }
+            }
+        },
+        "query_watermarks": {
+            "fqcn": "juneberry.watermark.MNISTColorPairQuery",
+            "kwargs": {
+                "in_out_probs": [0.5, 0.5],
+                "number_query_groups": 50
+            }
+        },
+        "superset_args" : [
+            {"color_pair": ["red", "green"]}, {"color_pair": ["green", "red"]},
+            {"color_pair": ["blue", "green"]}, {"color_pair": ["green", "blue"]},
+            {"color_pair": ["red", "blue"]}, {"color_pair": ["blue", "red"]}
+        ],
+        "disjoint_args" : [
+            {"color_pair": ["purple", "yellow"]}, {"color_pair": ["yellow", "purple"]},
+            {"color_pair": ["orange", "yellow"]}, {"color_pair": ["yellow", "orange"]},
+            {"color_pair": ["purple", "orange"]}, {"color_pair": ["orange", "purple"]}
+        ],
+        "private_superset_args" : {"color_pair": ["red", "green"]},
+        "private_disjoint_args" : {"color_pair": ["purple", "yellow"]}
+    }
+}

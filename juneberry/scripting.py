@@ -143,10 +143,10 @@ def setup_for_single_model(args, *, log_file, model_name, log_prefix="", add_dat
     return lab
 
 
-def setup_for_experiment_creation(args, experiment_creator, *, log_file, log_prefix="", add_data_root=True) -> Lab:
+def setup_for_experiment_creation(args, experiment_manager, *, log_file, log_prefix="", add_data_root=True) -> Lab:
     # Check that the experiment directory is there.   We need to do this before setting up logging
     # because the logger wants to write to the directory.
-    experiment_creator.ensure_experiment_directory()
+    experiment_manager.ensure_experiment_directory()
 
     return setup_workspace(args, log_file=log_file, log_prefix=log_prefix, add_data_root=add_data_root)
 

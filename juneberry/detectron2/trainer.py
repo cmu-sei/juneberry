@@ -175,7 +175,7 @@ class Detectron2Trainer(Trainer):
         # cfg.MODEL.WEIGHTS = "model_final_280758.pkl"
 
         # train root outputs, then move everything later
-        #cfg.OUTPUT_DIR = str(self.model_manager.get_train_root_dir())
+        # cfg.OUTPUT_DIR = str(self.model_manager.get_train_root_dir())
         cfg.OUTPUT_DIR = str(self.model_manager.get_train_scratch_path())
 
         # Set our datasets to the ones we registered
@@ -210,7 +210,7 @@ class Detectron2Trainer(Trainer):
 
         # Set it to some reasonable range
         # Detectron2 COCO-Detection/faster_rcnn_R_50_FPN_3x/137849458/model_final_280758.pkl uses
-        #  MAX_ITER: 270000;   STEPS: [ 210000, 250000 ] ->  [ 0.7777778,  0.9259259 ] of iterations 
+        #  MAX_ITER: 270000;   STEPS: [ 210000, 250000 ] ->  [ 0.7777778,  0.9259259 ] of iterations
         cfg.SOLVER.STEPS = [math.ceil(cfg.SOLVER.MAX_ITER * 3 / 4.0), math.ceil(cfg.SOLVER.MAX_ITER * 9 / 10.0)]
 
         # Set a default learning rate for this reference world size
@@ -286,7 +286,7 @@ class Detectron2Trainer(Trainer):
         # Set our own dataset mappers to deal with transforms
         self.train_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.training_transforms, True)
         self.test_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
-        # N.B. To calculate the validation loss, we need a training mapper, the test mappers remove the annotations 
+        # N.B. To calculate the validation loss, we need a training mapper, the test mappers remove the annotations
         #      required for calculating the FPN loss terms:
         #      https://detectron2.readthedocs.io/en/latest/_modules/detectron2/data/dataset_mapper.html#DatasetMapper.__init__
         self.val_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, True)
@@ -483,7 +483,8 @@ class Detectron2Trainer(Trainer):
         """:return: The path to the dt2 metrics log."""
         return self.model_manager.get_train_scratch_path() / "metrics.json"
 
-    def append_metric(self, content, field, metric):
+    @staticmethod
+    def append_metric(content, field, metric):
         """
         Appends the metric (if available) to the results field.
         """
@@ -529,6 +530,7 @@ def default_setup(model_manager: ModelManager, cfg, args):
     2. Backup the config to the output directory
 
     Args:
+        model_manager: A ModelManager responsible for the filesystem in the model directory.
         cfg (CfgNode): the full config to be used
         args (argparse.NameSpace): the command line arguments to be logged
     """
