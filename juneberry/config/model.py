@@ -57,7 +57,7 @@ class SplittingAlgo(str, Enum):
     TORCHVISION = 'torchvision'
 
 
-# TODO Switch to plugin
+# TODO: Switch to plugin
 class TransformEntry(Prodict):
     fqcn: str
     kwargs: Prodict
@@ -232,7 +232,7 @@ class ModelConfig(Prodict):
         """
         conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
         if not conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
-            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING!")
+            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
 
         # Finally, construct the object and do a final value cleanup

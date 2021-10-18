@@ -14,6 +14,10 @@ configuration file as part of the input.
 # Schema
 ```
 {
+    "data_transforms": {
+        "seed": < OPTIONAL int seed for randomization of the data transforms >
+        "transforms": [ <array of transforms - see below> ]
+    },
     "data_type": <Type of data [image | tabular | torchvision]>,
     "description": <OPTIONAL text description>,
     "format_version": <Linux style version string of the format of this file>,
@@ -65,6 +69,17 @@ configuration file as part of the input.
 
 # Details
 This section provides the details of each of the fields.
+
+## data_transforms
+**Optional** structure for specifying transforms to apply to the data.
+
+### seed
+**Optional** random seed to use to control the data transforms.
+
+### transforms
+An array of transforms that are applied to the data before either the "training_transforms" or
+"evaluation_transforms" are applied. See the model configuration specification for a description of how 
+to use transforms.
 
 ## data_type
 The type of data this model is consuming. We support either 'image' or 'tabular'.
@@ -162,7 +177,6 @@ the subsequent row is passed to the transformer.
 
 ### algorithm
 This can be:
-* none - All images are used.
 * random_fraction - A random fraction is used to select a subset of images,
 with optional random seed.
 * random_quantity - A specific total quantity is pulled randomly from the images,

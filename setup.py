@@ -59,8 +59,9 @@ bin_scripts = [
     'bin/jb_plot_roc',
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',
+    'bin/jb_run_plugin',
     'bin/jb_summary_report',
-    'bin/jb_train',
+    'bin/jb_train'
 ]
 
 setuptools.setup(
