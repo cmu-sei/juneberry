@@ -220,6 +220,12 @@ class <MyTransformerClass>:
 
 An example can be found in Juneberry under **juneberry.transforms.debugging_transformer**.
 
+If the transform `__init__` method has `path_label_list` as a parameter, it will be passed
+a copy of the entire list of paths and labels of the input dataset.  Note, this does NOT
+guarantee that this instance will be passed every entry in the list due to multi-threading
+not can modify the list.  This simply allow the transform to make informed decisions about
+how to transform the data based on the number and distribution of data.
+
 Native pytorch transformers can be used directly with no modification such as 
 **torchvision.transforms.CenterCrop**.
 

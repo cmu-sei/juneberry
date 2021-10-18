@@ -62,6 +62,11 @@ class SamplingAlgo(str, Enum):
 SamplingConfig = namedtuple('SamplingType', 'algo args randomizer')
 
 
+class Plugin(Prodict):
+    fqcn: str
+    kwargs: Prodict
+
+
 class ImagesSource(Prodict):
     description: str
     url: str
@@ -100,6 +105,11 @@ class TorchvisionData(Prodict):
     eval_kwargs: Prodict
 
 
+class DataTransforms(Prodict):
+    seed: int
+    transforms: List[Plugin]
+
+
 class Sampling(Prodict):
     algorithm: str
     arguments: Prodict
@@ -109,9 +119,9 @@ class DatasetConfig(Prodict):
     FORMAT_VERSION = '0.2.0'
     SCHEMA_NAME = 'dataset_schema.json'
 
+    data_transforms: DataTransforms
     data_type: str
     description: str
-    url: str
     file_path: Path
     format_version: str
     image_data: ImageData
@@ -123,6 +133,7 @@ class DatasetConfig(Prodict):
     tensorflow_data: TensorFlowData
     timestamp: str
     torchvision_data: TorchvisionData
+    url: str
 
     def _finish_init(self, relative_path: Path = None, file_path: str = None):
         """

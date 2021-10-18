@@ -1,5 +1,15 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
+    "definitions": {
+        "plugin": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "fqcn" ]
+        }
+    },
     "type": "object",
     "properties": {
         "data_type": {
@@ -17,22 +27,12 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "directory": {
-                                "type": "string"
-                            },
-                            "label": {
-                                "type": "integer"
-                            },
-                            "sampling_count": {
-                                "type": "integer"
-                            },
-                            "sampling_fraction": {
-                                "type": "number"
-                            }
+                            "directory": { "type": "string" },
+                            "label": { "type": "integer" },
+                            "sampling_count": { "type": "integer" },
+                            "sampling_fraction": { "type": "number" }
                         },
-                        "required": [
-                            "directory"
-                        ]
+                        "required": [ "directory" ]
                     }
                 },
                 "task_type": {
@@ -95,6 +95,17 @@
                 "eval_kwargs": { "type": "object" }
             },
             "required": [ "fqcn" ]
+        },
+        "data_transforms": {
+            "type": "object",
+            "properties": {
+                "seed": { "type": "number" },
+                "transforms": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/plugin" }
+                }
+            },
+            "required": [ "transforms" ]
         }
     },
     "oneOf": [

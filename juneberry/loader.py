@@ -82,6 +82,8 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
 
     if kwargs is None:
         kwargs = {}
+    else:
+        kwargs = dict(kwargs)
 
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_str)

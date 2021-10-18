@@ -423,8 +423,7 @@ def get_model_train_file_patterns(model_name: str) -> list:
     if model_name in ["imagenette_224x224_rgb_unit_test_tf_resnet50"]:
         return files
 
-    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18",
-                      "tabular_binary_sample"]:
+    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18", "tabular_binary_sample"]:
         files.append('/'.join(model_mgr.get_training_summary_plot().parts[-2:]))
         return files
 
