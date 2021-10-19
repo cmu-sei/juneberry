@@ -56,6 +56,7 @@ from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
+from juneberry.filesystem import ModelManager
 
 from test_coco_utils import make_sample_coco
 import test_model_config
@@ -755,3 +756,28 @@ def mock_load_tabular_data(mc, ds):
         return ['tab_train'], ['tab_val']
     else:
         return ['tab_train'], []
+
+
+def test_get_label_mapping():
+    # Binary sample
+    model_name_bin = "tabular_binary_sample"
+    model_manager = ModelManager(model_name_bin)
+    model_config = model_manager.get_model_config()
+    train_config = "models/tabular_binary_sample/train_data_config.json"
+
+    test_labels = {0: "outer", 1: "inner"}
+    test_source = "train config 2"
+    func_labels, func_source = jb_data.get_label_mapping(model_manager, show_source=True)
+    assert test_labels == func_labels
+    assert test_source == func_source
+
+    test_source = "train config 2"
+    func_labels, func_source = jb_data.get_label_mapping(model_manager, model_config=model_config, show_source=True)
+    assert test_labels == func_labels
+    assert test_source == func_source
+
+    test_source = "train config 1"
+    func_labels, func_source = jb_data.get_label_mapping(model_manager, train_config=train_config, show_source=True)
+    assert test_labels == func_labels
+    assert test_source == func_source
+

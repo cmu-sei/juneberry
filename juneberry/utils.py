@@ -55,7 +55,6 @@ import logging
 import json
 import sys
 from juneberry.filesystem import ModelManager
-# from config.training_output import TrainingOutput
 
 logger = logging.getLogger(__name__)
 
@@ -216,84 +215,3 @@ def show_list(rhs, indent=0) -> None:
                 found_types[elem_type] = i
                 show_type(rhs[i], indent + 4)
 
-
-def get_label_dict(file_path):
-    dictionary = {}
-    if file_path.exists():
-        file = open(file_path,)
-        json_config = json.load(file)
-        if "label_names" in json_config:
-            stanza = json_config["label_names"]
-            for k, v in stanza.items():
-                dictionary[int(k)] = v
-        file.close()
-    return dictionary
-
-
-def get_label_mapping(model_manager: ModelManager, model_config=None, train_config=None, eval_config=None,
-                      show_source=False):
-    """
-    Checks a hierarchy of files to determine the set of label names used by the trained model.
-    :param model_manager: ModelManager object for the model.
-    :param model_config: Model config for the model.
-    :param train_config: Training dataset config for the model.
-    :param eval_config: Evaluation dataset config for the model.
-    :param show_source: Set to True to return the source from which the label names were extracted.
-    :return: The label names as a dict of int -> string.
-    """
-    # Check the output.json file
-    if model_manager.get_training_out_file():
-        if model_manager.get_training_out_file().exists:
-            train_outfile = model_manager.get_training_out_file()
-            label_names = get_label_dict(train_outfile)
-            if label_names and show_source:
-                return label_names, "output"
-            elif label_names:
-                return label_names
-
-    # Check the model config from argument
-    if model_config:
-        label_names = get_label_dict(model_config)
-        if label_names and show_source:
-            return label_names, "model config 1"
-        elif label_names:
-            return label_names
-    
-    # Check the model config from the model directory
-    if model_manager.get_model_config().exists():
-        label_names = get_label_dict(model_manager.get_model_config())
-        if label_names and show_source:
-            return label_names, "model config 2"
-        elif label_names:
-            return label_names
-
-    # Check the training dataset from argument
-    if train_config:
-        label_names = get_label_dict(train_config)
-        if label_names and show_source:
-            return label_names, "training config 1"
-        elif label_names:
-            return label_names
-    
-    # Check the training dataset specified in the model directory
-    if model_manager.get_model_config().exists():
-        model_config_path = open(model_manager.get_model_config())
-        model_config_file = json.load(model_config_path)
-        if "training_dataset_config_path" in model_config_file:
-            training_config = Path(model_config_file["training_dataset_config_path"])
-            label_names = get_label_dict(training_config)
-            if label_names and show_source:
-                return label_names, "training config 2"
-            elif label_names:
-                return label_names
-
-    # Check the eval dataset from argument
-    if eval_config:
-        label_names = get_label_dict(eval_config)
-        if label_names and show_source:
-            return label_names, "eval config 1"
-        elif label_names:
-            return label_names
-
-    else:
-        logger.error("No label names found.")

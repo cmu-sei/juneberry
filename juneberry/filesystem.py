@@ -147,7 +147,7 @@ def load_file(path: str):
     :return:
     """
     # TODO: Add check for '.yaml' and use pyyaml
-    if Path(path).suffix == '.json':
+    if Path(path).suffix == '.json' and Path(path).exists():
         with open(path) as in_file:
             return json.load(in_file)
     else:

@@ -45,7 +45,6 @@
 # ======================================================================================================================
 
 import juneberry.utils as jb_utils
-from juneberry.filesystem import ModelManager
 
 
 def setup_data():
@@ -103,22 +102,3 @@ def test_snake_case():
     assert expected_data == test_data
     assert key_map == new_map
 
-
-def test_get_label_mapping():
-    # Binary sample
-    model_name_bin = "tabular_binary_sample"
-    expected_labels_bin = {0: "outer", 1: "inner"}
-    model_manager_bin = ModelManager(model_name_bin)
-    model_config_bin = model_manager_bin.get_model_config()
-    train_config_bin = "models/tabular_binary_sample/train_data_config.json"
-
-    source = "training config 2"
-    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, show_source=True)
-
-    source = "training config 2"
-    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, model_config=model_config_bin,
-                                                                 show_source=True)
-
-    source = "training config 1"
-    assert expected_labels_bin, source == jb_utils.get_label_mapping(model_manager_bin, train_config=train_config_bin,
-                                                                 show_source=True)
