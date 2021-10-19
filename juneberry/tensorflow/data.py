@@ -123,6 +123,19 @@ def construct_image_datasets(model_config: ModelConfig, train_list, val_list):
     return train_ds, val_ds
 
 
+def construct_image_eval_dataset(model_config: ModelConfig, eval_list):
+    shape_hwc = model_config.model_architecture.get_shape_hwc()
+
+    transforms = TransformManager(model_config.evaluation_transforms)
+    eval_ds = TFImageDataSequence(eval_list, model_config.batch_size, transforms, shape_hwc)
+    logger.info(f"Constructed evaluaiton dataset with {len(eval_ds)} items.")
+
+    tmp_data, tmp_labels = eval_ds[0]
+    logger.info(f"Eval: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
+
+    return eval_ds
+
+
 def call_transforms_numpy(np_image, transforms):
     # Convert to image, apply transforms, and convert back.
     # print(f"+++++++++ type={type(np_image)} shape={np_image.shape}")
@@ -145,13 +158,47 @@ def transform_image(image, transforms):
     return tf.numpy_function(partial_func, [image], Tout=tf.uint8)
 
 
-def load_tf_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
+def add_transforms_and_batching(dataset, transform_list, batch_size):
+    # TODO: Turn on shuffling
+
+    # TRANSFORMS - THIS IS BEFORE batching! So one element each.
+    # Map each element with our transform
+    transforms = TransformManager(transform_list)
+    if transforms is not None:
+        dataset = dataset.map(lambda x, y: (transform_image(x, transforms), y))
+
+    # Apply batching
+    return dataset.batch(batch_size)
+
+
+def make_tfds_split_args(val_stanza, load_args, use_train_split=False, use_val_split=False):
+    if use_val_split:
+        logger.info("Evaluating using ONLY the validation portion of the split data.")
+
+    # Custom args based on algorithm.
+    if val_stanza.algorithm == "tensorflow":
+        if 'split' not in load_args:
+            if use_val_split:
+                load_args['split'] = ["test"]
+            else:
+                load_args['split'] = ["train", "test"]
+    elif val_stanza.algorithm == "random_fraction":
+        train_frac = 100 - int(val_stanza.arguments.fraction * 100)
+        train_str = f"train[:{train_frac}%]+test[:{train_frac}%]"
+        test_str = f"train[{train_frac}%:]+test[{train_frac}%:]"
+        if use_val_split:
+            load_args['split'] = [test_str]
+        else:
+            load_args['split'] = [train_str, test_str]
+    else:
+        logger.error(f"TensorFlow does not support the '{val_stanza.algorithm}' validation split algorithm. "
+                     "Please use 'random_fraction' or 'tensorflow'. EXITING.")
+        sys.exit(-1)
+
+
+# Trainer
+def load_tf_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     tf_stanza = ds_config.tensorflow_data
-
-    # Based on the validation split we will either use the native random fraction
-    # or combine the sets and then split.
-
-    val_stanza = model_config.validation
 
     # We always need supervised so we get a tuple instead of dict as the transform (map) is
     # designed to get the tuple not a dict.
@@ -160,43 +207,51 @@ def load_tf_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
         load_args = {}
     load_args['as_supervised'] = True
 
-    # Custom args based on algorithm.
-    if val_stanza.algorithm == "tensorflow":
-        if 'split' not in load_args:
-            load_args['split'] = ["train", "test"]
-    elif val_stanza.algorithm == "random_fraction":
-        train_frac = 100 - int(val_stanza.arguments.fraction * 100)
-        train_str = f"train[:{train_frac}%]+test[:{train_frac}%]"
-        test_str = f"train[{train_frac}%:]+test[{train_frac}%:]"
-        load_args['split'] = [train_str, test_str]
-    else:
-        logger.error(f"TensorFlow does not support the '{val_stanza.algorithm}' validation split algorithm. "
-                     "Please use 'random_fraction' or 'tensorflow'. EXITING.")
-        sys.exit(-1)
+    # Based on the validation split we will either use the native random fraction
+    # or combine the sets and then split.
+    make_tfds_split_args(model_config.validation, load_args)
 
-    # Now load it
+    # Now load them
     train_ds, val_ds = tfds.load(tf_stanza.name, **load_args)
-
-    # TODO: Turn on shuffling
-    # If they have specified a shuffle size, then add that.
-    # train_ds = train_ds.shuffle(shuffle_buffer_size, seed)
-
-    # TRANSFORMS - THIS IS BEFORE batching! So one element each.
-    # Map each element with our transform
-    transforms = TransformManager(model_config.training_transforms)
-    train_ds = train_ds.map(lambda x, y: (transform_image(x, transforms), y))
-
-    transforms = TransformManager(model_config.evaluation_transforms)
-    val_ds = val_ds.map(lambda x, y: (transform_image(x, transforms), y))
-
-    # Apply batching
-    train_ds = train_ds.batch(model_config.batch_size)
-    val_ds = val_ds.batch(model_config.batch_size)
+    train_ds = add_transforms_and_batching(train_ds, model_config.training_transforms, model_config.batch_size)
+    val_ds = add_transforms_and_batching(val_ds, model_config.evaluation_transforms, model_config.batch_size)
 
     return train_ds, val_ds
 
 
-def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, model_manager: ModelManager):
+# Evaluator
+def load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, use_train_split, use_val_split):
+    tf_stanza = ds_config.tensorflow_data
+
+    # We always need supervised so we get a tuple instead of dict as the transform (map) is
+    # designed to get the tuple not a dict.
+    load_args = {}
+    if tf_stanza.load_args is not None:
+        load_args = {}
+    load_args['as_supervised'] = True
+
+    # Based on the validation split we will either use the native random fraction
+    # or combine the sets and then split.
+    make_tfds_split_args(model_config.validation, load_args, use_train_split, use_val_split)
+
+    # Now load it
+    eval_ds = tfds.load(tf_stanza.name, **load_args)
+
+    # Now, get the labels
+    labels_iterator = eval_ds.map(lambda x: x['survived']).as_numpy_iterator()
+    labels = np.array(list(labels_iterator))
+
+    # HACK: This is HORRIBLY inefficient!!!
+    labels_iter = eval_ds.map(lambda x, y: y)
+    labels = [int(x.numpy()) for x in labels_iter]
+
+    eval_ds = add_transforms_and_batching(eval_ds, model_config.evaluation_transforms, model_config.batch_size)
+
+    return eval_ds, labels
+
+
+# Trainer
+def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, model_manager: ModelManager):
     if ds_config.data_type == "image":
         train_list, val_list = jb_data.dataspec_to_manifests(
             lab,
@@ -214,7 +269,44 @@ def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig,
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)
     elif ds_config.data_type == "tensorflow":
-        return load_tf_dataset(ds_config, model_config)
+        return load_tf_split_dataset(ds_config, model_config)
+    elif ds_config.data_type == "torchvision":
+        logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
+        sys.exit(-1)
+
+
+# Evaluator
+def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, eval_dir_mgr,
+                      use_train_split, use_val_split):
+    if ds_config.data_type == "image":
+        splitting_config = None
+        if use_train_split or use_val_split:
+            logger.info(f"Splitting the dataset according to the model's validation split instructions.")
+            splitting_config = model_config.get_validation_split_config()
+
+        eval_list, split = jb_data.dataspec_to_manifests(
+            lab,
+            dataset_config=ds_config,
+            splitting_config=splitting_config,
+            preprocessors=TransformManager(model_config.preprocessors))
+
+        if use_train_split:
+            logger.info("Evaluating using ONLY the training portion of the split data.")
+
+        elif use_val_split:
+            logger.info("Evaluating using ONLY the validation portion of the split data.")
+            eval_list = split
+
+        # Save the manifest
+        jb_data.save_path_label_manifest(eval_list, eval_dir_mgr.get_manifest_path(), lab.data_root())
+
+        # Now make the loaders returning the loadeer and labels
+        return construct_image_eval_dataset(model_config, eval_list), [x[1] for x in eval_list]
+    elif ds_config.data_type == "tabular":
+        logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
+        sys.exit(-1)
+    elif ds_config.data_type == "tensorflow":
+        return load_tf_eval_dataset(ds_config, model_config, use_train_split, use_val_split)
     elif ds_config.data_type == "torchvision":
         logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
