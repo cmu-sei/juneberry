@@ -192,7 +192,7 @@ def make_tfds_eval_args(val_stanza, load_args, use_train_split=False, use_val_sp
         logger.info("Evaluating using ONLY the validation portion of the split data.")
 
     # Custom args based on algorithm.
-    load_args['split'] = ["train+test"]
+    load_args['split'] = "train+test"
     # if val_stanza.algorithm == "tensorflow":
     #     if 'split' not in load_args:
     #         # TODO: Fix train and test
