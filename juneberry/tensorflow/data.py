@@ -238,9 +238,6 @@ def load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, us
     eval_ds = tfds.load(tf_stanza.name, **load_args)
 
     # Now, get the labels
-    labels_iterator = eval_ds.map(lambda x: x['survived']).as_numpy_iterator()
-    labels = np.array(list(labels_iterator))
-
     # HACK: This is HORRIBLY inefficient!!!
     labels_iter = eval_ds.map(lambda x, y: y)
     labels = [int(x.numpy()) for x in labels_iter]
