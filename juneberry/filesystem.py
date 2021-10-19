@@ -267,9 +267,20 @@ class ModelManager:
         """ :return: The path to the plots directory within the model directory. """
         return self.model_dir_path / 'plots'
 
+    def get_model_path(self):
+        """ :return: The path to a pytorch-compatible model file. """
+        if self.model_platform in ['tensorflow']:
+            return self.get_tensorflow_model_path()
+        else:
+            return self.get_pytorch_model_path()
+
     def get_pytorch_model_path(self):
         """ :return: The path to a pytorch-compatible model file. """
         return self.model_dir_path / 'model.pt'
+
+    def get_tensorflow_model_path(self):
+        """ :return: The path to a tensorflow-compatible model file. """
+        return self.model_dir_path / 'model.h5'
 
     def get_pytorch_model_summary_path(self):
         """ :return: The path to model summary file. """
@@ -353,7 +364,7 @@ class ModelManager:
             # so we just peek into the data as a struct.
             data = load_file(self.get_model_config())
             platform = data.get('platform', None)
-            if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy']:
+            if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy', 'tensorflow']:
                 # TODO: Should this be an error? We need to try it and run full tests
                 logger.warning(f"Unknown platform '{platform}' found in: {self.get_model_config()}")
             return platform
@@ -416,16 +427,24 @@ class ModelManager:
         """
         :return: A list of files or glob patterns of files generated during training.
         """
-        files = [self.get_pytorch_model_path(),
+        files = [self.get_model_path(),
                  self.get_training_out_file(),
-                 self.get_training_summary_plot(),
                  self.get_training_log(),
                  self.get_train_root_dir()]
+
+        # Everyone but tensorflow has an output plot...
+        if self.model_platform not in ['tensorflow']:
+            files.append(self.get_training_summary_plot())
 
         if self.model_platform in ['detectron2', 'mmdetection']:
             ext = "py" if self.model_platform == Platforms.MMD else "yaml"
             more_files = [self.get_platform_training_config(ext),
                           self.get_training_data_manifest_path(),
+                          self.get_validation_data_manifest_path()]
+            files.extend(more_files)
+
+        elif self.model_platform in ['tensorflow']:
+            more_files = [self.get_training_data_manifest_path(),
                           self.get_validation_data_manifest_path()]
             files.extend(more_files)
 
@@ -441,9 +460,15 @@ class ModelManager:
         """
         :return: A list of files or glob patterns of files generated during a dry run.
         """
-        return [self.get_pytorch_model_summary_path(),
-                self.get_training_dryrun_log_path(),
-                self.get_dryrun_imgs_dir()]
+
+        files = [self.get_pytorch_model_summary_path(),
+                 self.get_training_dryrun_log_path(),
+                 self.get_dryrun_imgs_dir()]
+
+        if self.model_platform in ['tensorflow']:
+            files.extend([self.get_training_data_manifest_path(),
+                          self.get_validation_data_manifest_path()])
+        return files
 
     def get_dry_run_clean_extras_list(self) -> list:
         """

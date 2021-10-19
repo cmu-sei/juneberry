@@ -431,7 +431,8 @@ class CocoMetadataMarshal(DatasetMarshal):
                 [helper.remove_image(img_id) for img_id in remove_image_ids]
             new_values.extend(helper.to_image_list())
 
-    def _summarize_set(self, label_name, data_list):
+    @staticmethod
+    def _summarize_set(label_name, data_list):
         counts = defaultdict(int)
         anno_count = 0
         for item in data_list:
@@ -901,13 +902,14 @@ def load_coco_json(filepath, output: list) -> None:
     Loads the metadata json file. Validates during load.
     :param filepath: The filepath to load.
     :param output: The output list in which to add out content
+    :return: None
     """
     with open(filepath) as json_file:
         data = json.load(json_file)
         helper = COCOImageHelper(data)
         output.extend(helper.to_image_list())
 
-
+        
 def get_label_dict(file_path):
     dictionary = {}
     file_path = Path(file_path)
@@ -995,3 +997,63 @@ def get_label_mapping(model_manager: ModelManager, model_config=None, train_conf
 
     else:
         logger.error("No label names found.")
+
+
+def check_num_classes(args: dict, num_model_classes: int) -> None:
+    """
+    Checks that num_model_classes is in the args dictionary and if not
+    adds it. Also checks that if one exists it matches the data.
+    :param args: The args structure to check/modify from the model architecture.
+    :param num_model_classes: The number of model classes to look for. Usually from the dataset.
+    :return: None
+    """
+    if 'num_classes' not in args:
+        logger.warning(f"The 'model_architecture' 'args' do not contain 'num_classes' for validation. "
+                       f"Using '{num_model_classes}' from the dataset config.")
+        args['num_classes'] = num_model_classes
+    else:
+        if args['num_classes'] != num_model_classes:
+            logger.error(f"The number of classes in the training config: '{args['num_classes']}' "
+                         f"does not match the number of classes in the dataset: '{num_model_classes}'. EXITING.")
+            sys.exit(-1)
+
+
+def save_path_label_manifest(data_list, filename, relative_to: Path = None) -> None:
+    """
+    Save the image datalist of pairs (image path, label) to a json file. The structure is:
+    [ { "path":str, "label":int }, ... ] }
+    :param data_list: The list of pairs.
+    :param filename: A filename to save to.
+    :param relative_to: (Optional) Path the filename should be relative to.
+    :return: None
+    """
+    # Convert to json
+    rows = []
+    for row in data_list:
+        path = Path(row[0])
+        if relative_to is not None:
+            path = path.relative_to(relative_to)
+        rows.append({"path": str(path), "label": int(row[1])})
+
+    with open(filename, "w") as out_file:
+        json.dump(rows, out_file, indent=4)
+
+
+def load_path_label_manifest(filename, relative_to: Path = None):
+    """
+    Loads a list of path, label pairs from json file.
+    [ { "path":str, "label":int }, ... ] }
+    :param filename: The file to load.
+    :param relative_to: (Optional) Path the filename should be relative to.
+    :return: A list of pairs of [path, label].
+    """
+    pairs = []
+    with open(filename) as in_file:
+        data = json.load(in_file)
+        for row in data:
+            path = row['path']
+            if relative_to is not None:
+                path = str(relative_to / path)
+            pairs.append([path, row['label']])
+    return pairs
+  
