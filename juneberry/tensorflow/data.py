@@ -171,29 +171,42 @@ def add_transforms_and_batching(dataset, transform_list, batch_size):
     return dataset.batch(batch_size)
 
 
-def make_tfds_split_args(val_stanza, load_args, use_train_split=False, use_val_split=False):
-    if use_val_split:
-        logger.info("Evaluating using ONLY the validation portion of the split data.")
-
+def make_tfds_split_args(val_stanza, load_args):
     # Custom args based on algorithm.
     if val_stanza.algorithm == "tensorflow":
         if 'split' not in load_args:
-            if use_val_split:
-                load_args['split'] = ["test"]
-            else:
-                load_args['split'] = ["train", "test"]
+            load_args['split'] = ["train", "test"]
     elif val_stanza.algorithm == "random_fraction":
         train_frac = 100 - int(val_stanza.arguments.fraction * 100)
         train_str = f"train[:{train_frac}%]+test[:{train_frac}%]"
         test_str = f"train[{train_frac}%:]+test[{train_frac}%:]"
-        if use_val_split:
-            load_args['split'] = [test_str]
-        else:
-            load_args['split'] = [train_str, test_str]
+        load_args['split'] = [train_str, test_str]
     else:
         logger.error(f"TensorFlow does not support the '{val_stanza.algorithm}' validation split algorithm. "
                      "Please use 'random_fraction' or 'tensorflow'. EXITING.")
         sys.exit(-1)
+
+
+def make_tfds_eval_args(val_stanza, load_args, use_train_split=False, use_val_split=False):
+    if use_val_split:
+        logger.info("Evaluating using ONLY the validation portion of the split data.")
+
+    # Custom args based on algorithm.
+    load_args['split'] = ["train+test"]
+    # if val_stanza.algorithm == "tensorflow":
+    #     if 'split' not in load_args:
+    #         # TODO: Fix train and test
+    #         load_args['split'] = ["train+test"]
+    # elif val_stanza.algorithm == "random_fraction":
+    #     train_frac = 100 - int(val_stanza.arguments.fraction * 100)
+    #     train_str = f"train[:{train_frac}%]+test[:{train_frac}%]"
+    #     #test_str = f"train[{train_frac}%:]+test[{train_frac}%:]"
+    #     # TODO: Fix train and test
+    #     load_args['split'] = [train_str]
+    # else:
+    #     logger.error(f"TensorFlow does not support the '{val_stanza.algorithm}' validation split algorithm. "
+    #                  "Please use 'random_fraction' or 'tensorflow'. EXITING.")
+    #     sys.exit(-1)
 
 
 # Trainer
@@ -232,9 +245,10 @@ def load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, us
 
     # Based on the validation split we will either use the native random fraction
     # or combine the sets and then split.
-    make_tfds_split_args(model_config.validation, load_args, use_train_split, use_val_split)
+    make_tfds_eval_args(model_config.validation, load_args, use_train_split, use_val_split)
 
     # Now load it
+    logger.info(f"Loading {tf_stanza.name} with args: {load_args}")
     eval_ds = tfds.load(tf_stanza.name, **load_args)
 
     # Now, get the labels
