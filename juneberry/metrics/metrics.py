@@ -474,7 +474,7 @@ class MetricsPlot:
                       "auc": auc,
                   }),
                   ax=self.ax)
-        self._format(self.fig, self.ax)
+        self._format()
 
     # override in subclass
     def _get_auc(self, m: Metrics) -> float:
