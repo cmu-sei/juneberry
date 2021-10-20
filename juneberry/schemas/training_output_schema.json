@@ -11,12 +11,6 @@
                 "batch_size": {
                     "type": "integer"
                 },
-                "colorspace": {
-                    "type": "string"
-                },
-                "dimensions": {
-                    "type": "string"
-                },
                 "epochs": {
                     "type": "integer"
                 },
@@ -219,7 +213,6 @@
             "required": [
                 "accuracy",
                 "loss",
-                "model_hash",
                 "model_name",
                 "val_accuracy",
                 "val_loss"

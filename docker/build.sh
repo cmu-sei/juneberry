@@ -2,11 +2,15 @@
 
 if [ $# -ne 1 ]; then
   echo "This script requires one argument, the part BEFORE the '.Dockerfile'"
+  echo "e.g. 'cudadev' or 'cpudev'"
   exit -1
 fi
 
 TARGET_TAG="juneberry/${1}:dev"
-echo "Building ${1}.Dockerfile into ${TARGET_TAG}"
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+DOCKERFILE=${SCRIPT_DIR}/${1}.Dockerfile
+
+echo "Building: ${DOCKERFILE} into ${TARGET_TAG}"
 
 docker build \
   --build-arg HTTP_PROXY=${HTTP_PROXY} \
@@ -15,4 +19,4 @@ docker build \
   --build-arg https_proxy=${https_proxy} \
   --build-arg NO_PROXY=${NO_PROXY} \
   --build-arg no_proxy=${no_proxy} \
-  --network=host -f ${1}.Dockerfile -t ${TARGET_TAG} .
+  --network=host -f "${DOCKERFILE}" -t ${TARGET_TAG} ${SCRIPT_DIR}

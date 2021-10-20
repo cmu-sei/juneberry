@@ -32,12 +32,22 @@
             ]
         },
         {
+            "name": "imagenette_224x224_rgb_unit_test_tf_resnet50",
+            "tests": [
+                {
+                    "classify": 3,
+                    "dataset_path": "data_sets/imagenette_unit_test.json",
+                    "tag": "Test2"
+                }
+            ]
+        },
+        {
             "name": "tabular_binary_sample",
             "tests": [
                 {
                     "classify": 0,
                     "dataset_path": "models/tabular_binary_sample/test_data_config.json",
-                    "tag": "Test2"
+                    "tag": "Test3"
                 }
             ]
         }
@@ -47,10 +57,13 @@
             "classes": "0,English_springer,482,491,church",
             "description": "Simple Unit Test Report",
             "output_name": "System Test 1 ROC class 0,217,482,491,497.png",
-            "plot_title": "Test 1 - First 5 Classes",
+            "plot_title": "Test PyTorch vs TF - First 5 Classes",
             "tests": [
                 {
                     "tag": "Test1"
+                },
+                {
+                    "tag": "Test2"
                 }
             ],
             "type": "plot_roc"
@@ -58,11 +71,15 @@
         {
             "description": "Simple System Test Report",
             "output_name": "System Test 1 ROC class 566,569,571.574,701.png",
-            "plot_title": "Test 1 - Next 5 Classes",
+            "plot_title": "Test PyTorch vs TF - Next 5 Classes",
             "tests": [
                 {
                     "classes": "566,garbage_truck,571,golf_ball,701",
                     "tag": "Test1"
+                },
+                {
+                    "classes": "566,garbage_truck,571,golf_ball,701",
+                    "tag": "Test2"
                 }
             ],
             "type": "plot_roc"
@@ -74,7 +91,7 @@
             "tests": [
                 {
                     "classes": "0",
-                    "tag": "Test2"
+                    "tag": "Test3"
                 }
             ],
             "type": "plot_roc"

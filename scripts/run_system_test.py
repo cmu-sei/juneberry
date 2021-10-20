@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -85,6 +63,12 @@ CLSFY_TEST_SET = [
         0.49
     ],
     [
+        "imagenette_224x224_rgb_unit_test_tf_resnet50",
+        "data_sets/imagenette_unit_test.json",
+        1.0,
+        0.49
+    ],
+    [
         "tabular_binary_sample",
         "models/tabular_binary_sample/test_data_config.json",
         0.95,
@@ -106,7 +90,7 @@ OD_GPU_TEST_SET = [
         "data_sets/text_detect_val.json",
         0.92,
         #  Single GPU (9.3), 2 GPU (2.5), 4 GPU (2.0) in testing.
-        2.0
+        1.6
     ]
 ]
 
@@ -114,7 +98,7 @@ OD_CPU_TEST_SET = [
     [
         "text_detect/dt2/ut",
         "data_sets/text_detect_val.json",
-        0.30,
+        0.3,
         0.004
     ]
 ]
@@ -294,6 +278,10 @@ def check_training_metric(model_name, model_mgr, eval_dir_mgr, min_train_metric,
         eval_metric_name = "mAP"
         eval_metric = eval_data.results.metrics.bbox['mAP']
 
+    elif platform in ['tensorflow']:
+        eval_metric_name = "accuracy"
+        eval_metric = eval_data.results.metrics.accuracy
+
     else:
         logging.error(f"Unknown platform type detected for model {model_name}. EXITING.")
         sys.exit(-1)
@@ -428,12 +416,16 @@ def get_model_train_file_patterns(model_name: str) -> list:
 
     files = [
         '/'.join(model_mgr.get_training_out_file().parts[-2:]),
-        '/'.join(model_mgr.get_training_summary_plot().parts[-2:]),
         '/'.join(model_mgr.get_training_log().parts[-2:]),
-        model_mgr.get_pytorch_model_path().name
+        model_mgr.get_model_path().name
     ]
 
-    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18", "tabular_binary_sample"]:
+    if model_name in ["imagenette_224x224_rgb_unit_test_tf_resnet50"]:
+        return files
+
+    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18",
+                      "tabular_binary_sample"]:
+        files.append('/'.join(model_mgr.get_training_summary_plot().parts[-2:]))
         return files
 
     elif "text_detect" in model_name:
@@ -449,7 +441,7 @@ def get_model_train_file_patterns(model_name: str) -> list:
         return files
 
     else:
-        logging.error(f"Model name {model_name} is unknown. EXITING.")
+        logging.error(f"Internal error: {model_name} is unknown in system test. EXITING.")
         sys.exit(-1)
 
 
@@ -473,6 +465,14 @@ def get_model_dry_run_file_patterns(model_name: str) -> list:
             '/'.join(model_mgr.get_dryrun_imgs_dir().parts[-2:]) + "/"
         ]
 
+    elif model_name == "imagenette_224x224_rgb_unit_test_tf_resnet50":
+        ext = [
+            model_mgr.get_pytorch_model_summary_path().name,
+            '/'.join(model_mgr.get_dryrun_imgs_dir().parts[-2:]) + "/",
+            '/'.join(model_mgr.get_training_data_manifest_path().parts[-2:]),
+            '/'.join(model_mgr.get_validation_data_manifest_path().parts[-2:])
+        ]
+
     elif model_name == "tabular_binary_sample":
         ext = [
             model_mgr.get_pytorch_model_summary_path().name
@@ -488,7 +488,7 @@ def get_model_dry_run_file_patterns(model_name: str) -> list:
         ext.append(plat_conf)
 
     else:
-        logging.error(f"Model name {model_name} is unknown. EXITING.")
+        logging.error(f"Internal error: {model_name} is unknown in system test. EXITING.")
         sys.exit(-1)
 
     files.extend(ext)

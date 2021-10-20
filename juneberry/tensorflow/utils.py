@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python3
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -22,53 +22,11 @@
 #
 # ======================================================================================================================
 
-import setuptools
+import sys
 
-install_requires = [
-    "doit",
-    "numpy",
-    "matplotlib",
-    "pillow",
-    "sklearn",
-    "tensorflow",
-    "tensorflow-datasets",
-    "tensorboard",
-    "torch",
-    "torchvision",
-    "torch-summary>=1.4.5",
-    "pandas",
-    "pycocotools",
-    "brambox",
-    "pyyaml",
-    "natsort",
-    "prodict",
-    "jsonschema",
-    "opacus",
-    "protobuf==3.16.0",
-    "onnx",
-    "onnxruntime"  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
-]
 
-bin_scripts = [
-    'bin/jb_clean_predictions',
-    'bin/jb_evaluate_data',
-    'bin/jb_experiment_to_rules',
-    'bin/jb_generate_experiments',
-    'bin/jb_gpu_runner',
-    'bin/jb_plot_pr',
-    'bin/jb_plot_roc',
-    'bin/jb_rules_to_pydoit',
-    'bin/jb_run_experiment',
-    'bin/jb_summary_report',
-    'bin/jb_train',
-]
-
-setuptools.setup(
-    name='Juneberry',
-    version='0.5',
-    description='Juneberry Machine Learning Experiment Manager',
-    packages=setuptools.find_packages(),
-    install_requires=install_requires,
-    scripts=bin_scripts,
-    python_requires='>=3.7',
-)
+def save_summary(model, summary_file_path):
+    orig = sys.stdout
+    sys.stdout = open(summary_file_path, 'w+', encoding="utf-8")
+    model.summary()
+    sys.stdout = orig

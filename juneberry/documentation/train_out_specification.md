@@ -18,9 +18,7 @@ PYTHONPATH.)
     "options": {
         "training_dataset_config_path": <path to data set>,
         "validation_dataset_config_path": <optional path to dataset used for validation with 'from_file' option>,
-        "model_architecture": <the model_architecture stanza from the model file>
-        "colorspace": <range of colors in images, rgb, grayscale>,
-        "dimensions": <pixel WidthxHeight of images>,
+        "model_architecture": <the model_architecture stanza from the model file>,
         "epochs": <int>,
         "batch_size": <int>,
         "seed": <int>,
@@ -66,7 +64,7 @@ PYTHONPATH.)
         ]
     }
     "times": {
-        "start_time": <Time stamp for when the training began>,
+        "start_time": <time stamp for when the training began>,
         "end_time": <time stamp when the training ended>,
         "duration": <duration of training, in seconds>,
         "epoch_duration_sec": [
@@ -97,12 +95,6 @@ The path to the data set configuration file.
 
 ### model_architecture
 The model_architecture stanza from the model file. 
-
-### colorspace
-The type of coloring used in the images. Examples are RGB and Gray Scale.
-
-### Dimensions
-The dimensions in pixels of the images. Width x Height. Dimensions are uniform during training.
 
 ### epochs
 Number of Epochs that were trained.
