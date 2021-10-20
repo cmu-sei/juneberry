@@ -39,7 +39,7 @@ import juneberry.tensorflow.data as tf_data
 logger = logging.getLogger(__name__)
 
 
-class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
+class Evaluator(juneberry.evaluation.evaluator.Evaluator):
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
@@ -97,17 +97,3 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
         self.output.results.predictions = self.predictions.tolist()
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
         self.output_builder.save_metrics(self.eval_dir_mgr.get_metrics_path())
-
-
-# HACK - This needs to go into the workspace
-class GloroEvaluator(TFEvaluator):
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-
-    def obtain_model(self) -> None:
-        from gloro import GloroNet
-        model_file = self.model_manager.get_train_root_dir() / "model.gloronet"
-        logger.info(f"Loading model {model_file}...")
-        self.model = GloroNet.load_model(model_file)
-        logger.info("...complete")
