@@ -199,8 +199,8 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     def setup_datasets(self) -> None:
         logger.info(f"Preparing data loaders...")
 
-        self.train_ds, self.val_ds = tf_data.load_datasets(self.lab, self.dataset_config, self.model_config,
-                                                           self.model_manager)
+        self.train_ds, self.val_ds = tf_data.load_split_datasets(self.lab, self.dataset_config, self.model_config,
+                                                                 self.model_manager)
 
         # output['options']['num_training_images'] = reporting['num_train_images']
         self.results['num_training_images'] = len(self.train_ds) * self.model_config.batch_size

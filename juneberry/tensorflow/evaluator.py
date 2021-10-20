@@ -30,18 +30,16 @@ import numpy as np
 
 import tensorflow as tf
 
-import juneberry.data as jb_data
 import juneberry.evaluation.evaluator
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import ModelManager, EvalDirMgr
-from juneberry.tensorflow.data import TFImageDataSequence
-from juneberry.transform_manager import TransformManager
+import juneberry.tensorflow.data as tf_data
 
 logger = logging.getLogger(__name__)
 
 
-class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
+class Evaluator(juneberry.evaluation.evaluator.Evaluator):
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
@@ -68,25 +66,9 @@ class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")
-        splitting_config = self.model_config.get_validation_split_config()
-        eval_list, split = jb_data.dataspec_to_manifests(self.lab,
-                                                         dataset_config=self.eval_dataset_config,
-                                                         splitting_config=splitting_config,
-                                                         preprocessors=TransformManager(
-                                                             self.model_config.preprocessors))
-
-        if self.use_train_split:
-            logger.info("Evaluating using ONLY the training portion of the split data.")
-
-        elif self.use_val_split:
-            logger.info("Evaluating using ONLY the validation portion of the split data.")
-            eval_list = split
-
-        transforms = TransformManager(self.model_config.evaluation_transforms)
-        self.eval_loader = TFImageDataSequence(eval_list, self.model_config.batch_size, transforms, self.shape_hwc)
-
-        # Extract all the labels for later.
-        self.eval_labels = [x[1] for x in eval_list]
+        self.eval_loader, self.eval_labels = tf_data.load_eval_dataset(
+            self.lab, self.eval_dataset_config, self.model_config, self.eval_dir_mgr,
+            self.use_train_split, self.use_val_split)
 
     def obtain_model(self) -> None:
         hdf5_file = self.model_manager.get_tensorflow_model_path()
