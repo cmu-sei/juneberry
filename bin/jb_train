@@ -106,7 +106,7 @@ def main():
         elif model_config.platform == "pytorch_privacy":
             from juneberry.pytorch.privacy.classifier_trainer import PrivacyTrainer
             trainer = PrivacyTrainer(lab, model_manager, model_config, dataset_config, log_level)
-        elif model_config.platform == "tensorflow":
+        elif model_config.platform == "tensorflow" or model_config.platform == "tfgloro":
             from juneberry.tensorflow.trainer import ClassifierTrainer
             trainer = ClassifierTrainer(lab, model_manager, model_config, dataset_config, log_level)
         else:
