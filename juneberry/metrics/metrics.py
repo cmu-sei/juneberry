@@ -27,7 +27,6 @@
 from __future__ import annotations
 
 import csv
-from functools import cached_property
 import json
 import logging
 from pathlib import Path
@@ -182,11 +181,6 @@ class Metrics:
                           self.anno,
                           self.iou_threshold)
 
-    @cached_property
-    def pc(self) -> DataFrame:
-        return DataFrame.copy(self.pr).sort_values("confidence",
-                                                   ascending=False)
-
     @property
     def ap(self) -> float:
         return bb.stat.ap(self.pr)
@@ -263,7 +257,7 @@ class Metrics:
         Get the precision-confidence area under curve.
         :return: PC AUC float
         """
-        return bb.stat.auc(self.pc,
+        return bb.stat.auc(self.pr,
                            x="confidence",
                            y="precision")
 
@@ -273,7 +267,7 @@ class Metrics:
         Get the recall-confidence area under curve.
         :return: RC AUC float
         """
-        return bb.stat.auc(self.pc,
+        return bb.stat.auc(self.pr,
                            x="confidence",
                            y="recall")
 

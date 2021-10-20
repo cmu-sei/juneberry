@@ -95,11 +95,6 @@ def test_pr():
     _pytest_assert_frame_equal(pr, m.pr)
 
 
-def test_pc():
-    pc = pd.read_csv(test_data_dir / "pc.csv")
-    _pytest_assert_frame_equal(pc, m.pc)
-
-
 def test_fscore():
     fscore = pd.read_csv(test_data_dir / "fscore.csv")
     _pytest_assert_frame_equal(fscore, m.fscore)
