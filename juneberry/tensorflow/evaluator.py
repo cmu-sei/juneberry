@@ -31,9 +31,9 @@ import numpy as np
 import tensorflow as tf
 
 import juneberry.data as jb_data
-import juneberry.evaluation.evaluator
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
+from juneberry.evaluation.evaluator import Evaluator
 from juneberry.filesystem import ModelManager, EvalDirMgr
 from juneberry.tensorflow.data import TFImageDataSequence
 from juneberry.transform_manager import TransformManager
@@ -41,7 +41,7 @@ from juneberry.transform_manager import TransformManager
 logger = logging.getLogger(__name__)
 
 
-class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
+class TFEvaluator(Evaluator):
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)

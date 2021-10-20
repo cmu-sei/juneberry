@@ -60,11 +60,16 @@ from juneberry.evaluation.util import create_evaluator
 from juneberry.lab import Lab
 from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
 from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
+from juneberry.tensorflow.evaluator import TFEvaluator
 
 
 class EvalTestHelper:
     def __init__(self, tmp_path):
         self.model_config = ModelConfig()
+
+        # The TensorFlow evaluator needs these to be defined.
+        self.model_config.model_architecture = {'args': {'img_height': 0, 'img_width': 0, 'channels': 0}}
+
         self.lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
         self.dataset = DatasetConfig()
         self.model_manager = self.lab.model_manager("test")
@@ -215,6 +220,19 @@ def test_mmdetection_evaluator(tmp_path):
     evaluator = helper.build_evaluator(platform, "")
 
     assert isinstance(evaluator, MMDEvaluator)
+
+    eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
+    eval_harness.perform_evaluation()
+    eval_harness.check_calls()
+
+
+def test_tensorflow_evaluator(tmp_path):
+    helper = EvalTestHelper(tmp_path)
+
+    platform = "tensorflow"
+    evaluator = helper.build_evaluator(platform, "")
+
+    assert isinstance(evaluator, TFEvaluator)
 
     eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
     eval_harness.perform_evaluation()
