@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
     "definitions": {
-        "transform_item": {
+        "plugin_item": {
             "type": "object",
             "properties": {
                 "fqcn": { "type": "string" },
@@ -18,7 +18,7 @@
         "detectron2": {
             "type": "object",
             "properties": {
-                "metric_interval": { "type": "integer"},
+                "metric_interval": { "type": "integer" },
                 "overrides": { "type": "array" }
             },
             "required": [ ]
@@ -28,11 +28,11 @@
         "evaluation_procedure": { "type": "string" },
         "evaluation_transforms": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "evaluation_target_transforms": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "format_version": { "type": "string" },
         "hints": {
@@ -79,15 +79,15 @@
         },
         "model_transforms": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "platform": {
             "type": "string",
-            "enum": [ "pytorch", "detectron2", "mmdetection", "pytorch_privacy" ]
+            "enum": [ "detectron2", "mmdetection", "pytorch", "pytorch_privacy", "tensorflow" ]
         },
         "preprocessors": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "pytorch": {
             "type": "object",
@@ -111,8 +111,8 @@
         "stopping_criteria": {
             "type": "object",
             "properties": {
-                "direction": { "type": "string", "enum": ["le", "ge"]},
-                "history_key": { "type": "string", "enum": ["loss", "accuracy", "val_loss", "val_accuracy"]},
+                "direction": { "type": "string", "enum": [ "le", "ge" ] },
+                "history_key": { "type": "string", "enum": [ "loss", "accuracy", "val_loss", "val_accuracy" ] },
                 "abs_tol": { "type": "number" },
                 "plateau_count": { "type": "integer" },
                 "threshold": { "type": "number" }
@@ -123,22 +123,47 @@
             "type": "string",
             "enum": [ "classification", "objectDetection" ]
         },
+        "tensorflow": {
+            "type": "object",
+            "properties": {
+                "callbacks": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/plugin_item" }
+                },
+                "loss_args": { "type": "object" },
+                "loss_fn": { "type": "string" },
+                "lr_schedule_args": { "type": "object" },
+                "lr_schedule_fn": { "type": "string" },
+                "metrics": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            { "type": "string" },
+                            { "$ref": "#/definitions/plugin_item" }
+                        ]
+                    }
+                },
+                "optimizer_args": { "type": "object" },
+                "optimizer_fn": { "type": "string" }
+            },
+            "required": [ "loss_fn", "optimizer_fn" ]
+        },
         "timestamp": { "type": "string" },
         "training_dataset_config_path": { "type": "string" },
         "training_transforms": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "training_target_transforms": {
             "type": "array",
-            "items": { "$ref": "#/definitions/transform_item" }
+            "items": { "$ref": "#/definitions/plugin_item" }
         },
         "validation": {
             "type": "object",
             "properties": {
                 "algorithm": {
                     "type": "string",
-                    "enum": [ "from_file", "none", "random_fraction", "torchvision" ]
+                    "enum": [ "from_file", "none", "random_fraction", "tensorflow", "torchvision" ]
                 },
                 "arguments": {
                     "type": "object",
@@ -152,31 +177,33 @@
             },
             "oneOf": [
                 {
-                    "properties":
-                    {
+                    "properties": {
                         "algorithm": { "const": "from_file" },
                         "arguments": { "required": [ "file_path" ] }
                     }
                 },
                 {
-                    "properties":
-                    {
+                    "properties": {
                         "algorithm": { "const": "none" },
-                        "arguments": { "required": [  ] }
+                        "arguments": { "required": [ ] }
                     }
                 },
                 {
-                    "properties":
-                    {
+                    "properties": {
                         "algorithm": { "const": "random_fraction" },
                         "arguments": { "required": [ "fraction" ] }
                     }
                 },
                 {
-                    "properties":
-                    {
+                    "properties": {
+                        "algorithm": { "const": "tensorflow" },
+                        "arguments": { "required": [ ] }
+                    }
+                },
+                {
+                    "properties": {
                         "algorithm": { "const": "torchvision" },
-                        "arguments": { "required": [  ] }
+                        "arguments": { "required": [ ] }
                     }
                 }
             ],

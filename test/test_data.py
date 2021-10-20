@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -110,7 +88,7 @@ def test_listdir_no_hidden():
 #                       |___/
 
 
-# Replace our data utility function which underlies all the various pathing and globbing
+# Replace our data utility function which underlies all the various pathing and globbing.
 def mock_list_or_glob_dir(data_root: Path, path: str):
     if str(path).endswith("frodo"):
         return [data_root / path / f'fr_{x}.png' for x in range(6)]
@@ -183,7 +161,7 @@ def test_generate_image_list(monkeypatch, tmp_path):
 
 
 def test_generate_image_sample_quantity(monkeypatch):
-    # If we pass in sampling count we should just get those
+    # If we pass in sampling count we should just get those.
     # We know how the internal randomizer works.  We know it uses random.sample on both
     # sets in order.  This is a secret and fragile to this test.
     # With a seed of 1234 and two pulls of sampling with a count of 3, it pulls [3,0,4] and [0,4,5]
@@ -204,7 +182,7 @@ def test_generate_image_sample_quantity(monkeypatch):
 
 
 def test_generate_image_sample_fraction(monkeypatch):
-    # If we pass in sampling count we should just get those
+    # If we pass in sampling count we should just get those.
     # We know how the internal randomizer works.  We know it uses random.sample on both
     # sets in order.  This is a secret and fragile to this test.
     # With a seed of 1234 and two pulls of sampling with a count of 2, it pulls [3,0] and [0,5]
@@ -220,7 +198,7 @@ def test_generate_image_sample_fraction(monkeypatch):
     assert len(train_list) == 4
     assert len(val_list) == 0
 
-    # Make sure they are in this order
+    # Make sure they are in this order.
     assert_correct_list(train_list, [3, 0], [0, 5])
 
 
@@ -253,7 +231,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
     assert len(train_list) == 8
     assert len(val_list) == 4
 
-    # NOTE: Another fragile secret we know is the order from the validation is is reversed
+    # NOTE: Another fragile secret we know is the order from the validation is reversed.
     assert_correct_list(train_list, [1, 2, 4, 5], [1, 2, 3, 4])
     assert_correct_list(val_list, [3, 0], [5, 0])
 
@@ -303,7 +281,7 @@ def make_image_object_detection_config(include_image_removal=False):
 
 
 def make_ids(idx):
-    # Make two images, and then 2 and 3 annotations
+    # Make two images, and then 2 and 3 annotations.
     return [idx, idx + 10], [[idx, idx + 10], [idx + 20, idx + 30, idx + 40]]
 
 
@@ -317,7 +295,7 @@ def create_meta_file(dir_path: Path, idx):
 
 
 def setup_metadata_files(tmp_path: Path):
-    # Create two metadata directories, each with one metadata file
+    # Create two metadata directories, each with one metadata file.
     anno_files = []
     (tmp_path / 'frodo').mkdir()
     anno_files.append(create_meta_file(tmp_path / 'frodo', 1))
@@ -369,7 +347,7 @@ def test_generate_metadata_list_with_image_removal(monkeypatch, tmp_path):
 
     train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
 
-    # At this point we should have the stanzas refactored
+    # At this point we should have the stanzas refactored.
     assert_correct_metadata_list(train_list, {11: [21, 31, 41], 2: [2, 12], 12: [22, 32, 42]})
 
 
@@ -387,7 +365,7 @@ def test_generate_image_metadata_sample_quantity(monkeypatch, tmp_path):
 
     train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
 
-    # This seed should consistently produce this order
+    # This seed should consistently produce this order.
     assert_correct_metadata_list(train_list, {11: [21, 31, 41], 2: [2, 12]})
 
 
@@ -405,7 +383,7 @@ def test_generate_image_metadata_sample_fraction(monkeypatch, tmp_path):
 
     train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config)
 
-    # Make sure they are in this order
+    # Make sure they are in this order.
     assert_correct_metadata_list(train_list, {1: [1, 11], 12: [22, 32, 42]})
 
 
@@ -452,7 +430,7 @@ def get_labels(meta):
 # The original categories in the sample coco file are as follows.
 # LABEL_MAP = {0: 'zero', 1: 'one', 2: 'two', 3: 'three'}
 
-# Since we are doubling, inject the unused ones in the middle
+# Since we are doubling, inject the unused ones in the middle.
 DOUBLED_LABEL_MAP = {'0': 'zero', '1': 'unused1', '2': 'one', '3': 'unused2', '4': 'two', '5': 'unused3', '6': 'three'}
 
 
@@ -467,7 +445,7 @@ class LabelDoubler:
 
 
 def test_generate_image_metadata_preprocessing(monkeypatch, tmp_path):
-    # This test checks to see if the metadata preprocessor can modify the labels
+    # This test checks to see if the metadata preprocessor can modify the labels.
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_data_listdir_metadata)
     coco_files = setup_metadata_files(tmp_path)
 
@@ -481,10 +459,10 @@ def test_generate_image_metadata_preprocessing(monkeypatch, tmp_path):
     assert len(train_list) == 4
     assert len(val_list) == 0
 
-    # They should all be there and match
+    # They should all be there and match.
     assert_correct_metadata_list(train_list, {1: [1, 11], 11: [21, 31, 41], 2: [2, 12], 12: [22, 32, 42]})
 
-    # Walk all the raw annotations and make a map of id to new label
+    # Walk all the raw annotations and make a map of id to new label.
     doubled = {}
     for coco_file in coco_files:
         for anno in coco_file['annotations']:
@@ -534,7 +512,7 @@ def make_basic_data_set_tabular_config():
 
 def fill_tabular_tempdir(root_dir):
     """
-    Creates the sample files to be read and returns the data we should find
+    Creates the sample files to be read and returns the data we should find.
     :param root_dir: The root directory
     :return: Good data in a dict of label -> dict of x -> y
     """
@@ -576,7 +554,7 @@ def test_load_tabular_data(tmp_path):
     assert len(train_list) == 12
     assert len(val_list) == 0
 
-    # Make sure that evert returned value is in the results.
+    # Make sure that every returned value is in the results.
     for data, label in train_list:
         assert correct[int(label)][int(data[0])] == int(data[1])
         del correct[int(label)][int(data[0])]
@@ -586,7 +564,7 @@ def test_load_tabular_data_with_sampling(tmp_path):
     correct = fill_tabular_tempdir(tmp_path)
     lab = Lab(workspace=Path(tmp_path) / 'myworkspace', data_root=Path(tmp_path) / 'mydataroot')
 
-    # We only need to test one sample because the sampling core is tested elsewhere
+    # We only need to test one sample because the sampling core is tested elsewhere.
     dataset_struct = make_basic_data_set_tabular_config()
     dataset_struct.update(make_sample_stanza("random_quantity", {'seed': 1234, 'count': 3}))
     dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
@@ -598,12 +576,12 @@ def test_load_tabular_data_with_sampling(tmp_path):
     assert len(train_list) == 6
     assert len(val_list) == 0
 
-    # Now, make sure they are in each one, removing as we go
+    # Now, make sure they are in each one, removing as we go.
     for data, label in train_list:
         assert correct[int(label)][int(data[0])] == int(data[1])
         del correct[int(label)][int(data[0])]
 
-    # At this point we should have three unused entries of each class
+    # At this point we should have three unused entries of each class.
     assert len(correct[0]) == 3
     assert len(correct[1]) == 3
 
@@ -621,7 +599,7 @@ def test_load_tabular_data_with_validation(tmp_path):
     with open(config_path, 'w') as out_file:
         json.dump(model_config_dict, out_file, indent=4)
 
-    # TODO: Switch this to just use the internal data structure
+    # TODO: Switch this to just use the internal data structure.
     model_config = ModelConfig.load(str(config_path))
     train_list, val_list = jb_data.load_tabular_data(lab,
                                                      dataset_config,
@@ -632,7 +610,7 @@ def test_load_tabular_data_with_validation(tmp_path):
     assert len(train_list) == 6
     assert len(val_list) == 6
 
-    # Now, make sure they are in each one, removing as we go
+    # Now, make sure they are in each one, removing as we go.
     for data, label in train_list:
         assert correct[int(label)][int(data[0])] == int(data[1])
         del correct[int(label)][int(data[0])]
@@ -705,7 +683,7 @@ def test_flatten_dict_to_pairs():
     data_list, data_dict = make_data()
     result_pairs = jb_data.flatten_dict_to_pairs(data_dict)
 
-    # Order doesn't matter. Just check to make sure that the entries are in the original dict
+    # Order doesn't matter. Just check to make sure that the entries are in the original dict.
     assert len(result_pairs) == len(data_list)
     for v, k in result_pairs:
         assert v in data_dict[k]

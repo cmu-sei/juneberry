@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -151,7 +129,7 @@ def load_file(path: str):
         with open(path) as in_file:
             return json.load(in_file)
     else:
-        logger.error(f"Currently, we only support .json files. {path}. EXITING")
+        logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
         sys.exit(-1)
 
 
@@ -289,9 +267,20 @@ class ModelManager:
         """ :return: The path to the plots directory within the model directory. """
         return self.model_dir_path / 'plots'
 
+    def get_model_path(self):
+        """ :return: The path to a pytorch-compatible model file. """
+        if self.model_platform in ['tensorflow']:
+            return self.get_tensorflow_model_path()
+        else:
+            return self.get_pytorch_model_path()
+
     def get_pytorch_model_path(self):
         """ :return: The path to a pytorch-compatible model file. """
         return self.model_dir_path / 'model.pt'
+
+    def get_tensorflow_model_path(self):
+        """ :return: The path to a tensorflow-compatible model file. """
+        return self.model_dir_path / 'model.h5'
 
     def get_pytorch_model_summary_path(self):
         """ :return: The path to model summary file. """
@@ -375,7 +364,7 @@ class ModelManager:
             # so we just peek into the data as a struct.
             data = load_file(self.get_model_config())
             platform = data.get('platform', None)
-            if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy']:
+            if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy', 'tensorflow']:
                 # TODO: Should this be an error? We need to try it and run full tests
                 logger.warning(f"Unknown platform '{platform}' found in: {self.get_model_config()}")
             return platform
@@ -438,16 +427,24 @@ class ModelManager:
         """
         :return: A list of files or glob patterns of files generated during training.
         """
-        files = [self.get_pytorch_model_path(),
+        files = [self.get_model_path(),
                  self.get_training_out_file(),
-                 self.get_training_summary_plot(),
                  self.get_training_log(),
                  self.get_train_root_dir()]
+
+        # Everyone but tensorflow has an output plot...
+        if self.model_platform not in ['tensorflow']:
+            files.append(self.get_training_summary_plot())
 
         if self.model_platform in ['detectron2', 'mmdetection']:
             ext = "py" if self.model_platform == Platforms.MMD else "yaml"
             more_files = [self.get_platform_training_config(ext),
                           self.get_training_data_manifest_path(),
+                          self.get_validation_data_manifest_path()]
+            files.extend(more_files)
+
+        elif self.model_platform in ['tensorflow']:
+            more_files = [self.get_training_data_manifest_path(),
                           self.get_validation_data_manifest_path()]
             files.extend(more_files)
 
@@ -463,9 +460,15 @@ class ModelManager:
         """
         :return: A list of files or glob patterns of files generated during a dry run.
         """
-        return [self.get_pytorch_model_summary_path(),
-                self.get_training_dryrun_log_path(),
-                self.get_dryrun_imgs_dir()]
+
+        files = [self.get_pytorch_model_summary_path(),
+                 self.get_training_dryrun_log_path(),
+                 self.get_dryrun_imgs_dir()]
+
+        if self.model_platform in ['tensorflow']:
+            files.extend([self.get_training_data_manifest_path(),
+                          self.get_validation_data_manifest_path()])
+        return files
 
     def get_dry_run_clean_extras_list(self) -> list:
         """

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python3
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -22,53 +22,36 @@
 #
 # ======================================================================================================================
 
-import setuptools
+import logging
 
-install_requires = [
-    "doit",
-    "numpy",
-    "matplotlib",
-    "pillow",
-    "sklearn",
-    "tensorflow",
-    "tensorflow-datasets",
-    "tensorboard",
-    "torch",
-    "torchvision",
-    "torch-summary>=1.4.5",
-    "pandas",
-    "pycocotools",
-    "brambox",
-    "pyyaml",
-    "natsort",
-    "prodict",
-    "jsonschema",
-    "opacus",
-    "protobuf==3.16.0",
-    "onnx",
-    "onnxruntime"  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
-]
+from tensorflow.keras.applications import resnet50
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.models import Model
 
-bin_scripts = [
-    'bin/jb_clean_predictions',
-    'bin/jb_evaluate_data',
-    'bin/jb_experiment_to_rules',
-    'bin/jb_generate_experiments',
-    'bin/jb_gpu_runner',
-    'bin/jb_plot_pr',
-    'bin/jb_plot_roc',
-    'bin/jb_rules_to_pydoit',
-    'bin/jb_run_experiment',
-    'bin/jb_summary_report',
-    'bin/jb_train',
-]
+logger = logging.getLogger(__name__)
 
-setuptools.setup(
-    name='Juneberry',
-    version='0.5',
-    description='Juneberry Machine Learning Experiment Manager',
-    packages=setuptools.find_packages(),
-    install_requires=install_requires,
-    scripts=bin_scripts,
-    python_requires='>=3.7',
-)
+
+class Resnet50Pretrained:
+    # This is the base Resent50 model from tensorflow.  Pretrained on imagenet.
+    def __call__(self, num_classes, img_width, img_height, channels, labels):
+        # https://keras.io/applications/
+        return resnet50.ResNet50()
+
+
+class Resnet50Finetuned:
+    # Comments about the model
+    # fine-tuned: base model is not trainable (only last dense layer is trainable)
+
+    def __call__(self, num_classes, img_width, img_height, channels, labels):
+        # https://keras.io/applications/
+        base_model = resnet50.ResNet50(include_top=False,
+                                       input_tensor=Input(shape=(img_height, img_width, channels)),
+                                       pooling='avg')
+        base_model.trainable = False
+        x = base_model.output
+        # prediction = Dense(len(set(labels)), activation="softmax")(x)
+        prediction = Dense(num_classes, activation="softmax")(x)
+
+        model = Model(inputs=base_model.input, outputs=prediction)
+
+        return model

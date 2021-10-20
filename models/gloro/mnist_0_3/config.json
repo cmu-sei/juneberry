@@ -1,0 +1,71 @@
+{
+    "batch_size": 256,
+    "description": "Gloronet mnist example from train_mnist_0.3_gloro.sh.",
+    "epochs": 300,
+    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
+    "evaluation_transforms": [
+        {
+            "fqcn": "juneberry.transforms.debugging_transforms.SizeCheckImageTransform",
+            "kwargs": { "height": 28, "mode": "L", "width": 28 }
+        }
+    ],
+    "format_version": "0.2.0",
+    "model_architecture": {
+        "args": {
+            "channels": 1,
+            "img_height": 28,
+            "img_width": 28,
+            "num_classes": 10,
+            "epsilon": 0.45
+        },
+        "module": "juneberry.tfgloro.architectures.GloroCNN2C2F"
+    },
+    "platform": "tensorflow",
+    "tensorflow": {
+        "callbacks": [
+            {
+                "fqcn": "juneberry.tfgloro.callbacks.EvalEpsilonCallback",
+                "kwargs": {
+                    "eval_epsilon": 0.3
+                }
+            },
+            {
+                "fqcn": "juneberry.tensorflow.callbacks.TrainingMetricsCallback",
+                "kwargs": {
+                    "train_key": "acc",
+                    "val_key": "val_acc"
+                }
+            }
+        ],
+        "loss_args": { "from_logits": true },
+        "loss_fn": "tensorflow.keras.losses.SparseCategoricalCrossentropy",
+        "lr_schedule_args": {
+            "schedule_string": "decay_to_0.000001_after_half",
+            "duration": { "$ref": "#/epochs" }
+        },
+        "lr_schedule_fn": "juneberry.tfgloro.schedulers.ContinuousExponentialLrScheduler",
+        "metrics": [ "acc" ],
+        "optimizer_args": {
+            "momentum": 0.9
+        },
+        "optimizer_fn": "tensorflow.keras.optimizers.SGD"
+    },
+    "seed": 4210592948,
+    "task": "classification",
+    "timestamp": "2021-03-02T13:30:00",
+    "training_dataset_config_path": "data_sets/tf_mnist_train.json",
+    "training_transforms": [
+        {
+            "fqcn": "juneberry.transforms.debugging_transforms.SizeCheckImageTransform",
+            "kwargs": { "height": 28, "mode": "L", "width": 28 }
+        }
+    ],
+    "validation": {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "fraction": 0.2,
+            "seed": 3554237221
+        }
+    }
+}
