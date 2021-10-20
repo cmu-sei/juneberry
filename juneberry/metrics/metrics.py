@@ -491,9 +491,9 @@ class MetricsPlot:
     # override this for a custom plot label
     @staticmethod
     def _get_plot_label(plot_label_data: Dict) -> str:
-        return f"m({plot_label_data['model_name']}) \
-            d({plot_label_data['dataset_name']}) \
-                (AUC {round(plot_label_data['auc'], 3)})"
+        return f"m({plot_label_data['model_name']}) " \
+            f"d({plot_label_data['dataset_name']}) " \
+            f"(AUC {round(plot_label_data['auc'], 3)})"
 
     def add_metrics(self, m: Metrics) -> None:
         """
