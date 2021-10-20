@@ -131,11 +131,11 @@ def main():
         from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
         evaluator = MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
     elif model_config.platform == "tensorflow":
-        from juneberry.tensorflow.evaluator import TFEvaluator
-        evaluator = TFEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        from juneberry.tensorflow.evaluator import Evaluator
+        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
     elif model_config.platform == "tfgloro":
-        from juneberry.tensorflow.evaluator import GloroEvaluator
-        evaluator = GloroEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        from juneberry.tensorflow.gloro.evaluator import Evaluator
+        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
     else:
         logger.error(f"Unsupported platform: {model_config.platform}")
         sys.exit(-1)
