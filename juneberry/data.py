@@ -46,6 +46,7 @@ import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
+from juneberry.config.training_output import TrainingOutput
 
 logger = logging.getLogger(__name__)
 
@@ -957,8 +958,8 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
     if model_manager:
         # # Check the output.json file
         if model_manager.get_training_out_file():
-            train_outfile = model_manager.get_training_out_file()
-            label_names = get_label_dict(train_outfile, "label_names")
+            outfile_dict = TrainingOutput.load(model_manager.get_training_out_file())
+            label_names = convert_dict(outfile_dict.label_names)
             if label_names and show_source:
                 return label_names, "output"
             elif label_names:
