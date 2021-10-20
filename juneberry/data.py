@@ -922,7 +922,7 @@ def load_coco_json(filepath, output: list) -> None:
     """
     Loads the metadata json file. Validates during load.
     :param filepath: The filepath to load.
-    :param output: The output list in which to add out content
+    :param output: The output list in which to add out content.
     """
     with open(filepath) as json_file:
         data = json.load(json_file)
@@ -930,20 +930,30 @@ def load_coco_json(filepath, output: list) -> None:
         output.extend(helper.to_image_list())
 
 
-def get_label_dict(file_path):
+def get_label_dict(file_path: str, key: str):
+    """
+    Helper function for converting a stanza in a specified json file into a Python dictionary of integer keys and
+    string values.
+    :param file_path: The filepath to load.
+    :param key: The key associated with the stanza of interest.
+    """
     dictionary = {}
     file_path = Path(file_path)
     if file_path.exists():
         file = open(file_path, )
         json_config = json.load(file)
-        if "label_names" in json_config:
-            stanza = json_config["label_names"]
+        if key in json_config:
+            stanza = json_config[key]
             convert_dict(stanza)
         file.close()
     return dictionary
 
 
 def convert_dict(stanza):
+    """
+    Converts a json stanza into a dictionary of integer key and string values.
+    :param stanza: The json stanza that will be converted.
+    """
     dictionary = {}
     if stanza:
         for k, v in stanza.items():
@@ -951,69 +961,83 @@ def convert_dict(stanza):
         return dictionary
 
 
-def get_label_mapping(model_manager: ModelManager, model_config=None, train_config=None, eval_config=None,
+def get_label_mapping(model_manager: ModelManager = None, model_config=None, train_config=None, eval_config=None,
                       show_source=False):
     """
-    Checks a hierarchy of files to determine the set of label names used by the trained model.
+    Checks a hierarchy of files to determine the set of label names used by the trained model. The order of precedence
+    is as follows: training output.json file, specified model config file, specified training config file, specified
+    eval config file, default model config file, and default training config file.
     :param model_manager: ModelManager object for the model.
-    :param model_config: Model config for the model.
-    :param train_config: Training dataset config for the model.
-    :param eval_config: Evaluation dataset config for the model.
+    :param model_config: Path to the model config for the model.
+    :param train_config: Path to the training dataset config for the model.
+    :param eval_config: Path to the evaluation dataset config for the model.
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: The label names as a dict of int -> string.
     """
+    if model_manager:
+        # # Check the output.json file
+        if model_manager.get_training_out_file():
+            train_outfile = model_manager.get_training_out_file()
+            label_names = get_label_dict(train_outfile, "label_names")
+            if label_names and show_source:
+                return label_names, "output"
+            elif label_names:
+                return label_names
 
-    # Check the output.json file
-    if model_manager.get_training_out_file():
-        train_outfile = model_manager.get_training_out_file()
-        label_names = get_label_dict(train_outfile)
-        if label_names and show_source:
-            return label_names, "output"
-        elif label_names:
-            return label_names
-
-    # Check the model config from argument
+    # Check the model config override
     if model_config:
+        # Check the model config
         model_dict = ModelConfig.load(model_config)
-        label_names = convert_dict(model_dict.label_mapping)
+        label_val = model_dict.label_mapping
+        if isinstance(label_val, str):
+            # Load dictionary from specified path
+            label_names = get_label_dict(file_path=label_val, key="labelNames")
+        else:
+            label_names = convert_dict(label_val)
         if label_names and show_source:
-            return label_names, "model config 1"
+            return label_names, "model config arg"
         elif label_names:
             return label_names
 
-    # Check the model config from model manager
-    model_dict = ModelConfig.load(model_manager.get_model_config())
-    label_names = convert_dict(model_dict.label_mapping)
-    if label_names and show_source:
-        return label_names, "model config 2"
-    elif label_names:
-        return label_names
-
-    # Check the training dataset config from argument
+    # Check the train config override
     if train_config:
         train_dict = DatasetConfig.load(train_config)
         label_names = convert_dict(train_dict.label_names)
         if label_names and show_source:
-            return label_names, "train config 1"
+            return label_names, "train config arg"
         elif label_names:
             return label_names
 
-    # Check the training dataset config from the model config
-    train_dict = DatasetConfig.load(model_dict.training_dataset_config_path)
-    label_names = convert_dict(train_dict.label_names)
-    if label_names and show_source:
-        return label_names, "train config 2"
-    elif label_names:
-        return label_names
-
-    # Check the evaluation dataset config from argument
+    # Check the eval config
     if eval_config:
         eval_dict = DatasetConfig.load(eval_config)
         label_names = convert_dict(eval_dict.label_names)
         if label_names and show_source:
-            return label_names, "eval config 1"
+            return label_names, "eval config arg"
         elif label_names:
             return label_names
 
-    else:
-        logger.error("No label names found.")
+    # Check the configs from the model_manager
+    if model_manager:
+        # Check the model config
+        model_dict = ModelConfig.load(model_manager.get_model_config())
+        label_val = model_dict.label_mapping
+        if isinstance(label_val, str):
+            # Load dictionary from specified path
+            label_names = get_label_dict(file_path=label_val, key="labelNames")
+        else:
+            label_names = convert_dict(label_val)
+        if label_names and show_source:
+            return label_names, "model config default"
+        elif label_names:
+            return label_names
+
+        # Check the train config
+        train_dict = DatasetConfig.load(model_dict.training_dataset_config_path)
+        label_names = convert_dict(train_dict.label_names)
+        if label_names and show_source:
+            return label_names, "train config default"
+        elif label_names:
+            return label_names
+
+    logger.error("No label names found.")

@@ -766,18 +766,24 @@ def test_get_label_mapping():
     train_config = "models/tabular_binary_sample/train_data_config.json"
 
     test_labels = {0: "outer", 1: "inner"}
-    test_source = "train config 2"
-    func_labels, func_source = jb_data.get_label_mapping(model_manager, show_source=True)
+    test_source = "train config default"
+    func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
     assert test_labels == func_labels
     assert test_source == func_source
 
-    test_source = "train config 2"
-    func_labels, func_source = jb_data.get_label_mapping(model_manager, model_config=model_config, show_source=True)
+    func_labels = jb_data.get_label_mapping(model_config=model_config, show_source=True)
+    assert func_labels is None
+
+    test_source = "train config arg"
+    func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
     assert test_labels == func_labels
     assert test_source == func_source
 
-    test_source = "train config 1"
-    func_labels, func_source = jb_data.get_label_mapping(model_manager, train_config=train_config, show_source=True)
+    test_source = "train config arg"
+    func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
+                                                         show_source=True)
     assert test_labels == func_labels
     assert test_source == func_source
 
+
+test_get_label_mapping()
