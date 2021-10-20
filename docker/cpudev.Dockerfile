@@ -7,7 +7,7 @@ RUN chmod 1777 /tmp
 
 # These are needed for opencv - not by default on some platforms
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet \
+    && apt-get install -y libgl1-mesa-glx figlet sudo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
