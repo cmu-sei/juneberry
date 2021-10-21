@@ -911,29 +911,28 @@ def load_coco_json(filepath, output: list) -> None:
         output.extend(helper.to_image_list())
 
 
-def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames', label_source=None):
+def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
     """
     Helper function for converting a stanza in a specified json file into a Python dictionary of integer keys and
     string values.
     :param label_val: The value associated with the label mapping key. May be a dictionary of label mappings or a path
         to a label mappings dictionary.
     :param key: The key associated with the stanza of interest.
-    :param label_source: Optional flag that returns the label mapping source when set to true.
     :return: Returns a dictionary of integer keys mapped to string values.
     """
+    if label_val:
+        if isinstance(label_val, str):
+            file_content = jbfs.load_json(label_val)
+            if key in file_content:
+                stanza = file_content[key]
+                return convert_dict(stanza)
 
-    if isinstance(label_val, str):
-        file_content = jbfs.load_json(label_val)
-        if key in file_content:
-            stanza = file_content[key]
-            return convert_dict(stanza), label_source if label_source else convert_dict(stanza)
+        elif isinstance(label_val, dict):
+            return convert_dict(label_val)
 
-    elif isinstance(label_val, dict):
-        return convert_dict(label_val), label_source if label_source else convert_dict(label_val)
-
-    else:
-        logger.error(f"get_label_dict received a label_val that wasn't a str or dict. EXITING.")
-        sys.exit(-1)
+        else:
+            logger.error(f"get_label_dict received a label_val that wasn't a str or dict. EXITING.")
+            sys.exit(-1)
 
 
 def convert_dict(stanza):
@@ -941,6 +940,7 @@ def convert_dict(stanza):
     Converts a json stanza into a dictionary of integer key and string values.
     :param stanza: The json stanza that will be converted.
     """
+    # Return dictionary if stanza is not empty.
     if stanza:
         return {int(k): v for (k, v) in stanza.items()}
 
@@ -963,47 +963,53 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
         if model_manager.get_training_out_file().exists():
             training_output = TrainingOutput.load(model_manager.get_training_out_file())
             label_val = training_output.options.label_mapping
-            label_source = "training output" if show_source else None
-            return get_label_dict(label_val, label_source=label_source)
+            label_dict = get_label_dict(label_val)
+            if label_dict:
+                return label_dict, "training output" if show_source else label_dict
 
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
         mc = ModelConfig.load(model_config)
         label_val = mc.label_mapping
-        label_source = "model config" if show_source else None
-        return get_label_dict(label_val, label_source=label_source)
+        label_dict = get_label_dict(label_val)
+        if label_dict:
+            return label_dict, "model config" if show_source else label_dict
 
     # If a training config was provided...
     if train_config:
         dc = DatasetConfig.load(train_config)
         label_val = dc.label_names
-        label_source = "training dataset config" if show_source else None
-        return get_label_dict(label_val, label_source=label_source)
+        label_dict = get_label_dict(label_val)
+        if label_dict:
+            return label_dict, "training dataset config" if show_source else label_dict
 
-    # If an eval config was provided...
-    if eval_config:
-        dc = DatasetConfig.load(eval_config)
-        label_val = convert_dict(dc.label_names)
-        label_source = "eval dataset config" if show_source else None
-        return get_label_dict(label_val, label_source=label_source)
-
-    # If the model manager was provided, check the default model config and training config.
+    # If the model manager was provided, check the default model config followed by the default training config.
     if model_manager:
         mc = ModelConfig.load(model_manager.get_model_config())
         label_val = mc.label_mapping
 
         # If the model config has labels, use those.
         if label_val is not None:
-            label_source = "model config via model manager" if show_source else None
-            return get_label_dict(label_val, label_source=label_source)
+            label_dict = get_label_dict(label_val)
+            if label_dict:
+                return label_dict, "model config via model manager" if show_source else label_dict
 
         # If the model config didn't have labels, get them from the training config.
         else:
             dc = DatasetConfig.load(mc.training_dataset_config_path)
             label_val = dc.label_names
-            label_source = "training dataset config via model config via model manager" if show_source else None
-            return get_label_dict(label_val, label_source=label_source)
+            label_dict = get_label_dict(label_val)
+            if label_dict:
+                return label_dict, "training dataset config via model config via model manager" if show_source else label_dict
+
+    # If an eval config was provided as a last resort...
+    if eval_config:
+        dc = DatasetConfig.load(eval_config)
+        label_val = convert_dict(dc.label_names)
+        label_dict = get_label_dict(label_val)
+        if label_dict:
+            return label_dict, "eval dataset config" if show_source else label_dict
 
 
 def check_num_classes(args: dict, num_model_classes: int) -> None:
