@@ -163,7 +163,7 @@ class TrainingOutputBuilder:
         self.output.options.model_architecture = model_config.model_architecture
         self.output.options.seed = model_config.seed
         self.output.options.training_dataset_config_path = model_config.training_dataset_config_path
-        self.output.options.label_mapping = model_config.label_mapping
+        # self.output.options.label_mapping = model_config.label_mapping
 
         if model_config.validation.algorithm == "from_file":
             self.output.options.validation_dataset_config_path = model_config.validation.arguments['file_path']

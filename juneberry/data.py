@@ -979,8 +979,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
     # If a training config was provided...
     if train_config:
         dc = DatasetConfig.load(train_config)
-        label_val = dc.label_names
-        label_dict = get_label_dict(label_val)
+        label_dict = dc.retrieve_label_names()
         if label_dict:
             return label_dict, "training dataset config" if show_source else label_dict
 
@@ -998,16 +997,14 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
         # If the model config didn't have labels, get them from the training config.
         else:
             dc = DatasetConfig.load(mc.training_dataset_config_path)
-            label_val = dc.label_names
-            label_dict = get_label_dict(label_val)
+            label_dict = dc.retrieve_label_names()
             if label_dict:
                 return label_dict, "training dataset config via model config via model manager" if show_source else label_dict
 
-    # If an eval config was provided as a last resort...
+    # If an eval config was provided, check this as a last resort.
     if eval_config:
         dc = DatasetConfig.load(eval_config)
-        label_val = convert_dict(dc.label_names)
-        label_dict = get_label_dict(label_val)
+        label_dict = dc.retrieve_label_names()
         if label_dict:
             return label_dict, "eval dataset config" if show_source else label_dict
 

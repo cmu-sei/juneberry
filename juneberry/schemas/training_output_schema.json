@@ -24,7 +24,7 @@
                     "type": "integer"
                 },
                 "label_mapping": {
-                    "type": ["dict", "string"]
+                    "type": [ "string", "object" ]
                 },
                 "seed": {
                     "type": "integer"
