@@ -191,7 +191,7 @@ class Metrics:
         ndarray[0] => precision, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return DataFrame.to_numpy(self._prc_df)
+        return Metrics.df_to_ndarray(self._prc_df)
 
     @property
     def ap(self) -> float:
@@ -230,8 +230,15 @@ class Metrics:
         return bb.stat.fscore(self._prc_df, beta)
 
     @property
-    def fscore(self, beta: int = 1) -> ndarray:
-        return DataFrame.to_numpy(self._fscore_df)
+    def fscore(self, beta: int = 1) -> ndarray[ndarray]:
+        """
+        Get the f1 / recall / confidence values for this
+        Metrics object.
+        :returns: an ndarray of ndarrays. For each ndarray,
+        ndarray[0] => f1, ndarray[1] => recall,
+        ndarray[2] => confidence
+        """
+        return Metrics.df_to_ndarray(self._fscore_df)
 
     @property
     def mAP_per_class(self) -> Dict[str, float]:
@@ -301,6 +308,10 @@ class Metrics:
             "mAP_m": self.mAP_medium,
             "mAP_l": self.mAP_large,
         }
+
+    @staticmethod
+    def df_to_ndarray(df: DataFrame) -> ndarray[ndarray]:
+        return DataFrame.to_numpy(df)
 
     @staticmethod
     def export(metrics: List[Metrics],
