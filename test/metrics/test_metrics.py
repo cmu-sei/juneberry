@@ -91,8 +91,8 @@ def test_mAP_per_class():
 
 
 def test_pr():
-    pr = pd.read_csv(test_data_dir / "pr.csv")
-    _pytest_assert_frame_equal(pr, m.pr)
+    prc = pd.read_csv(test_data_dir / "pr.csv")
+    _pytest_assert_frame_equal(prc, m.prc)
 
 
 def test_fscore():

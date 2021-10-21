@@ -176,18 +176,18 @@ class Metrics:
                             tqdm=False)
 
     @property
-    def pr(self) -> DataFrame:
+    def prc(self) -> DataFrame:
         return bb.stat.pr(self.det,
                           self.anno,
                           self.iou_threshold)
 
     @property
     def ap(self) -> float:
-        return bb.stat.ap(self.pr)
+        return bb.stat.ap(self.prc)
 
     @property
     def max_r(self) -> float:
-        return bb.stat.peak(self.pr, y="recall")["recall"]
+        return bb.stat.peak(self.prc, y="recall")["recall"]
 
     @property
     def mAP(self) -> float:
@@ -215,7 +215,7 @@ class Metrics:
 
     @property
     def fscore(self, beta: int = 1) -> DataFrame:
-        return bb.stat.fscore(self.pr, beta)
+        return bb.stat.fscore(self.prc, beta)
 
     @property
     def mAP_per_class(self) -> Dict[str, float]:
@@ -247,7 +247,7 @@ class Metrics:
         Get the precision-recall area under curve.
         :return: PR AUC float
         """
-        return bb.stat.auc(self.pr,
+        return bb.stat.auc(self.prc,
                            x="recall",
                            y="precision")
 
@@ -257,7 +257,7 @@ class Metrics:
         Get the precision-confidence area under curve.
         :return: PC AUC float
         """
-        return bb.stat.auc(self.pr,
+        return bb.stat.auc(self.prc,
                            x="confidence",
                            y="precision")
 
@@ -267,7 +267,7 @@ class Metrics:
         Get the recall-confidence area under curve.
         :return: RC AUC float
         """
-        return bb.stat.auc(self.pr,
+        return bb.stat.auc(self.prc,
                            x="confidence",
                            y="recall")
 
@@ -502,7 +502,7 @@ class MetricsPlot:
         :return: None
         """
         self.metrics.append(m)
-        self._plot(m.pr,
+        self._plot(m.prc,
                    m.model_name,
                    m.dataset_name,
                    self._get_auc(m),
