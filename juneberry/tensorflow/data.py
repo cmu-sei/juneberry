@@ -233,7 +233,6 @@ def _make_tfds_split_args(val_stanza, load_args):
 
 def _load_tf_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     tf_stanza = ds_config.tensorflow_data
-
     load_args = _prep_tdfs_load_args(tf_stanza)
 
     # Based on the validation split we will either use the native random fraction
@@ -241,7 +240,12 @@ def _load_tf_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     _make_tfds_split_args(model_config.validation, load_args)
 
     # Now load them
+    logger.info(f"Loading TFDS name='{tf_stanza.name}' with args='{load_args}'")
     train_ds, val_ds = tfds.load(tf_stanza.name, **load_args)
+
+    # Do this BEFORE batching so that the size shows the full length, not number of batches
+    logger.info(f"Loaded dataset with size train={len(train_ds)}, val={len(val_ds)}")
+
     train_ds = _add_transforms_and_batching(train_ds, model_config.training_transforms, model_config.batch_size)
     val_ds = _add_transforms_and_batching(val_ds, model_config.evaluation_transforms, model_config.batch_size)
 
@@ -315,24 +319,21 @@ def _load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, u
 
     # Now, construct the dataset based on
     tf_stanza = ds_config.tensorflow_data
-
-    # We always need supervised so we get a tuple instead of dict as the transform (map) is
-    # designed to get the tuple not a dict.
-    load_args = {}
-    if tf_stanza.load_args is not None:
-        load_args = {}
-    load_args['as_supervised'] = True
+    load_args = _prep_tdfs_load_args(tf_stanza)
 
     if use_val_split or use_train_split:
         # If use train or use val, make them both but then return the right one
         _make_tfds_split_args(model_config.validation, load_args)
-        logger.info(f"Loading {tf_stanza.name} with args: {load_args}")
+        logger.info(f"Loading TFDS name='{tf_stanza.name}' with args='{load_args}'")
         train_ds, val_ds = tfds.load(tf_stanza.name, **load_args)
         eval_ds = train_ds if use_train_split else val_ds
     else:
         _make_tfds_eval_args(load_args)
-        logger.info(f"Loading {tf_stanza.name} with args: {load_args}")
+        logger.info(f"Loading TFDS name='{tf_stanza.name}' with args='{load_args}'")
         eval_ds = tfds.load(tf_stanza.name, **load_args)
+
+    # Do this BEFORE batching so that the size shows the full length, not number of batches
+    logger.info(f"Loaded dataset of size {len(eval_ds)}")
 
     # Now, get the labels
     labels = _extract_labels(eval_ds)
@@ -367,7 +368,7 @@ def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelCon
         # Save the manifest
         jb_data.save_path_label_manifest(eval_list, eval_dir_mgr.get_manifest_path(), lab.data_root())
 
-        # Now make the loaders returning the loadeer and labels
+        # Now make the loaders returning the loader and labels
         return _construct_image_eval_dataset(model_config, eval_list), [x[1] for x in eval_list]
     elif ds_config.data_type == "tabular":
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
