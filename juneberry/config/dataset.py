@@ -94,7 +94,7 @@ class TabularData(Prodict):
 
 class TensorFlowData(Prodict):
     name: str
-    load_args: Prodict
+    load_kwargs: Prodict
 
 
 class TorchvisionData(Prodict):
