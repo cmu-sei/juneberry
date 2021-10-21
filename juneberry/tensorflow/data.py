@@ -145,15 +145,16 @@ def _add_transforms_and_batching(dataset, transform_list, batch_size):
 #  \____\___/|_| |_| |_|_| |_| |_|\___/|_| |_|
 
 def _prep_tdfs_load_args(tf_stanza):
-    # NOTE: Prodict, so can't use get. :(
+    # NOTE: Prodict, so can't use "get" with defaults so we check for None.
     load_args = {}
-    if tf_stanza.load_args is not None:
-        load_args = {}
+    if tf_stanza.load_kwargs is not None:
+        load_args = tf_stanza.load_kwargs
 
     # We always need supervised so we get a tuple instead of dict as the transform (map) is
     # designed to get the tuple not a dict.
     load_args['as_supervised'] = True
 
+    # Remove some other stuff we don't want
     for unwanted in ['batch_size', 'shuffle']:
         if unwanted in load_args:
             del load_args[unwanted]
