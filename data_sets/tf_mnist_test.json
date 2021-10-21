@@ -19,6 +19,9 @@
     "task_type": "classification",
     "timestamp": "2021-07-01T16:30:00",
     "tensorflow_data": {
-        "name": "mnist"
+        "name": "mnist",
+        "load_kwargs": {
+            "split": "test"
+        }
     }
 }
