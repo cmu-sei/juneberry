@@ -90,14 +90,14 @@ def test_mAP_per_class():
     assert m.mAP_per_class["class_2"] == 0.10049504950495049
 
 
-def test_pr():
-    prc = pd.read_csv(test_data_dir / "pr.csv")
-    _pytest_assert_frame_equal(prc, m.prc)
+def test_prc_df():
+    prc_df = pd.read_csv(test_data_dir / "prc.csv")
+    _pytest_assert_frame_equal(prc_df, m._prc_df)
 
 
 def test_fscore():
-    fscore = pd.read_csv(test_data_dir / "fscore.csv")
-    _pytest_assert_frame_equal(fscore, m.fscore)
+    fscore_df = pd.read_csv(test_data_dir / "fscore.csv")
+    _pytest_assert_frame_equal(fscore_df, m._fscore_df)
 
 
 def test_ap():

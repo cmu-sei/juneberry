@@ -37,6 +37,7 @@ import brambox as bb
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+from numpy import ndarray
 from pandas.core.frame import DataFrame
 
 from juneberry.filesystem import EvalDirMgr, ModelManager
@@ -176,18 +177,29 @@ class Metrics:
                             tqdm=False)
 
     @property
-    def prc(self) -> DataFrame:
+    def _prc_df(self) -> DataFrame:
         return bb.stat.pr(self.det,
                           self.anno,
                           self.iou_threshold)
 
     @property
+    def prc(self) -> ndarray[ndarray]:
+        """
+        Get the precision / recall / confidence values for this
+        Metrics object.
+        :returns: an ndarray of ndarrays. For each ndarray,
+        ndarray[0] => precision, ndarray[1] => recall,
+        ndarray[2] => confidence
+        """
+        return DataFrame.to_numpy(self._prc_df)
+
+    @property
     def ap(self) -> float:
-        return bb.stat.ap(self.prc)
+        return bb.stat.ap(self._prc_df)
 
     @property
     def max_r(self) -> float:
-        return bb.stat.peak(self.prc, y="recall")["recall"]
+        return bb.stat.peak(self._prc_df, y="recall")["recall"]
 
     @property
     def mAP(self) -> float:
@@ -214,8 +226,12 @@ class Metrics:
         return self._coco.mAP_large
 
     @property
-    def fscore(self, beta: int = 1) -> DataFrame:
-        return bb.stat.fscore(self.prc, beta)
+    def _fscore_df(self, beta: int = 1) -> DataFrame:
+        return bb.stat.fscore(self._prc_df, beta)
+
+    @property
+    def fscore(self, beta: int = 1) -> ndarray:
+        return DataFrame.to_numpy(self._fscore_df)
 
     @property
     def mAP_per_class(self) -> Dict[str, float]:
@@ -247,7 +263,7 @@ class Metrics:
         Get the precision-recall area under curve.
         :return: PR AUC float
         """
-        return bb.stat.auc(self.prc,
+        return bb.stat.auc(self._prc_df,
                            x="recall",
                            y="precision")
 
@@ -257,7 +273,7 @@ class Metrics:
         Get the precision-confidence area under curve.
         :return: PC AUC float
         """
-        return bb.stat.auc(self.prc,
+        return bb.stat.auc(self._prc_df,
                            x="confidence",
                            y="precision")
 
@@ -267,7 +283,7 @@ class Metrics:
         Get the recall-confidence area under curve.
         :return: RC AUC float
         """
-        return bb.stat.auc(self.prc,
+        return bb.stat.auc(self._prc_df,
                            x="confidence",
                            y="recall")
 
@@ -502,7 +518,7 @@ class MetricsPlot:
         :return: None
         """
         self.metrics.append(m)
-        self._plot(m.prc,
+        self._plot(m._prc_df,
                    m.model_name,
                    m.dataset_name,
                    self._get_auc(m),
