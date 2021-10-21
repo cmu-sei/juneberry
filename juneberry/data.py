@@ -959,7 +959,12 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
         # # Check the output.json file
         if model_manager.get_training_out_file():
             outfile_dict = TrainingOutput.load(model_manager.get_training_out_file())
-            label_names = convert_dict(outfile_dict.label_names)
+            label_val = outfile_dict.options.label_mapping
+            if isinstance(label_val, str):
+                # Load dictionary from specified path
+                label_names = get_label_dict(file_path=label_val, key="labelNames")
+            else:
+                label_names = convert_dict(label_val)
             if label_names and show_source:
                 return label_names, "output"
             elif label_names:

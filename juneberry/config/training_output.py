@@ -26,6 +26,7 @@ from datetime import datetime
 import logging
 from prodict import Prodict
 import sys
+from typing import Union
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
@@ -81,6 +82,7 @@ class Options(Prodict):
     # model_name should go here
     num_training_images: int
     num_validation_images: int
+    label_mapping: Union[dict, str]
     seed: int
     training_dataset_config_path: str
     validation_dataset_config_path: str
@@ -94,7 +96,6 @@ class TrainingOutput(Prodict):
     options: Options
     results: Results
     times: Times
-    label_names: dict
 
     @staticmethod
     def construct(data: dict, file_path: str = None):
@@ -147,7 +148,6 @@ class TrainingOutputBuilder:
         self.output.options = Options()
         self.output.times = Times()
         self.output.results = Results()
-        self.output.label_names = {}
 
     def set_from_model_config(self, model_name: str, model_config: ModelConfig) -> None:
         """
@@ -163,7 +163,7 @@ class TrainingOutputBuilder:
         self.output.options.model_architecture = model_config.model_architecture
         self.output.options.seed = model_config.seed
         self.output.options.training_dataset_config_path = model_config.training_dataset_config_path
-        # self.output.label_names = model_config.label_mapping
+        self.output.options.label_mapping = model_config.label_mapping
 
         if model_config.validation.algorithm == "from_file":
             self.output.options.validation_dataset_config_path = model_config.validation.arguments['file_path']
