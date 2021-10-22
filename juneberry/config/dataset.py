@@ -116,7 +116,7 @@ class Sampling(Prodict):
 
 
 class DatasetConfig(Prodict):
-    FORMAT_VERSION = '0.2.0'
+    FORMAT_VERSION = '0.3.0'
     SCHEMA_NAME = 'dataset_schema.json'
 
     data_transforms: DataTransforms
@@ -174,8 +174,11 @@ class DatasetConfig(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: A constructed object.
         """
+
+        # We currently do not have any non-compatible versions
+        # conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
+
         # Validate with our schema
-        conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
         if not conf_utils.validate_schema(data, DatasetConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in DatasetConfig from {file_path}. See log. EXITING!")
             sys.exit(-1)
