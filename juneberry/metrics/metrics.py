@@ -482,8 +482,8 @@ class MetricsPlot:
         xlabel: str = self.ax.get_xlabel()
         ylabel: str = self.ax.get_ylabel()
         self.ax.set_title(self._get_title({
-            "ylabel": ylabel.capitalize(),
-            "xlabel": xlabel.capitalize(),
+            "ylabel": ylabel,
+            "xlabel": xlabel,
             "iou_threshold": iou_threshold,
         }))
         data.plot(xlabel,
@@ -512,8 +512,9 @@ class MetricsPlot:
     # override this for a custom title
     @staticmethod
     def _get_title(title_data: Dict) -> str:
-        return f"{title_data['ylabel']}-{title_data['xlabel']} " \
-               f"Curve (IoU = {title_data['iou_threshold']})"
+        return f"{title_data['ylabel'].capitalize()}-" \
+            f"{title_data['xlabel'].capitalize()} " \
+            f"Curve (IoU = {title_data['iou_threshold']})"
 
     # override this for a custom plot label
     @staticmethod
