@@ -34,8 +34,6 @@ import tempfile
 from typing import Dict, List
 
 import brambox as bb
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from numpy import ndarray
 from pandas.core.frame import DataFrame
@@ -421,7 +419,7 @@ class MetricsPlot:
     def _format(self) -> None:
         """
         Format this MetricsPlot's figure and axes to Juneberry specifications.
-        This can be overriden for custom formatting.
+        This can be overridden for custom formatting.
         :return: None
         """
         _, labels = self.ax.get_legend_handles_labels()
