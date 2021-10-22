@@ -54,6 +54,7 @@ class SplittingAlgo(str, Enum):
     FROM_FILE = 'from_file'
     NONE = "none"
     RANDOM_FRACTION = 'random_fraction'
+    TENSORFLOW = "tensorflow"
     TORCHVISION = 'torchvision'
 
 

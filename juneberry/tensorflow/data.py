@@ -33,7 +33,9 @@ import sys
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
+import juneberry.config.model as jb_model
 from juneberry.config.model import ModelConfig, ShapeHWC
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
@@ -144,7 +146,7 @@ def _add_transforms_and_batching(dataset, transform_list, batch_size):
 # | |__| (_) | | | | | | | | | | | (_) | | | |
 #  \____\___/|_| |_| |_|_| |_| |_|\___/|_| |_|
 
-def _prep_tdfs_load_args(tf_stanza):
+def _prep_tfds_load_args(tf_stanza):
     # NOTE: Prodict, so can't use "get" with defaults so we check for None.
     load_args = {}
     if tf_stanza.load_kwargs is not None:
@@ -168,7 +170,7 @@ def _prep_tdfs_load_args(tf_stanza):
 #   | || | | (_| | | | | |
 #   |_||_|  \__,_|_|_| |_|
 
-def _construct_image_datasets(model_config: ModelConfig, train_list, val_list):
+def _make_image_datasets(model_config: ModelConfig, train_list, val_list):
     shape_hwc = model_config.model_architecture.get_shape_hwc()
 
     transform_manager = TransformManager(model_config.training_transforms)
@@ -197,7 +199,7 @@ def _construct_image_datasets(model_config: ModelConfig, train_list, val_list):
 
 def _make_tfds_split_args(val_stanza, load_args):
     # Custom args based on algorithm.
-    if val_stanza.algorithm == "tensorflow":
+    if val_stanza.algorithm == jb_model.SplittingAlgo.TENSORFLOW:
         if 'split' not in load_args:
             logger.error(f"'tensorflow' was specified as a validation algorithm but the required 'split' was "
                          f"not found. load_kwargs={load_args}. See documentation for details. EXITING.")
@@ -207,9 +209,9 @@ def _make_tfds_split_args(val_stanza, load_args):
             if len(split_arg) != 2 or not isinstance(split_arg[0], str) or not isinstance(split_arg[1], str):
                 logger.error(f"The validation algorithm is set to 'tensorflow' which requires that the "
                              f"'split' value be and array of two strings. load_kwargs={load_args}. EXITING.")
-            sys.exit(-1)
+                sys.exit(-1)
 
-    elif val_stanza.algorithm == "random_fraction":
+    elif val_stanza.algorithm == jb_model.SplittingAlgo.RANDOM_FRACTION:
         split_name = 'train'
         if 'split' in load_args:
             split_name = load_args['split']
@@ -231,9 +233,9 @@ def _make_tfds_split_args(val_stanza, load_args):
         sys.exit(-1)
 
 
-def _load_tf_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
+def _load_tfds_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
     tf_stanza = ds_config.tensorflow_data
-    load_args = _prep_tdfs_load_args(tf_stanza)
+    load_args = _prep_tfds_load_args(tf_stanza)
 
     # Based on the validation split we will either use the native random fraction
     # or combine the sets and then split.
@@ -253,7 +255,15 @@ def _load_tf_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig):
 
 
 def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, model_manager: ModelManager):
-    if ds_config.data_type == "image":
+    """
+    Returns the training and evaluation datasets based on the dataset config and the model config.
+    :param lab: The lab in which this occurs.
+    :param ds_config: The dataset config that describes the dataset
+    :param model_config: A model config that describes validation split.
+    :param model_manager: A model manager in which to place the manifest files.
+    :return:
+    """
+    if ds_config.data_type == jb_dataset.DataType.IMAGE:
         train_list, val_list = jb_data.dataspec_to_manifests(
             lab,
             dataset_config=ds_config,
@@ -265,13 +275,13 @@ def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelC
         jb_data.save_path_label_manifest(val_list, model_manager.get_validation_data_manifest_path(), lab.data_root())
 
         # Now make the loaders
-        return _construct_image_datasets(model_config, train_list, val_list)
-    elif ds_config.data_type == "tabular":
+        return _make_image_datasets(model_config, train_list, val_list)
+    elif ds_config.data_type == jb_dataset.DataType.TABULAR:
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)
-    elif ds_config.data_type == "tensorflow":
-        return _load_tf_split_dataset(ds_config, model_config)
-    elif ds_config.data_type == "torchvision":
+    elif ds_config.data_type == jb_dataset.DataType.TENSORFLOW:
+        return _load_tfds_split_dataset(ds_config, model_config)
+    elif ds_config.data_type == jb_dataset.DataType.TORCHVISION:
         logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
 
@@ -288,7 +298,7 @@ def _extract_labels(eval_ds):
     return [int(x.numpy()) for x in labels_iter]
 
 
-def _construct_image_eval_dataset(model_config: ModelConfig, eval_list):
+def _make_image_eval_dataset(model_config: ModelConfig, eval_list):
     shape_hwc = model_config.model_architecture.get_shape_hwc()
 
     transforms = TransformManager(model_config.evaluation_transforms)
@@ -311,7 +321,7 @@ def _make_tfds_eval_args(load_args):
         load_args['split'] = "test"
 
 
-def _load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, use_train_split, use_val_split):
+def _load_tfds_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, use_train_split, use_val_split):
     if use_train_split and use_val_split:
         logger.error("When constructing eval dataset use_train_split and use_val_split we both specified."
                      "This is not supported. To use the entire dataset, simply don't specify either. EXITING.")
@@ -319,7 +329,7 @@ def _load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, u
 
     # Now, construct the dataset based on
     tf_stanza = ds_config.tensorflow_data
-    load_args = _prep_tdfs_load_args(tf_stanza)
+    load_args = _prep_tfds_load_args(tf_stanza)
 
     if use_val_split or use_train_split:
         # If use train or use val, make them both but then return the right one
@@ -346,7 +356,18 @@ def _load_tf_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, u
 
 def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig, eval_dir_mgr,
                       use_train_split, use_val_split):
-    if ds_config.data_type == "image":
+    """
+    Loads the tensorflow evaluation dataset based on the dataset config, model config and splits.
+    NOTE. For TFDS the 'split' value comes from the dataset potentially combined with the random fraction.
+    :param lab: The lab in which this occurs.
+    :param ds_config: The dataset config that describes the dataset
+    :param model_config: A model config that describes split style for use_train_split and use_val_split.
+    :param eval_dir_mgr: The directory of the evaluation in which to place the manifest file
+    :param use_train_split: True to provide the training fraction of the data.
+    :param use_val_split: True to provide the validation fraction of the data.
+    :return: The evaluation dataset along with the labels.
+    """
+    if ds_config.data_type == jb_dataset.DataType.IMAGE:
         splitting_config = None
         if use_train_split or use_val_split:
             logger.info(f"Splitting the dataset according to the model's validation split instructions.")
@@ -369,13 +390,13 @@ def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelCon
         jb_data.save_path_label_manifest(eval_list, eval_dir_mgr.get_manifest_path(), lab.data_root())
 
         # Now make the loaders returning the loader and labels
-        return _construct_image_eval_dataset(model_config, eval_list), [x[1] for x in eval_list]
-    elif ds_config.data_type == "tabular":
+        return _make_image_eval_dataset(model_config, eval_list), [x[1] for x in eval_list]
+    elif ds_config.data_type == jb_dataset.DataType.TABULAR:
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)
-    elif ds_config.data_type == "tensorflow":
-        return _load_tf_eval_dataset(ds_config, model_config, use_train_split, use_val_split)
-    elif ds_config.data_type == "torchvision":
+    elif ds_config.data_type == jb_dataset.DataType.TENSORFLOW:
+        return _load_tfds_eval_dataset(ds_config, model_config, use_train_split, use_val_split)
+    elif ds_config.data_type == jb_dataset.DataType.TORCHVISION:
         logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
 

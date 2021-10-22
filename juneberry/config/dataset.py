@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 class DataType(str, Enum):
     UNDEFINED = 'unknown'
     IMAGE = 'image'
+    TENSORFLOW = 'tensorflow'
     TORCHVISION = 'torchvision'
     TABULAR = 'tabular'
 
