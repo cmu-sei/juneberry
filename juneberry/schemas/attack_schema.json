@@ -32,12 +32,15 @@
             }
         },
         "watermarks": {
-            "disjoint_args": { "type": "array", "items": { "type": "object" } },
-            "private_disjoint_args": { "type": "object" },
-            "private_subset_args": { "type": "object" },
-            "query_watermarks": { "$ref": "#/definitions/plugin" },
-            "superset_args": { "type": "array", "items": { "type": "object" } },
-            "training_watermarks": { "$ref": "#/definitions/plugin" }
+            "type": "object",
+            "properties": {
+                "disjoint_args": { "type": "array", "items": { "type": "object" } },
+                "private_disjoint_args": { "type": "object" },
+                "private_subset_args": { "type": "object" },
+                "query_watermarks": { "$ref": "#/definitions/plugin" },
+                "superset_args": { "type": "array", "items": { "type": "object" } },
+                "training_watermarks": { "$ref": "#/definitions/plugin" }
+            }
         }
     },
     "required": [ ]
