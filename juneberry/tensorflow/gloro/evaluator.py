@@ -41,8 +41,19 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
     def obtain_model(self) -> None:
-        from gloro import GloroNet
-        model_file = self.model_manager.get_train_root_dir() / "model.gloronet"
+        from gloro import GloroNet 
+        model_file = str(           # lib-gloro needs a str type for the file name, not a pathlib object.
+            self.model_manager.get_train_root_dir() 
+            / "../model.gloronet")  # Need to look for the model in the experiment/ directory, not the experiment/train directory.
         logger.info(f"Loading model {model_file}...")
         self.model = GloroNet.load_model(model_file)
+
+        # lib-gloro seems to save the model in a way that is extricated from metrics, losses, and optimizers.
+        # As such, need to re-compile the model with the desired evaluation functions.
+        # TODO: This should obviously be coming from a config file somewhere, but I'm not sure how to go about that yet.
+        import tensorflow.keras as keras
+        self.model.compile(
+            loss=keras.losses.SparseCategoricalCrossentropy(),
+            metrics=[keras.metrics.SparseCategoricalAccuracy()])
+
         logger.info("...complete")

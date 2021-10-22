@@ -83,7 +83,7 @@
         },
         "platform": {
             "type": "string",
-            "enum": [ "detectron2", "mmdetection", "pytorch", "pytorch_privacy", "tensorflow" ]
+            "enum": [ "detectron2", "mmdetection", "pytorch", "pytorch_privacy", "tensorflow", "tfgloro" ]
         },
         "preprocessors": {
             "type": "array",
