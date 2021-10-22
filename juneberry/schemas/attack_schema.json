@@ -4,12 +4,8 @@
         "plugin": {
             "type": "object",
             "properties": {
-                "fqcn": {
-                    "type": "string"
-                },
-                "kwargs": {
-                    "type": "object"
-                }
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
             },
             "required": [ "fqcn" ]
         }
@@ -20,61 +16,29 @@
         "data_configs": {
             "type": "object",
             "properties": {
-                "in_out_builder": {
-                    "$ref": "#/definitions/plugin"
-                },
-                "query_data": {
-                    "type": "string"
-                },
-                "training_data": {
-                    "type": "string"
-                }
+                "in_out_builder": { "$ref": "#/definitions/plugin" },
+                "query_data": { "type": "string" },
+                "training_data": { "type": "string" }
             }
         },
         "models": {
             "type": "object",
             "properties": {
-                "meta": {
-                    "type": "string"
-                },
-                "private": {
-                    "type": "string"
-                },
-                "shadow": {
-                    "type": "string"
-                },
-                "shadow_disjoint_quantity": {
-                    "type": "integer"
-                },
-                "shadow_superset_quantity": {
-                    "type": "integer"
-                }
+                "meta": { "type": "string" },
+                "private": { "type": "string" },
+                "shadow": { "type": "string" },
+                "shadow_disjoint_quantity": { "type": "integer" },
+                "shadow_superset_quantity": { "type": "integer" }
             }
         },
         "watermarks": {
-            "disjoint_args": {
-                "type": "array", "items": {
-                    "type": "object"
-                }
-            },
-            "private_disjoint_args": {
-                "type": "object"
-            },
-            "private_subset_args": {
-                "type": "object"
-            },
-            "query_watermarks": {
-                "$ref": "#/definitions/plugin"
-            },
-            "superset_args": {
-                "type": "array", "items": {
-                    "type": "object"
-                }
-            },
-            "training_watermarks": {
-                "$ref": "#/definitions/plugin"
-            }
+            "disjoint_args": { "type": "array", "items": { "type": "object" } },
+            "private_disjoint_args": { "type": "object" },
+            "private_subset_args": { "type": "object" },
+            "query_watermarks": { "$ref": "#/definitions/plugin" },
+            "superset_args": { "type": "array", "items": { "type": "object" } },
+            "training_watermarks": { "$ref": "#/definitions/plugin" }
         }
     },
-    "required": []
+    "required": [ ]
 }
