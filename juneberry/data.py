@@ -999,7 +999,8 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
             dc = DatasetConfig.load(mc.training_dataset_config_path)
             label_dict = dc.retrieve_label_names()
             if label_dict:
-                return label_dict, "training dataset config via model config via model manager" if show_source else label_dict
+                return label_dict, "training dataset config via model config via model manager" if show_source \
+                    else label_dict
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
