@@ -136,13 +136,13 @@ class TensorFlow(Prodict):
 
 
 class ModelConfig(Prodict):
-    FORMAT_VERSION = '0.2.0'
+    FORMAT_VERSION = '0.3.0'
     SCHEMA_NAME = 'model_schema.json'
-
     batch_size: int
     description: str
     detectron2: Detectron2
     epochs: int
+    evaluator: Plugin
     evaluation_output: str
     evaluation_procedure: str
     evaluation_transforms: List[TransformEntry]
@@ -164,6 +164,7 @@ class ModelConfig(Prodict):
     task: str
     tensorflow: TensorFlow
     timestamp: str
+    trainer: Plugin
     training_dataset_config_path: str
     training_transforms: List[TransformEntry]
     training_target_transforms: List[TransformEntry]
@@ -182,8 +183,9 @@ class ModelConfig(Prodict):
         """
 
         # Check the format_version attribute.
-        if self.format_version is not None:
-            jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
+        # We currently don't do a version check because we don't have any breaking version changes.
+        # if self.format_version is not None:
+        #     jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
 
         # There are a handful of keys that should be set to {} if they are still None.
         empty_keys = ["pytorch"]

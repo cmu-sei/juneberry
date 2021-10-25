@@ -25,6 +25,10 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "overrides": [ <array of values to add to the config using merge_from_list> ]
     },
     "epochs": <The maximum number of epochs to train>,
+    "evaluator": {
+        "fqcn": <fully qualified name of class that extends the juneberry.evaluator base class>,
+        "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
+    }
     "evaluation_output": <Fully qualified class name to the class responsible for formatting the 
                          output generated during the evaluation of the model.>,
     "evaluation_procedure": <Fully qualified class name to the class responsible for evaluating the model.>,
@@ -96,6 +100,10 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "optimizer_fn": <FQCN of an optimizer: e.g. tensorflow.keras.optimizers.SGD>,
     },
     "timestamp": <OPTIONAL ISO timestamp for when this file was last updated>,
+    "trainer": {
+        "fqcn": <fully qualified name of class that extends the juneberry.trainer base class>,
+        "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
+    }
     "training_dataset_config_path": <The path to a dataset configuration file describing the dataset to use for training.>,
     "training_transforms": [ <array of plugins - see below> ], 
     "training_target_transforms": [ <array of plugins - see below> ],
@@ -128,7 +136,7 @@ The general schema for a plugin is:
 ```
 {
     "fqcn": <fully qualified name of class that supports __call__(self, *args)>,
-    "kwargs": { <kwargs to be passed (expanded) to __init__ on construction> }
+    "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
 }
 ```
 
@@ -679,6 +687,7 @@ For **from_file**:
 
 # Version History
 
+* 0.3.0 - Changed from platform/task to extensible trainer/evaluator.
 * 0.2.0 - Big conversion to snake case in Juneberry 0.4.
 
 # Copyright

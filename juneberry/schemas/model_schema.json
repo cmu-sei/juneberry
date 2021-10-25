@@ -24,6 +24,7 @@
             "required": [ ]
         },
         "epochs": { "type": "integer" },
+        "evaluator": { "$ref": "#/definitions/plugin_item" },
         "evaluation_output_fqcn": { "type": "string" },
         "evaluation_procedure": { "type": "string" },
         "evaluation_transforms": {
@@ -149,6 +150,7 @@
             "required": [ "loss_fn", "optimizer_fn" ]
         },
         "timestamp": { "type": "string" },
+        "trainer": { "$ref": "#/definitions/plugin_item" },
         "training_dataset_config_path": { "type": "string" },
         "training_transforms": {
             "type": "array",
@@ -214,7 +216,6 @@
         "batch_size",
         "format_version",
         "model_architecture",
-        "platform",
         "training_dataset_config_path",
         "validation"
     ]
