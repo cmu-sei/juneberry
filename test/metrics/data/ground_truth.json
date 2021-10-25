@@ -1,0 +1,232 @@
+{
+    "annotations": [
+        {
+            "iscrowd": 0,
+            "area": 900,
+            "image_id": "1",
+            "bbox": [
+                10,
+                10,
+                30,
+                30
+            ],
+            "category_id": 1,
+            "id": 1
+        },
+        {
+            "iscrowd": 0,
+            "area": 100,
+            "image_id": "1",
+            "bbox": [
+                50,
+                50,
+                10,
+                10
+            ],
+            "category_id": 2,
+            "id": 2
+        },
+        {
+            "iscrowd": 0,
+            "area": 600,
+            "image_id": "1",
+            "bbox": [
+                50,
+                110,
+                30,
+                20
+            ],
+            "category_id": 1,
+            "id": 3
+        },
+        {
+            "iscrowd": 0,
+            "area": 400,
+            "image_id": "1",
+            "bbox": [
+                110,
+                0,
+                20,
+                20
+            ],
+            "category_id": 2,
+            "id": 4
+        },
+        {
+            "iscrowd": 0,
+            "area": 1024,
+            "image_id": "1",
+            "bbox": [
+                150,
+                150,
+                32,
+                32
+            ],
+            "category_id": 1,
+            "id": 5
+        },
+        {
+            "iscrowd": 0,
+            "area": 2500,
+            "image_id": "1",
+            "bbox": [
+                90,
+                50,
+                50,
+                50
+            ],
+            "category_id": 2,
+            "id": 6
+        },
+        {
+            "iscrowd": 0,
+            "area": 1200,
+            "image_id": "1",
+            "bbox": [
+                5,
+                50,
+                10,
+                120
+            ],
+            "category_id": 1,
+            "id": 7
+        },
+        {
+            "iscrowd": 0,
+            "area": 4800,
+            "image_id": "1",
+            "bbox": [
+                150,
+                0,
+                40,
+                120
+            ],
+            "category_id": 2,
+            "id": 8
+        },
+        {
+            "iscrowd": 0,
+            "area": 5000,
+            "image_id": "1",
+            "bbox": [
+                40,
+                140,
+                100,
+                50
+            ],
+            "category_id": 1,
+            "id": 9
+        },
+        {
+            "iscrowd": 0,
+            "area": 1089,
+            "image_id": "1",
+            "bbox": [
+                20,
+                60,
+                33,
+                33
+            ],
+            "category_id": 2,
+            "id": 10
+        },
+        {
+            "iscrowd": 0,
+            "area": 10000,
+            "image_id": "1",
+            "bbox": [
+                15,
+                5,
+                100,
+                100
+            ],
+            "category_id": 1,
+            "id": 11
+        },
+        {
+            "iscrowd": 0,
+            "area": 18000,
+            "image_id": "1",
+            "bbox": [
+                50,
+                10,
+                100,
+                180
+            ],
+            "category_id": 2,
+            "id": 12
+        },
+        {
+            "iscrowd": 0,
+            "area": 19000,
+            "image_id": "1",
+            "bbox": [
+                5,
+                100,
+                190,
+                100
+            ],
+            "category_id": 1,
+            "id": 13
+        },
+        {
+            "iscrowd": 0,
+            "area": 13500,
+            "image_id": "1",
+            "bbox": [
+                190,
+                8,
+                90,
+                150
+            ],
+            "category_id": 2,
+            "id": 14
+        },
+        {
+            "iscrowd": 0,
+            "area": 15000,
+            "image_id": "1",
+            "bbox": [
+                0,
+                0,
+                100,
+                150
+            ],
+            "category_id": 1,
+            "id": 15
+        }
+    ],
+    "images": [
+        {
+            "file_name": "img_1.jpg",
+            "coco_url": "",
+            "height": 200,
+            "width": 200,
+            "id": "1"
+        },
+        {
+            "file_name": "img_2.jpg",
+            "coco_url": "",
+            "height": 200,
+            "width": 200,
+            "id": "2"
+        }
+    ],
+    "categories": [
+        {
+            "supercategory": "sc_1",
+            "id": 1,
+            "name": "class_1"
+        },
+        {
+            "supercategory": "sc_1",
+            "id": 2,
+            "name": "class_2"
+        }
+    ],
+    "info": {
+        "description": "Metrics Unit Test",
+        "year": 2021,
+        "date_created": "2021/09/03"
+    }
+}
