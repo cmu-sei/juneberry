@@ -64,7 +64,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "previous_modelVersion": <OPTIONAL: version of the model directory from which to load weights>
     },  
     "model_transforms" : [ <array of plugins - see below> ],
-    "platform": <The machine learning platform this config is compatible with
+    "platform": <DEPRECATED - The machine learning platform this config is compatible with
                  Currently supported platforms: ["detectron2", "mmdetection", "pytorch", "pytorch_privacy", tensorflow"]>,
     "preprocessors": [ <array of plugins - see below> ],
     "pytorch": {
@@ -192,6 +192,18 @@ dotted name of path to the config variable, and the value is the desired value. 
 
 ## epochs
 The number of epochs to train.
+
+## evaluator
+The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.evaluator.Evaluator`.
+Juneberry has a variety of built in evaluators for the following platforms.  The built in evaluators require
+no additional kwargs.
+
+The basic evaluators for the platforms are:
+* Detectron2 - juneberry.detectron2.evaluator.Evaluator
+* PyTorch - juneberry.pytorch.evaluator.Evaluator
+* MMDetection - juneberry.mmdetection.evaluator.Evaluator
+* Tensorflow - juneberry.tensorflow.evaluator.Evaluator
+
 
 ## evaluation_output
 This field should contain a fully qualified path to a class that will be responsible for converting 
@@ -457,6 +469,7 @@ This stanza contains all the arguments that are to be passed into the `__init__`
 the transform upon construction.
 
 ## platform
+**DEPRECATED** Use the trainer and evaluator extension points instead.
 Describes the ML Platform the model is compatible with. 
 Supported platforms: ['pytorch'] 
 
@@ -599,6 +612,7 @@ were chosen for a particular model configuration. This dictionary is primarily u
 the unique properties of the model when summarizing all the models belonging to an experiment.
 
 ## task
+**DEPRECATED** Use the trainer and evaluator extension points instead.
 **Optional:** This string indicates the type of training this configuration file will perform. 
 Supported values for this field are: "classification" or "objectDetection". When this field is not provided, 
 Juneberry will assume that the task is "classification".
@@ -638,6 +652,17 @@ Keyword args to be provided to the optimizer_fn function during construction.
 
 ## timestamp
 **Optional:** Timestamp (ISO format) indicating when the config was last modified.
+
+## trainer
+The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.trainer.Trainer`.
+Juneberry has a variety of built in trainers for the following platforms.  The built in trainers require
+no additional kwargs.
+
+The basic trainers for the platforms are:
+* Detectron2 - juneberry.detectron2.trainer.Trainer
+* PyTorch - juneberry.pytorch.trainer.Trainer
+* MMDetection - juneberry.mmdetection.trainer.Trainer
+* Tensorflow - juneberry.tensorflow.trainer.Trainer
 
 ## training_dataset_config_path
 The path to the dataset configuration file that describe the data to use for training the model.
