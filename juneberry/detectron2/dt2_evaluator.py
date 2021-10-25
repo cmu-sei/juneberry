@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -67,7 +45,9 @@ from juneberry.evaluation.util import get_histogram
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
+
 
 logger = logging.getLogger(__name__)
 
@@ -160,41 +140,20 @@ class Detectron2Evaluator(Evaluator):
         eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
         self.eval_results = inference_on_dataset(self.predictor.model, eval_loader, evaluator)
 
-    def format_evaluation(self) -> None:
-        formatted_results = {}
-        per_class = {}
-
-        # TODO: Is bbox all we're ever going to see for eval task?
-        for k, v in self.eval_results['bbox'].items():
-            if k == 'AP':
-                formatted_results['mAP'] = v
-                continue
-            new_k = k.replace('AP', 'mAP_')
-            if '-' in new_k:
-                new_k = new_k.replace('-', '')
-                per_class[new_k] = v
-                continue
-            formatted_results[new_k] = v
-
-        # When there is only a single class label, dt2 does not report any per class mAP values. This will
-        # take the reported mAP value and also report it as the mAP value for the single class in the per
-        # class mAP section of the output file.
-        label_names = self.dataset_config.retrieve_label_names()
-        if len(label_names) == 1:
-            label = next(iter(label_names.values()))
-            per_class[f"mAP_{label}"] = formatted_results['mAP']
-
-        # Add the formatted results to the output.
-        self.output.results.metrics.bbox = formatted_results
-        self.output.results.metrics.bbox_per_class = per_class
-
         # Rename the results to our detections file for things like plot_pr
         det = Path(self.output_dir, "coco_instances_results.json")
         det.rename(self.eval_dir_mgr.get_detections_path())
         det = self.eval_dir_mgr.get_detections_path()
 
+        # Populate metrics
+        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
+        self.output.results.metrics.bbox = m.as_dict()
+        self.output.results.metrics.bbox_per_class = m.mAP_per_class
+
+    def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
-        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path), str(det), out)
+        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path),
+                                            str(self.eval_dir_mgr.get_detections_path()), out)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()

@@ -125,11 +125,16 @@ def load_file(path: str):
     :return:
     """
     # TODO: Add check for '.yaml' and use pyyaml
-    if Path(path).suffix == '.json':
-        with open(path) as in_file:
-            return json.load(in_file)
+    if Path(path).exists():
+        if Path(path).suffix == '.json':
+            with open(path) as in_file:
+                return json.load(in_file)
+        else:
+            logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
+            sys.exit(-1)
+
     else:
-        logger.error(f"Currently, we only support .json files. {path}. EXITING")
+        logger.error(f"Failed to load {path}. The file could not be found. EXITING.")
         sys.exit(-1)
 
 
