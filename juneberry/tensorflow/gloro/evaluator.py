@@ -26,6 +26,7 @@ import logging
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import Model
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import ModelManager, EvalDirMgr
 import juneberry.tensorflow.data as tf_data
@@ -239,8 +240,15 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
         # lib-gloro seems to save the model in a way that is extricated from metrics, losses, and optimizers.
         # As such, need to re-compile the model with the desired evaluation functions.
         # TODO: This should obviously be coming from a config file somewhere, but I'm not sure how to go about that yet.
-        loss = keras.losses.SparseCategoricalCrossentropy()
-        metrics = [keras.metrics.SparseCategoricalAccuracy()]
+        from juneberry.loader import construct_instance
+        loss = construct_instance(
+            self.model_config.tensorflow.loss_fn, 
+            self.model_config.tensorflow.loss_args)
+        # TODO: I don't think the following will handle the config field with partially qualified keys 
+        # e.g. `"metrics": ["accuracy"]`
+        metrics = [
+            construct_instance(m['fqcn'], m['kwargs']) 
+            for m in self.model_config.tensorflow.metrics]
         logger.info(f'Compiling model with:'
                     f'\n\tloss: {loss.__class__.__name__}'
                     f'\n\tmetrics: {[m.__class__.__name__ for m in metrics]}')
@@ -252,22 +260,24 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
         logger.info("...complete")
 
     def obtain_dataset(self) -> None:
-        """TODO: Get watermark metadata for this model.
-        """
-        # logger.info(f'{self.__class__.__name__} does not load ')
         pass
 
     def evaluate_data(self) -> None:
+        """
+        TODO: 
+        - Get watermark metadata to generate labels
+        - Save labeled inversions.
+        """
         logger.info('Computing model inversions...')
         input_shape = (64, *self.model.input_shape[1:])
         x0 = tf.zeros(input_shape)
         output_shape = self.model(x0).shape
         target_sequence = [
             np.random.randint(0, output_shape[-1], size=(len(x0),))]
-        x = iterated_inversion(
+        inversions = iterated_inversion(
             self.model, x0, target_sequence, 
             step_size=1e-3, 
             num_steps=128)
         print('\n\n')
-        print(x.shape)
+        print(inversions.shape)
         print('\n\n')

@@ -317,6 +317,20 @@ def history_to_results(history, output: TrainingOutput):
     :param output: Where to store the information so it can be retrieved when constructing the final output.
     """
 
+    # Shouldn't this just directly copy the existing history directly into the output?
+    # Why all the hard-coded naming choices below?
+    # TODO: Why handle type conversion here? Wouldn't it be better to assume that a metric must return a correctly typed value?
+    from typing import Iterable
+    for k, v in history.items():
+        if isinstance(v, Iterable):
+            v = list(map(float, v))
+        setattr(output.results, k, v)
+
+    # TODO: What are these extra metrics for?
+    output.results.train_error = history.get('train_error')
+    output.results.val_error = history.get('val_error')
+    return
+
     # TODO: Move in time from timing callback - epoch_duration_sec
 
     output.results.loss = history['loss']
