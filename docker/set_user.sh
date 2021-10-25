@@ -12,7 +12,7 @@
 #
 # e USER_NAME=${USER} -e USER_ID=`id -u ${USER}` -e USER_GID=`id -g ${USER}`
 #
-# Or via enabling this line in enter_juneberry_container:
+# Or via this line in enter_juneberry_container:
 #
 # ENVS_USER="-e USER_NAME=${USER} -e USER_ID=`id -u ${USER}` -e USER_GID=`id -g ${USER}`"
 #
