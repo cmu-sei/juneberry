@@ -316,39 +316,35 @@ def history_to_results(history, output: TrainingOutput):
     :param history: A history of the training.
     :param output: Where to store the information so it can be retrieved when constructing the final output.
     """
-
-    # Shouldn't this just directly copy the existing history directly into the output?
-    # Why all the hard-coded naming choices below?
+    # TODO: Move in time from timing callback - epoch_duration_sec
     # TODO: Why handle type conversion here? Wouldn't it be better to assume that a metric must return a correctly typed value?
     from typing import Iterable
     for k, v in history.items():
         if isinstance(v, Iterable):
-            v = list(map(float, v))
-        setattr(output.results, k, v)
+            v = [float(x) for x in v]
+        output.results[k] = v
 
-    # TODO: What are these extra metrics for?
+    # TODO: Are these extra metrics always necessary?
     output.results.train_error = history.get('train_error')
     output.results.val_error = history.get('val_error')
     return
 
-    # TODO: Move in time from timing callback - epoch_duration_sec
+    # output.results.loss = history['loss']
+    # output.results.val_loss = history['val_loss']
 
-    output.results.loss = history['loss']
-    output.results.val_loss = history['val_loss']
+    # # TODO: What are the list versions from?
+    # if isinstance(history['accuracy'], list):
+    #     output.results.accuracy = [float(i) for i in history['accuracy']]
+    # else:
+    #     output.results.accuracy = history['accuracy']
 
-    # TODO: What are the list versions from?
-    if isinstance(history['accuracy'], list):
-        output.results.accuracy = [float(i) for i in history['accuracy']]
-    else:
-        output.results.accuracy = history['accuracy']
+    # if isinstance(history['val_accuracy'], list):
+    #     output.results.val_accuracy = [float(i) for i in history['val_accuracy']]
+    # else:
+    #     output.results.val_accuracy = history['val_accuracy']
 
-    if isinstance(history['val_accuracy'], list):
-        output.results.val_accuracy = [float(i) for i in history['val_accuracy']]
-    else:
-        output.results.val_accuracy = history['val_accuracy']
+    # # These will only be there if the metrics callback was added.
+    # output.results.train_error = history.get('train_error', None)
+    # output.results.val_error = history.get('val_error', None)
 
-    # These will only be there if the metrics callback was added.
-    output.results.train_error = history.get('train_error', None)
-    output.results.val_error = history.get('val_error', None)
-
-    output.results.batch_loss = history['batch_loss']
+    # output.results.batch_loss = history['batch_loss']
