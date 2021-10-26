@@ -230,7 +230,8 @@ class AttackMaker:
         model_config.training_dataset_config_path = str(dataset_config_path)
 
         # TODO: Workaround for a bug.
-        model_config.label_mapping = str(model_config.label_mapping)
+        if model_config.label_mapping is not None:
+            model_config.label_mapping = str(model_config.label_mapping)
 
         # Now that the model config has the correct training dataset, save the model config.
         model_config.save(self.attack_manager.get_private_model_config(disjoint=disjoint))
@@ -326,7 +327,8 @@ class AttackMaker:
             shadow_model_cfg.training_dataset_config_path = str(training_dataset_path)
 
             # TODO: Workaround for a bug.
-            shadow_model_cfg.label_mapping = str(shadow_model_cfg.label_mapping)
+            if shadow_model_cfg.label_mapping is not None:
+                shadow_model_cfg.label_mapping = str(shadow_model_cfg.label_mapping)
 
             # Save the ModelConfig for the shadow model to the shadow model directory.
             shadow_model_cfg.save(shadow_model_mgr.get_model_config())
@@ -442,7 +444,8 @@ class AttackMaker:
         meta_model_cfg.validation.arguments.file_path = val_cfg_dest
 
         # TODO: Workaround for a bug
-        meta_model_cfg.label_mapping = str(meta_model_cfg.label_mapping)
+        if meta_model_cfg.label_mapping is not None:
+            meta_model_cfg.label_mapping = str(meta_model_cfg.label_mapping)
 
         # Save the meta model config file (with the updated dataset config values) to the meta model directory.
         meta_model_cfg.save(meta_model_mgr.get_model_config())
