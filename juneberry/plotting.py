@@ -119,7 +119,7 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     """
     results = training_results['results']
 
-    epochs = range(1, len(results['accuracy']) + 1)
+    epochs = range(1, len(results['loss']) + 1)
     fig, ax1 = plt.subplots()
     plt.ylim(0.0, 1.0)
 
@@ -138,6 +138,17 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
         ax1.plot(epochs, results['val_accuracy'], linestyle='--', marker='', color=color, label="Validation Accuracy")
     except ValueError:
         pass
+    try:
+        ax1.plot(epochs, results['sparse_categorical_accuracy'], linestyle='-', marker='', color=color,
+                 label="Sparse Categorical Accuracy")
+    except ValueError:
+        pass
+    try:
+        ax1.plot(epochs, results['val_sparse_categorical_accuracy'], linestyle='-', marker='', color=color,
+                 label="Validation Sparse Categorical Accuracy")
+    except ValueError:
+        pass
+
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2)
 
