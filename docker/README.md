@@ -58,7 +58,7 @@ find the juneberry.ini in the /root directory and automatically find the juneber
 
 In addition to the script for building images, there are also some convenience scripts here.
 
-# enter_juneberry_container
+## enter_juneberry_container
 
 This script starts up a **temporary** 'cudadev' container on your host using all available gpus.
 It assumes a project directory structure that contains a set of special subdirectories where each
@@ -72,19 +72,25 @@ The structure is:
 * tensorboard <- This is where the tensorboard outputs will be stored.
 * cache <- This where the model downloads are cached.
 
-For example, if this structure was in the direcotry `~/proj` then to use the `enter_juneberry_container`
+For example, if this structure was in the directory `~/proj` then to use the `enter_juneberry_container`
 change into `~/proj` and run: 
 
 `./juneberry/docker/enter_juneberry_container .`
 
-See the comments within the script for how to configure it to use a cpu-only container, adjust environmnet
+See the comments within the script for how to configure it to use a cpu-only container, adjust environment
 variables, add other mount points and configure gpus.
 
-# Juneberry.ini for Docker images
+## Juneberry.ini for Docker images
 
-The convenience script for starting a container mounts various resources, such as datasets and juneberry, to common
-locations within the container. Therefore, the home directory of the image contains a simple base 
+The convenience file for starting a container mounts various resources, such as datasets and juneberry,
+to common locations within the container. Therefore, the home directory of the image contains a simple base 
 juneberry.ini file. This sample file is configured for docker images run via the "enter_juneberry_container" command.
+
+## set_user.sh
+
+This optional convenience script can create a user inside the container to match an external
+user, resulting in the correct permissions for volumes mounted inside the container. See the script
+for an explanation of how it works in conjunction with enter_juneberry_container.
 
 # Copyright
 
