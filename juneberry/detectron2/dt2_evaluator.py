@@ -48,7 +48,6 @@ from juneberry.lab import Lab
 import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -96,7 +95,9 @@ class Detectron2Evaluator(Evaluator):
 
         # TODO: Move this to a preprocessing step for distributed
         # Load the evaluation list
-        label_names = self.dataset_config.retrieve_label_names()
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config,
+                                                eval_config=self.eval_dataset_config)
         logger.info(f"Evaluating using label_names={label_names}")
 
         self.eval_list, _ = jb_data.make_eval_manifest_file(self.lab, self.dataset_config, self.model_config,
