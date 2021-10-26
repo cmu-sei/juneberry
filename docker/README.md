@@ -72,12 +72,12 @@ The structure is:
 * tensorboard <- This is where the tensorboard outputs will be stored.
 * cache <- This where the model downloads are cached.
 
-For example, if this structure was in the direcotry `~/proj` then to use the `enter_juneberry_container`
+For example, if this structure was in the directory `~/proj` then to use the `enter_juneberry_container`
 change into `~/proj` and run: 
 
 `./juneberry/docker/enter_juneberry_container .`
 
-See the comments within the script for how to configure it to use a cpu-only container, adjust environmnet
+See the comments within the script for how to configure it to use a cpu-only container, adjust environment
 variables, add other mount points and configure gpus.
 
 ## Juneberry.ini for Docker images
@@ -88,8 +88,8 @@ juneberry.ini file. This sample file is configured for docker images run via the
 
 ## set_user.sh
 
-This is an optional convenience script for creating a user inside the container which matches an external
-user to enable the correct permissions to be used inside the container on mounted volumes. See the script
+This optional convenience script can create a user inside the container to match an external
+user, resulting in the correct permissions for volumes mounted inside the container. See the script
 for an explanation of how it works in conjunction with enter_juneberry_container.
 
 # Copyright
