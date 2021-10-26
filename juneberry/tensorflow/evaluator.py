@@ -25,6 +25,7 @@
 import logging
 from types import SimpleNamespace
 import random
+import sys
 
 import numpy as np
 
@@ -37,6 +38,7 @@ from juneberry.evaluation.evaluator import Evaluator
 from juneberry.filesystem import ModelManager, EvalDirMgr
 from juneberry.tensorflow.data import TFImageDataSequence
 from juneberry.transform_manager import TransformManager
+import juneberry.utils
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,10 @@ class TFEvaluator(Evaluator):
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
         tf.random.set_seed(self.model_config.seed)
+
+        # Read the evaluation methods from the ModelConfig.
+        self.eval_method = self.model_config.evaluation_procedure
+        self.eval_output_method = self.model_config.evaluation_output
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")
@@ -95,23 +101,17 @@ class TFEvaluator(Evaluator):
         logger.info("...complete")
 
     def evaluate_data(self) -> None:
-        # loss, acc
-        logger.info("Evaluating...")
-        self.eval_results = self.model.evaluate(self.eval_loader)
-        logger.info(f"  loss={self.eval_results[0]}, accuracy={self.eval_results[1]}")
-        logger.info(f"...generating predictions...")
-        self.predictions = self.model.predict(self.eval_loader)
-        logger.info(f"...evaluation complete.")
+        if self.dryrun:
+            logger.info(f"Dry run complete.")
+            sys.exit(0)
+
+        logger.info(f"Generating EVALUATION data according to {self.eval_method}")
+        logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
+
+        juneberry.utils.invoke_evaluator_method(self, self.eval_method)
+
+        logger.info(f"EVALUATION COMPLETE.")
 
     def format_evaluation(self) -> None:
-        logger.info(f"Formatting raw evaluation data")
-        # Add the dataset mapping and the number of classes the model is aware of to the output.
-        self.output.options.dataset.classes = self.eval_dataset_config.label_names
-        self.output.options.model.num_classes = self.eval_dataset_config.num_model_classes
-
-        self.output.results.labels = self.eval_labels
-        self.output.results.metrics.loss = self.eval_results[0]
-        self.output.results.metrics.accuracy = self.eval_results[1]
-        self.output.results.predictions = self.predictions.tolist()
-        self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
-        self.output_builder.save_metrics(self.eval_dir_mgr.get_metrics_path())
+        logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
+        juneberry.utils.invoke_evaluator_method(self, self.eval_output_method)

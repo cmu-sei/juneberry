@@ -128,7 +128,8 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig
     :param eval_options: A SimpleNamespace of different eval options that will be used to build the Evaluator.
     """
     # Return an evaluator for the PyTorch platform.
-    if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
+    if model_config.platform in ['pytorch', 'pytorch_privacy', 'tensorflow']:
+    # if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
         # Fetch the desired evaluation procedure.
         eval_proc_name = model_config.evaluation_procedure
 

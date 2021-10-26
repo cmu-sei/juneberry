@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+import os
 from pathlib import Path
 import random
 import sys
@@ -35,6 +36,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
+import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
@@ -169,11 +171,22 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         history['batch_loss'] = self.bl_callback.batch_loss if self.bl_callback is not None else []
 
         history_to_results(history, self.results)
-        self._serialize_results()
 
         out_model_filename = self.model_manager.get_tensorflow_model_path()
         logger.info(f"Saving model to '{out_model_filename}'")
         self.model.save(str(out_model_filename))
+
+        # TODO: Check near the bottom of https://github.com/onnx/tensorflow-onnx/blob/master/examples/getting_started.py
+        #  for an os.system call that may help with converting to ONNX model.
+        model = tf.keras.models.load_model(out_model_filename)
+        tf.saved_model.save(model, "tmp_model")
+        onnx_outfile = self.model_manager.get_onnx_model_path()
+        os.system(f"python -m tf2onnx.convert --saved-model tmp_model --output {onnx_outfile}")
+
+        self.results['results']['model_hash'] = jbfs.generate_file_hash(out_model_filename)
+        self.results['results']['onnx_model_hash'] = jbfs.generate_file_hash(onnx_outfile)
+
+        self._serialize_results()
 
     # ==========================
 

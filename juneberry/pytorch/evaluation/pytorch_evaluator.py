@@ -263,7 +263,7 @@ class PytorchEvaluator(Evaluator):
 
         juneberry.utils.invoke_evaluator_method(self, self.eval_method)
 
-        logger.info(f"EVALUATION COMPLETE")
+        logger.info(f"EVALUATION COMPLETE.")
 
     def format_evaluation(self) -> None:
         """

@@ -45,6 +45,7 @@
 # ======================================================================================================================
 
 import logging
+import numpy as np
 import onnx
 import onnxruntime as ort
 import sys
@@ -129,8 +130,17 @@ class OnnxEvaluator(Evaluator):
 
         # This bit will be responsible for converting the TensorFlow input data into the format ONNX expects.
         elif self.model_config.platform == "tensorflow":
-            # TODO: Implement this.
-            pass
+            from juneberry.tensorflow.evaluator import TFEvaluator
+            evaluator = TFEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
+                                    self.eval_dir_mgr, None)
+            evaluator.obtain_dataset()
+
+            self.eval_name_targets = evaluator.eval_labels
+            self.eval_name_targets = [('', x) for x in self.eval_name_targets]
+
+            for i, (batch, target) in enumerate(tqdm(evaluator.eval_loader)):
+                for item in np.split(batch, batch.shape[0]):
+                    self.input_data.append(item.astype(np.float32))
 
         # Handle cases where the model platform does not support an ONNX evaluation.
         else:
