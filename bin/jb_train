@@ -115,9 +115,24 @@ def main():
             kw_args = {}
         fqcn = model_config.trainer.fqcn
     else:
-        logger.warning("Found deprecated platform/task configuration for loading trainer. Switch to trainer plugin.")
-        fqcn = task_platform_map[model_config.task][model_config.platform]
+        # Dig through our map of tasks and platforms
+        if model_config.task not in task_platform_map:
+            logger.error(f"We do not support the task '{model_config.task}'. "
+                         f"Supported tasks: {list(task_platform_map.keys())}. EXITING.")
+            sys.exit(-1)
+        else:
+            task_set = task_platform_map[model_config.task]
+            if model_config.platform not in task_set:
+                logger.error(f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
+                             f"Supported platforms: {list(task_set.keys())}. EXITING.")
+                sys.exit(-1)
+            fqcn = task_platform_map[model_config.task][model_config.platform]
         kw_args = {}
+        logger.warning("Found deprecated platform/task configuration for loading trainer. "
+                       "Consider updating the model config to use the trainer stanza.")
+        logger.warning('"trainer": {')
+        logger.warning(f'    "fqcn": "{fqcn}"')
+        logger.warning('}')
 
     # We require these arguments
     kw_args['lab'] = lab

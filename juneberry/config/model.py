@@ -233,7 +233,10 @@ class ModelConfig(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: A constructed and validated object.
         """
-        conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
+        # We currently don't do a version check because we don't have any breaking version changes.
+        # conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
+
+        # Validate
         if not conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
