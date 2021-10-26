@@ -158,8 +158,9 @@ def make_split_metadata_manifest_files(lab: Lab,
         preprocessors=TransformManager(model_config.preprocessors))
 
     # Convert out COCO like intermediate list format into pure coco file.
-    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, dataset_config.retrieve_label_names())
-    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, train_config=dataset_config)
+    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta)
+    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta)
 
     # Serialize
     train_path = model_manager.get_training_data_manifest_path()
@@ -212,7 +213,8 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
     output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
 
-    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, train_config=dataset_config)
+    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
     jbfs.save_json(coco_style, output_path)
 
     logger.info(f"Saving evaluation data manifest: {output_path}")
@@ -255,7 +257,7 @@ class DatasetMarshal:
 
         # We'll need to rebuild this if we preprocess
         # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
-        self.label_mapping = dataset_config.retrieve_label_names()
+        self.label_mapping = get_label_mapping(model_manager=self.lab.model_manager, train_config=dataset_config)
 
         self._splitting_config = splitting_config
         self._preprocessors = preprocessors
@@ -424,7 +426,8 @@ class CocoMetadataMarshal(DatasetMarshal):
                     int_labels = {int(x['id']): x['name'] for x in data['categories']}
                     self.ds_config.label_names = str_labels
                     self.ds_config.update_label_names(int_labels)
-                    self.label_mapping = self.ds_config.retrieve_label_names()
+                    self.label_mapping = get_label_mapping(model_manager=self.lab.model_manager,
+                                                           train_config=self.ds_config)
 
             # Now that we have the file loaded let's load the values
             helper = COCOImageHelper(data)

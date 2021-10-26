@@ -115,8 +115,7 @@ class MMDEvaluator(Evaluator):
             self.use_train_split, self.use_val_split)
 
         # Get the class names from the dataset.  This must happen AFTER we load the eval file.
-        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
-                                                eval_config=self.eval_dataset_config)
+        label_names = jb_data.get_label_mapping(eval_config=self.eval_dataset_config_path)
         classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
