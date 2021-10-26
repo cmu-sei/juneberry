@@ -38,6 +38,7 @@ import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
+import juneberry.plotting
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
@@ -174,6 +175,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         out_model_filename = self.model_manager.get_tensorflow_model_path()
         logger.info(f"Saving model to '{out_model_filename}'")
         self.model.save(str(out_model_filename))
+
+        logger.info("Generating summary plot...")
+        juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
     # ==========================
 
