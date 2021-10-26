@@ -126,7 +126,7 @@ class DatasetConfig(Prodict):
     file_path: Path
     format_version: str
     image_data: ImageData
-    label_names: dict
+    label_names: Prodict
     num_model_classes: int
     relative_path: Path
     sampling: Sampling
