@@ -85,11 +85,14 @@ def lineify(some_list, indent):
     return lines
 
 
-def make_action(command, parallelism) -> str:
+def make_action(command, parallelism, concurrent=None) -> str:
     if parallelism and command[0] == "jb_train":
         # Return a string containing two quoted arguments with spaces
         joined = " ".join(command)
-        return f"\"jb_gpu_runner\", \"{joined}\""
+        if concurrent is not None:
+            return f"\"jb_gpu_runner\", \"-c\", \"{concurrent}\", \"{joined}\""
+        else:
+            return f"\"jb_gpu_runner\", \"{joined}\""
     else:
         return stringify(command)
 
@@ -106,7 +109,7 @@ def make_clean_partial(out_file, rule):
     return True
 
 
-def make_task(out_file, rule, parallelism) -> None:
+def make_task(out_file, rule, parallelism, concurrent=None) -> None:
     out_file.write(f"\n\ndef task_{rule['id']}():\n")
     # If the rule has clean targets then we need to make a clean function
     custom_clean = make_clean_partial(out_file, rule)
@@ -118,7 +121,7 @@ def make_task(out_file, rule, parallelism) -> None:
     out_file.write(f"        'targets': [\n")
     out_file.writelines(lineify(rule["outputs"], "            "))
     out_file.write(f"        ],\n")
-    out_file.write(f"        'actions': [[{make_action(rule['command'], parallelism)}]],\n")
+    out_file.write(f"        'actions': [[{make_action(rule['command'], parallelism, concurrent)}]],\n")
     if custom_clean:
         out_file.write(f"        'clean': [clean_fn, clean_targets]\n")
     else:
@@ -145,7 +148,7 @@ def set_default(out_file, reader):
     out_file.write("    }\n\n")
 
 
-def write_file(out_file, reader: RulesList, workflow_name, parallelism=False):
+def write_file(out_file, reader: RulesList, workflow_name, parallelism=False, concurrent=None):
     out_file.write("# ! /usr/bin/doit -f\n\n")
     out_file.write(f'# dodo.py file for the {workflow_name} workflow\n\n')
 
@@ -166,7 +169,7 @@ def write_file(out_file, reader: RulesList, workflow_name, parallelism=False):
     for workflow in reader["workflows"]:
         if workflow["name"] == workflow_name:
             for rule in workflow["rules"]:
-                make_task(out_file, rule, parallelism)
+                make_task(out_file, rule, parallelism, concurrent)
             break
 
 
@@ -178,6 +181,8 @@ def main():
     parser.add_argument("workflow", help="The name of the workflow which is being converted to a dodo file.")
     parser.add_argument("--rules", default=False, help="Path to rules.json config file.")
     parser.add_argument("--parallel", default=False, action='store_true', help="True to turn on parallelism wrapper.")
+    parser.add_argument("--concurrent", action='store', default=None, type=int,
+                        help="Number of concurrent jobs for parallelism.")
     args = parser.parse_args()
 
     # Set rules and dodo paths
@@ -194,7 +199,7 @@ def main():
 
     # Write main dodo file
     with open(dodo_path, "w") as main_out_file:
-        write_file(main_out_file, rules, args.workflow, args.parallel)
+        write_file(main_out_file, rules, args.workflow, args.parallel, args.concurrent)
 
 
 if __name__ == "__main__":
