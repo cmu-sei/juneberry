@@ -170,7 +170,7 @@ class AttackMaker:
     def add_private_model_rules(self):
         """ This method is responsible for adding the rules for the 'private' models phase of the attack. """
         logger.info(f"Adding rules for the private models.\n")
-        workflow = self.builder.get_workflow("private_models")
+        workflow = self.builder.get_workflow("main")
 
         # Add a rule to train the private superset model.
         self._add_private_model_training_rule(workflow)
@@ -247,7 +247,7 @@ class AttackMaker:
     def add_shadow_model_rules(self):
         """ This method is responsible for adding the rules for the 'shadow' models phase of the attack. """
         logger.info(f"Adding rules for the shadow models.\n")
-        workflow = self.builder.get_workflow("shadow_models")
+        workflow = self.builder.get_workflow("main")
 
         # Add rules to train and evaluate the superset shadow models.
         self._add_shadow_model_rule(workflow)
@@ -365,7 +365,7 @@ class AttackMaker:
     def add_meta_model_rules(self):
         """ This method is responsible for adding the rules for the 'meta' models phase of the attack. """
         logger.info(f"Adding rules for the meta models.\n")
-        workflow = self.builder.get_workflow("meta_models")
+        workflow = self.builder.get_workflow("main")
 
         # Add rules to create in_out datasets, and to train and evaluate the superset meta model.
         self._add_meta_model_rule(workflow)

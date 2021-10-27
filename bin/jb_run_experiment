@@ -154,19 +154,25 @@ def main():
     bin_dir = Path(__file__).parent.absolute()
     logger.info(f"Using bin directory: {bin_dir}")
 
+    # Find scripts directory
+    scripts_dir = Path(__file__).parent.parent.absolute() / "scripts"
+    logger.info(f"Using scripts directory: {scripts_dir}")
+
     # Generate appropriate dodo.py file for the workflow
     if args.dryrun:
         workflow = "dryrun"
     else:
         workflow = "main"
 
+    # Determine the location of the experiment outline file.
+    exp_creator = jbfs.ExperimentCreator(args.experimentName)
+    outline_path = Path(exp_creator.get_experiment_outline())
+
     # If they want us to regenerate the config, then check for outline and delete config and its outputs
     if args.regen:
         # THIS IS A HACK
         # We should NOT need to use the experiment creator.  The experiment creator
         # class should go into the experiment manager
-        exp_creator = jbfs.ExperimentCreator(args.experimentName)
-        outline_path = Path(exp_creator.get_experiment_outline())
         if outline_path.exists():
             remove_for_regen(Path(experiment_manager.get_experiment_config()), args.commit)
             remove_for_regen(Path(experiment_manager.get_experiment_rules()), args.commit)
@@ -176,7 +182,7 @@ def main():
 
     # Generate experiment config.json
     config_path = experiment_manager.get_experiment_config()
-    if not config_path.exists():
+    if not config_path.exists() and outline_path.exists():
         logger.info(f"config.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment config.json file for {args.experimentName}.")
         jbworkflow.run_command(
@@ -185,9 +191,9 @@ def main():
             show_command=show_command,
         )
 
-    # Generate rules.json
+    # Generate a rules.json from an experiment config.
     rules_path = experiment_manager.get_experiment_rules()
-    if not rules_path.exists():
+    if not rules_path.exists() and config_path.exists():
         logger.info(f"rules.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment rules.json file for {args.experimentName}.")
         jbworkflow.run_command(
@@ -195,6 +201,16 @@ def main():
             args=[bin_dir / "jb_experiment_to_rules", args.experimentName],
             show_command=show_command,
         )
+
+    # Alternative method to generate rules.json using an attack config.
+    attack_mgr = jbfs.AttackManager(args.experimentName)
+    attack_path = attack_mgr.get_experiment_attack_file()
+    if not rules_path.exists() and attack_path.exists():
+        logger.info(f"rules.json in experiment {args.experimentName} not found.")
+        logger.info(f"Generating experiment rules.json file for {args.experimentName} using the attack config.")
+        jbworkflow.run_command(dependencies=[],
+                               args=[scripts_dir / "setup_attack.py", args.experimentName],
+                               show_command=show_command)
 
     dodo_path = experiment_manager.get_experiment_dodo(workflow)
     if not dodo_path.exists():
