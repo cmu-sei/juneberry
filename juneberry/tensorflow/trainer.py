@@ -125,6 +125,12 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         np.random.seed(self.model_config.seed)
         tf.random.set_seed(self.model_config.seed)
 
+        # Configure tensorflow to progressively allocate GPU memory rather than fully 
+        # allocating all available memory.
+        physical_devices = tf.config.list_physical_devices('GPU') 
+        for gpu_instance in physical_devices: 
+            tf.config.experimental.set_memory_growth(gpu_instance, True)
+
         # Setup the data loaders.
         self.setup_datasets()
 
