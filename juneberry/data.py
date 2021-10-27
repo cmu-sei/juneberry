@@ -159,8 +159,8 @@ def make_split_metadata_manifest_files(lab: Lab,
 
     # Convert out COCO like intermediate list format into pure coco file.
     label_names = get_label_mapping(model_manager=model_manager, train_config=dataset_config)
-    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta)
-    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta)
+    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, label_names)
+    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, label_names)
 
     # Serialize
     train_path = model_manager.get_training_data_manifest_path()
@@ -257,7 +257,7 @@ class DatasetMarshal:
 
         # We'll need to rebuild this if we preprocess
         # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
-        self.label_mapping = get_label_mapping(model_manager=self.lab.model_manager, train_config=dataset_config)
+        self.label_mapping = get_label_mapping(train_config=dataset_config)
 
         self._splitting_config = splitting_config
         self._preprocessors = preprocessors
@@ -426,8 +426,7 @@ class CocoMetadataMarshal(DatasetMarshal):
                     int_labels = {int(x['id']): x['name'] for x in data['categories']}
                     self.ds_config.label_names = str_labels
                     self.ds_config.update_label_names(int_labels)
-                    self.label_mapping = get_label_mapping(model_manager=self.lab.model_manager,
-                                                           train_config=self.ds_config)
+                    self.label_mapping = get_label_mapping(train_config=self.ds_config)
 
             # Now that we have the file loaded let's load the values
             helper = COCOImageHelper(data)
@@ -973,16 +972,18 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
-        mc = ModelConfig.load(model_config)
-        label_val = mc.label_mapping
+        if isinstance(model_config, str) or isinstance(model_config, Path):
+            model_config = ModelConfig.load(model_config)
+        label_val = model_config.label_mapping
         label_dict = get_label_dict(label_val)
         if label_dict:
             return label_dict, "model config" if show_source else label_dict
 
     # If a training config was provided...
     if train_config:
-        dc = DatasetConfig.load(train_config)
-        label_dict = dc.retrieve_label_names()
+        if isinstance(train_config, str) or isinstance(model_config, Path):
+            train_config = DatasetConfig.load(train_config)
+        label_dict = train_config.retrieve_label_names()
         if label_dict:
             return label_dict, "training dataset config" if show_source else label_dict
 
@@ -1007,8 +1008,9 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
-        dc = DatasetConfig.load(eval_config)
-        label_dict = dc.retrieve_label_names()
+        if isinstance(eval_config, str) or isinstance(eval_config, Path):
+            eval_config = DatasetConfig.load(eval_config)
+        label_dict = eval_config.retrieve_label_names()
         if label_dict:
             return label_dict, "eval dataset config" if show_source else label_dict
 
