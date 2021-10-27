@@ -209,11 +209,13 @@ class ModelConfig(Prodict):
             # If label_mapping is a string, we want to read the file at that path and get the
             # dictionary from inside the indicated file.
             if type(self.label_mapping) is str:
-                self.label_mapping = Path(self.label_mapping)
-                with open(self.label_mapping) as mapping_file:
-                    file_content = json.load(mapping_file)
-                # TODO: Convert these files too and look for both/either
-                self.label_dict = file_content['labelNames']
+                file_content = jbfs.load_json(self.label_mapping)
+                if 'labelNames' in file_content:
+                    self.label_dict = file_content['labelNames']
+                else:
+                    logger.error(f"Could not retrieve a label_mapping from {self.label_mapping}. Is it a JSON file "
+                                 f"containing the key 'labelNames'? EXITING.")
+                    sys.exit(-1)
 
             # label_mapping is already a dictionary, so just set label_dict to that
             else:
