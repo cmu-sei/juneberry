@@ -113,13 +113,12 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     # ==========================
 
     def node_setup(self) -> None:
-        def node_setup(self) -> None:
-            # Not sure need this, but might need it for multiple concurrent models per cpu
-            # https://stackoverflow.com/questions/60048292/how-to-set-dynamic-memory-growth-on-tf-2-1/60064123#60064123
-            logger.info("Setting TensorFlow's dynamic memory growth.")
-            physical_devices = tf.config.list_physical_devices('GPU')
-            for gpu_instance in physical_devices:
-                tf.config.experimental.set_memory_growth(gpu_instance, True)
+        # Not sure need this, but might need it for multiple concurrent models per cpu
+        # https://stackoverflow.com/questions/60048292/how-to-set-dynamic-memory-growth-on-tf-2-1/60064123#60064123
+        logger.info("Setting TensorFlow's dynamic memory growth.")
+        physical_devices = tf.config.list_physical_devices('GPU')
+        for gpu_instance in physical_devices:
+            tf.config.experimental.set_memory_growth(gpu_instance, True)
 
     def establish_loggers(self) -> None:
         logger.warning("establish_loggers() not implemented in base Trainer.")
