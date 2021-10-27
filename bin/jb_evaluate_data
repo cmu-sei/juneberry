@@ -29,6 +29,7 @@ from types import SimpleNamespace
 
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
+import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_evaluate_data")
@@ -120,33 +121,59 @@ def main():
     # Load the model config to determine what type of evaluator
     model_config = ModelConfig.load(model_manager.get_model_config())
 
-    # Create an evaluator object and use it to conduct the evaluation.
-    if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
-        from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
-        evaluator = PytorchEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
-    elif model_config.platform == "detectron2":
-        from juneberry.detectron2.dt2_evaluator import Detectron2Evaluator
-        evaluator = Detectron2Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-    elif model_config.platform == "mmdetection":
-        from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
-        evaluator = MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-    elif model_config.platform == "tensorflow":
-        from juneberry.tensorflow.evaluator import Evaluator
-        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-    elif model_config.platform == "tfgloro":
-        from juneberry.tensorflow.gloro.evaluator import Evaluator
-        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    platform_map = {
+        "pytorch": "juneberry.pytorch.pytorch_evaluator.PytorchEvaluator",
+        "pytorch_privacy": "juneberry.pytorch.pytorch_evaluator.PytorchEvaluator",
+        "detectron2": "juneberry.detectron2.dt2_evaluator.Detectron2Evaluator",
+        "mmdetection": "juneberry.mmdetection.mmd_evaluator.MMDEvaluator",
+        "tensorflow": "juneberry.tensorflow.evaluator.Evaluator",
+        "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator",
+    }
+
+    if model_config.evaluator is not None:
+        kw_args = model_config.evaluator.kwargs
+        if kw_args is None:
+            kw_args = {}
+        fqcn = model_config.evaluator.fqcn
+
     else:
-        logger.error(f"Unsupported platform: {model_config.platform}")
-        sys.exit(-1)
+        # Use the platform_map and platform to determine the correct fqcn.
+        if model_config.platform not in platform_map:
+            logger.error(f"Evaluation not supported for the requested platform ({model_config.platform}). "
+                         f"Supported platforms: {list(platform_map.keys())}. EXITING.")
+            sys.exit(-1)
+        else:
+            fqcn = platform_map[model_config.platform]
+        kw_args = {}
+        logger.warning("Found deprecated platform/task configuration for loading the evaluator. "
+                       "Consider updating the model config to use the evaluator stanza.")
+        logger.warning('"evaluator": {')
+        logger.warning(f'    "fqcn": "{fqcn}"')
+        logger.warning('}')
 
-    # Set the number of gpus on the evaluator
-    if not args.dryrun:
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options']
+
+    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    for arg in reqd_args:
+        if arg not in kw_args:
+            kw_args[arg] = locals()[arg]
+
+    # Create the Evaluator.
+    logger.info(f"Instantiating evaluator: {fqcn}")
+    evaluator = jb_loader.construct_instance(fqcn, kw_args)
+
+    if evaluator is None:
+        logger.error(f"No Evaluator instantiated. EXITING.")
+
+    # Run the Evaluator in dryrun mode.
+    if args.dryrun:
+        evaluator.dry_run()
+
+    # Perform the evaluation.
+    else:
         evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
-
-    evaluator.perform_evaluation()
-
-    logger.info("Evaluation complete.")
+        evaluator.perform_evaluation()
+        logger.info(f"Evaluation complete.")
 
 
 if __name__ == "__main__":

@@ -134,12 +134,12 @@ def main():
         logger.warning(f'    "fqcn": "{fqcn}"')
         logger.warning('}')
 
-    # We require these arguments
-    kw_args['lab'] = lab
-    kw_args['model_manager'] = model_manager
-    kw_args['model_config'] = model_config
-    kw_args['dataset_config'] = dataset_config
-    kw_args['log_level'] = log_level
+    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
+
+    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    for arg in reqd_args:
+        if arg not in kw_args:
+            kw_args[arg] = locals()[arg]
 
     # Construct the trainer
     logger.info(f"Instantiating trainer: {fqcn}")

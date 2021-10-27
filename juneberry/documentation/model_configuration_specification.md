@@ -194,8 +194,8 @@ dotted name of path to the config variable, and the value is the desired value. 
 The number of epochs to train.
 
 ## evaluator
-The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.evaluator.Evaluator`.
-Juneberry has a variety of built in evaluators for the following platforms.  The built in evaluators require
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.Evaluator`.
+Juneberry has a variety of built-in evaluators for the following platforms.  The built-in evaluators require
 no additional kwargs.
 
 The basic evaluators for the platforms are:
