@@ -1,0 +1,385 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+from collections import defaultdict
+import copy
+import datetime
+import logging
+from pathlib import Path
+import shutil
+import sys
+
+import juneberry.config.dataset as jb_dataset
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig
+import juneberry.data as jb_data
+from juneberry.lab import Lab
+import juneberry.pytorch.data as pyt_data
+import juneberry.scripting as jbscripting
+from juneberry.transform_manager import TransformManager
+
+logger = logging.getLogger("juneberry.jb_process_dataset")
+
+
+# Utilities
+#  _   _ _   _ _
+# | | | | |_(_) |___
+# | | | | __| | / __|
+# | |_| | |_| | \__ \
+#  \___/ \__|_|_|___/
+
+def prepare_output_directory(output_data_root: str, output_dir, label_mapping):
+    # Walk the labels make a directory for each and saving that to the output list
+    label_paths = {}
+    for label, name in label_mapping.items():
+        dir_name = f"{label:05}_{label_mapping[label]}"
+        dir_path = Path(output_data_root) / output_dir / dir_name
+        dir_path.mkdir()
+
+        # Make the path (like in sources) for this label data
+        label_paths[label] = str(Path(output_dir) / dir_name)
+
+    return label_paths
+
+
+def make_config_from_label_paths(ds_cfg, label_paths):
+    # Construct a dataset file based on the other one as we want same classes, labels, etc.
+    new_config: DatasetConfig = copy.deepcopy(ds_cfg)
+
+    # Update the sources stanza to our list of labeled directories
+    sources = []
+    for label, path in label_paths.items():
+        sources.append(jb_dataset.ImagesSource(
+            label=label,
+            directory=str(path)
+        ))
+    new_config.image_data = jb_dataset.ImageData()
+    new_config.image_data.sources = sources
+
+    # TODO: Remove any transforms - we don't have the code yet, but this what it will look like
+    if 'data_transforms' in new_config:
+        del new_config['data_transforms']
+
+    # Since we applied sampling clear it out
+    new_config.sampling = None
+
+    # Update comments, dates, etc.
+    new_config.timestamp = str(datetime.datetime.now())
+    new_config.description = f"Derived dataset from '{ds_cfg.description}' - '{ds_cfg.file_path}'"
+    new_config.url = None
+
+    return new_config
+
+
+class DatasetProcessor:
+    def __init__(self, lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, output_file: str, *,
+                 model_cfg: ModelConfig = None):
+        self.lab = lab
+        self.ds_cfg = ds_cfg
+        self.output_data_root = output_data_root
+        self.output_dir = output_dir
+        self.output_file = output_file
+        self.model_cfg = model_cfg
+
+    def process(self):
+        logger.info("Loading dataset...")
+        self.load_dataset()
+
+        logger.info("Setting up output directories...")
+        self.prepare_output_directory()
+
+        logger.info("Processing data...")
+        self.process_dataset()
+
+        logger.info("Saving config file...")
+        self.save_config_files()
+
+        logger.info("Done")
+
+    def dryrun(self):
+        logger.info("Loading dataset...")
+        self.load_dataset()
+
+    # ==================================================================================================================
+    # EXTENSION POINTS
+    def load_dataset(self):
+        pass
+
+    def prepare_output_directory(self):
+        pass
+
+    def process_dataset(self):
+        pass
+
+    def save_config_files(self):
+        pass
+
+
+class PyTorchClassificationImageProcessor(DatasetProcessor):
+    def __init__(self, lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, output_file: str, *,
+                 model_cfg: ModelConfig = None):
+        super().__init__(lab, ds_cfg, output_data_root, output_dir, output_file, model_cfg=model_cfg)
+
+        # Paths WITHIN the dataroot just like we'd see in the sources file. So label -> path
+        self.label_paths = {}
+        self.dataloader = None
+
+    def load_dataset(self):
+        # Load the dataset as the plain training list
+        data_list, _ = jb_data.dataspec_to_manifests(self.lab, self.ds_cfg)
+
+        # Construct the transform manager based on the datasets
+        # TODO: Tweak the make_transfor_manager to deal with no model config.
+        opt_args = {'path_label_list': list(data_list)}
+        if self.model_cfg is not None:
+            transform_mgr = pyt_data.make_transform_manager(self.model_cfg, self.ds_cfg, len(data_list), opt_args)
+        elif self.ds_cfg.data_transforms is not None:
+            transform_mgr = TransformManager(self.ds_cfg.data_transforms.transforms, opt_args)
+        else:
+            transform_mgr = None
+        self.dataloader = pyt_data.make_data_loader(self.lab, self.ds_cfg, data_list,
+                                                    transform_mgr, batch_size=1)
+
+    def prepare_output_directory(self):
+        # Walk the labels make a directory for each and saving that to the output list
+        self.label_paths = prepare_output_directory(self.output_data_root, self.output_dir,
+                                                    self.ds_cfg.retrieve_label_names())
+
+    def process_dataset(self):
+        from torchvision import transforms
+
+        # Walk the DATASET saving each image. We name each image a number within the directory and its label number.
+        label_idx = defaultdict(int)
+
+        for image, label in self.dataloader.dataset:
+            # The path looks something like <data_root>/my_dataset/00004_dog/00004_000001.png
+            img_path = Path(self.output_data_root) / self.label_paths[label] / f"{label:05}_{label_idx[label]:06}.png"
+            label_idx[label] += 1
+
+            # Save the image
+            logger.info(f"Saving image {img_path}")
+            img = transforms.ToPILImage()(image)
+            img.save(str(img_path))
+
+    def save_config_files(self):
+        # Make a new config from the old one
+        new_config = make_config_from_label_paths(self.ds_cfg, self.label_paths)
+
+        # We are now an Image Classification dataset
+        new_config.data_type = jb_dataset.DataType.IMAGE.value
+        new_config.image_data.task_type = jb_dataset.TaskType.CLASSIFICATION.value
+
+        # Now save it to the file they wanted
+        new_config.save(self.output_file)
+
+
+class TFDSProcessor(DatasetProcessor):
+
+    def __init__(self, lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, output_file: str, *,
+                 model_cfg: ModelConfig = None):
+        super().__init__(lab, ds_cfg, output_data_root, output_dir, output_file, model_cfg=model_cfg)
+
+        self.dataset = None
+        self.label_paths = {}
+
+    def dryrun(self):
+        super().dryrun()
+
+    def load_dataset(self):
+        import tensorflow_datasets as tfds
+        import juneberry.tensorflow.data as tf_data
+        from juneberry.transform_manager import TransformManager
+
+        tf_stanza = self.ds_cfg.tensorflow_data
+        load_args = {}
+        if tf_stanza.load_kwargs is not None:
+            load_args = tf_stanza.load_kwargs
+        load_args['as_supervised'] = True
+        if 'split' not in load_args:
+            load_args['split'] = "train"
+
+        # Now load it
+        logger.info(f"Loading dataset '{tf_stanza.name}' with args={load_args}")
+        self.dataset = tfds.load(tf_stanza.name, **load_args)
+
+        # Now, add the MODEL transformer if it exists
+        # TODO: Expose this transform image code so that we can use it properly
+        if self.model_cfg is not None:
+            transforms = TransformManager(self.model_cfg.training_transforms)
+            self.dataset = self.dataset.map(lambda x, y: (tf_data._transform_image(x, transforms), y))
+
+        logger.info(f"Loaded TensorFlow dataset of size {len(self.dataset)}")
+
+    def prepare_output_directory(self):
+        self.label_paths = prepare_output_directory(self.output_data_root, self.output_dir,
+                                                    self.ds_cfg.retrieve_label_names())
+
+    def process_dataset(self):
+        from PIL import Image
+
+        # TODO: This should ALL go into the tensorflow data module.
+        # Walk through the loader batches, sampling one from each.
+        idx = 0
+        ten_percent = len(self.dataset) / 10
+        logger.info(f"Processing {len(self.dataset)} images.")
+        for image, label in iter(self.dataset):
+            # Unpack the tensors
+            np_image = image.numpy()
+            label_num = int(label.numpy())
+
+            # PIL does not like grayscale images as a dimenion of three it wants them as HxW only.
+            shape = np_image.shape
+            if shape[2] == 1:
+                np_image = np_image.reshape(shape[0], shape[1])
+
+            # Convert and save
+            img = Image.fromarray(np_image)
+
+            # Get the label name from the optional mapping for the file name
+            path = Path(self.output_data_root) / self.label_paths[label_num] / f"{label_num:05}_{idx:06}.png"
+
+            # Save it
+            img.save(str(path))
+
+            # Some status logging
+            if idx % ten_percent == 0:
+                logger.info(f"Finished {idx}/{len(self.dataset)}...")
+
+            # Next image
+            idx += 1
+            logger.info("Finished processing images.")
+
+    def save_config_files(self):
+        # Make a new config from the old one
+        new_config = make_config_from_label_paths(self.ds_cfg, self.label_paths)
+        new_config.tensorflow_data = None
+
+        # We are now an Image Classification dataset
+        new_config.data_type = jb_dataset.DataType.IMAGE.value
+        new_config.image_data.task_type = jb_dataset.TaskType.CLASSIFICATION.value
+
+        # Now save it to the file they wanted
+        new_config.save(self.output_file)
+
+
+# ======================================================================================================================
+
+def process_dataset(lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, output_file: str, *,
+                    model_cfg: ModelConfig = None, dryrun=False) -> None:
+    """
+    This functions converts the data and the ds_cfg into the output directory and config file while applying
+    sampling and transforms.
+    :param lab: The lab to find the source data.
+    :param ds_cfg: The dataset config to use.
+    :param output_data_root: The data root in which to save the data.
+    :param output_dir: Where to save the data withing output_data_root. Similar to data_root.
+    :param output_file: The new dataset config file sans sampling, etc.
+    :param model_cfg: OPTIONAL model config from which to read transforms.
+    :param dryrun: Opens the dataset and reports what it would do
+    :return: None
+    """
+
+    processor = None
+    if ds_cfg.data_type == jb_dataset.DataType.IMAGE:
+        if ds_cfg.image_data.task_type == jb_dataset.TaskType.CLASSIFICATION:
+            processor = PyTorchClassificationImageProcessor(lab, ds_cfg, output_data_root, output_dir, output_file,
+                                                            model_cfg=model_cfg)
+    elif ds_cfg.data_type == jb_dataset.DataType.TENSORFLOW:
+        processor = TFDSProcessor(lab, ds_cfg, output_data_root, output_dir, output_file,
+                                  model_cfg=model_cfg)
+
+    if processor is not None:
+        if dryrun:
+            processor.dryrun()
+        else:
+            processor.process()
+    else:
+        logger.error("Unsupported dataset input.")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument('base_dataset', help="Path to a dataset file to process.")
+    parser.add_argument('output_data_root', help="Path to the 'data_root' for the output.")
+    parser.add_argument('output_dir', help="Subdirectory within data_root(s) in which to place files.")
+    parser.add_argument('output_config_path', help="Filepath to the output config file.")
+    parser.add_argument('-m', '--model', help="Optional model config with a transform stanza to apply.")
+
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode. ')
+    parser.add_argument('--clean', default=False, action='store_true', help='Remove output directory before writing. ')
+
+
+def main():
+    # Typical argparse operations to gather the command line arguments.
+    parser = argparse.ArgumentParser(description='Script to convert the data in a dataset to another dataset applying'
+                                                 'sampling and transforms and writes it to the output_dir with a '
+                                                 'structure based on the integer label and string label such as'
+                                                 '001-aardvark and an updated dataset config to the output_config.'
+                                                 'Example: jb_process_dataset.py data_sets/tf_mnist_train.json '
+                                                 'data-out mnist/train data-out/mnist/train.json')
+
+    setup_args(parser)
+    jbscripting.setup_args(parser)
+    args = parser.parse_args()
+
+    # First, let's see if the output directory exists. We don't want to overwrite
+    out_dir_path = Path(args.output_data_root) / args.output_dir
+    if out_dir_path.exists():
+        if args.clean:
+            shutil.rmtree(str(out_dir_path))
+        else:
+            logger.error(f"{str(out_dir_path)} exists!")
+            logger.error(f"As a safety measure we will not overwrite an output directoy. Please delete the output "
+                         f"directory and try again. EXITING")
+            sys.exit(-1)
+
+    logger.info(f"Making output directory {str(out_dir_path)}")
+    out_dir_path.mkdir()
+
+    # Follow the normal procedure for setting up logs and workspace
+    log_prefix = ""
+    log_file = str(out_dir_path / "process_log.txt")
+    if args.dryrun:
+        log_prefix = "<<DRY_RUN>> "
+        log_file = str(out_dir_path / "process_dryrun_log.txt")
+    lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
+                                      banner_msg=">>> Juneberry Dataset Preprocessor <<<")
+
+    # Load the configs
+    ds_cfg = DatasetConfig.load(args.base_dataset)
+    model_cfg = None
+    if args.model is not None:
+        model_cfg = ModelConfig.load(args.model)
+
+    # Kick it off
+    process_dataset(lab, ds_cfg, args.output_data_root, args.output_dir, args.output_config_path,
+                    model_cfg=model_cfg, dryrun=args.dryrun)
+
+
+if __name__ == "__main__":
+    jbscripting.run_main(main, logger)
