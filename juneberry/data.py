@@ -948,7 +948,7 @@ def convert_dict(stanza):
 
 
 def get_label_mapping(model_manager: ModelManager = None, model_config=None, train_config=None, eval_config=None,
-                      show_source=False):
+                      show_source=False) -> Union[Tuple[Dict[int, str], str], Dict[int, str]]:
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model. The order of precedence
     is as follows: training output.json file, specified model config file, specified training config file, specified

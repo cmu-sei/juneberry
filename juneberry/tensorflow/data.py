@@ -223,6 +223,8 @@ def load_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelConfig,
 def save_sample_images(tf_ds, image_dir, label_map: dict = None, max_images: int = 5):
     # Reset the random seed so we get different images each dry run.
     random.seed()
+    if isinstance(label_map, tuple):
+        label_map = label_map[0]
 
     # Walk through the loader batches, sampling one from each.
     idx = 0
