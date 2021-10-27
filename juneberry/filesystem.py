@@ -670,11 +670,8 @@ class ModelManager:
         files = [self.get_model_path(),
                  self.get_training_out_file(),
                  self.get_training_log(),
-                 self.get_train_root_dir()]
-
-        # Everyone but tensorflow has an output plot...
-        if self.model_platform not in ['tensorflow']:
-            files.append(self.get_training_summary_plot())
+                 self.get_train_root_dir(),
+                 self.get_training_summary_plot()]
 
         if self.model_platform in ['detectron2', 'mmdetection']:
             ext = "py" if self.model_platform == Platforms.MMD else "yaml"
