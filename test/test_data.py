@@ -744,6 +744,9 @@ def test_get_label_mapping():
     model_config = model_manager.get_model_config()
     train_config = "models/tabular_binary_sample/train_data_config.json"
     test_labels = {0: "outer", 1: "inner"}
+    test_stanza = {"0": "outer", "1": "inner"}
+
+    assert isinstance(jb_data.convert_dict(test_stanza), dict)
 
     # Unit tests
     test_source = "training dataset config via model config via model manager"
