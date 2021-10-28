@@ -26,7 +26,7 @@ import csv
 import json
 from pathlib import Path
 import random
-from unittest import mock
+from unittest import mock, TestCase
 
 import juneberry
 from juneberry.config.dataset import DatasetConfig
@@ -748,7 +748,7 @@ def test_get_label_mapping():
     # Unit tests
     test_source = "training dataset config via model config via model manager"
     func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
 
     # TODO: write a unit test for the training output case
@@ -758,11 +758,14 @@ def test_get_label_mapping():
 
     test_source = "training dataset config"
     func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
 
     test_source = "training dataset config"
     func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
                                                          show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
+
+    func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
+    TestCase().assertDictEqual(func_labels, test_labels)
