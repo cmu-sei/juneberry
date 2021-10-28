@@ -107,25 +107,18 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     color = 'tab:red'
     ax1.set_ylabel('Accuracy', color=color)
 
+    accuracies = {'accuracy': "Accuracy",
+                  'sparse_categorical_accuracy': 'Sparse Categorical Accuracy'}
+    val_accuracies = {'val_accuracy': "Validation Accuracy",
+                      'val_sparse_categorical_accuracy': 'Validation Sparse Categorical Accuracy'}
+
     # The try/excepts were added in case data for the particular plot metric doesn't exist.
-    try:
-        ax1.plot(epochs, results['accuracy'], linestyle='-', marker='', color=color, label="Accuracy")
-    except ValueError:
-        pass
-    try:
-        ax1.plot(epochs, results['val_accuracy'], linestyle='--', marker='', color=color, label="Validation Accuracy")
-    except ValueError:
-        pass
-    try:
-        ax1.plot(epochs, results['sparse_categorical_accuracy'], linestyle='-', marker='', color=color,
-                 label="Sparse Categorical Accuracy")
-    except ValueError:
-        pass
-    try:
-        ax1.plot(epochs, results['val_sparse_categorical_accuracy'], linestyle='-', marker='', color=color,
-                 label="Validation Sparse Categorical Accuracy")
-    except ValueError:
-        pass
+    for k,l in accuracies.items():
+        if k in results:
+            ax1.plot(epochs, results[k], linestyle='-', marker='', color=color, label=l)
+    for k,l in val_accuracies.items():
+        if k in results:
+            ax1.plot(epochs, results[k], linestyle='--', marker='', color=color, label=l)
 
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2)
@@ -136,15 +129,11 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     color = 'tab:blue'
     ax2.set_ylabel('Loss', color=color)
 
-    # The try/excepts were added in case data for the particular plot metric doesn't exist.
-    try:
+    if 'loss' in results:
         ax2.plot(epochs, results['loss'], linestyle='-', marker='', color=color, label="Loss")
-    except ValueError:
-        pass
-    try:
+
+    if 'val_loss' in results:
         ax2.plot(epochs, results['val_loss'], linestyle='--', marker='', color=color, label="Validation Loss")
-    except ValueError:
-        pass
 
     ax2.tick_params(axis='y', labelcolor=color)
     ax2.legend(loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=2)
