@@ -809,8 +809,8 @@ and it should look something like the following block of code:
         "num_Workers": 0,
         "max_gpus": 2
     },
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput",
+    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationProcedure",
+    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationOutput",
     "training_dataset_config_path": "data_sets/torchvision/cifar10.json",
     "validation": {
         "algorithm": "random_fraction",
@@ -1007,8 +1007,8 @@ dataset you would like the model to evaluate.
 When you added the file content to the model config, you may have noticed the following two lines:
 
 ```json
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput"
+    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationProcedure",
+    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationOutput"
 ```
 
 The `evaluation_procedure` indicates the class Juneberry should use to evaluate the data. The `evaluation_output` field 

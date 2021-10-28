@@ -2,8 +2,8 @@
     "batch_size": 20,
     "description": "Unit test using a pretrained pytorch resnet18 model with small dataset.",
     "epochs": 5,
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
+    "evaluation_output": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput",
+    "evaluation_procedure": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "juneberry.transforms.image.ResizePad",

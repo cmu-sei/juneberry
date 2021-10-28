@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -53,13 +31,13 @@ from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.detectron2.dt2_evaluator import Detectron2Evaluator
+from juneberry.detectron2.evaluator import Detectron2Evaluator
 from juneberry.evaluation.evaluator import Evaluator
 from juneberry.evaluation.onnx_evaluator import OnnxEvaluator
-from juneberry.evaluation.util import create_evaluator
+from juneberry.evaluation.utils import create_evaluator
 from juneberry.lab import Lab
-from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
-from juneberry.pytorch.evaluation.pytorch_evaluator import PytorchEvaluator
+from juneberry.mmdetection.evaluator import MMDEvaluator
+from juneberry.pytorch.evaluator import PytorchEvaluator
 from juneberry.tensorflow.evaluator import TFEvaluator
 
 
@@ -163,9 +141,9 @@ class EvaluatorHarness(Evaluator):
 
 def test_get_eval_procedure_class():
     import inspect
-    from juneberry.evaluation.util import get_eval_procedure_class
+    from juneberry.evaluation.utils import get_eval_procedure_class
 
-    eval_proc_str = "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure"
+    eval_proc_str = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
     eval_class = get_eval_procedure_class(eval_proc_str)
 
     assert inspect.isclass(eval_class)
@@ -176,7 +154,7 @@ def test_pytorch_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
 
     platform = "pytorch"
-    procedure = "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure"
+    procedure = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
     evaluator = helper.build_evaluator(platform, procedure)
 
     assert isinstance(evaluator, PytorchEvaluator)
@@ -191,6 +169,15 @@ def test_onnx_evaluator(tmp_path):
 
     platform = "pytorch"
     procedure = "juneberry.evaluation.evals.onnx.OnnxEvaluationProcedure"
+    evaluator = helper.build_evaluator(platform, procedure)
+
+    assert isinstance(evaluator, OnnxEvaluator)
+
+    eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
+    eval_harness.perform_evaluation()
+    eval_harness.check_calls()
+
+    platform = "tensorflow"
     evaluator = helper.build_evaluator(platform, procedure)
 
     assert isinstance(evaluator, OnnxEvaluator)
@@ -230,7 +217,8 @@ def test_tensorflow_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
 
     platform = "tensorflow"
-    evaluator = helper.build_evaluator(platform, "")
+    procedure = "juneberry.evaluation.evals.tensorflow.TFEvaluationProcedure"
+    evaluator = helper.build_evaluator(platform, procedure)
 
     assert isinstance(evaluator, TFEvaluator)
 

@@ -44,7 +44,7 @@
 #
 # ======================================================================================================================
 
-import juneberry.mmdetection.util as mmd_util
+import juneberry.mmdetection.utils as mmd_util
 
 
 def test_tupleize():

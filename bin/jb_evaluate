@@ -28,11 +28,11 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.model import ModelConfig
-import juneberry.evaluation.util as jb_eval_utils
+import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.scripting as jbscripting
 
-logger = logging.getLogger("juneberry.jb_evaluate_data")
+logger = logging.getLogger("juneberry.jb_evaluate")
 
 
 def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_split=False):

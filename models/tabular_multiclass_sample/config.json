@@ -2,8 +2,8 @@
     "batch_size": 1500,
     "description": "Mutliclass csv dataset for unit testing",
     "epochs": 100,
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.DefaultEvaluationProcedure",
+    "evaluation_output": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput",
+    "evaluation_procedure": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure",
     "format_version": "0.2.0",
     "hints": {
         "max_gpus": 1,

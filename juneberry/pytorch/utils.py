@@ -44,7 +44,7 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
-from juneberry.pytorch.evaluation.util import compute_accuracy
+from juneberry.pytorch.eval_utils import compute_accuracy
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 from juneberry.transform_manager import TransformManager

@@ -51,7 +51,7 @@ import json
 import logging
 import sys
 
-import juneberry.pytorch.util as pyt_utils
+import juneberry.pytorch.utils as pyt_utils
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger("juneberry.jb_model_transform")

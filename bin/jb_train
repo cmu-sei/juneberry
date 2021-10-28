@@ -116,10 +116,10 @@ def main():
     # If the task type is object detection, set up an ObjectDetectionTrainer to do the work
     elif model_config.task == "objectDetection":
         if model_config.platform == "detectron2":
-            from juneberry.detectron2.dt2_trainer import Detectron2Trainer
+            from juneberry.detectron2.trainer import Detectron2Trainer
             trainer = Detectron2Trainer(lab, model_manager, model_config, dataset_config, log_level)
         elif model_config.platform == "mmdetection":
-            from juneberry.mmdetection.mmd_trainer import MMDTrainer
+            from juneberry.mmdetection.trainer import MMDTrainer
             trainer = MMDTrainer(lab, model_manager, model_config, dataset_config, log_level)
         else:
             logger.error(f"Unrecognized platform {model_config.platform}. EXITING.")

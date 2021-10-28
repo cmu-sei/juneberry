@@ -23,16 +23,8 @@
 # ======================================================================================================================
 
 import logging
-import numpy as np
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
-import sys
-from tqdm import tqdm
 
-from juneberry.config.training_output import TrainingOutput
 from juneberry.tensorflow.evaluator import TFEvaluator
-import juneberry.evaluation.util as jb_eval_utils
-import juneberry.filesystem as jbfs
-import juneberry.pytorch.evaluation.util as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
 
