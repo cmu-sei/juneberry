@@ -249,7 +249,7 @@ class TFDSProcessor(DatasetProcessor):
             np_image = image.numpy()
             label_num = int(label.numpy())
 
-            # PIL does not like grayscale images as a dimenion of three it wants them as HxW only.
+            # PIL GRAYSCALE HACK does not like grayscale images as a dimenion of three it wants them as HxW only.
             shape = np_image.shape
             if shape[2] == 1:
                 np_image = np_image.reshape(shape[0], shape[1])

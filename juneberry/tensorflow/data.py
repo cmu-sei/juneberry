@@ -173,6 +173,12 @@ def _prep_tfds_load_args(tf_stanza):
 def _make_image_datasets(model_config: ModelConfig, train_list, val_list):
     shape_hwc = model_config.model_architecture.get_shape_hwc()
 
+    # TODO: Make sure have the right control of the shuffling seed
+    # TODO: Check sampling and validation split seeds
+    logger.info(f"...shuffling data...")
+    random.shuffle(train_list)
+    random.shuffle(val_list)
+
     transform_manager = TransformManager(model_config.training_transforms)
     train_ds = TFImageDataSequence(
         train_list,
@@ -323,7 +329,7 @@ def _make_tfds_eval_args(load_args):
 
 def _load_tfds_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig, use_train_split, use_val_split):
     if use_train_split and use_val_split:
-        logger.error("When constructing eval dataset use_train_split and use_val_split we both specified."
+        logger.error("When constructing eval dataset use_train_split and use_val_split were both specified."
                      "This is not supported. To use the entire dataset, simply don't specify either. EXITING.")
         sys.exit(-1)
 
@@ -431,6 +437,11 @@ def save_sample_images(tf_ds, image_dir, label_map: dict = None, max_images: int
         # The labels come back as an array of arrays but it is one element
         # label_num = labels[rand_idx][0]
         label_num = labels[rand_idx]
+
+        # PIL GRAYSCALE HACK does not like grayscale images as a dimension of three it wants them as HxW only.
+        shape = np_image.shape
+        if shape[2] == 1:
+            np_image = np_image.reshape(shape[0], shape[1])
 
         # Convert and save
         img = Image.fromarray(np_image)
