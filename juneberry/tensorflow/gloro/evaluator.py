@@ -228,6 +228,7 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        self.inversion = None
 
     def obtain_model(self) -> None:
         from gloro import GloroNet 
@@ -239,25 +240,17 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
 
         # lib-gloro seems to save the model in a way that is extricated from metrics, losses, and optimizers.
         # As such, need to re-compile the model with the desired evaluation functions.
-        # TODO: This should obviously be coming from a config file somewhere, but I'm not sure how to go about that yet.
+
+        # We only actually need the loss here, so neglect the metrics in the config file.
         from juneberry.loader import construct_instance
         loss = construct_instance(
             self.model_config.tensorflow.loss_fn, 
             self.model_config.tensorflow.loss_args)
-        # TODO: I don't think the following will handle the config field with partially qualified keys 
-        # e.g. `"metrics": ["accuracy"]`
-        metrics = [
-            construct_instance(m['fqcn'], m['kwargs']) 
-            for m in self.model_config.tensorflow.metrics]
-        logger.info(f'Compiling model with:'
-                    f'\n\tloss: {loss.__class__.__name__}'
-                    f'\n\tmetrics: {[m.__class__.__name__ for m in metrics]}')
-        self.model.compile(
-            loss=loss,
-            metrics=metrics)
-        self.model.trainable = False
 
-        logger.info("...complete")
+        logger.info(f'Compiling model with:'
+                    f'\n\tloss: {loss.__class__.__name__}')
+        self.model.compile(loss=loss)
+        self.model.trainable = False
 
     def obtain_dataset(self) -> None:
         pass
@@ -269,15 +262,39 @@ class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
         - Save labeled inversions.
         """
         logger.info('Computing model inversions...')
-        input_shape = (64, *self.model.input_shape[1:])
+        if self.model_config.get('inversions') is None:
+            raise KeyError(f'Model config missing required field "inversions"')
+
+        num_samples = self.model_config.inversions.num_samples
+        num_iterations = self.model_config.inversions.get('num_iterations', 128)
+        step_size = self.model_config.inversions.get('step_size', 1e-3)
+        target_label_sequence_length = self.model_config.get('target_label_sequence_length', 1)
+
+        # TODO: input_shape batch size from config
+        input_shape = (num_samples, *self.model.input_shape[1:])
         x0 = tf.zeros(input_shape)
+
+        # Stupidly do a forward-pass to get output shape
         output_shape = self.model(x0).shape
+
+        # Target label sequence for each batch entry.
         target_sequence = [
-            np.random.randint(0, output_shape[-1], size=(len(x0),))]
+            np.random.randint(0, output_shape[-1], size=(num_samples,))
+            for _ in range(target_label_sequence_length)]
+
+        # Perform gradient ascent for num_steps iterations per label in the sequence.
+        # The result of num_steps iterations will be passed as the initialization to 
+        # the optimization targeting the next label in the sequence.
         inversions = iterated_inversion(
             self.model, x0, target_sequence, 
-            step_size=1e-3, 
-            num_steps=128)
-        print('\n\n')
-        print(inversions.shape)
-        print('\n\n')
+            step_size=step_size, 
+            num_steps=num_iterations)
+        self.inversions = inversions.numpy()
+
+    def format_evaluation(self) -> None:
+        inversions_path = (
+            self.eval_dir_mgr.get_dir() / 
+            '..' /  # Stupid hack to avoid the dummy dataset directory that gets created for the dataset eval we don't do.
+            'inversions.npy')
+        logger.info(f'Saving inversions to {str(inversions_path)}')
+        np.save(str(inversions_path), self.inversions)
