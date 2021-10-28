@@ -52,7 +52,7 @@ class Evaluator:
     """
 
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
@@ -111,6 +111,15 @@ class Evaluator:
         # how to perform the desired operation.
         self.eval_method = None
         self.eval_output_method = None
+
+        # The output and procedure kwargs to evaluator are meant to provide users to use custom classes
+        # to conduct and format their evaluation. When not provided, the evaluator subclasses will set
+        # these to the correct default classes when required.
+        if self.model_config.evaluator is not None and self.model_config.evaluator.kwargs is not None:
+            if 'output' in self.model_config.evaluator.kwargs:
+                self.eval_output_method = self.model_config.evaluator.kwargs['output']
+            if 'procedure' in self.model_config.evaluator.kwargs:
+                self.eval_method = self.model_config.evaluator.kwargs['procedure']
 
         # These attributes are all related to the output of the evaluation process. They contain the
         # raw data that resulted from the evaluation process, the formatted output data that will be

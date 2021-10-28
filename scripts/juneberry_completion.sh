@@ -155,7 +155,7 @@ _jb_train_comp() {
   return 0
 }
 
-_jb_evaluate_data_comp() {
+_jb_evaluate_comp() {
   # By default we turn off the normal behavior
 
   compopt +o default
@@ -213,7 +213,7 @@ _jb_generate_experiments_comp() {
 # Sign them up!
 
 complete -F _jb_train_comp jb_train
-complete -F _jb_evaluate_data_comp jb_evaluate_data
+complete -F _jb_evaluate_comp jb_evaluate
 complete -F _jb_run_experiment_comp jb_run_experiment
 complete -F _jb_experiment_to_rules_comp jb_experiment_to_rules
 complete -F _jb_generate_experiments_comp jb_generate_experiments

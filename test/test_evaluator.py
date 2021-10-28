@@ -33,7 +33,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.detectron2.evaluator import Detectron2Evaluator
 from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.onnx_evaluator import OnnxEvaluator
+from juneberry.evaluation.onnx import OnnxEvaluator
 from juneberry.evaluation.utils import create_evaluator
 from juneberry.lab import Lab
 from juneberry.mmdetection.evaluator import MMDEvaluator
@@ -50,15 +50,13 @@ class EvalTestHelper:
 
         self.lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
         self.dataset = DatasetConfig()
+        self.dataset.file_path = ""
         self.model_manager = self.lab.model_manager("test")
         self.eval_dir_mgr = self.model_manager.get_eval_dir_mgr("test_dataset")
         self.eval_dir_mgr.setup()
         self.eval_options = SimpleNamespace()
 
-    def build_evaluator(self, platform: str, procedure: str):
-        self.model_config.platform = platform
-        self.model_config.evaluation_procedure = procedure
-
+    def build_evaluator(self):
         return create_evaluator(self.model_config, self.lab, self.dataset, self.model_manager, self.eval_dir_mgr,
                                 self.eval_options)
 
@@ -139,23 +137,10 @@ class EvaluatorHarness(Evaluator):
         assert self.format_evaluation_calls == [4]
 
 
-def test_get_eval_procedure_class():
-    import inspect
-    from juneberry.evaluation.utils import get_eval_procedure_class
-
-    eval_proc_str = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
-    eval_class = get_eval_procedure_class(eval_proc_str)
-
-    assert inspect.isclass(eval_class)
-    assert hasattr(eval_class, 'establish_evaluator')
-
-
 def test_pytorch_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
-
-    platform = "pytorch"
-    procedure = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
-    evaluator = helper.build_evaluator(platform, procedure)
+    helper.model_config.platform = "pytorch"
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, PytorchEvaluator)
 
@@ -166,10 +151,9 @@ def test_pytorch_evaluator(tmp_path):
 
 def test_onnx_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
-
-    platform = "pytorch"
-    procedure = "juneberry.evaluation.evals.onnx.OnnxEvaluationProcedure"
-    evaluator = helper.build_evaluator(platform, procedure)
+    helper.model_config.platform = "pytorch"
+    helper.model_config.evaluator = {"fqcn": "juneberry.evaluation.onnx.OnnxEvaluator"}
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, OnnxEvaluator)
 
@@ -177,8 +161,8 @@ def test_onnx_evaluator(tmp_path):
     eval_harness.perform_evaluation()
     eval_harness.check_calls()
 
-    platform = "tensorflow"
-    evaluator = helper.build_evaluator(platform, procedure)
+    helper.model_config.platform = "tensorflow"
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, OnnxEvaluator)
 
@@ -189,9 +173,8 @@ def test_onnx_evaluator(tmp_path):
 
 def test_detectron2_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
-
-    platform = "detectron2"
-    evaluator = helper.build_evaluator(platform, "")
+    helper.model_config.platform = "detectron2"
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, Detectron2Evaluator)
 
@@ -202,9 +185,8 @@ def test_detectron2_evaluator(tmp_path):
 
 def test_mmdetection_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
-
-    platform = "mmdetection"
-    evaluator = helper.build_evaluator(platform, "")
+    helper.model_config.platform = "mmdetection"
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, MMDEvaluator)
 
@@ -215,10 +197,8 @@ def test_mmdetection_evaluator(tmp_path):
 
 def test_tensorflow_evaluator(tmp_path):
     helper = EvalTestHelper(tmp_path)
-
-    platform = "tensorflow"
-    procedure = "juneberry.evaluation.evals.tensorflow.TFEvaluationProcedure"
-    evaluator = helper.build_evaluator(platform, procedure)
+    helper.model_config.platform = "tensorflow"
+    evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, TFEvaluator)
 

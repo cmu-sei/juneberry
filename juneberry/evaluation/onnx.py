@@ -46,8 +46,8 @@ class OnnxEvaluator(Evaluator):
         """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
 
         self.input_data = []
         self.onnx_model = None
@@ -58,9 +58,6 @@ class OnnxEvaluator(Evaluator):
         This is the ONNX version of the extension point that's responsible for setting up the Evaluator.
         :return: Nothing.
         """
-        # Read the evaluation methods from the ModelConfig.
-        self.eval_method = self.model_config.evaluation_procedure
-        self.eval_output_method = self.model_config.evaluation_output
 
         # TODO: Shouldn't this be done in the lab??
 
@@ -72,6 +69,12 @@ class OnnxEvaluator(Evaluator):
         # Set the seeds using the value from the ModelConfig.
         jb_utils.set_seeds(self.model_config.seed)
 
+        # Use default values if they were not provided in the model config.
+        if self.eval_method is None:
+            self.eval_method = "juneberry.evaluation.evals.onnx.OnnxEvaluationProcedure"
+        if self.eval_output_method is None:
+            self.eval_output_method = "juneberry.evaluation.evals.onnx.OnnxEvaluationOutput"
+
         logger.info(f"ONNX Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
@@ -81,6 +84,11 @@ class OnnxEvaluator(Evaluator):
         where each tensor will be fed in to the evaluation procedure, one at a time.
         :return: Nothing.
         """
+
+        # TODO: I think there's a risk here if the datasets are too large to fit in memory.
+        #  self.input_data could end up being very large.
+
+
         # If a PyTorch model is being evaluated, create a separate PyTorch specific evaluator
         # and use it to construct a PyTorch dataloader. Once the dataloader exists, convert it
         # into the format that ONNX expects.

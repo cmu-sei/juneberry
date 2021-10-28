@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 
 class TFEvaluator(Evaluator):
     def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
 
         # TODO: This should be in base
         self.dataset_config = dataset
@@ -68,9 +68,11 @@ class TFEvaluator(Evaluator):
         np.random.seed(self.model_config.seed)
         tf.random.set_seed(self.model_config.seed)
 
-        # Read the evaluation methods from the ModelConfig.
-        self.eval_method = self.model_config.evaluation_procedure
-        self.eval_output_method = self.model_config.evaluation_output
+        # Use default values if they were not provided in the model config.
+        if self.eval_method is None:
+            self.eval_method = "juneberry.evaluation.evals.tensorflow.TFEvaluationProcedure"
+        if self.eval_output_method is None:
+            self.eval_output_method = "juneberry.evaluation.evals.tensorflow.TFEvaluationOutput"
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")

@@ -63,8 +63,8 @@ logger = logging.getLogger(__name__)
 
 class MMDEvaluator(Evaluator):
     def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
 
         self.mm_home = mmd_util.find_mmdetection()
 

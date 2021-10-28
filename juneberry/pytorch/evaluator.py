@@ -49,7 +49,7 @@ class PytorchEvaluator(Evaluator):
     """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, dataset: jb_dataset.DatasetConfig,
-                 model_manager: ModelManager, eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+                 model_manager: ModelManager, eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
         """
         Creates a PytorchEvaluator object based on command line arguments and a Juneberry
         ModelManager object.
@@ -63,7 +63,7 @@ class PytorchEvaluator(Evaluator):
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
         include the following: topK, dryrun, extract_validation.
         """
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
 
         # These attributes are used by Pytorch to send information to the correct device (CPU | GPU)
         self.use_cuda = False
@@ -102,10 +102,6 @@ class PytorchEvaluator(Evaluator):
             logger.error("PyTorch Evaluator does NOT support more than one GPU device. EXITING.")
             sys.exit(-1)
 
-        # Read the evaluation methods from the ModelConfig.
-        self.eval_method = self.model_config.evaluation_procedure
-        self.eval_output_method = self.model_config.evaluation_output
-
         # TODO: Shouldn't this be done in the lab??
 
         if self.model_config.hints is not None and 'num_workers' in self.model_config.hints.keys():
@@ -115,6 +111,12 @@ class PytorchEvaluator(Evaluator):
 
         # Set the seeds using the value from the ModelConfig.
         pyt_utils.set_pytorch_seeds(self.model_config.seed)
+
+        # Use default values if they were not provided in the model config.
+        if self.eval_method is None:
+            self.eval_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
+        if self.eval_output_method is None:
+            self.eval_output_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput"
 
         logger.info(f"PyTorch setup steps are complete.")
 

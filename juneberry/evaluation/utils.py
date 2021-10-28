@@ -34,6 +34,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
+import juneberry.loader as jb_loader
 
 logger = logging.getLogger(__name__)
 
@@ -76,24 +77,6 @@ def get_histogram(dataset_dicts, classes):
     return hist_dict
 
 
-def get_eval_procedure_class(procedure_name: str):
-    """
-    This function is responsible for retrieving the class indicated by the evaluation_procedure property of the
-    model config.
-    :param procedure_name: A string corresponding to the value of the evaluation_procedure property in the
-    model config.
-    :return: The class indicated by the evaluation_procedure property of the model config.
-    """
-
-    # Some string manipulation to separate the class name from the rest of the module path.
-    split_name = procedure_name.split(".")
-    class_name = split_name[-1]
-    module_path = ".".join(split_name[:-1])
-
-    module = __import__(module_path, fromlist=[class_name])
-    return getattr(module, class_name)
-
-
 def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
                      eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace):
     """
@@ -105,37 +88,57 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to build the Evaluator.
     :param eval_options: A SimpleNamespace of different eval options that will be used to build the Evaluator.
     """
-    # Return an evaluator for the PyTorch platform.
-    if model_config.platform in ['pytorch', 'pytorch_privacy', 'tensorflow']:
-    # if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
-        # Fetch the desired evaluation procedure.
-        eval_proc_name = model_config.evaluation_procedure
 
-        # Import the class from the desired evaluation procedure.
-        imported_class = get_eval_procedure_class(eval_proc_name)
+    platform_map = {
+        "pytorch": "juneberry.pytorch.evaluator.PytorchEvaluator",
+        "pytorch_privacy": "juneberry.pytorch.evaluator.PytorchEvaluator",
+        "detectron2": "juneberry.detectron2.evaluator.Detectron2Evaluator",
+        "mmdetection": "juneberry.mmdetection.evaluator.MMDEvaluator",
+        "tensorflow": "juneberry.tensorflow.evaluator.TFEvaluator",
+        "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator"
+    }
 
-        # Build the appropriate evaluator using the establish_evaluator method defined for the imported class.
-        return imported_class.establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    # If the model config does not specify an evaluator to use, determine the default
+    # evaluator using the platform map.
+    if model_config.evaluator is None:
 
-    # Return an evaluator for the detectron2 platform.
-    elif model_config.platform == "detectron2":
-        from juneberry.detectron2.evaluator import Detectron2Evaluator
-        return Detectron2Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        # If the platform is not in the platform map, then there is no default evaluator for the
+        # platform.
+        if model_config.platform not in platform_map:
+            logger.error(f"Evaluation not supported for the requested platform ({model_config.platform}). "
+                         f"Supported platforms: {list(platform_map.keys())}. EXITING.")
+            sys.exit(-1)
 
-    # Return an evaluator for the mmdetection platform.
-    elif model_config.platform == "mmdetection":
-        from juneberry.mmdetection.evaluator import MMDEvaluator
-        return MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        # Obtain the fqcn from the platform map and warn the user.
+        else:
+            fqcn = platform_map[model_config.platform]
 
-    # Return an evaluator for the tensorflow platform.
-    elif model_config.platform == "tensorflow":
-        from juneberry.tensorflow.evaluator import TFEvaluator
-        return TFEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        kw_args = {}
+        logger.warning("Found deprecated platform/task configuration for loading the evaluator. "
+                       "Consider updating the model config to use the evaluator stanza.")
+        logger.warning('"evaluator": {')
+        logger.warning(f'    "fqcn": "{fqcn}"')
+        logger.warning('}')
 
-    # Handle cases where there is no Evaluator for the requested platform.
+    # Handle the situation where the model config has an evaluator stanza.
     else:
-        logger.error(f"Evaluation is not currently supported for the requested platform: {model_config.platform}")
-        sys.exit(-1)
+        kw_args = model_config.evaluator.kwargs
+        if kw_args is None:
+            kw_args = {}
+        fqcn = model_config.evaluator.fqcn
+
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options']
+
+    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    for arg in reqd_args:
+        if arg not in kw_args:
+            kw_args[arg] = locals()[arg]
+
+    # Create the Evaluator.
+    logger.info(f"Instantiating evaluator: {fqcn}")
+    evaluator = jb_loader.construct_instance(fqcn, kw_args)
+
+    return evaluator
 
 
 def continuous_predictions_to_class(y_pred, binary):

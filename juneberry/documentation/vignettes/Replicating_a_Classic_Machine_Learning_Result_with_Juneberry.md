@@ -983,19 +983,19 @@ qualitatively match the results reported in He et al. (2015).
 
 ## Evaluate a model with Juneberry.
 
-Once a trained model file exists, it can be evaluated with the `jb_evaluate_data` command. The command takes two 
+Once a trained model file exists, it can be evaluated with the `jb_evaluate` command. The command takes two 
 arguments: the name of the trained model and the path to a Juneberry dataset config describing the dataset to be 
 evaluated.
 
 You can use the following command to initiate the evaluation:
 ```
-jb_evaluate_data cifar_R20 data_sets/torchvision/cifar10.json
+jb_evaluate cifar_R20 data_sets/torchvision/cifar10.json
 ```
 
 This command follows the following structure:
 
 ```
-jb_evaluate_data [model to evaluate] [dataset config to evaluate]
+jb_evaluate [model to evaluate] [dataset config to evaluate]
 ```
 
 The "model to evaluate" corresponds to the name of a sub-directory inside the `models` directory which holds the model 
@@ -1201,7 +1201,7 @@ file. `main_dodo.py` consists of a list of tasks to be executed by the doit task
 dependency graph of your experiment.
 
 Broadly speaking, the experiment runner starts by training all the experiment models using `jb_train`. Next, 
-the runner uses `jb_evaluate_data` to evaluate each model using the datasets listed in the `tests` section of the 
+the runner uses `jb_evaluate` to evaluate each model using the datasets listed in the `tests` section of the 
 experiment. Finally, the runner will construct the desired reports. In this case, `jb_summary_report` will produce a 
 markdown file summarizing the training and evaluation information produced during the experiment.
 

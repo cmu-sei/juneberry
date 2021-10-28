@@ -29,7 +29,7 @@ import sys
 from tqdm import tqdm
 
 from juneberry.config.training_output import TrainingOutput
-from juneberry.evaluation.onnx_evaluator import OnnxEvaluator
+from juneberry.evaluation.onnx import OnnxEvaluator
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.pytorch.eval_utils as jb_pytorch_eval_utils

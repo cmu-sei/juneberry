@@ -58,7 +58,7 @@ def make_basic_config():
                 "tests": [
                     {
                         "tag": "pyt50",
-                        "dataset_path": "data_sets/imagenette_unit_test.json",
+                        "dataset_path": "data_sets/imagenette_unit_test_def.json",
                         "classify": 3
                     }
                 ]
@@ -139,7 +139,7 @@ class TestFormatErrors(unittest.TestCase):
         config = make_basic_config()
         config['models'][0]['tests'].append({
             "tag": "pyt50",
-            "dataset_path": "data_sets/imagenette_unit_test.json",
+            "dataset_path": "data_sets/imagenette_unit_test_def.json",
         })
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -153,7 +153,7 @@ class TestFormatErrors(unittest.TestCase):
             "tests": [
                 {
                     "tag": "pyt50",
-                    "dataset_path": "data_sets/imagenette_unit_test.json",
+                    "dataset_path": "data_sets/imagenette_unit_test_def.json",
                 }
             ]
         })
