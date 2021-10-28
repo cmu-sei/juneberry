@@ -114,10 +114,10 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
 
     # The try/excepts were added in case data for the particular plot metric doesn't exist.
     for k,l in accuracies.items():
-        if k in results:
+        if results.get(k):
             ax1.plot(epochs, results[k], linestyle='-', marker='', color=color, label=l)
     for k,l in val_accuracies.items():
-        if k in results:
+        if results.get(k):
             ax1.plot(epochs, results[k], linestyle='--', marker='', color=color, label=l)
 
     ax1.tick_params(axis='y', labelcolor=color)
