@@ -24,6 +24,7 @@ PYTHONPATH.)
         "seed": <int>,
         "num_training_images": <int>,
         "num_validation_images": <int>,
+        "label_mapping": <dict of label mappings -OR- path to a json file containing a dictionary of label mappings>,
         "keras": {
             "optimizer": {
                 "type": <adam, sgd, etc>,
@@ -112,6 +113,9 @@ Number of images used to train the model.
 
 ### num_validation_images
 Number of images used to validate the model.
+
+### label_mapping
+A dictionary of label mappings or a path to a json file containing a dictionary of label mappings.
 
 ### keras
 Specific parameters for the Keras model compilation.

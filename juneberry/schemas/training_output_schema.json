@@ -23,6 +23,9 @@
                 "num_validation_images": {
                     "type": "integer"
                 },
+                "label_mapping": {
+                    "type": [ "string", "object" ]
+                },
                 "seed": {
                     "type": "integer"
                 },

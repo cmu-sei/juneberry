@@ -90,7 +90,7 @@ OD_GPU_TEST_SET = [
         "data_sets/text_detect_val.json",
         0.92,
         #  Single GPU (9.3), 2 GPU (2.5), 4 GPU (2.0) in testing.
-        1.6
+        0.016
     ]
 ]
 
@@ -99,7 +99,7 @@ OD_CPU_TEST_SET = [
         "text_detect/dt2/ut",
         "data_sets/text_detect_val.json",
         0.3,
-        0.004
+        0.00004
     ]
 ]
 

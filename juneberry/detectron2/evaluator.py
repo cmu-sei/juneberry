@@ -45,7 +45,9 @@ from juneberry.evaluation.utils import get_histogram
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
+
 
 logger = logging.getLogger(__name__)
 
@@ -138,41 +140,20 @@ class Detectron2Evaluator(Evaluator):
         eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
         self.eval_results = inference_on_dataset(self.predictor.model, eval_loader, evaluator)
 
-    def format_evaluation(self) -> None:
-        formatted_results = {}
-        per_class = {}
-
-        # TODO: Is bbox all we're ever going to see for eval task?
-        for k, v in self.eval_results['bbox'].items():
-            if k == 'AP':
-                formatted_results['mAP'] = v
-                continue
-            new_k = k.replace('AP', 'mAP_')
-            if '-' in new_k:
-                new_k = new_k.replace('-', '')
-                per_class[new_k] = v
-                continue
-            formatted_results[new_k] = v
-
-        # When there is only a single class label, dt2 does not report any per class mAP values. This will
-        # take the reported mAP value and also report it as the mAP value for the single class in the per
-        # class mAP section of the output file.
-        label_names = self.dataset_config.retrieve_label_names()
-        if len(label_names) == 1:
-            label = next(iter(label_names.values()))
-            per_class[f"mAP_{label}"] = formatted_results['mAP']
-
-        # Add the formatted results to the output.
-        self.output.results.metrics.bbox = formatted_results
-        self.output.results.metrics.bbox_per_class = per_class
-
         # Rename the results to our detections file for things like plot_pr
         det = Path(self.output_dir, "coco_instances_results.json")
         det.rename(self.eval_dir_mgr.get_detections_path())
         det = self.eval_dir_mgr.get_detections_path()
 
+        # Populate metrics
+        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
+        self.output.results.metrics.bbox = m.as_dict()
+        self.output.results.metrics.bbox_per_class = m.mAP_per_class
+
+    def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
-        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path), str(det), out)
+        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path),
+                                            str(self.eval_dir_mgr.get_detections_path()), out)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()
