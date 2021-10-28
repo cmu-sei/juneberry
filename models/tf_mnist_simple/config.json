@@ -41,7 +41,7 @@
     "seed": 4210592948,
     "task": "classification",
     "timestamp": "2021-03-02T13:30:00",
-    "training_dataset_config_path": "data_sets/tf_mnist_train.json",
+    "training_dataset_config_path": "data_sets/tfds/mnist_train.json",
     "training_transforms": [
         {
             "fqcn": "juneberry.transforms.image.ResizePad",

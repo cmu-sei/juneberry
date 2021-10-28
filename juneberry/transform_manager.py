@@ -26,6 +26,7 @@ import logging
 import sys
 
 import juneberry.loader as loader
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -115,19 +116,6 @@ class TransformManager:
         """
         return self.config[index].fqcn
 
-    def transform_pair(self, a, b):
-        # TODO: We can replace this just by passing in a tuple...
-        """
-        Performs all the transformations, in sequence, on the input pair and returns the last output.
-        :param a: The first component
-        :param b: The second component.
-        :return: The transformed image and target.
-        """
-        for entry in self.config:
-            a, b = entry.transform(a, b)
-
-        return a, b
-
     def get_transforms(self) -> list:
         """ :return: The transforms as a list. """
         return [x.transform for x in self.config]
@@ -138,3 +126,56 @@ class TransformManager:
     def __repr__(self) -> str:
         # Note for repr we should have more data
         return self.__str__()
+
+
+class StagedTransformManager:
+    """
+    A callable transform manager that manages the random seed state in a predictable fashion based
+    on an initial seed state and the seed index.
+    """
+    def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
+        """
+        Initialize the two stage manager with seeds and transforms for two stages.  The first
+        stage, "consistent" is handled the same way for each epoch.  The second stage
+        "epoch" is set differently for each epoch.
+        Each seed will also be set differently based on the index of each element. Thus,
+        regardless of the order the inputs are retrieved, they should provide the same value.
+        :param consistent_seed: A seed for the 'con
+        :param consistent: The transforms to be run consistently per epoch.
+        :param per_epoch_seed: The BASE seed to be used for each epoch. It will be incremented every epoch.
+        :param per_epoch: The transforms to be applied with the per-epoch seed.
+        """
+        self.consistent_transform = consistent
+        self.consistent_seed = consistent_seed
+        self.per_epoch_transform = per_epoch
+        self.per_epoch_seed = per_epoch_seed
+
+    def __call__(self, item, index, epoch):
+        # Capture the random state
+        self.save_random_state()
+
+        # Set the random seed based on index only
+        seed = jb_utils.wrap_seed(self.consistent_seed + index)
+        self.set_seeds(seed)
+        item = self.consistent_transform(item)
+
+        # Now, execute the per epoch transform
+        seed = jb_utils.wrap_seed(self.per_epoch_seed + index + epoch)
+        self.set_seeds(seed)
+        item = self.per_epoch_transform(item)
+
+        # Restore the state
+        self.restore_random_state()
+
+        return item
+
+    # Extension points
+    def save_random_state(self):
+        pass
+
+    def restore_random_state(self):
+        pass
+
+    def set_seeds(self, seed):
+        pass
+

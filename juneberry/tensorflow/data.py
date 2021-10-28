@@ -103,7 +103,7 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
 #   | || '__/ _` | '_ \/ __| |_ / _ \| '__| '_ ` _ \  \___ \| | | | '_ \| '_ \ / _ \| '__| __|
 #   | || | | (_| | | | \__ \  _| (_) | |  | | | | | |  ___) | |_| | |_) | |_) | (_) | |  | |_
 #   |_||_|  \__,_|_| |_|___/_|  \___/|_|  |_| |_| |_| |____/ \__,_| .__/| .__/ \___/|_|   \__|
-
+#                                                                 |_|   |_|
 
 def _call_transforms_numpy(np_image, transforms):
     # Convert to image, apply transforms, and convert back.
@@ -128,8 +128,6 @@ def _transform_image(image, transforms):
 
 
 def _add_transforms_and_batching(dataset, transform_list, batch_size):
-    # TODO: Turn on shuffling
-
     # TRANSFORMS - THIS IS BEFORE batching! So one element each.
     # Map each element with our transform
     transforms = TransformManager(transform_list)

@@ -1067,3 +1067,52 @@ def load_path_label_manifest(filename, relative_to: Path = None):
                 path = str(relative_to / path)
             pairs.append([path, row['label']])
     return pairs
+
+
+def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
+                           opt_args: dict, stage_transform_class, eval: bool):
+    """
+    Constructs the appropriate transform manager for the this data.
+    :param model_cfg: The model config.
+    :param ds_cfg: The datasett config.
+    :param set_size: The size of the data set.
+    :param opt_args: Optional args to pass into the construction of the plugin.
+    :param eval: Are we in train (False) or eval mode (True).
+    :param stage_transform_class: The class of a staged transform manager to construct
+                                  for when we have both dataset and model transforms.
+                                  These class should be StagedTransformManager or look like it.
+    :return: Transform manager.
+    """
+    assert model_cfg is not None
+    model_transforms = None
+    if model_cfg.seed is not None:
+        model_seed = model_cfg.seed
+    else:
+        logger.warning("Creating a dataset with a random seed!!!")
+        model_seed = random.randint(0, 2 ** 32 - 1)
+
+    if eval:
+        if model_cfg.evaluation_transforms is not None:
+            model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
+    else:
+        if model_cfg.training_transforms is not None:
+            model_transforms = TransformManager(model_cfg.training_transforms, opt_args)
+
+    if ds_cfg.data_transforms is not None:
+        ds_transforms = TransformManager(ds_cfg.data_transforms.transforms, opt_args)
+        if ds_cfg.data_transforms.seed is not None:
+            data_seed = ds_cfg.data_transforms.seed
+        else:
+            data_seed = model_seed + set_size
+    else:
+        ds_transforms = None
+        data_seed = 0
+
+    if model_transforms and ds_transforms:
+        return stage_transform_class(data_seed, ds_transforms, model_seed, model_transforms)
+    elif model_transforms:
+        return model_transforms
+    elif ds_transforms:
+        return ds_transforms
+    else:
+        return None

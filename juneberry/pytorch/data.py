@@ -30,11 +30,12 @@ import torch
 from torch.utils import data
 
 from juneberry.config.dataset import DataType, DatasetConfig, TaskType
+import juneberry.data as jb_data
 from juneberry.lab import Lab
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
-from juneberry.pytorch.util import StagedTransformManager
 import juneberry.pytorch.util as pyt_utils
+import juneberry.transform_manager as jbtm
 
 from juneberry.config.dataset import SamplingConfig, TorchvisionData
 from juneberry.config.model import ModelConfig, SplittingAlgo, SplittingConfig
@@ -64,39 +65,9 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
     :param eval: Are we in train (False) or eval mode (True).
     :return: Transform manager.
     """
-    assert model_cfg is not None
-    model_transforms = None
-    if model_cfg.seed is not None:
-        model_seed = model_cfg.seed
-    else:
-        logger.warning("Creating a dataset with a random seed!!!")
-        model_seed = random.randint(0, 2 ** 32 - 1)
-
-    if eval:
-        if model_cfg.evaluation_transforms is not None:
-            model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
-    else:
-        if model_cfg.training_transforms is not None:
-            model_transforms = TransformManager(model_cfg.training_transforms, opt_args)
-
-    if ds_cfg.data_transforms is not None:
-        ds_transforms = TransformManager(ds_cfg.data_transforms.transforms, opt_args)
-        if ds_cfg.data_transforms.seed is not None:
-            data_seed = ds_cfg.data_transforms.seed
-        else:
-            data_seed = model_seed + set_size
-    else:
-        ds_transforms = None
-        data_seed = 0
-
-    if model_transforms and ds_transforms:
-        return StagedTransformManager(data_seed, ds_transforms, model_seed, model_transforms)
-    elif model_transforms:
-        return model_transforms
-    elif ds_transforms:
-        return ds_transforms
-    else:
-        return None
+    # Convenience to call the base on with our custom stage transform
+    return jb_data.make_transform_manager(model_cfg, ds_cfg, set_size, opt_args,
+                                          pyt_utils.PyTorchStagedTransform, eval)
 
 
 def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,

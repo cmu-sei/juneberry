@@ -189,3 +189,22 @@ def show_list(rhs, indent=0) -> None:
                 print(f"{' ' * indent}[{i}] - {elem_type}")
                 found_types[elem_type] = i
                 show_type(rhs[i], indent + 4)
+
+# ======================================================================================================================
+# RANDOM
+#  ____                 _
+# |  _ \ __ _ _ __   __| | ___  _ __ ___
+# | |_) / _` | '_ \ / _` |/ _ \| '_ ` _ \
+# |  _ < (_| | | | | (_| | (_) | | | | | |
+# |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
+
+
+
+def wrap_seed(seed: int):
+    """ :return: A numerically wraps the seed if it exceeds the maximum value. """
+    # Some system has a maximum value of 32 bits
+    return seed & 0xFFFFFFFF
+
+
+
+

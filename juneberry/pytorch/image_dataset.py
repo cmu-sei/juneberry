@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import datetime as dt
+import inspect
 import logging
 from PIL import Image
 from typing import Tuple, List
@@ -31,7 +32,7 @@ import warnings
 from torch import Tensor
 import torchvision.transforms.functional as functional
 
-from juneberry.pytorch.util import StagedTransformManager, EpochDataset
+from juneberry.pytorch.util import EpochDataset
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,12 @@ class ImageDataset(EpochDataset):
         self.transforms = transforms
         self.image_cache = {}
         self.no_paging = no_paging
+
+        # If the transforms takes the extended set, use them all
+        self.extended_signature = False
+        if transforms is not None:
+            params = inspect.signature(transforms).parameters.keys()
+            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
 
         # Filters out a warning associated with a known Pillow issue that occurs
         # when opening images.
@@ -97,10 +104,10 @@ class ImageDataset(EpochDataset):
             image = Image.open(file_path)
 
         if self.transforms is not None:
-            if isinstance(self.transforms, StagedTransformManager):
-                image = self.transforms(image, index, self.epoch)
+            if self.extended_signature:
+                image = self.transforms(item=image, index=index, epoch=self.epoch)
             else:
-                image = self.transforms(image)  # image = self.transforms.transform(image)
+                image = self.transforms(image)
 
         # We want to pass back a tensor, so convert if it wasn't already converted
         if not isinstance(image, Tensor):

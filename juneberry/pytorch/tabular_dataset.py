@@ -22,9 +22,11 @@
 #
 # ======================================================================================================================
 
+import inspect
+
 import numpy as np
 
-from juneberry.pytorch.util import StagedTransformManager, EpochDataset
+from juneberry.pytorch.util import EpochDataset
 
 
 class TabularDataset(EpochDataset):
@@ -41,6 +43,10 @@ class TabularDataset(EpochDataset):
         :param transforms: Any transforms to be applied to each row of floats per epoch.
         """
         super().__init__()
+
+        # If the transforms takes the extended set, use them all
+        params = inspect.signature(transforms).parameters.keys()
+        self.extended_signature = set(params) == {'item', 'index', 'epoch'}
 
         self.transforms = transforms
         for item in rows_labels:
@@ -66,8 +72,8 @@ class TabularDataset(EpochDataset):
 
         if self.transforms is not None:
             row = row.copy()
-            if isinstance(self.transforms, StagedTransformManager):
-                row = self.transforms(row, index, self.epoch)
+            if self.extended_signature:
+                image = self.transforms(item=row, index=index, epoch=self.epoch)
             else:
                 row = self.transforms(row)
 

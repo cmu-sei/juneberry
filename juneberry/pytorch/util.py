@@ -43,6 +43,7 @@ from juneberry.config.model import PytorchOptions
 import juneberry.data as jb_data
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
+import juneberry.transform_manager as jbtm
 
 logger = logging.getLogger(__name__)
 
@@ -102,36 +103,52 @@ def set_random_state(random_state: RandomState) -> None:
     torch.set_rng_state(random_state.pytorch)
 
 
-class StagedTransformManager:
-    """
-    A callable transform manager that manages the random seed state in a predictable fashion based on an initial
-    seed state and the seed index.
-    """
-
+class PyTorchStagedTransform(jbtm.StagedTransformManager):
     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
-        self.consistent_transform = consistent
-        self.consistent_seed = consistent_seed
-        self.per_epoch_transform = per_epoch
-        self.per_epoch_seed = per_epoch_seed
+        super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
+        self.random_state: RandomState
+        self.random_state = None
 
-    def __call__(self, item, index, epoch):
-        # Capture the random state
-        random_state = get_random_state()
+    def save_random_state(self):
+        self.random_state = get_random_state()
 
-        # Set the random seed based on index only
-        seed = wrap_seed(self.consistent_seed + index)
+    def restore_random_state(self):
+        set_random_state(self.random_state)
+
+    def set_seeds(self, seed):
         set_seeds(seed)
-        item = self.consistent_transform(item)
 
-        # Now, execute the per epoch transform
-        seed = wrap_seed(self.per_epoch_seed + index + epoch)
-        set_seeds(seed)
-        item = self.per_epoch_transform(item)
 
-        # Restore the state
-        set_random_state(random_state)
-
-        return item
+# class StagedTransformManager:
+#     """
+#     A callable transform manager that manages the random seed state in a predictable fashion based on an initial
+#     seed state and the seed index.
+#     """
+#
+#     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
+#         self.consistent_transform = consistent
+#         self.consistent_seed = consistent_seed
+#         self.per_epoch_transform = per_epoch
+#         self.per_epoch_seed = per_epoch_seed
+#
+#     def __call__(self, item, index, epoch):
+#         # Capture the random state
+#         random_state = get_random_state()
+#
+#         # Set the random seed based on index only
+#         seed = wrap_seed(self.consistent_seed + index)
+#         set_seeds(seed)
+#         item = self.consistent_transform(item)
+#
+#         # Now, execute the per epoch transform
+#         seed = wrap_seed(self.per_epoch_seed + index + epoch)
+#         set_seeds(seed)
+#         item = self.per_epoch_transform(item)
+#
+#         # Restore the state
+#         set_random_state(random_state)
+#
+#         return item
 
 
 def worker_init_fn(worker_id):

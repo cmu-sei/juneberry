@@ -340,7 +340,7 @@ def main():
                                                  'sampling and transforms and writes it to the output_dir with a '
                                                  'structure based on the integer label and string label such as'
                                                  '001-aardvark and an updated dataset config to the output_config.'
-                                                 'Example: jb_process_dataset.py data_sets/tf_mnist_train.json '
+                                                 'Example: jb_process_dataset.py data_sets/tfds/mnist_train.json '
                                                  'data-out mnist/train data-out/mnist/train.json')
 
     setup_args(parser)
