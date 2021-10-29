@@ -225,9 +225,9 @@ def iterated_inversion(model, x0, target_sequence, **inversion_kwargs):
 
 # HACK - This needs to go into the workspace
 class Evaluator(juneberry.tensorflow.evaluator.Evaluator):
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager,
+                 eval_dir_mgr: EvalDirMgr, dataset: DatasetConfig, eval_options: SimpleNamespace = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
         self.inversion = None
 
     def obtain_model(self) -> None:

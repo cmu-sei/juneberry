@@ -51,17 +51,17 @@ class Evaluator:
     This class encapsulates the process of evaluating a model.
     """
 
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+    def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
         :param lab: The Juneberry Lab in which to run the evaluation.
-        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param model_manager: A Juneberry ModelManager object responsible for managing operations involving the
         model to be evaluated.
         :param eval_dir_mgr: A Juneberry EvalDirMgr object responsible for managing file path operations
         within the model's eval directory.
+        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
         include the following: top_k, dryrun, extract_validation.
         """
@@ -95,12 +95,13 @@ class Evaluator:
         self.use_train_split = False
         self.use_val_split = False
 
-        # This is fragile. The file_path in the dataset is OPTIONAL
-        # TODO: Find a way to make a data path if we don't have one for notebook support
-        if dataset.file_path is None:
-            logger.error("The evaluator requires an output file path.")
-        # TODO: This is too long and really muddies up the code.
-        self.eval_dataset_config_path = dataset.file_path
+        if dataset:
+            # This is fragile. The file_path in the dataset is OPTIONAL
+            # TODO: Find a way to make a data path if we don't have one for notebook support
+            if dataset.file_path is None:
+                logger.error("The evaluator requires an output file path.")
+            # TODO: This is too long and really muddies up the code.
+            self.eval_dataset_config_path = dataset.file_path
 
         #  A list of pairs of some item name or id and truth label (target)
         self.eval_name_targets = []
@@ -126,7 +127,7 @@ class Evaluator:
         # Record some initial information in the evaluation output, such as the model being
         # evaluated and the dataset used in the evaluation.
         self.output.options.model.name = self.model_manager.model_name
-        self.output.options.dataset.config = self.eval_dataset_config.file_path
+        self.output.options.dataset.config = self.eval_dataset_config.file_path if dataset else None
 
         # Check the eval_options for values related to the relevant attributes. If found, set the
         # attribute.

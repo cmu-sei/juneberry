@@ -49,22 +49,22 @@ class PytorchEvaluator(Evaluator):
     This subclass is the Pytorch-specific version of the Evaluator.
     """
 
-    def __init__(self, lab: Lab, model_config: ModelConfig, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+    def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None):
         """
         Creates a PytorchEvaluator object based on command line arguments and a Juneberry
         ModelManager object.
         :param model_config: The model config to be used during evaluation.
         :param lab: The Juneberry lab describing the current execution.
-        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param model_manager: A Juneberry ModelManager object responsible for managing operations involving the
         model to be evaluated.
         :param eval_dir_mgr: A Juneberry EvalDirMgr object responsible for managing file path operations
         within the model's eval directory.
+        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
         include the following: topK, dryrun, extract_validation.
         """
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
 
         # These attributes are used by Pytorch to send information to the correct device (CPU | GPU)
         self.use_cuda = False

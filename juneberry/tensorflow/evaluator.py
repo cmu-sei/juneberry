@@ -40,9 +40,9 @@ logger = logging.getLogger(__name__)
 
 
 class Evaluator(juneberry.evaluation.evaluator.Evaluator):
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager,
+                 eval_dir_mgr: EvalDirMgr, dataset: DatasetConfig, eval_options: SimpleNamespace = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
 
         # TODO: This should be in base
         self.dataset_config = dataset

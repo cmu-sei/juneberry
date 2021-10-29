@@ -68,7 +68,9 @@ def setup_args(parser) -> None:
     """
     parser.add_argument('modelName', help='Name of a model directory containing the model you\'d like to evaluate.')
 
-    parser.add_argument('dataset', help="Path to a dataset file describing the data the model should evaluate.")
+    parser.add_argument('dataset', type=str, default=None, nargs='?',
+                        help="Optional Path to a dataset file describing the data the model should evaluate. Not "
+                             "all evaluators will require this argument, but some do.")
 
     parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
 
@@ -105,6 +107,7 @@ def main():
     model_manager = jbfs.ModelManager(model_name)
     eval_dir_mgr = model_manager.get_eval_dir_mgr(args.dataset)
     eval_dir_mgr.setup()
+
     eval_options = setup_eval_options(args.topK, args.dryrun, args.useTrainSplit, args.useValSplit)
 
     # Set up logging for the evaluation
@@ -112,7 +115,7 @@ def main():
     log_prefix = "<<DRY_RUN>> " if args.dryrun else ""
     lab = jbscripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix, model_name=model_name,
                                              banner_msg=">>> Juneberry Evaluator <<<")
-    dataset = lab.load_dataset_config(args.dataset)
+    dataset = lab.load_dataset_config(args.dataset) if args.dataset is not None else args.dataset
 
     # Start evaluation
     logger.info(f"Script arguments captured. Ready to start an evaluation run.")
@@ -123,19 +126,19 @@ def main():
     # Create an evaluator object and use it to conduct the evaluation.
     if model_config.platform == "pytorch" or model_config.platform == "pytorch_privacy":
         from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
-        evaluator = PytorchEvaluator(lab, model_config, dataset, model_manager, eval_dir_mgr, eval_options)
+        evaluator = PytorchEvaluator(lab, model_config, model_manager, eval_dir_mgr, dataset, eval_options)
     elif model_config.platform == "detectron2":
         from juneberry.detectron2.dt2_evaluator import Detectron2Evaluator
-        evaluator = Detectron2Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        evaluator = Detectron2Evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
     elif model_config.platform == "mmdetection":
         from juneberry.mmdetection.mmd_evaluator import MMDEvaluator
-        evaluator = MMDEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        evaluator = MMDEvaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
     elif model_config.platform == "tensorflow":
         from juneberry.tensorflow.evaluator import Evaluator
-        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        evaluator = Evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
     elif model_config.platform == "tfgloro":
         from juneberry.tensorflow.gloro.evaluator import Evaluator
-        evaluator = Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        evaluator = Evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
     else:
         logger.error(f"Unsupported platform: {model_config.platform}")
         sys.exit(-1)
