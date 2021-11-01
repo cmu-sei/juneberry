@@ -26,6 +26,7 @@ import logging
 import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
+from torch import split
 from tqdm import tqdm
 
 from juneberry.config.training_output import TrainingOutput
@@ -50,20 +51,48 @@ class OnnxEvaluationProcedure:
         :return: Nothing.
         """
 
+        self.evaluator = evaluator
+
         input_name = evaluator.ort_session.get_inputs()[0].name
 
-        output_list = list()
+        data_loader = evaluator.eval_loader
 
-        for item in tqdm(evaluator.input_data):
-            ort_out = evaluator.ort_session.run([], {input_name: item})
-            ort_out = np.array(ort_out[0]).tolist()
-            output_list.append(ort_out[0])
+        # output_list = list()
 
-        evaluator.raw_output = output_list
+        for i, (batch, target) in enumerate(tqdm(data_loader)):
+            if evaluator.model_config.platform == "pytorch":
+                thing = self.sample_pytorch_data(batch)
+            elif evaluator.model_config.platform == "tensorflow":
+                thing = self.sample_tensorflow_data(batch)
+            else:
+                sys.exit(-1)
+            for item in thing:
+                ort_out = evaluator.ort_session.run([], {input_name: item})
+                ort_out = np.array(ort_out[0]).tolist()
+                evaluator.raw_output.append(ort_out[0])
 
     @staticmethod
     def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
         return OnnxEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+
+    @staticmethod
+    def sample_pytorch_data(batch):
+        # Convert the individual tensors in the batch to numpy arrays and place them in
+        # the input data list.
+
+        return_list = []
+        for item in split(batch, 1):
+            return_list.append(item.data.numpy())
+
+        return return_list
+
+    @staticmethod
+    def sample_tensorflow_data(batch):
+        return_list = []
+        for item in np.split(batch, batch.shape[0]):
+            return_list.append(item.astype(np.float32))
+
+        return return_list
 
 
 class OnnxEvaluationOutput:

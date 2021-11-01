@@ -23,11 +23,9 @@
 # ======================================================================================================================
 
 import logging
-import numpy as np
 import onnx
 import onnxruntime as ort
 import sys
-from tqdm import tqdm
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
@@ -52,6 +50,8 @@ class OnnxEvaluator(Evaluator):
         self.input_data = []
         self.onnx_model = None
         self.ort_session = None
+        self.raw_output = []
+        self.eval_loader = None
 
     def setup(self) -> None:
         """
@@ -100,19 +100,10 @@ class OnnxEvaluator(Evaluator):
             evaluator = PytorchEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
                                          self.eval_dir_mgr, None)
             evaluator.obtain_dataset()
-            data_loader = evaluator.eval_loader
+            self.eval_loader = evaluator.eval_loader
 
             # Retrieve the labels for the input data.
             self.eval_name_targets = evaluator.eval_name_targets.copy()
-
-            # Now convert the PyTorch dataloader into a list of tensors. TQDM provides a progress bar.
-            logger.info(f"Converting the PyTorch dataloader into a format suitable for ONNX evaluation...")
-            for i, (batch, target) in enumerate(tqdm(data_loader)):
-
-                # Convert the individual tensors in the batch to numpy arrays and place them in
-                # the input data list.
-                for item in split(batch, 1):
-                    self.input_data.append(item.data.numpy())
 
         # This bit will be responsible for converting the TensorFlow input data into the format ONNX expects.
         elif self.model_config.platform == "tensorflow":
@@ -120,13 +111,10 @@ class OnnxEvaluator(Evaluator):
             evaluator = TFEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
                                     self.eval_dir_mgr, None)
             evaluator.obtain_dataset()
+            self.eval_loader = evaluator.eval_loader
 
             self.eval_name_targets = evaluator.eval_labels
             self.eval_name_targets = [('', x) for x in self.eval_name_targets]
-
-            for i, (batch, target) in enumerate(tqdm(evaluator.eval_loader)):
-                for item in np.split(batch, batch.shape[0]):
-                    self.input_data.append(item.astype(np.float32))
 
         # Handle cases where the model platform does not support an ONNX evaluation.
         else:
