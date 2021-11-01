@@ -188,7 +188,8 @@ class MMDTrainer(Trainer):
         # jb_data.make_split_dataset_files(self.lab, self.dataset_config, self.model_config, self.model_manager)
 
         # Get the class names from the dataset AFTER IT HAS BEEN PROCESSED.
-        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, train_config=self.dataset_config)
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
         classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
