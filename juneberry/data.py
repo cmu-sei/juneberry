@@ -923,8 +923,8 @@ def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
     :return: Returns a dictionary of integer keys mapped to string values.
     """
     if label_val:
-        if isinstance(label_val, str):
-            file_content = jbfs.load_json(label_val)
+        if isinstance(label_val, str) or isinstance(label_val, Path):
+            file_content = jbfs.load_json(str(label_val))
             if key in file_content:
                 stanza = file_content[key]
                 return convert_dict(stanza)
