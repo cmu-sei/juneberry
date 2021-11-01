@@ -100,7 +100,8 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # Dump some images.
         path = Path(self.model_manager.get_dryrun_imgs_dir())
         path.mkdir(exist_ok=True)
-        label_names = jb_data.get_label_mapping(train_config=self.dataset_config)
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
         tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(), label_names)
 
         # Setup the model and dump the summary.

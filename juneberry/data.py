@@ -158,7 +158,7 @@ def make_split_metadata_manifest_files(lab: Lab,
         preprocessors=TransformManager(model_config.preprocessors))
 
     # Convert out COCO like intermediate list format into pure coco file.
-    label_names = get_label_mapping(model_manager=model_manager, train_config=dataset_config)
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
     train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, label_names)
     split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, label_names)
 
@@ -213,7 +213,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
     output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
 
-    label_names = get_label_mapping(model_manager=model_manager, train_config=dataset_config)
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
     coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
     jbfs.save_json(coco_style, output_path)
 

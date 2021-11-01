@@ -35,7 +35,6 @@ import juneberry.data as jb_data
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
 from juneberry.filesystem import ModelManager
-from juneberry.config.training_output import TrainingOutputBuilder
 
 from test_coco_utils import make_sample_coco
 import test_model_config
