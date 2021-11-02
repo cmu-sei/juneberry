@@ -30,12 +30,10 @@ import torch
 from torch.utils import data
 
 from juneberry.config.dataset import DataType, DatasetConfig, TaskType
-import juneberry.data as jb_data
 from juneberry.lab import Lab
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 import juneberry.pytorch.util as pyt_utils
-import juneberry.transform_manager as jbtm
 
 from juneberry.config.dataset import SamplingConfig, TorchvisionData
 from juneberry.config.model import ModelConfig, SplittingAlgo, SplittingConfig

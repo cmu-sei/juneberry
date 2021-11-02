@@ -1093,12 +1093,15 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
 
     if eval:
         if model_cfg.evaluation_transforms is not None:
+            logger.info(f"Making transform manager from model config EVALUATION transforms.")
             model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
     else:
         if model_cfg.training_transforms is not None:
+            logger.info(f"Making transform manager from model config TRAINING transforms.")
             model_transforms = TransformManager(model_cfg.training_transforms, opt_args)
 
     if ds_cfg.data_transforms is not None:
+        logger.info(f"Making transform manager from DATASET transforms.")
         ds_transforms = TransformManager(ds_cfg.data_transforms.transforms, opt_args)
         if ds_cfg.data_transforms.seed is not None:
             data_seed = ds_cfg.data_transforms.seed
@@ -1109,6 +1112,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
         data_seed = 0
 
     if model_transforms and ds_transforms:
+        logger.info(f"Making STAGED transform manager with seed {data_seed}.")
         return stage_transform_class(data_seed, ds_transforms, model_seed, model_transforms)
     elif model_transforms:
         return model_transforms

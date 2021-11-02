@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 from functools import partial
+import inspect
 import logging
 import numpy as np
 from pathlib import Path
@@ -40,6 +41,7 @@ from juneberry.config.model import ModelConfig, ShapeHWC
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
+import juneberry.transform_manager as jbtm
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
@@ -64,9 +66,14 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
         self.batch_size = batch_size
         self.transforms = transforms
         self.shape_hwc = shape_hwc
-
         # This give us floor, so we lose some of the last entries.  We could implement an oversample.
         self.len = len(self.data_list) // self.batch_size
+
+        self.extended_signature = False
+        self.epoch = 0
+        if transforms is not None:
+            params = inspect.signature(transforms).parameters.keys()
+            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
 
     def __len__(self):
         return self.len
@@ -88,13 +95,16 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
     def on_epoch_end(self):
         # TODO: We want the random seed to be different every epoch.
         #       We need to check to see what is going on with the random numbers here...
-        pass
+        self.epoch += 1
 
     def _load_image(self, index: int) -> Image:
         image = Image.open(self.data_list[index][0])
         image.load()
         if self.transforms is not None:
-            image = self.transforms(image)
+            if self.extended_signature:
+                image = self.transforms(image, index, self.epoch)
+            else:
+                image = self.transforms(image)
         return np.array(image)
 
 
@@ -104,6 +114,42 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
 #   | || | | (_| | | | \__ \  _| (_) | |  | | | | | |  ___) | |_| | |_) | |_) | (_) | |  | |_
 #   |_||_|  \__,_|_| |_|___/_|  \___/|_|  |_| |_| |_| |____/ \__,_| .__/| .__/ \___/|_|   \__|
 #                                                                 |_|   |_|
+
+
+class TFTorchStagedTransform(jbtm.StagedTransformManager):
+    def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
+        super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
+        self.numpy_state = None
+        self.python_state = None
+
+    def save_random_state(self):
+        self.numpy_state = np.random.get_state()
+        self.python_state = random.getstate()
+
+    def restore_random_state(self):
+        np.random.set_state(self.numpy_state)
+        random.setstate(self.python_state)
+
+    def set_seeds(self, seed):
+        random.seed(seed)
+        np.random.seed(seed)
+
+
+def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
+                           opt_args: dict, eval: bool = False):
+    """
+    Constructs the appropriate transform manager for the this data.
+    :param model_cfg: The model config.
+    :param ds_cfg: The datasett config.
+    :param set_size: The size of the data set.
+    :param opt_args: Optional args to pass into the construction of the plugin.
+    :param eval: Are we in train (False) or eval mode (True).
+    :return: Transform manager.
+    """
+    # Convenience to call the base on with our custom stage transform
+    return jb_data.make_transform_manager(model_cfg, ds_cfg, set_size, opt_args,
+                                          TFTorchStagedTransform, eval)
+
 
 def _call_transforms_numpy(np_image, transforms):
     # Convert to image, apply transforms, and convert back.
@@ -121,18 +167,39 @@ def _call_transforms_numpy(np_image, transforms):
 
 
 # TODO: Should this be a tf.function?
-def _transform_image(image, transforms):
+def _transform_magic(image, transforms):
     # Set up a numpy function wrapper and then call it.
     partial_func = partial(_call_transforms_numpy, transforms=transforms)
     return tf.numpy_function(partial_func, [image], Tout=tf.uint8)
 
 
-def _add_transforms_and_batching(dataset, transform_list, batch_size):
+def _add_transforms_and_batching(dataset, model_cfg, ds_cfg, batch_size, eval):
+    """
+    Adds transformers and batching instructions to this datasets
+    :param dataset: The dataset to augment
+    :param model_cfg: The model config
+    :param ds_cfg: The dataset config
+    :param batch_size: The batch size
+    :param eval: Are we in eval mode
+    :return: The augmented dataset
+    """
+    # TODO: Figure out how to do dataset transforms in the mapping function
+    # transforms = jb_data.make_transform_manager(
+    #     model_cfg, ds_cfg, len(dataset), {},
+    #     TFTorchStagedTransform, eval)
+
     # TRANSFORMS - THIS IS BEFORE batching! So one element each.
-    # Map each element with our transform
-    transforms = TransformManager(transform_list)
+    # Map each element with our transform magic
+    transforms = None
+    if eval:
+        if model_cfg.evaluation_transforms is not None:
+            transforms = TransformManager(model_cfg.evaluation_transforms)
+    else:
+        if model_cfg.training_transforms is not None:
+            transforms = TransformManager(model_cfg.training_transforms)
+
     if transforms is not None:
-        dataset = dataset.map(lambda x, y: (_transform_image(x, transforms), y))
+        dataset = dataset.map(lambda x, y: (_transform_magic(x, transforms), y))
 
     # Apply batching
     return dataset.batch(batch_size)
@@ -168,7 +235,7 @@ def _prep_tfds_load_args(tf_stanza):
 #   | || | | (_| | | | | |
 #   |_||_|  \__,_|_|_| |_|
 
-def _make_image_datasets(model_config: ModelConfig, train_list, val_list):
+def _make_image_datasets(model_config: ModelConfig, ds_cfg: DatasetConfig, train_list, val_list):
     shape_hwc = model_config.model_architecture.get_shape_hwc()
 
     # TODO: Make sure have the right control of the shuffling seed
@@ -177,7 +244,8 @@ def _make_image_datasets(model_config: ModelConfig, train_list, val_list):
     random.shuffle(train_list)
     random.shuffle(val_list)
 
-    transform_manager = TransformManager(model_config.training_transforms)
+    opt_args = {'path_label_list': list(train_list)}
+    transform_manager = make_transform_manager(model_config, ds_cfg, len(train_list), opt_args, False)
     train_ds = TFImageDataSequence(
         train_list,
         model_config.batch_size,
@@ -185,7 +253,8 @@ def _make_image_datasets(model_config: ModelConfig, train_list, val_list):
         shape_hwc)
     logger.info(f"Constructed training dataset with {len(train_ds)} items.")
 
-    transform_manager = TransformManager(model_config.evaluation_transforms)
+    opt_args = {'path_label_list': list(val_list)}
+    transform_manager = make_transform_manager(model_config, ds_cfg, len(val_list), opt_args, True)
     val_ds = TFImageDataSequence(
         val_list,
         model_config.batch_size,
@@ -252,8 +321,8 @@ def _load_tfds_split_dataset(ds_config: DatasetConfig, model_config: ModelConfig
     # Do this BEFORE batching so that the size shows the full length, not number of batches
     logger.info(f"Loaded dataset with size train={len(train_ds)}, val={len(val_ds)}")
 
-    train_ds = _add_transforms_and_batching(train_ds, model_config.training_transforms, model_config.batch_size)
-    val_ds = _add_transforms_and_batching(val_ds, model_config.evaluation_transforms, model_config.batch_size)
+    train_ds = _add_transforms_and_batching(train_ds, model_config, ds_config, model_config.batch_size, False)
+    val_ds = _add_transforms_and_batching(val_ds, model_config, ds_config, model_config.batch_size, True)
 
     return train_ds, val_ds
 
@@ -279,7 +348,7 @@ def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelC
         jb_data.save_path_label_manifest(val_list, model_manager.get_validation_data_manifest_path(), lab.data_root())
 
         # Now make the loaders
-        return _make_image_datasets(model_config, train_list, val_list)
+        return _make_image_datasets(model_config, ds_config, train_list, val_list)
     elif ds_config.data_type == jb_dataset.DataType.TABULAR:
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)
@@ -302,10 +371,11 @@ def _extract_labels(eval_ds):
     return [int(x.numpy()) for x in labels_iter]
 
 
-def _make_image_eval_dataset(model_config: ModelConfig, eval_list):
+def _make_image_eval_dataset(model_config: ModelConfig, ds_cfg: DatasetConfig, eval_list):
     shape_hwc = model_config.model_architecture.get_shape_hwc()
 
-    transforms = TransformManager(model_config.evaluation_transforms)
+    opt_args = {'path_label_list': list(eval_list)}
+    transforms = make_transform_manager(model_config, ds_cfg, len(eval_list), opt_args, True)
     eval_ds = TFImageDataSequence(eval_list, model_config.batch_size, transforms, shape_hwc)
     logger.info(f"Constructed evaluation dataset with {len(eval_ds)} items.")
 
@@ -353,7 +423,7 @@ def _load_tfds_eval_dataset(ds_config: DatasetConfig, model_config: ModelConfig,
     labels = _extract_labels(eval_ds)
 
     # Add transforms
-    eval_ds = _add_transforms_and_batching(eval_ds, model_config.evaluation_transforms, model_config.batch_size)
+    eval_ds = _add_transforms_and_batching(eval_ds, model_config, ds_config, model_config.batch_size, True)
 
     return eval_ds, labels
 
@@ -394,7 +464,7 @@ def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelCon
         jb_data.save_path_label_manifest(eval_list, eval_dir_mgr.get_manifest_path(), lab.data_root())
 
         # Now make the loaders returning the loader and labels
-        return _make_image_eval_dataset(model_config, eval_list), [x[1] for x in eval_list]
+        return _make_image_eval_dataset(model_config, ds_config, eval_list), [x[1] for x in eval_list]
     elif ds_config.data_type == jb_dataset.DataType.TABULAR:
         logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
         sys.exit(-1)

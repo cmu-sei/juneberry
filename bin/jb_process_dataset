@@ -228,7 +228,7 @@ class TFDSProcessor(DatasetProcessor):
         # TODO: Expose this transform image code so that we can use it properly
         if self.model_cfg is not None:
             transforms = TransformManager(self.model_cfg.training_transforms)
-            self.dataset = self.dataset.map(lambda x, y: (tf_data._transform_image(x, transforms), y))
+            self.dataset = self.dataset.map(lambda x, y: (tf_data._transform_magic(x, transforms), y))
 
         logger.info(f"Loaded TensorFlow dataset of size {len(self.dataset)}")
 
