@@ -58,13 +58,13 @@ import juneberry.filesystem as jbfs
 CLSFY_TEST_SET = [
     [
         "imagenette_160x160_rgb_unit_test_pyt_resnet18",
-        "data_sets/imagenette_unit_test_def.json",
+        "data_sets/imagenette_unit_test.json",
         1.0,
         0.49
     ],
     [
         "imagenette_224x224_rgb_unit_test_tf_resnet50",
-        "data_sets/imagenette_unit_test_def.json",
+        "data_sets/imagenette_unit_test.json",
         1.0,
         0.49
     ],

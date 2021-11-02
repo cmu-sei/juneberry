@@ -17,7 +17,7 @@
         }
     ],
     "evaluator": {
-        "fqcn": "juneberry.tensorflow.evaluator.Evaluator"
+        "fqcn": "juneberry.tensorflow.evaluator.TFEvaluator"
     },
     "format_version": "0.2.0",
     "label_mapping": "data_sets/label_mappings/imagenet.json",
