@@ -25,7 +25,6 @@
 import logging
 from types import SimpleNamespace
 import random
-import sys
 
 import numpy as np
 
@@ -103,10 +102,6 @@ class TFEvaluator(Evaluator):
         logger.info("...complete")
 
     def evaluate_data(self) -> None:
-        if self.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
-
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
         logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 

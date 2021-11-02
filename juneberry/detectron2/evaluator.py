@@ -94,6 +94,11 @@ class Detectron2Evaluator(Evaluator):
 
     def obtain_dataset(self) -> None:
 
+        if self.dryrun:
+            # Establish a directory for storing dry run images and create it if it doesn't exist.
+            dryrun_imgs_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
+            dryrun_imgs_path.mkdir(parents=True, exist_ok=True)
+
         # TODO: Move this to a preprocessing step for distributed
         # Load the evaluation list
         label_names = self.dataset_config.retrieve_label_names()
@@ -172,11 +177,6 @@ class Detectron2Evaluator(Evaluator):
         :return:
         """
 
-        # Establish a directory for storing dry run files and create it if it doesn't exist.
-        dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
-        if not dryrun_path.exists():
-            dryrun_path.mkdir(parents=True)
-
         # Test the loading of the model config.
         logger.info(f"Attempting to load model config: {self.model_manager.get_model_config()}")
         try:
@@ -186,19 +186,6 @@ class Detectron2Evaluator(Evaluator):
             raise
         else:
             logger.info(f"Finished loading model config.")
-
-        # Test the loading of the evaluation data.
-        logger.info(f"Attempting to load evaluation data.")
-        try:
-            jb_data.make_eval_manifest_file(self.lab, self.dataset_config,
-                                            model_config, self.model_manager,
-                                            self.use_train_split, self.use_val_split)
-            dt2_data.register_eval_manifest_file(self.lab, self.model_manager, self.dataset_config)
-        except Exception:
-            logger.exception(f"Error loading the evaluation data.")
-            raise
-        else:
-            logger.info(f"Finished generating eval manifest.")
 
         # Test the loading and manipulation of the detectron2 config.
         logger.info(f"Fetching the detectron2 config.")

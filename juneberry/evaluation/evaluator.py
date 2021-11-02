@@ -42,6 +42,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutputBuilder
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
+from juneberry.lab import Lab
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class Evaluator:
     This class encapsulates the process of evaluating a model.
     """
 
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
+    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
                  eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
@@ -75,7 +76,6 @@ class Evaluator:
         self.lab = lab
 
         # Attribute that determines if a dry run of the evaluation is performed.
-        # TODO: Dry run should be supported as a base evaluator concept.
         self.dryrun = False
 
         # How many GPUs to use. 0 is CPU.
@@ -210,18 +210,23 @@ class Evaluator:
         self.obtain_dataset()
         self.obtain_model()
 
-        # Record the time the evaluation started.
-        self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
+        if not self.dryrun:
 
-        self.evaluate_data()
+            # Record the time the evaluation started.
+            self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
 
-        # Record the time the evaluation ended.
-        self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)
+            self.evaluate_data()
 
-        # Format the evaluation times in the output and calculate the duration.
-        self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
+            # Record the time the evaluation ended.
+            self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)
 
-        self.format_evaluation()
+            # Format the evaluation times in the output and calculate the duration.
+            self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
+
+            self.format_evaluation()
+
+        else:
+            logger.info(f"Dry run complete.")
 
 
 def main():
