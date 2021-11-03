@@ -285,15 +285,15 @@ takes 'root', 'transform' and 'target_transform' arguments), then this specifies
 applied to the **target** via the target_transforms parameter during evaluation.
 
 ## evaluator
-The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.Evaluator`.
-Juneberry has a variety of built-in evaluators for the following platforms.  The built-in evaluators require
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.EvaluatorBase`.
+Juneberry has a variety of built-in evaluators for the following platforms. The built-in evaluators require
 no additional kwargs.
 
 The basic evaluators for the platforms are:
 * Detectron2 - juneberry.detectron2.evaluator.Evaluator
 * PyTorch - juneberry.pytorch.evaluator.Evaluator
 * MMDetection - juneberry.mmdetection.evaluator.Evaluator
-* Tensorflow - juneberry.tensorflow.evaluator.Evaluator
+* TensorFlow - juneberry.tensorflow.evaluator.Evaluator
 
 ## format_version
 Linux style version of the **format** of the file. Not the version of 

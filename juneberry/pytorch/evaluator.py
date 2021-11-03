@@ -33,7 +33,7 @@ import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
@@ -44,15 +44,15 @@ from juneberry.transform_manager import TransformManager
 logger = logging.getLogger(__name__)
 
 
-class PytorchEvaluator(Evaluator):
+class Evaluator(EvaluatorBase):
     """
-    This subclass is the Pytorch-specific version of the Evaluator.
+    This subclass is the Pytorch-specific version of the EvaluatorBase.
     """
 
     def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
         """
-        Creates a PytorchEvaluator object based on command line arguments and a Juneberry
+        Creates an Evaluator object based on command line arguments and a Juneberry
         ModelManager object.
         :param model_config: The model config to be used during evaluation.
         :param lab: The Juneberry lab describing the current execution.

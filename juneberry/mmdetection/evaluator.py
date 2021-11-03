@@ -48,7 +48,7 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import get_histogram
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
@@ -61,7 +61,7 @@ import juneberry.pytorch.processing as processing
 logger = logging.getLogger(__name__)
 
 
-class MMDEvaluator(Evaluator):
+class Evaluator(EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)

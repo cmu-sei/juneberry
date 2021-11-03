@@ -24,9 +24,6 @@
 
 import logging
 from types import SimpleNamespace
-import random
-
-import numpy as np
 
 import tensorflow as tf
 
@@ -41,7 +38,7 @@ import juneberry.utils
 logger = logging.getLogger(__name__)
 
 
-class TFEvaluator(juneberry.evaluation.evaluator.Evaluator):
+class Evaluator(juneberry.evaluation.evaluator.EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)

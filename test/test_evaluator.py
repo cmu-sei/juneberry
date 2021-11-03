@@ -31,13 +31,13 @@ from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.detectron2.evaluator import Detectron2Evaluator
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.detectron2.evaluator import Evaluator as Detectron2Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import create_evaluator
 from juneberry.lab import Lab
-from juneberry.mmdetection.evaluator import MMDEvaluator
-from juneberry.pytorch.evaluator import PytorchEvaluator
-from juneberry.tensorflow.evaluator import TFEvaluator
+from juneberry.mmdetection.evaluator import Evaluator as MMDEvaluator
+from juneberry.pytorch.evaluator import Evaluator as PyTorchEvaluator
+from juneberry.tensorflow.evaluator import Evaluator as TFEvaluator
 
 
 class EvalTestHelper:
@@ -84,7 +84,7 @@ def log_func(func):
     return wrapper
 
 
-class EvaluatorHarness(Evaluator):
+class EvaluatorHarness(EvaluatorBase):
     def __init__(self, evaluator, eval_options):
         super().__init__(evaluator.model_config, evaluator.lab, evaluator.model_manager, evaluator.eval_dir_mgr,
                          evaluator.eval_dataset_config, eval_options)
@@ -141,7 +141,7 @@ def test_pytorch_evaluator(tmp_path):
     helper.model_config.platform = "pytorch"
     evaluator = helper.build_evaluator()
 
-    assert isinstance(evaluator, PytorchEvaluator)
+    assert isinstance(evaluator, PyTorchEvaluator)
 
     eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
     eval_harness.perform_evaluation()

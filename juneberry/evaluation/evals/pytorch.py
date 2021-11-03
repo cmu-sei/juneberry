@@ -29,7 +29,7 @@ import sys
 from juneberry.config.training_output import TrainingOutput
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
-from juneberry.pytorch.evaluator import PytorchEvaluator
+from juneberry.pytorch.evaluator import Evaluator
 import juneberry.pytorch.eval_utils as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
@@ -40,20 +40,16 @@ class PyTorchEvaluationProcedure:
     This is the default PyTorch evaluation class used for evaluating data in Juneberry.
     """
 
-    def __call__(self, evaluator: PytorchEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
         of the process is raw evaluation data.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 
         # Perform the evaluation; saving the raw data to the correct evaluator attribute.
         evaluator.raw_output = jb_eval_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
-
-    @staticmethod
-    def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
-        return PytorchEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
 
 class PyTorchEvaluationOutput:
@@ -61,12 +57,12 @@ class PyTorchEvaluationOutput:
     This is the default PyTorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
 
-    def __call__(self, evaluator: PytorchEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. At the
         end of this call, the evaluator.output attribute will contain JSON-friendly data which will then be
         written to a file.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 

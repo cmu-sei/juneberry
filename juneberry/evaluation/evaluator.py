@@ -47,7 +47,7 @@ from juneberry.lab import Lab
 logger = logging.getLogger(__name__)
 
 
-class Evaluator:
+class EvaluatorBase:
     """
     This class encapsulates the process of evaluating a model.
     """
