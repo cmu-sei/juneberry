@@ -24,7 +24,7 @@
 
 import numpy as np
 
-from juneberry.pytorch.util import StagedTransformManager, EpochDataset
+from juneberry.pytorch.utils import StagedTransformManager, EpochDataset
 
 
 class TabularDataset(EpochDataset):

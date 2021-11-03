@@ -23,7 +23,7 @@
 # ======================================================================================================================
 
 from juneberry.config.model import PytorchOptions
-import juneberry.pytorch.util as pyt_utils
+import juneberry.pytorch.utils as pyt_utils
 
 
 class DummyLoss:

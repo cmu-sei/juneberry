@@ -49,24 +49,24 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.util import get_histogram
+from juneberry.evaluation.utils import get_histogram
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
 import juneberry.metrics.metrics as metrics
-import juneberry.mmdetection.util as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
 
 
 class MMDEvaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
 
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         # The mmdetection cfg
         self.cfg = None
@@ -142,7 +142,7 @@ class MMDEvaluator(Evaluator):
         cfg.load_from = str(model_path.resolve())
 
         # Set seed, thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # For eval, we only do one gpu.
         cfg.gpu_ids = range(1)
@@ -155,10 +155,10 @@ class MMDEvaluator(Evaluator):
         cfg.data.samples_per_gpu = 1
 
         # Add in the pipelines overrides.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # Bring all the user defined configuration.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
@@ -168,10 +168,6 @@ class MMDEvaluator(Evaluator):
             out_cfg.write(cfg.pretty_text)
 
         self.cfg = cfg
-
-        if self.eval_options.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
 
     def obtain_dataset(self) -> None:
         # Build the dataset.
@@ -244,7 +240,7 @@ class MMDEvaluator(Evaluator):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr) 
+        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
         self.output.results.metrics.bbox = m.as_dict()
         self.output.results.metrics.bbox_per_class = m.mAP_per_class
 

@@ -44,7 +44,7 @@
 #
 # ======================================================================================================================
 
-import juneberry.mmdetection.util as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 
 
 def test_tupleize():
@@ -57,7 +57,7 @@ def test_tupleize():
         }
     }
 
-    result = mmd_util.tupleize(sample)
+    result = mmd_utils.tupleize(sample)
 
     assert isinstance(result['array'], tuple)
     assert isinstance(result['tuple'], tuple)
@@ -137,7 +137,7 @@ def test_add_train_stages():
         dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'], foo=1138)
     ]
 
-    mmd_util.add_stages(train_in, changes)
+    mmd_utils.add_stages(train_in, changes)
     assert train_in == train_ans
 
 
@@ -219,5 +219,5 @@ def test_add_val_stages():
             ])
     ]
 
-    mmd_util.add_stages(val_in, changes)
+    mmd_utils.add_stages(val_in, changes)
     assert val_in == val_ans

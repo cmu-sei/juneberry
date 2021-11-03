@@ -34,7 +34,7 @@ import typing
 
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
-import juneberry.version_system as jbvs
+# import juneberry.version_system as jbvs
 
 logger = logging.getLogger(__name__)
 

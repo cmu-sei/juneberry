@@ -61,7 +61,7 @@ set up the package, including its dependencies, and add the bin directory to you
 have manually followed installation instructions for MMDetection and Detectron2.
 
 ### Using bash completion
-Bash completion is available for the `jb_run_experiment`, `jb_train`, and `jb_evaluate_data` scripts. You can source 
+Bash completion is available for the `jb_run_experiment`, `jb_train`, and `jb_evaluate` scripts. You can source 
 bash completion using `source scripts/juneberry_completion.sh`, or source the script into your .bashrc or Dockerfile.
 
 ## How to test your installation
@@ -332,7 +332,7 @@ This example command demonstrates how to test the model trained in the previous 
 new dataset it has not seen before. The workspace root and data root were defined in a 
 `juneberry.ini`, so they will not be shown in this command:
 
-```jb_evaluate_data imagenette_160x160_rgb_unit_test_pyt_resnet18 data_sets/imagenette_unit_test.json```
+```jb_evaluate imagenette_160x160_rgb_unit_test_pyt_resnet18 data_sets/imagenette_unit_test.json```
 
 This script produces the following files in the `imagenette_160x160_rgb_unit_test_pyt_resnet18` model folder:
 

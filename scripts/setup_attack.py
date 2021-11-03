@@ -39,7 +39,7 @@ import juneberry.scripting as jbscripting
 logger = logging.getLogger("juneberry.setup_attack")
 
 JB_TRAIN_COMMAND = 'jb_train'
-JB_EVALUATE_COMMAND = 'jb_evaluate_data'
+JB_EVALUATE_COMMAND = 'jb_evaluate'
 JB_PLOT_PR_COMMAND = 'jb_plot_pr'
 JB_PLOT_ROC_COMMAND = 'jb_plot_roc'
 JB_SUMMARY_COMMAND = 'jb_summary_report'

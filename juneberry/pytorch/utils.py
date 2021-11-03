@@ -43,6 +43,7 @@ from juneberry.config.model import PytorchOptions
 import juneberry.data as jb_data
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -63,22 +64,13 @@ def wrap_seed(seed: int):
     return seed & 0xFFFFFFFF
 
 
-def set_seeds(seed: int):
+def set_pytorch_seeds(seed: int):
     """
     Sets all the random seeds used by all the various pieces.
     :param seed: A random seed to use. Can not be None.
     """
-    if seed is None:
-        logger.error("Request to initialize with a seed of None. Exiting")
-        sys.exit(-1)
-
-    if seed > 0xFFFFFFFF:
-        logger.error("Seed exceeds maximum seed value of 2**32 - 1 (4294967295). EXITING")
-        sys.exit(-1)
-
-    logger.info(f"Setting ALL seeds: {str(seed)}")
-    random.seed(seed)
-    np.random.seed(seed)
+    jb_utils.set_seeds(seed)
+    logger.info(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
 

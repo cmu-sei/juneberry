@@ -53,8 +53,8 @@ from torch.nn.functional import softmax
 
 from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
-from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
-import juneberry.pytorch.util as pyt_utils
+from juneberry.pytorch.evaluator import PytorchEvaluator
+import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 

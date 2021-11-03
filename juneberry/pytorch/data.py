@@ -33,8 +33,8 @@ from juneberry.config.dataset import DataType, DatasetConfig, TaskType
 from juneberry.lab import Lab
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
-from juneberry.pytorch.util import StagedTransformManager
-import juneberry.pytorch.util as pyt_utils
+from juneberry.pytorch.utils import StagedTransformManager
+import juneberry.pytorch.utils as pyt_utils
 
 from juneberry.config.dataset import SamplingConfig, TorchvisionData
 from juneberry.config.model import ModelConfig, SplittingAlgo, SplittingConfig

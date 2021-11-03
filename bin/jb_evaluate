@@ -28,11 +28,11 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.model import ModelConfig
+import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
-import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
 
-logger = logging.getLogger("juneberry.jb_evaluate_data")
+logger = logging.getLogger("juneberry.jb_evaluate")
 
 
 def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_split=False):
@@ -69,7 +69,9 @@ def setup_args(parser) -> None:
     """
     parser.add_argument('modelName', help='Name of a model directory containing the model you\'d like to evaluate.')
 
-    parser.add_argument('dataset', help="Path to a dataset file describing the data the model should evaluate.")
+    parser.add_argument('dataset', type=str, default=None, nargs='?',
+                        help="Optional Path to a dataset file describing the data the model should evaluate. Not "
+                             "all evaluators will require this argument, but some do.")
 
     parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
 
@@ -113,54 +115,16 @@ def main():
     log_prefix = "<<DRY_RUN>> " if args.dryrun else ""
     lab = jbscripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix, model_name=model_name,
                                              banner_msg=">>> Juneberry Evaluator <<<")
-    dataset = lab.load_dataset_config(args.dataset)
+    dataset = lab.load_dataset_config(args.dataset) if args.dataset is not None else args.dataset
 
     # Start evaluation
     logger.info(f"Script arguments captured. Ready to start an evaluation run.")
 
-    # Load the model config to determine what type of evaluator
+    # Load the model config in order to determine the type of evaluator needed
+    # for this evaluation.
     model_config = ModelConfig.load(model_manager.get_model_config())
 
-    platform_map = {
-        "pytorch": "juneberry.pytorch.pytorch_evaluator.PytorchEvaluator",
-        "pytorch_privacy": "juneberry.pytorch.pytorch_evaluator.PytorchEvaluator",
-        "detectron2": "juneberry.detectron2.dt2_evaluator.Detectron2Evaluator",
-        "mmdetection": "juneberry.mmdetection.mmd_evaluator.MMDEvaluator",
-        "tensorflow": "juneberry.tensorflow.evaluator.Evaluator",
-        "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator",
-    }
-
-    if model_config.evaluator is not None:
-        kw_args = model_config.evaluator.kwargs
-        if kw_args is None:
-            kw_args = {}
-        fqcn = model_config.evaluator.fqcn
-
-    else:
-        # Use the platform_map and platform to determine the correct fqcn.
-        if model_config.platform not in platform_map:
-            logger.error(f"Evaluation not supported for the requested platform ({model_config.platform}). "
-                         f"Supported platforms: {list(platform_map.keys())}. EXITING.")
-            sys.exit(-1)
-        else:
-            fqcn = platform_map[model_config.platform]
-        kw_args = {}
-        logger.warning("Found deprecated platform/task configuration for loading the evaluator. "
-                       "Consider updating the model config to use the evaluator stanza.")
-        logger.warning('"evaluator": {')
-        logger.warning(f'    "fqcn": "{fqcn}"')
-        logger.warning('}')
-
-    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options']
-
-    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
-    for arg in reqd_args:
-        if arg not in kw_args:
-            kw_args[arg] = locals()[arg]
-
-    # Create the Evaluator.
-    logger.info(f"Instantiating evaluator: {fqcn}")
-    evaluator = jb_loader.construct_instance(fqcn, kw_args)
+    evaluator = jb_eval_utils.create_evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
 
     if evaluator is None:
         logger.error(f"No Evaluator instantiated. EXITING.")

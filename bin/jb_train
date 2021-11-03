@@ -104,8 +104,8 @@ def main():
             "tfgloro": "juneberry.tensorflow.trainer.ClassifierTrainer"
         },
         "objectDetection": {
-            "detectron2": "juneberry.detectron2.dt2_trainer.Detectron2Trainer",
-            "mmdetection": "juneberry.mmdetection.mmd_trainer.MMDTrainer"
+            "detectron2": "juneberry.detectron2.trainer.Detectron2Trainer",
+            "mmdetection": "juneberry.mmdetection.trainer.MMDTrainer"
         }
     }
 

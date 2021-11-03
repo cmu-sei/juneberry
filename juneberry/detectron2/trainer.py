@@ -52,7 +52,7 @@ from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
-from juneberry.detectron2.dt2_loss_evaluator import DT2LossEvaluator
+from juneberry.detectron2.loss_evaluator import DT2LossEvaluator
 from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab

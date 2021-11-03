@@ -31,7 +31,7 @@ import warnings
 from torch import Tensor
 import torchvision.transforms.functional as functional
 
-from juneberry.pytorch.util import StagedTransformManager, EpochDataset
+from juneberry.pytorch.utils import StagedTransformManager, EpochDataset
 
 logger = logging.getLogger(__name__)
 

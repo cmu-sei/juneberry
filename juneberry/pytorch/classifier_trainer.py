@@ -44,7 +44,7 @@ import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
-import juneberry.pytorch.util as pyt_utils
+import juneberry.pytorch.utils as pyt_utils
 import juneberry.tensorboard as jbtb
 from juneberry.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
@@ -141,7 +141,7 @@ class ClassifierTrainer(EpochTrainer):
             self.tb_mgr = jbtb.TensorBoardManager(self.lab.tensorboard, self.model_manager)
 
         logger.info(f"Setting ALL seeds: {str(self.model_config.seed)}")
-        pyt_utils.set_seeds(self.model_config.seed)
+        pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
         self.setup_hardware()
         self.setup_data_loaders()

@@ -410,7 +410,7 @@ class AttackManager(ExperimentManager):
 
 
 class EvalDirMgr:
-    def __init__(self, root: str, platform: str, dataset_name: str) -> None:
+    def __init__(self, root: str, platform: str, dataset_name: str = None) -> None:
         """
         Constructs an EvalDirMgr object rooted at the root path for the specified platform
         with the given name.
@@ -419,7 +419,7 @@ class EvalDirMgr:
         :param platform: The platform.
         :param dataset_name: The name of the evaluation dataset.
         """
-        self.root = Path(root) / 'eval' / dataset_name
+        self.root = Path(root) / 'eval' / dataset_name if dataset_name is not None else Path(root) / 'eval'
         self.platform = platform
 
     def setup(self):
@@ -586,13 +586,14 @@ class ModelManager:
 
     # ============ Evaluation ============
 
-    def get_eval_dir_mgr(self, dataset_path: str) -> EvalDirMgr:
+    def get_eval_dir_mgr(self, dataset_path: str = None) -> EvalDirMgr:
         """
         Construct an EvalDirMgr object based on the current model and the provided dataset path.
         :param dataset_path: The path to the dataset file.
         :return: An EvalDirMgr object.
         """
-        return EvalDirMgr(self.model_dir_path, self.model_platform, Path(dataset_path).stem)
+        dataset_arg = Path(dataset_path).stem if dataset_path is not None else dataset_path
+        return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
 
     # ============ Misc ============
 

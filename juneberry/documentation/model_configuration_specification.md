@@ -25,15 +25,12 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "overrides": [ <array of values to add to the config using merge_from_list> ]
     },
     "epochs": <The maximum number of epochs to train>,
+    "evaluation_transforms": [ <array of transforms - see below> ],
+    "evaluation_target_transforms": [ <array of transforms - see below> ],
     "evaluator": {
         "fqcn": <fully qualified name of class that extends the juneberry.evaluator base class>,
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
     }
-    "evaluation_output": <Fully qualified class name to the class responsible for formatting the 
-                         output generated during the evaluation of the model.>,
-    "evaluation_procedure": <Fully qualified class name to the class responsible for evaluating the model.>,
-    "evaluation_transforms": [ <array of transforms - see below> ],
-    "evaluation_target_transforms": [ <array of transforms - see below> ],
     "format_version": <Linux style version string of the format of this file>,
     "hints": {
         "num_workers": <Integer number of workers the system should prefer>
@@ -193,30 +190,6 @@ dotted name of path to the config variable, and the value is the desired value. 
 ## epochs
 The number of epochs to train.
 
-## evaluator
-The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.Evaluator`.
-Juneberry has a variety of built-in evaluators for the following platforms.  The built-in evaluators require
-no additional kwargs.
-
-The basic evaluators for the platforms are:
-* Detectron2 - juneberry.detectron2.evaluator.Evaluator
-* PyTorch - juneberry.pytorch.evaluator.Evaluator
-* MMDetection - juneberry.mmdetection.evaluator.Evaluator
-* Tensorflow - juneberry.tensorflow.evaluator.Evaluator
-
-
-## evaluation_output
-This field should contain a fully qualified path to a class that will be responsible for converting 
-raw evaluation data into the desired output format. Example:
-
-`"evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput"`
-
-## evaluation_procedure
-This field should contain a fully qualified path to a class that will be responsible for producing raw 
-evaluation data for the model when it is paired with an evaluation dataset. Example:
-
-`"evaluation_procedure: "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure"`
-
 ## evaluation_transforms
 This section contains a **chain** of transforms to be applied to data during validation
 or testing.
@@ -310,6 +283,17 @@ methods are required, so you are free to remove those you don't need.
 **Optional:** If the dataset refers to a torchvision dataset (one that subclasses `torch.utils.data.Dataset` and
 takes 'root', 'transform' and 'target_transform' arguments), then this specifies a series of transforms to be 
 applied to the **target** via the target_transforms parameter during evaluation.
+
+## evaluator
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.Evaluator`.
+Juneberry has a variety of built-in evaluators for the following platforms.  The built-in evaluators require
+no additional kwargs.
+
+The basic evaluators for the platforms are:
+* Detectron2 - juneberry.detectron2.evaluator.Evaluator
+* PyTorch - juneberry.pytorch.evaluator.Evaluator
+* MMDetection - juneberry.mmdetection.evaluator.Evaluator
+* Tensorflow - juneberry.tensorflow.evaluator.Evaluator
 
 ## format_version
 Linux style version of the **format** of the file. Not the version of 
