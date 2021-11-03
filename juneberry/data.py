@@ -255,10 +255,6 @@ class DatasetMarshal:
         self.train = []
         self.val = []
 
-        # We'll need to rebuild this if we preprocess
-        # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
-        self.label_mapping = get_label_mapping(train_config=dataset_config)
-
         self._splitting_config = splitting_config
         self._preprocessors = preprocessors
 
@@ -426,7 +422,6 @@ class CocoMetadataMarshal(DatasetMarshal):
                     int_labels = {int(x['id']): x['name'] for x in data['categories']}
                     self.ds_config.label_names = str_labels
                     self.ds_config.update_label_names(int_labels)
-                    self.label_mapping = get_label_mapping(train_config=self.ds_config)
 
             # Now that we have the file loaded let's load the values
             helper = COCOImageHelper(data)
