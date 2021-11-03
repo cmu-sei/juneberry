@@ -18,6 +18,7 @@
         "detectron2": {
             "type": "object",
             "properties": {
+                "disable_val_loss": { "type": "boolean" },
                 "metric_interval": { "type": "integer" },
                 "overrides": { "type": "array" }
             },
