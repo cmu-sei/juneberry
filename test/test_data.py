@@ -740,8 +740,8 @@ def test_get_label_mapping():
     # Binary sample files
     model_name = "tabular_binary_sample"
     model_manager = ModelManager(model_name)
-    model_config = model_manager.get_model_config()
-    train_config = "models/tabular_binary_sample/train_data_config.json"
+    model_config = ModelConfig.load(model_manager.get_model_config())
+    train_config = DatasetConfig.load("models/tabular_binary_sample/train_data_config.json")
     test_labels = {0: "outer", 1: "inner"}
     test_stanza = {"0": "outer", "1": "inner"}
 

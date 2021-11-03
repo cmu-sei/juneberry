@@ -947,16 +947,17 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
-def get_label_mapping(model_manager: ModelManager = None, model_config=None, train_config=None, eval_config=None,
+def get_label_mapping(model_manager: ModelManager = None, model_config: ModelConfig = None,
+                      train_config: DatasetConfig = None, eval_config: DatasetConfig = None,
                       show_source=False) -> Union[Tuple[Dict[int, str], str], Dict[int, str]]:
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model. The order of precedence
-    is as follows: training output.json file, specified model config file, specified training config file, specified
-    eval config file, default model config file, and default training config file.
-    :param model_manager: ModelManager object for the model.
-    :param model_config: Path to the model config for the model.
-    :param train_config: Path to the training dataset config for the model.
-    :param eval_config: Path to the evaluation dataset config for the model.
+    is as follows: training output.json file, specified model config file, specified training config file, default model
+    config file, default training config file, and specified eval config file.
+    :param model_manager: The ModelManager object for the model.
+    :param model_config: The ModelConfig object for the model configuration.
+    :param train_config: The DatasetConfig object for model training.
+    :param eval_config: The DatasetConfig object for model evaluation.
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: The label names as a dict of int -> string.
     """
@@ -975,8 +976,6 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
-        if isinstance(model_config, str) or isinstance(model_config, Path):
-            model_config = ModelConfig.load(str(model_config))
         label_val = model_config.label_mapping
         label_dict = get_label_dict(label_val)
         if label_dict:
@@ -987,8 +986,6 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
 
     # If a training config was provided...
     if train_config:
-        if isinstance(train_config, str) or isinstance(model_config, Path):
-            train_config = DatasetConfig.load(str(train_config))
         label_dict = train_config.retrieve_label_names()
         if label_dict:
             if show_source:
@@ -1022,8 +1019,6 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
-        if isinstance(eval_config, str) or isinstance(eval_config, Path):
-            eval_config = DatasetConfig.load(str(eval_config))
         label_dict = eval_config.retrieve_label_names()
         if label_dict:
             if show_source:
