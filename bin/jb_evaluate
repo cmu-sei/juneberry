@@ -127,11 +127,7 @@ def main():
     evaluator = jb_eval_utils.create_evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
 
     if evaluator is None:
-        logger.error(f"No Evaluator instantiated. EXITING.")
-
-    # Run the Evaluator in dryrun mode.
-    if args.dryrun:
-        evaluator.dry_run()
+        logger.error(f"No Evaluator instantiated. Exiting.")
 
     # Perform the evaluation.
     else:

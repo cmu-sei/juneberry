@@ -119,7 +119,7 @@ class Evaluator(EvaluatorBase):
         if self.eval_output_method is None:
             self.eval_output_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput"
 
-        logger.info(f"PyTorch setup steps are complete.")
+        logger.info(f"PyTorch Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
         """

@@ -466,6 +466,9 @@ class EvalDirMgr:
     def get_sample_detections_dir(self):
         return str(self.root / "sample_detections")
 
+    def get_dt2_cfg_path(self):
+        return str(self.root / "dt2_cfg.txt")
+
 
 class ModelManager:
     # TODO: See https://wiki-int.sei.cmu.edu/confluence/display/CYBINV/Juneberry+Refactoring+Sketchboard
