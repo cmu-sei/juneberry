@@ -26,7 +26,7 @@ import csv
 import json
 from pathlib import Path
 import random
-from unittest import mock
+from unittest import mock, TestCase
 
 import juneberry
 from juneberry.config.dataset import DatasetConfig
@@ -35,7 +35,6 @@ import juneberry.data as jb_data
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
 from juneberry.filesystem import ModelManager
-from juneberry.config.training_output import TrainingOutputBuilder
 
 from test_coco_utils import make_sample_coco
 import test_model_config
@@ -741,14 +740,17 @@ def test_get_label_mapping():
     # Binary sample files
     model_name = "tabular_binary_sample"
     model_manager = ModelManager(model_name)
-    model_config = model_manager.get_model_config()
-    train_config = "models/tabular_binary_sample/train_data_config.json"
+    model_config = ModelConfig.load(model_manager.get_model_config())
+    train_config = DatasetConfig.load("models/tabular_binary_sample/train_data_config.json")
     test_labels = {0: "outer", 1: "inner"}
+    test_stanza = {"0": "outer", "1": "inner"}
+
+    assert isinstance(jb_data.convert_dict(test_stanza), dict)
 
     # Unit tests
     test_source = "training dataset config via model config via model manager"
     func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
 
     # TODO: write a unit test for the training output case
@@ -758,11 +760,14 @@ def test_get_label_mapping():
 
     test_source = "training dataset config"
     func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
 
     test_source = "training dataset config"
     func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
                                                          show_source=True)
-    assert test_labels == func_labels
+    TestCase().assertDictEqual(func_labels, test_labels)
     assert test_source == func_source
+
+    func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
+    TestCase().assertDictEqual(func_labels, test_labels)
