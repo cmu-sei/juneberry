@@ -82,3 +82,5 @@ RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.
     echo "    echo './container_start.sh NOT found.'"  >> /root/.bashrc; \
     echo "fi" >> /root/.bashrc
 
+ENV PATH="${PATH}:${PROJ}/juneberry/bin"
+
