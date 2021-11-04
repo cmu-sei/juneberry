@@ -172,8 +172,8 @@ evaluating the model.
 Specific parameters for detectron2.  This is only used when the platform is detectron2.
 
 ### enable_val_loss
-**Optional**: Set to true to enable experimental validation loss computation. Beware: The validation loss computation may interact
-with some layers during training.
+**Optional**: Set to true to enable experimental validation loss computation. Beware: The validation loss computation 
+may interact with some layers during training.
 
 ### metric_interval
 **Optional:** This field is an integer which controls how often detectron2 training will log the training 
