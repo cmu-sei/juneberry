@@ -78,7 +78,7 @@ def get_histogram(dataset_dicts, classes):
 
 
 def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                     dataset: DatasetConfig, eval_options: SimpleNamespace):
+                     dataset: DatasetConfig, eval_options: SimpleNamespace, log_file: str):
     """
     This function is responsible for creating the correct evaluator object based on the contents of the ModelConfig.
     :param model_config: The loaded Juneberry ModelConfig which determines which Evaluator to build.
@@ -87,6 +87,7 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
     :param model_manager: The Juneberry ModelManager that will be used to build the Evaluator.
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to build the Evaluator.
     :param eval_options: A SimpleNamespace of different eval options that will be used to build the Evaluator.
+    :param log_file: TODO
     """
 
     platform_map = {
@@ -127,7 +128,7 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
             kw_args = {}
         fqcn = model_config.evaluator.fqcn
 
-    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options']
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
 
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
     for arg in reqd_args:

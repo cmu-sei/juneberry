@@ -53,8 +53,8 @@ logger = logging.getLogger(__name__)
 
 class Evaluator(EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file, **kwargs)
 
         self.lab = lab
         self.dataset_config = dataset
@@ -72,25 +72,72 @@ class Evaluator(EvaluatorBase):
         # Establish an evaluation output directory and save the detectron2 logging messages
         self.output_dir = self.eval_dir_mgr.root
 
-        # TODO: The evaluator base class should pass down the log path.
-        log_file_path = self.eval_dir_mgr.get_log_dryrun_path() if self.dryrun else self.eval_dir_mgr.get_log_path()
+    # ==========================================================================
+    def dry_run(self) -> None:
+        dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
+        dryrun_path.mkdir(parents=True, exist_ok=True)
 
-        jb_setup_logger(log_file_path, "", name="fvcore", level=logging.DEBUG)
-        jb_setup_logger(log_file_path, "", name="detectron2", level=logging.DEBUG)
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        # Test for the presence of the annotations file.
+        anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
+        logger.info(f"Checking for annotations file at {anno_file}")
+        if anno_file.exists():
+            logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
+        else:
+            logger.info(f"Annotations file not found. A new one would be generated during evaluation.")
+
+        # Test the creation of the detectron2 evaluator used to perform the evaluation.
+        logger.info(f"Attempting to build the evaluator.")
+        try:
+            evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False,
+                                      output_dir=self.output_dir)
+        except Exception:
+            logger.exception(f"Error building the evaluator.")
+            raise
+        else:
+            logger.info(f"Evaluator built.")
+
+        # Test the creation of the detectron2 test loader used to perform the evaluation.
+        logger.info(f"Attempting to build the loader for the evaluator.")
+        try:
+            mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
+            eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
+        except Exception:
+            logger.exception(f"Error building the loader for the evaluator.")
+            raise
+        else:
+            logger.info(f"Built the loader for the evaluator.")
+
+        # Now produce a few sample images from the evaluation dataloader.
+        logger.info(f"Obtaining the first 5 sample images from the eval loader.")
+        for sample_idx, image in enumerate(eval_loader):
+            if sample_idx > 4:
+                break
+
+            save_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir()) / Path(image[0]['file_name']).name
+            img = transforms.ToPILImage()(image[0]['image'])
+            img.save(save_path)
+
+        logger.info(f"Saved 5 sample images to {self.eval_dir_mgr.get_dryrun_imgs_dir()}")
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
         # TODO: Test to see if we can use more than 1 gpu with DP.
         if count > 1:
-            logger.warning(f"The evaluator is only configured to support 1 gpu. Reducing {count} to 1")
+            logger.warning(f"The evaluator is only configured to support 1 GPU. Reducing {count} to 1.")
             count = 1
         return count
 
     def setup(self) -> None:
-        if self.dryrun:
-            # Establish a directory for storing dry run files and create it if it doesn't exist.
-            dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
-            dryrun_path.mkdir(parents=True, exist_ok=True)
+        jb_setup_logger(self.log_file_path, "", name="fvcore", level=logging.DEBUG)
+        jb_setup_logger(self.log_file_path, "", name="detectron2", level=logging.DEBUG)
 
     def obtain_dataset(self) -> None:
 
@@ -139,52 +186,6 @@ class Evaluator(EvaluatorBase):
         logger.info(f"Saving the detectron2 config to {cfg_path}")
         with open(cfg_path, "w") as cfg_outfile:
             cfg_outfile.write(str(self.cfg))
-
-        # These dryrun checks would probably be more appropriate in evaluate_data, however the base Evaluator
-        # class will not call evaluate_data during a dryrun therefore they must be placed here.
-        if self.dryrun:
-
-            # Test for the presence of the annotations file.
-            anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
-            logger.info(f"Checking for annotations file at {anno_file}")
-            if anno_file.exists():
-                logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
-            else:
-                logger.info(f"Annotations file not found. A new one would be generated during evaluation.")
-
-            # Test the creation of the detectron2 evaluator used to perform the evaluation.
-            logger.info(f"Attempting to build the evaluator.")
-            try:
-                evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False,
-                                          output_dir=self.output_dir)
-            except Exception:
-                logger.exception(f"Error building the evaluator.")
-                raise
-            else:
-                logger.info(f"Evaluator built.")
-
-            # Test the creation of the detectron2 test loader used to perform the evaluation.
-            logger.info(f"Attempting to build the loader for the evaluator.")
-            try:
-                mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
-                eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
-            except Exception:
-                logger.exception(f"Error building the loader for the evaluator.")
-                raise
-            else:
-                logger.info(f"Built the loader for the evaluator.")
-
-            # Now produce a few sample images from the evaluation dataloader.
-            logger.info(f"Obtaining the first 5 sample images from the eval loader.")
-            for sample_idx, image in enumerate(eval_loader):
-                if sample_idx > 4:
-                    break
-
-                save_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir()) / Path(image[0]['file_name']).name
-                img = transforms.ToPILImage()(image[0]['image'])
-                img.save(save_path)
-
-            logger.info(f"Saved 5 sample images to {self.eval_dir_mgr.get_dryrun_imgs_dir()}")
 
     def evaluate_data(self) -> None:
         evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False, output_dir=self.output_dir)

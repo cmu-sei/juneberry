@@ -35,11 +35,10 @@ import juneberry.scripting as jbscripting
 logger = logging.getLogger("juneberry.jb_evaluate")
 
 
-def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_split=False):
+def setup_eval_options(top_k=0, use_train_split=False, use_val_split=False):
     """
     This function converts a set of input arguments into a SimpleNameSpace representing the selected evaluator options.
     :param top_k: An integer that controls how many of the top-K predicted classes to record in the output.
-    :param dryrun: Flag to initiate dry run mode.
     :param use_train_split: Flag that indicates if the training portion of the dataset should be evaluated.
     :param use_val_split: Flag that indicates if the validation portion of the dataset should be evaluated.
     :return: eval_options: A SimpleNamespace representing the Evaluator options that were set via
@@ -54,7 +53,6 @@ def setup_eval_options(top_k=0, dryrun=False, use_train_split=False, use_val_spl
     # Set up a SimpleNamespace to capture the relevant evaluation options
     eval_options = SimpleNamespace()
     eval_options.top_k = top_k
-    eval_options.dryrun = dryrun
     eval_options.use_train_split = use_train_split
     eval_options.use_val_split = use_val_split
 
@@ -108,7 +106,7 @@ def main():
     model_manager = jbfs.ModelManager(model_name)
     eval_dir_mgr = model_manager.get_eval_dir_mgr(args.dataset)
     eval_dir_mgr.setup()
-    eval_options = setup_eval_options(args.topK, args.dryrun, args.useTrainSplit, args.useValSplit)
+    eval_options = setup_eval_options(args.topK, args.useTrainSplit, args.useValSplit)
 
     # Set up logging for the evaluation
     log_file = eval_dir_mgr.get_log_dryrun_path() if args.dryrun else eval_dir_mgr.get_log_path()
@@ -124,16 +122,22 @@ def main():
     # for this evaluation.
     model_config = ModelConfig.load(model_manager.get_model_config())
 
-    evaluator = jb_eval_utils.create_evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
+    evaluator = jb_eval_utils.create_evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options,
+                                               log_file)
 
     if evaluator is None:
         logger.error(f"No Evaluator instantiated. Exiting.")
 
-    # Perform the evaluation.
     else:
-        evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
-        evaluator.perform_evaluation()
-        logger.info(f"Evaluation complete.")
+        if args.dryrun:
+            # Perform the dry run for the Evaluator.
+            evaluator.dry_run()
+
+        else:
+            # Perform the evaluation.
+            evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
+            evaluator.perform_evaluation()
+            logger.info(f"Evaluation complete.")
 
 
 if __name__ == "__main__":

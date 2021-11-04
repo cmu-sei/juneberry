@@ -63,8 +63,8 @@ logger = logging.getLogger(__name__)
 
 class Evaluator(EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file, **kwargs)
 
         self.mm_home = mmd_utils.find_mmdetection()
 
@@ -77,9 +77,15 @@ class Evaluator(EvaluatorBase):
         self.data_loader = None
         self.eval_options = eval_options
 
-        logger.info(f"Using working directory of: {self.working_dir}")
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
 
-        jb_setup_logger(self.eval_dir_mgr.get_log_path(), "", name="mmdet", level=logging.DEBUG)
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -90,7 +96,10 @@ class Evaluator(EvaluatorBase):
         return count
 
     def setup(self) -> None:
+        jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
+
         # Setup working dir to save files and logs.
+        logger.info(f"Using working directory of: {self.working_dir}")
         if not self.working_dir.exists():
             logger.info(f"Making working dir {str(self.working_dir)}")
             self.working_dir.mkdir(parents=True)

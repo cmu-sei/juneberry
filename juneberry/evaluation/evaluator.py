@@ -53,7 +53,7 @@ class EvaluatorBase:
     """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, **kwargs):
+                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
@@ -64,7 +64,8 @@ class EvaluatorBase:
         within the model's eval directory.
         :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
-        include the following: top_k, dryrun, extract_validation.
+        include the following: top_k, use_train_split, use_val_split.
+        :param log_file: TODO
         """
         # TODO: Should we make a model manager or get passed one???
 
@@ -72,11 +73,11 @@ class EvaluatorBase:
         self.eval_dir_mgr = eval_dir_mgr
         self.eval_dir_mgr.setup()
 
+        # Stash the location of the log file.
+        self.log_file_path = log_file
+
         # Stash the lab off so everyone can use it
         self.lab = lab
-
-        # Attribute that determines if a dry run of the evaluation is performed.
-        self.dryrun = False
 
         # How many GPUs to use. 0 is CPU.
         self.num_gpus = 0
@@ -140,7 +141,7 @@ class EvaluatorBase:
 
         # Check the eval_options for values related to the relevant attributes. If found, set the
         # attribute.
-        for option in ['dryrun', 'use_train_split', 'top_k', 'use_val_split']:
+        for option in ['use_train_split', 'top_k', 'use_val_split']:
             try:
                 setattr(self, option, getattr(eval_options, option))
             except AttributeError:
@@ -153,6 +154,13 @@ class EvaluatorBase:
     # |  __\ \/ / __/ _ \ '_ \/ __| |/ _ \| '_ \  |  __/ _ \| | '_ \| __/ __|
     # | |___>  <| ||  __/ | | \__ \ | (_) | | | | | | | (_) | | | | | |_\__ \
     # \____/_/\_\\__\___|_| |_|___/_|\___/|_| |_| \_|  \___/|_|_| |_|\__|___/
+
+    def dry_run(self) -> None:
+        """
+        Executes a "dryrun" of the evaluation, checking for model viability, dataset properties, etc.
+        :return: None
+        """
+        pass
 
     def check_gpu_availability(self, required: int) -> int:
         """
@@ -211,22 +219,18 @@ class EvaluatorBase:
         self.obtain_dataset()
         self.obtain_model()
 
-        if not self.dryrun:
-            # Record the time the evaluation started.
-            self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
+        # Record the time the evaluation started.
+        self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
 
-            self.evaluate_data()
+        self.evaluate_data()
 
-            # Record the time the evaluation ended.
-            self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)
+        # Record the time the evaluation ended.
+        self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)
 
-            # Format the evaluation times in the output and calculate the duration.
-            self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
+        # Format the evaluation times in the output and calculate the duration.
+        self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
 
-            self.format_evaluation()
-
-        else:
-            logger.info(f"Dry run complete.")
+        self.format_evaluation()
 
 
 def main():

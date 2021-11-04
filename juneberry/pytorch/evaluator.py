@@ -50,7 +50,7 @@ class Evaluator(EvaluatorBase):
     """
 
     def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
         """
         Creates an Evaluator object based on command line arguments and a Juneberry
         ModelManager object.
@@ -62,9 +62,10 @@ class Evaluator(EvaluatorBase):
         within the model's eval directory.
         :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
-        include the following: topK, dryrun, extract_validation.
+        include the following: top_k, use_train_split, use_val_split.
+        :param log_file: TODO
         """
-        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         # These attributes are used by Pytorch to send information to the correct device (CPU | GPU)
         self.use_cuda = False
@@ -73,6 +74,16 @@ class Evaluator(EvaluatorBase):
 
         # These attributes relate to Pytorch's way of loading data from a dataloader.
         self.eval_loader = None
+
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -84,10 +95,10 @@ class Evaluator(EvaluatorBase):
 
     def setup(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for setting up the Evaluator.
+        This is the PyTorch version of the extension point that's responsible for setting up the Evaluator.
         :return: Nothing.
         """
-        logger.info(f"Performing Pytorch setup steps...")
+        logger.info(f"Performing PyTorch setup steps...")
 
         # Check if cuda is available; set the appropriate "default" device.
         if self.num_gpus == 0:
@@ -100,7 +111,7 @@ class Evaluator(EvaluatorBase):
             self.device_ids = [0]
         else:
             # We should NEVER get here because the GPU availability should never return more than one.
-            logger.error("PyTorch Evaluator does NOT support more than one GPU device. EXITING.")
+            logger.error("PyTorch Evaluator does NOT support more than one GPU device. Exiting.")
             sys.exit(-1)
 
         # TODO: Shouldn't this be done in the lab??

@@ -54,10 +54,11 @@ class EvalTestHelper:
         self.eval_dir_mgr = self.model_manager.get_eval_dir_mgr("test_dataset")
         self.eval_dir_mgr.setup()
         self.eval_options = SimpleNamespace()
+        self.log_file = ""
 
     def build_evaluator(self):
         return create_evaluator(self.model_config, self.lab, self.model_manager, self.eval_dir_mgr, self.dataset,
-                                self.eval_options)
+                                self.eval_options, self.log_file)
 
 
 def get_fn_name(fn):

@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 class Evaluator(juneberry.evaluation.evaluator.EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options)
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         # TODO: This should be in base
         self.dataset_config = dataset
@@ -53,6 +53,16 @@ class Evaluator(juneberry.evaluation.evaluator.EvaluatorBase):
 
         self.eval_results = None
         self.predictions = None
+
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         return 0
