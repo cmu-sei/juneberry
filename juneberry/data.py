@@ -1021,6 +1021,92 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             else:
                 return label_dict
 
+    logger.error(f"get_label_mapping failed to find a label mapping. EXITING.")
+    sys.exit(-1)
+
+
+def categories_in_dataset_config(config_path, data_root):
+    with open(config_path) as config_file:
+        dataset = json.load(config_file)
+    if 'imageData' in dataset:
+        coco_path = dataset['imageData']['sources'][0]['directory']
+    else:
+        coco_path = dataset['image_data']['sources'][0]['directory']
+
+    with open(data_root / coco_path) as json_file:
+        coco_data = json.load(json_file)
+    if coco_data["categories"]:
+        return True
+    else:
+        return False
+
+
+def get_category_map_path(model_manager: ModelManager, train_config: DatasetConfig, eval_config: DatasetConfig,
+                          data_root: Path, show_source=False) -> Union[Path, Tuple[Path, str]]:
+    """
+    Checks a hierarchy of fules to determine the set of categories for use in evaluation. The order of precedence
+    is as follows: training manifest, validation manifest, model config, train config, and eval config.
+    :param model_manager: The ModelManager object for the model.
+    :param train_config: The DatasetConfig object for model training.
+    :param eval_config: The DatasetConfig object for model evaluation.
+    :param data_root: The path to the data root of source images.
+    :param show_source: Set to True to return the source from which the label names were extracted.
+    :return: The label names as a dict of int -> string.
+    """
+    # Check the training manifest
+    training_manifest_path = model_manager.get_training_data_manifest_path()
+    with open(data_root / training_manifest_path) as json_file:
+        train_manifest_data = json.load(json_file)
+    if train_manifest_data['categories']:
+        if show_source:
+            return train_manifest_data, "train manifest path"
+        else:
+            return train_manifest_data
+
+    # Check the validation manifest
+    validation_manifest_path = model_manager.get_validation_data_manifest_path()
+    with open(data_root / validation_manifest_path) as json_file:
+        val_manifest_data = json.load(json_file)
+    if val_manifest_data['categories']:
+        if show_source:
+            return val_manifest_data, "val manifest path"
+        else:
+            return val_manifest_data
+
+    # Check the model config
+    # TODO: handle cases where categories are pulled in a different way i.e. not from a categories key
+    # TODO: maybe this function should return the class mapping dict instead, this would require various changes
+    model_config_path = model_manager.get_model_config()
+    with open(data_root / model_config_path) as json_file:
+        model_config_data = json.load(json_file)
+    if model_config_data['preprocessors']:
+        if model_config_data['preprocessors']['fcqn'] == "juneberry.transforms.metadata_preprocessors.ObjectRelabel":
+            if model_config_data['preprocessors']['kwargs']:
+                if model_config_data['preprocessors']['kwargs']["labels"]:
+                    if show_source:
+                        return model_config_path, "model config path"
+                    else:
+                        return model_config_path
+
+    # Check the train config
+    train_config_path = train_config.file_path
+    if categories_in_dataset_config(train_config_path, data_root):
+        if show_source:
+            return train_config_path, "train config path"
+        else:
+            return train_config_path
+
+    # Check the eval config
+    eval_config_path = eval_config.file_path
+    if categories_in_dataset_config(eval_config_path, data_root):
+        if show_source:
+            return eval_config_path, "eval config path"
+        else:
+            return eval_config_path
+
+    logger.error(f"get_category_map_path failed to find a file containing the category mapping. EXITING.")
+    sys.exit(-1)
+
 
 def check_num_classes(args: dict, num_model_classes: int) -> None:
     """
