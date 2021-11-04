@@ -87,7 +87,7 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
     :param model_manager: The Juneberry ModelManager that will be used to build the Evaluator.
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to build the Evaluator.
     :param eval_options: A SimpleNamespace of different eval options that will be used to build the Evaluator.
-    :param log_file: TODO
+    :param log_file: A string indicating the location of the current log file.
     """
 
     platform_map = {

@@ -63,7 +63,7 @@ class Evaluator(EvaluatorBase):
         :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
         include the following: top_k, use_train_split, use_val_split.
-        :param log_file: TODO
+        :param log_file: A string indicating the location of the current log file.
         """
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
