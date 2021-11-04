@@ -364,7 +364,7 @@ class Detectron2Trainer(Trainer):
                 scheduler.step()
 
                 # Compute the loss for this step, if they want it
-                if not self.model_config.detectron2.disable_val_loss:
+                if self.model_config.detectron2.enable_val_loss:
                     self.loss_evaluator.after_step(self)
 
                 # and iteration != max_iter - 1

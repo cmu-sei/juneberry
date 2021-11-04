@@ -21,7 +21,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "batch_size": <The number of data samples to use per update when training or evaluating the model.>,
     "description": <OPTIONAL text description of the model in this file>,
     "detectron2": {
-        "disable_val_loss": <OPTIONAL; bool; set to true to disable validation loss computation.>
+        "enable_val_loss": <OPTIONAL; bool; set to true to enable experimental validation loss computation>,
         "metric_interval": <OPTIONAL; integer; logs the training metrics to console every X iterations>,
         "overrides": [ <array of values to add to the config using merge_from_list> ]
     },
@@ -171,8 +171,8 @@ evaluating the model.
 ## detectron2
 Specific parameters for detectron2.  This is only used when the platform is detectron2.
 
-### disable_val_loss
-**Optional**: Set to true to disable validation loss computation. The validation loss computation may interact
+### enable_val_loss
+**Optional**: Set to true to enable experimental validation loss computation. Beware: The validation loss computation may interact
 with some layers during training.
 
 ### metric_interval
