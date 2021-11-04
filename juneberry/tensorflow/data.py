@@ -183,20 +183,13 @@ def _add_transforms_and_batching(dataset, model_cfg, ds_cfg, batch_size, eval):
     :param eval: Are we in eval mode
     :return: The augmented dataset
     """
-    # TODO: Figure out how to do dataset transforms in the mapping function
+    # TODO: Figure out how to do BOTH dataset and model transforms
     # transforms = jb_data.make_transform_manager(
     #     model_cfg, ds_cfg, len(dataset), {},
     #     TFTorchStagedTransform, eval)
-
-    # TRANSFORMS - THIS IS BEFORE batching! So one element each.
-    # Map each element with our transform magic
-    transforms = None
-    if eval:
-        if model_cfg.evaluation_transforms is not None:
-            transforms = TransformManager(model_cfg.evaluation_transforms)
-    else:
-        if model_cfg.training_transforms is not None:
-            transforms = TransformManager(model_cfg.training_transforms)
+    transforms = jb_data.make_transform_manager(
+        model_cfg, ds_cfg, len(dataset), {},
+        None, eval)
 
     if transforms is not None:
         dataset = dataset.map(lambda x, y: (_transform_magic(x, transforms), y))

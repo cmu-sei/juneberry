@@ -1112,8 +1112,13 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
         data_seed = 0
 
     if model_transforms and ds_transforms:
-        logger.info(f"Making STAGED transform manager with seed {data_seed}.")
-        return stage_transform_class(data_seed, ds_transforms, model_seed, model_transforms)
+        if stage_transform_class is not None:
+            logger.info(f"Making STAGED transform manager with seed {data_seed}.")
+            return stage_transform_class(data_seed, ds_transforms, model_seed, model_transforms)
+        else:
+            logger.error("This platform does not support making BOTH dataset AND model transforms. EXITING.")
+            sys.exit(-1)
+
     elif model_transforms:
         return model_transforms
     elif ds_transforms:
