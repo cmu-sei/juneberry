@@ -124,7 +124,9 @@ class Evaluator(EvaluatorBase):
             self.use_train_split, self.use_val_split)
 
         # Get the class names from the dataset.  This must happen AFTER we load the eval file.
-        classes = list(ds_cfg.retrieve_label_names().values())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                eval_config=self.eval_dataset_config_path)
+        classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
         cfg.dataset_type = 'COCODataset'
@@ -183,7 +185,8 @@ class Evaluator(EvaluatorBase):
         self.dataset = build_dataset(self.cfg.data.test)
 
         # Add the dataset histogram information to the evaluation output.
-        classes = self.eval_dataset_config.retrieve_label_names()
+        classes = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                            eval_config=self.eval_dataset_config)
         self.output.options.dataset.classes = classes
         self.output.options.dataset.histogram = get_histogram(self.eval_list, classes)
 

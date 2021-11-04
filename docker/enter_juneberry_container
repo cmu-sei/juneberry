@@ -43,6 +43,7 @@ PROJ=${1}
 # in the mounted locations.
 BASE="-it --rm --network=host --ipc=host"
 ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy"
+ENVS_USER="-e USER_NAME=${USER} -e USER_ID=`id -u ${USER}` -e USER_GID=`id -g ${USER}`"
 NAME="--name ${USER}"
 CONTAINER="juneberry/cudadev:dev"
 #CONTAINER="juneberry/cpudev:dev"
@@ -72,6 +73,6 @@ WS=""
 # WS="-v ${PROJ}/workspace:/workspace"
 
 # Assemble the command, show it, and run it.
-CMD="docker run ${BASE} ${ENVS} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"
+CMD="docker run ${BASE} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"
 echo "${CMD}"
 ${CMD}

@@ -158,8 +158,9 @@ def make_split_metadata_manifest_files(lab: Lab,
         preprocessors=TransformManager(model_config.preprocessors))
 
     # Convert out COCO like intermediate list format into pure coco file.
-    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, dataset_config.retrieve_label_names())
-    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
+    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, label_names)
+    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, label_names)
 
     # Serialize
     train_path = model_manager.get_training_data_manifest_path()
@@ -212,7 +213,8 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
     output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
 
-    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
+    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
     jbfs.save_json(coco_style, output_path)
 
     logger.info(f"Saving evaluation data manifest: {output_path}")
@@ -252,10 +254,6 @@ class DatasetMarshal:
         # Arrays the individual entries
         self.train = []
         self.val = []
-
-        # We'll need to rebuild this if we preprocess
-        # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
-        self.label_mapping = dataset_config.retrieve_label_names()
 
         self._splitting_config = splitting_config
         self._preprocessors = preprocessors
@@ -424,7 +422,6 @@ class CocoMetadataMarshal(DatasetMarshal):
                     int_labels = {int(x['id']): x['name'] for x in data['categories']}
                     self.ds_config.label_names = str_labels
                     self.ds_config.update_label_names(int_labels)
-                    self.label_mapping = self.ds_config.retrieve_label_names()
 
             # Now that we have the file loaded let's load the values
             helper = COCOImageHelper(data)
@@ -921,8 +918,8 @@ def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
     :return: Returns a dictionary of integer keys mapped to string values.
     """
     if label_val:
-        if isinstance(label_val, str):
-            file_content = jbfs.load_json(label_val)
+        if isinstance(label_val, str) or isinstance(label_val, Path):
+            file_content = jbfs.load_json(str(label_val))
             if key in file_content:
                 stanza = file_content[key]
                 return convert_dict(stanza)
@@ -945,16 +942,17 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
-def get_label_mapping(model_manager: ModelManager = None, model_config=None, train_config=None, eval_config=None,
-                      show_source=False):
+def get_label_mapping(model_manager: ModelManager = None, model_config: ModelConfig = None,
+                      train_config: DatasetConfig = None, eval_config: DatasetConfig = None,
+                      show_source=False) -> Union[Tuple[Dict[int, str], str], Dict[int, str]]:
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model. The order of precedence
-    is as follows: training output.json file, specified model config file, specified training config file, specified
-    eval config file, default model config file, and default training config file.
-    :param model_manager: ModelManager object for the model.
-    :param model_config: Path to the model config for the model.
-    :param train_config: Path to the training dataset config for the model.
-    :param eval_config: Path to the evaluation dataset config for the model.
+    is as follows: training output.json file, specified model config file, specified training config file, default model
+    config file, default training config file, and specified eval config file.
+    :param model_manager: The ModelManager object for the model.
+    :param model_config: The ModelConfig object for the model configuration.
+    :param train_config: The DatasetConfig object for model training.
+    :param eval_config: The DatasetConfig object for model evaluation.
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: The label names as a dict of int -> string.
     """
@@ -965,23 +963,30 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
             label_val = training_output.options.label_mapping
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return label_dict, "training output" if show_source else label_dict
+                if show_source:
+                    return label_dict, "training output"
+                else:
+                    return label_dict
 
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
-        mc = ModelConfig.load(model_config)
-        label_val = mc.label_mapping
+        label_val = model_config.label_mapping
         label_dict = get_label_dict(label_val)
         if label_dict:
-            return label_dict, "model config" if show_source else label_dict
+            if show_source:
+                return label_dict, "model config"
+            else:
+                return label_dict
 
     # If a training config was provided...
     if train_config:
-        dc = DatasetConfig.load(train_config)
-        label_dict = dc.retrieve_label_names()
+        label_dict = train_config.retrieve_label_names()
         if label_dict:
-            return label_dict, "training dataset config" if show_source else label_dict
+            if show_source:
+                return label_dict, "training dataset config"
+            else:
+                return label_dict
 
     # If the model manager was provided, check the default model config followed by the default training config.
     if model_manager:
@@ -992,22 +997,29 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
         if label_val is not None:
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return label_dict, "model config via model manager" if show_source else label_dict
+                if show_source:
+                    return label_dict, "model config via model manager"
+                else:
+                    return label_dict
 
         # If the model config didn't have labels, get them from the training config.
         else:
             dc = DatasetConfig.load(mc.training_dataset_config_path)
             label_dict = dc.retrieve_label_names()
             if label_dict:
-                return label_dict, "training dataset config via model config via model manager" if show_source \
-                    else label_dict
+                if show_source:
+                    return label_dict, "training dataset config via model config via model manager"
+                else:
+                    return label_dict
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
-        dc = DatasetConfig.load(eval_config)
-        label_dict = dc.retrieve_label_names()
+        label_dict = eval_config.retrieve_label_names()
         if label_dict:
-            return label_dict, "eval dataset config" if show_source else label_dict
+            if show_source:
+                return label_dict, "eval dataset config"
+            else:
+                return label_dict
 
 
 def check_num_classes(args: dict, num_model_classes: int) -> None:

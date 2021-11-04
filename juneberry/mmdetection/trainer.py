@@ -166,7 +166,9 @@ class MMDTrainer(Trainer):
         # jb_data.make_split_dataset_files(self.lab, self.dataset_config, self.model_config, self.model_manager)
 
         # Get the class names from the dataset AFTER IT HAS BEEN PROCESSED.
-        classes = list(self.dataset_config.retrieve_label_names().values())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
         # Their ConfigDict doesn't seem to work like other attribute dicts in that it lets adding any old term.
@@ -377,7 +379,7 @@ class MMDTrainer(Trainer):
                     # TODO: The time reported here is actually the per iteration time, not per epoch.
                     #  Need to figure out if it's possible to get the per epoch time without tracking
                     #  the time spent for each iteration.
-                    #self.output.times.epoch_duration_sec.append(content['time'])
+                    # self.output.times.epoch_duration_sec.append(content['time'])
                     self.output.results.learning_rate.append(content['lr'])
                     self.output.results.loss_rpn_cls.append(content['loss_rpn_cls'])
                     self.output.results.loss_rpn_bbox.append(content['loss_rpn_bbox'])
