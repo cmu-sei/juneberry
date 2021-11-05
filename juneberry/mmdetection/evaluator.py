@@ -180,10 +180,6 @@ class Evaluator(EvaluatorBase):
 
         self.cfg = cfg
 
-        if self.eval_options.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
-
     def obtain_dataset(self) -> None:
         # Build the dataset.
         self.dataset = build_dataset(self.cfg.data.test)
