@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -55,37 +33,38 @@ import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
-import juneberry.pytorch.util as pyt_utils
+import juneberry.pytorch.utils as pyt_utils
 import juneberry.pytorch.processing as processing
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
 
-class PytorchEvaluator(Evaluator):
+class Evaluator(EvaluatorBase):
     """
     This subclass is the Pytorch-specific version of the Evaluator.
     """
 
-    def __init__(self, lab: Lab, model_config: ModelConfig, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+    def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
         """
-        Creates a PytorchEvaluator object based on command line arguments and a Juneberry
+        Creates an Evaluator object based on command line arguments and a Juneberry
         ModelManager object.
         :param model_config: The model config to be used during evaluation.
         :param lab: The Juneberry lab describing the current execution.
-        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param model_manager: A Juneberry ModelManager object responsible for managing operations involving the
         model to be evaluated.
         :param eval_dir_mgr: A Juneberry EvalDirMgr object responsible for managing file path operations
         within the model's eval directory.
+        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
-        include the following: topK, dryrun, extract_validation.
+        include the following: topK, use_train_split, use_val_split.
+        :param log_file: A string indicating the location of the current log file.
         """
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         # These attributes are used by Pytorch to send information to the correct device (CPU | GPU)
         self.use_cuda = False
@@ -94,6 +73,16 @@ class PytorchEvaluator(Evaluator):
 
         # These attributes relate to Pytorch's way of loading data from a dataloader.
         self.eval_loader = None
+
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -105,10 +94,10 @@ class PytorchEvaluator(Evaluator):
 
     def setup(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for setting up the Evaluator.
+        This is the PyTorch version of the extension point that's responsible for setting up the Evaluator.
         :return: Nothing.
         """
-        logger.info(f"Performing Pytorch setup steps...")
+        logger.info(f"Performing PyTorch setup steps...")
 
         # Check if cuda is available; set the appropriate "default" device.
         if self.num_gpus == 0:
@@ -121,12 +110,8 @@ class PytorchEvaluator(Evaluator):
             self.device_ids = [0]
         else:
             # We should NEVER get here because the GPU availability should never return more than one.
-            logger.error("PyTorch Evaluator does NOT support more than one GPU device. EXITING.")
+            logger.error("PyTorch Evaluator does NOT support more than one GPU device. Exiting.")
             sys.exit(-1)
-
-        # Read the evaluation methods from the ModelConfig.
-        self.eval_method = self.model_config.evaluation_procedure
-        self.eval_output_method = self.model_config.evaluation_output
 
         # TODO: Shouldn't this be done in the lab??
 
@@ -136,20 +121,26 @@ class PytorchEvaluator(Evaluator):
             self.lab.num_workers = num_workers
 
         # Set the seeds using the value from the ModelConfig.
-        pyt_utils.set_seeds(self.model_config.seed)
+        pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
-        logger.info(f"Pytorch setups steps are complete.")
+        # Use default values if they were not provided in the model config.
+        if self.eval_method is None:
+            self.eval_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
+        if self.eval_output_method is None:
+            self.eval_output_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput"
+
+        logger.info(f"PyTorch Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for obtaining the dataset
+        This is the PyTorch version of the extension point that's responsible for obtaining the dataset
         being used in the evaluation.
         :return: Nothing.
         """
         # Create the dataloader and data list for the evaluation data.
 
         if self.eval_dataset_config.data_type == jb_dataset.DataType.TORCHVISION:
-            logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
+            logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files.")
 
             tv_data = self.eval_dataset_config.torchvision_data
             data_transforms = None
@@ -172,8 +163,7 @@ class PytorchEvaluator(Evaluator):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(
-                self.lab, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -233,7 +223,7 @@ class PytorchEvaluator(Evaluator):
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
         # Load the weights into the model.
-        logger.info(f"Loading model weights")
+        logger.info(f"Loading model weights...")
         pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model)
 
         # If a GPU is present, wrap the model in DataParallel.
@@ -254,11 +244,6 @@ class PytorchEvaluator(Evaluator):
         external method, usually found in juneberry.pytorch.evaluation.
         :return: Nothing.
         """
-
-        if self.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
-
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
         logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 

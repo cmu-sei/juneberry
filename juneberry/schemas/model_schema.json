@@ -35,6 +35,7 @@
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }
         },
+        "evaluator": { "$ref": "#/definitions/plugin_item" },
         "format_version": { "type": "string" },
         "hints": {
             "type": "object",
@@ -150,6 +151,7 @@
             "required": [ "loss_fn", "optimizer_fn" ]
         },
         "timestamp": { "type": "string" },
+        "trainer": { "$ref": "#/definitions/plugin_item" },
         "training_dataset_config_path": { "type": "string" },
         "training_transforms": {
             "type": "array",
@@ -215,7 +217,6 @@
         "batch_size",
         "format_version",
         "model_architecture",
-        "platform",
         "training_dataset_config_path",
         "validation"
     ]

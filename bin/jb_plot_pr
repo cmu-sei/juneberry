@@ -57,7 +57,7 @@ def setup_args(parser) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='This script consumes the output from jb_evaluate_data to create '
+    parser = argparse.ArgumentParser(description='This script consumes the output from jb_evaluate to create '
                                                  'three figures: a Precision-Recall curve, a Precision-Confidence '
                                                  'curve, and a Recall-Confidence curve. A curve in each figure will be '
                                                  'generated for each pair of {model, eval datasets} provided in the '

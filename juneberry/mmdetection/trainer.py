@@ -42,7 +42,7 @@ import juneberry.data as jb_data
 from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab
-import juneberry.mmdetection.util as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
@@ -56,7 +56,7 @@ class MMDTrainer(Trainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.working_dir = model_manager.get_train_scratch_path()
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         self.cfg = None
         self.datasets = None
@@ -159,7 +159,7 @@ class MMDTrainer(Trainer):
         # TODO: Should we adjust base pipelines and just repoint? Based on
         #       https://mmdetection.readthedocs.io/en/latest/tutorials/config.html
         #       this seems the way to go.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # ============ Setup Datasets
 
@@ -228,7 +228,7 @@ class MMDTrainer(Trainer):
         cfg.lr_config.warmup = None
 
         # Set seed thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # We set this for non-distributed.
         cfg.gpu_ids = range(self.num_gpus)
@@ -246,7 +246,7 @@ class MMDTrainer(Trainer):
         cfg.runner.max_epochs = self.model_config.epochs
 
         # Add in the overrides if they have any, which they usually do.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # Save the entire config to the working dir.  At this point we should be able to
         # use the mmdetection "train.py" script with the config file.

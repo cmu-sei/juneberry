@@ -48,25 +48,25 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.util import get_histogram
+from juneberry.evaluation.evaluator import EvaluatorBase
+from juneberry.evaluation.utils import get_histogram
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
 import juneberry.metrics.metrics as metrics
-import juneberry.mmdetection.util as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
 
 
-class MMDEvaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+class Evaluator(EvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         # The mmdetection cfg
         self.cfg = None
@@ -77,9 +77,15 @@ class MMDEvaluator(Evaluator):
         self.data_loader = None
         self.eval_options = eval_options
 
-        logger.info(f"Using working directory of: {self.working_dir}")
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
 
-        jb_setup_logger(self.eval_dir_mgr.get_log_path(), "", name="mmdet", level=logging.DEBUG)
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -90,7 +96,10 @@ class MMDEvaluator(Evaluator):
         return count
 
     def setup(self) -> None:
+        jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
+
         # Setup working dir to save files and logs.
+        logger.info(f"Using working directory of: {self.working_dir}")
         if not self.working_dir.exists():
             logger.info(f"Making working dir {str(self.working_dir)}")
             self.working_dir.mkdir(parents=True)
@@ -144,7 +153,7 @@ class MMDEvaluator(Evaluator):
         cfg.load_from = str(model_path.resolve())
 
         # Set seed, thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # For eval, we only do one gpu.
         cfg.gpu_ids = range(1)
@@ -157,10 +166,10 @@ class MMDEvaluator(Evaluator):
         cfg.data.samples_per_gpu = 1
 
         # Add in the pipelines overrides.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # Bring all the user defined configuration.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
@@ -170,10 +179,6 @@ class MMDEvaluator(Evaluator):
             out_cfg.write(cfg.pretty_text)
 
         self.cfg = cfg
-
-        if self.eval_options.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
 
     def obtain_dataset(self) -> None:
         # Build the dataset.
