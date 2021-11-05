@@ -223,6 +223,7 @@ class MMDEvaluator(Evaluator):
         # NOTE: It is currently unclear what the score is
         # [batch] x [num_classes] x [ bbox(l,t,r,b] + score ]
 
+        # TODO: updated to use new get_category_mapping function
         # Convert to standard coco-style annotations.
         coco_annotations = make_coco_annotations(self.eval_coco_anno, self.raw_output)
 

@@ -255,7 +255,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: dict) -> dict:
+def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: dict) -> dict:
     annos = []
     obj_id = 0
 
@@ -268,13 +268,15 @@ def convert_predictions_to_coco(coco_data: dict, predictions: dict) -> dict:
         obj_id += 1
         annos.append(anno)
 
+    # Extract categories
+
     return {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
         'images': coco_data['images'],
         'annotations': annos,
-        'categories': coco_data['categories']
+        'categories': category_mapping
     }
 
 
@@ -341,13 +343,15 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     return coco_format
 
 
-def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, output_file: Path = None):
+def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: dict,
+                             output_file: Path = None):
     """
     This function is responsible for converting coco-style object detection predictions into
     a coco-style annotations file.
     :param data_root: A Path to a data root directory where the source images can be found.
     :param dataset_config: A string indicating the path to the dataset config that describes the source images.
     :param predict_file: A string indicating the path to the file containing the bounding boxes that were predicted.
+    :param category_mapping: A dictionary containing the mapping of categories.
     :param output_file: A optional Path indicating where to save the resulting annotations file. When this is not
     provided, the default will save the annotations file to the current working directory using a variation of
     the name of the predictions file.
@@ -376,7 +380,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     with open(predict_file) as json_file:
         predictions = json.load(json_file)
 
-    coco_out = convert_predictions_to_coco(coco_data, predictions)
+    coco_out = convert_predictions_to_coco(coco_data, predictions, category_mapping)
     with open(output_file, "w") as json_file:
         json.dump(coco_out, json_file, indent=4)
 

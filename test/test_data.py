@@ -771,3 +771,8 @@ def test_get_label_mapping():
 
     func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
     TestCase().assertDictEqual(func_labels, test_labels)
+
+
+def test_get_category_mapping():
+    # TODO: write test cases for new function
+    pass
