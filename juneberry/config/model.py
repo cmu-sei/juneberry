@@ -116,10 +116,12 @@ class PytorchOptions(Prodict):
 
 
 class Detectron2(Prodict):
+    enable_val_loss: bool
     metric_interval: int
     overrides: Prodict
 
     def init(self):
+        self.enable_val_loss = False
         self.metric_interval = 1
 
 

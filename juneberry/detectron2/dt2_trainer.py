@@ -363,8 +363,9 @@ class Detectron2Trainer(Trainer):
                 storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
                 scheduler.step()
 
-                # Compute the loss for this step
-                self.loss_evaluator.after_step(self)
+                # Compute the loss for this step, if they want it
+                if self.model_config.detectron2.enable_val_loss:
+                    self.loss_evaluator.after_step(self)
 
                 # and iteration != max_iter - 1
                 if cfg.TEST.EVAL_PERIOD > 0 and ((iteration + 1) % cfg.TEST.EVAL_PERIOD) == 0:
