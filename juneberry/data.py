@@ -1021,9 +1021,6 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             else:
                 return label_dict
 
-    logger.error(f"get_label_mapping failed to find a label mapping. EXITING.")
-    sys.exit(-1)
-
 
 def categories_in_dataset_config(config_path, data_root) -> dict:
     with open(config_path) as config_file:
@@ -1050,13 +1047,13 @@ def check_mappings(category_mapping: dict, eval_manifest_path: Path, show_source
                         f"  category_mapping: {category_mapping}"
                         f"  eval_manifest mapping: {eval_manifest_categories}")
     if show_source:
-        return category_mapping, "train config"
+        return category_mapping, source
     else:
         return category_mapping
 
 
 def get_category_mapping(model_manager: ModelManager, train_config: DatasetConfig, eval_config: DatasetConfig,
-                         data_root: Path, dataset_path: Path, show_source: bool = False) -> Union[Dict[str, str], Tuple[Dict[str, str], str]]:
+                         data_root: Path, show_source: bool = False) -> Union[Dict[str, str], Tuple[Dict[str, str], str]]:
     """
     Checks a hierarchy of files to determine the set of categories for use in evaluation. The order of precedence
     is as follows: training manifest, validation manifest, model config, train config, and eval config.
@@ -1064,11 +1061,10 @@ def get_category_mapping(model_manager: ModelManager, train_config: DatasetConfi
     :param train_config: The DatasetConfig object for model training.
     :param eval_config: The DatasetConfig object for model evaluation.
     :param data_root: The path to the data root of source images.
-    :param dataset_path: The path to the images.
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: A dictionary containing the category mapping.
     """
-    eval_manifest_path = data_root / model_manager.get_eval_manifest_path(dataset_path)
+    eval_manifest_path = model_manager.get_eval_manifest_path(eval_config.file_path)
 
     # Check the training manifest
     training_manifest_path = model_manager.get_training_data_manifest_path()
@@ -1090,7 +1086,7 @@ def get_category_mapping(model_manager: ModelManager, train_config: DatasetConfi
 
     # Check the model config
     model_config_path = model_manager.get_model_config()
-    with open(data_root / model_config_path) as json_file:
+    with open(model_config_path) as json_file:
         model_config_data = json.load(json_file)
     if model_config_data['preprocessors']:
         if model_config_data['preprocessors']['fcqn'] == "juneberry.transforms.metadata_preprocessors.ObjectRelabel":

@@ -775,4 +775,14 @@ def test_get_label_mapping():
 
 def test_get_category_mapping():
     # TODO: write test cases for new function
-    pass
+    model_name = "text_detect/dt2/ut"
+    model_manager = ModelManager(model_name)
+    train_config = DatasetConfig.load("data_sets/text_detect_val.json")
+    data_root = Path("")
+    category_mapping, source = jb_data.get_category_mapping(model_manager=model_manager, train_config=train_config,
+                                                            eval_config=train_config, data_root=data_root,
+                                                            show_source=True)
+    # Produce manifest files
+    TestCase().assertDictEqual(category_mapping, {})
+    assert source == ""
+
