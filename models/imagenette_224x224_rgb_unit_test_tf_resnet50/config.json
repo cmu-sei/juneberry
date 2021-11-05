@@ -2,8 +2,6 @@
     "batch_size": 20,
     "description": "Unit test using a pretrained tensorflow resnet50 model with small dataset.",
     "epochs": 5,
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "juneberry.transforms.image.ResizePad",
@@ -18,6 +16,9 @@
             "kwargs": { "height": 224, "mode": "RGB", "width": 224 }
         }
     ],
+    "evaluator": {
+        "fqcn": "juneberry.tensorflow.evaluator.Evaluator"
+    },
     "format_version": "0.2.0",
     "label_mapping": "data_sets/label_mappings/imagenet.json",
     "model_architecture": {

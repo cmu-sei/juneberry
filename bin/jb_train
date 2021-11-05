@@ -27,6 +27,7 @@ import logging
 import sys
 
 import juneberry.filesystem as jbfs
+import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_train")
@@ -94,36 +95,56 @@ def main():
 
     # TODO: Reimplement no_paging via lab
 
-    # This trainer will get assigned depending on what type of task is being performed.
-    trainer = None
+    # Backward compatible map of task and platform name to class to load
+    task_platform_map = {
+        "classification": {
+            "pytorch": "juneberry.pytorch.classifier_trainer.ClassifierTrainer",
+            "pytorch_privacy": "juneberry.pytorch.privacy.classifier_trainer.PrivacyTrainer",
+            "tensorflow": "juneberry.tensorflow.trainer.ClassifierTrainer",
+            "tfgloro": "juneberry.tensorflow.trainer.ClassifierTrainer"
+        },
+        "objectDetection": {
+            "detectron2": "juneberry.detectron2.trainer.Detectron2Trainer",
+            "mmdetection": "juneberry.mmdetection.trainer.MMDTrainer"
+        }
+    }
 
-    # If the task type is classification, set up a ClassifierTrainer to do the work
-    if model_config.task == "classification":
-        logger.info(f"Preparing a trainer for a classification task...")
-        if model_config.platform == "pytorch":
-            from juneberry.pytorch.classifier_trainer import ClassifierTrainer
-            trainer = ClassifierTrainer(lab, model_manager, model_config, dataset_config, log_level)
-        elif model_config.platform == "pytorch_privacy":
-            from juneberry.pytorch.privacy.classifier_trainer import PrivacyTrainer
-            trainer = PrivacyTrainer(lab, model_manager, model_config, dataset_config, log_level)
-        elif model_config.platform == "tensorflow":
-            from juneberry.tensorflow.trainer import ClassifierTrainer
-            trainer = ClassifierTrainer(lab, model_manager, model_config, dataset_config, log_level)
-        else:
-            logger.error(f"Unrecognized platform {model_config.platform}. EXITING.")
+    if model_config.trainer is not None:
+        kw_args = model_config.trainer.kwargs
+        if kw_args is None:
+            kw_args = {}
+        fqcn = model_config.trainer.fqcn
+    else:
+        # Dig through our map of tasks and platforms
+        if model_config.task not in task_platform_map:
+            logger.error(f"We do not support the task '{model_config.task}'. "
+                         f"Supported tasks: {list(task_platform_map.keys())}. EXITING.")
             sys.exit(-1)
+        else:
+            task_set = task_platform_map[model_config.task]
+            if model_config.platform not in task_set:
+                logger.error(
+                    f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
+                    f"Supported platforms: {list(task_set.keys())}. EXITING.")
+                sys.exit(-1)
+            fqcn = task_platform_map[model_config.task][model_config.platform]
+        kw_args = {}
+        logger.warning("Found deprecated platform/task configuration for loading trainer. "
+                       "Consider updating the model config to use the trainer stanza.")
+        logger.warning('"trainer": {')
+        logger.warning(f'    "fqcn": "{fqcn}"')
+        logger.warning('}')
 
-    # If the task type is object detection, set up an ObjectDetectionTrainer to do the work
-    elif model_config.task == "objectDetection":
-        if model_config.platform == "detectron2":
-            from juneberry.detectron2.dt2_trainer import Detectron2Trainer
-            trainer = Detectron2Trainer(lab, model_manager, model_config, dataset_config, log_level)
-        elif model_config.platform == "mmdetection":
-            from juneberry.mmdetection.mmd_trainer import MMDTrainer
-            trainer = MMDTrainer(lab, model_manager, model_config, dataset_config, log_level)
-        else:
-            logger.error(f"Unrecognized platform {model_config.platform}. EXITING.")
-            sys.exit(-1)
+    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
+
+    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    for arg in reqd_args:
+        if arg not in kw_args:
+            kw_args[arg] = locals()[arg]
+
+    # Construct the trainer
+    logger.info(f"Instantiating trainer: {fqcn}")
+    trainer = jb_loader.construct_instance(fqcn, kw_args)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration.  EXITING.")

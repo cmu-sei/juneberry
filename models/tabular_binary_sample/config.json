@@ -2,8 +2,6 @@
     "batch_size": 1024,
     "description": "System test using a simply binary classifier and tabular data.",
     "epochs": 100,
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "juneberry.transforms.tabular.RemoveColumns",

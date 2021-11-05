@@ -809,8 +809,6 @@ and it should look something like the following block of code:
         "num_Workers": 0,
         "max_gpus": 2
     },
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput",
     "training_dataset_config_path": "data_sets/torchvision/cifar10.json",
     "validation": {
         "algorithm": "random_fraction",
@@ -983,37 +981,24 @@ qualitatively match the results reported in He et al. (2015).
 
 ## Evaluate a model with Juneberry.
 
-Once a trained model file exists, it can be evaluated with the `jb_evaluate_data` command. The command takes two 
+Once a trained model file exists, it can be evaluated with the `jb_evaluate` command. The command takes two 
 arguments: the name of the trained model and the path to a Juneberry dataset config describing the dataset to be 
 evaluated.
 
 You can use the following command to initiate the evaluation:
 ```
-jb_evaluate_data cifar_R20 data_sets/torchvision/cifar10.json
+jb_evaluate cifar_R20 data_sets/torchvision/cifar10.json
 ```
 
 This command follows the following structure:
 
 ```
-jb_evaluate_data [model to evaluate] [dataset config to evaluate]
+jb_evaluate [model to evaluate] [dataset config to evaluate]
 ```
 
 The "model to evaluate" corresponds to the name of a sub-directory inside the `models` directory which holds the model 
 you would like to evaluate. The "dataset config to evaluate" refers to the Juneberry dataset config file describing the 
 dataset you would like the model to evaluate. 
-
-#### Evaluation Method
-
-When you added the file content to the model config, you may have noticed the following two lines:
-
-```json
-    "evaluation_procedure": "juneberry.pytorch.evaluation.default.DefaultEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.default.DefaultEvaluationOutput"
-```
-
-The `evaluation_procedure` indicates the class Juneberry should use to evaluate the data. The `evaluation_output` field 
-indicates a class Juneberry should use to format the raw evaluation data produced by the evaluation procedure. In both 
-cases, this vignette relies on the default classes for a Pytorch classifier that have been implemented in Juneberry.
 
 #### Evaluation Output
 
@@ -1201,7 +1186,7 @@ file. `main_dodo.py` consists of a list of tasks to be executed by the doit task
 dependency graph of your experiment.
 
 Broadly speaking, the experiment runner starts by training all the experiment models using `jb_train`. Next, 
-the runner uses `jb_evaluate_data` to evaluate each model using the datasets listed in the `tests` section of the 
+the runner uses `jb_evaluate` to evaluate each model using the datasets listed in the `tests` section of the 
 experiment. Finally, the runner will construct the desired reports. In this case, `jb_summary_report` will produce a 
 markdown file summarizing the training and evaluation information produced during the experiment.
 
