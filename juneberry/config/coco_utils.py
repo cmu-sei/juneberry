@@ -255,7 +255,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: dict) -> dict:
+def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: dict = False) -> dict:
     annos = []
     obj_id = 0
 
@@ -268,7 +268,8 @@ def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_map
         obj_id += 1
         annos.append(anno)
 
-    # Extract categories
+    if not category_mapping:
+        category_mapping = coco_data['categories']
 
     return {
         "info": {
@@ -343,7 +344,7 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     return coco_format
 
 
-def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: dict,
+def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: dict = False,
                              output_file: Path = None):
     """
     This function is responsible for converting coco-style object detection predictions into
