@@ -152,11 +152,16 @@ class Detectron2Evaluator(Evaluator):
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
-        category_mapping = jb_data.get_category_mapping(model_manager=self.model_manager,
+
+        # Find category mapping
+        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        category_mapping = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
+                                                        model_manager=self.model_manager,
                                                         train_config=self.dataset_config,
                                                         eval_config=self.eval_dataset_config,
-                                                        data_root=self.data_root,
-                                                        dataset_path=self.dataset_config.file_path)
+                                                        data_root=self.data_root)
+
+        # Save as coco annotations file
         coco_utils.save_predictions_as_anno(data_root=self.data_root, dataset_config=str(self.dataset_config.file_path),
                                             predict_file=str(self.eval_dir_mgr.get_detections_path()),
                                             category_mapping=category_mapping, output_file=out)

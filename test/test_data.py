@@ -774,15 +774,29 @@ def test_get_label_mapping():
 
 
 def test_get_category_mapping():
-    # TODO: write test cases for new function
     model_name = "text_detect/dt2/ut"
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
     data_root = Path("")
-    category_mapping, source = jb_data.get_category_mapping(model_manager=model_manager, train_config=train_config,
-                                                            eval_config=train_config, data_root=data_root,
+    test_mapping = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
+    eval_manifest_path = model_manager.get_eval_manifest_path(train_config.file_path)
+    category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
+                                                            model_manager=model_manager,
+                                                            train_config=train_config,
+                                                            data_root=data_root,
                                                             show_source=True)
-    # Produce manifest files
-    TestCase().assertDictEqual(category_mapping, {})
-    assert source == ""
+    assert test_mapping == category_mapping
+    assert source == "train manifest"
 
+    category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
+                                                            train_config=train_config,
+                                                            data_root=data_root,
+                                                            show_source=True)
+    assert test_mapping == category_mapping
+    assert source == "train config"
+
+    try:
+        jb_data.get_category_mapping(eval_manifest_path=Path(""))
+        assert False
+    except SystemExit:
+        assert True
