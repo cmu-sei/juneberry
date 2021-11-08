@@ -29,9 +29,25 @@ General utilities.
 import logging
 import numpy as np
 from pathlib import Path
+import random
 import re
+import sys
 
 logger = logging.getLogger(__name__)
+
+
+def set_seeds(seed: int):
+    """
+    Sets all the random seeds used by all the various pieces.
+    :param seed: A random seed to use. Can not be None.
+    """
+    if seed is None:
+        logger.error("Request to initialize with a seed of None. Exiting")
+        sys.exit(-1)
+
+    logger.info(f"Setting numpy and random seed to: {str(seed)}")
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 def rekey(struct, key_map: dict, reverse=False) -> None:
