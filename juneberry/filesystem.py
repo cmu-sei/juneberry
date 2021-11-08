@@ -30,7 +30,7 @@ NOTE: These paths are all relative to the Juneberry workspace root.
 
 import datetime
 import hashlib
-import json
+import hjson
 import logging
 import numpy as np
 import os
@@ -77,11 +77,10 @@ def load_json(json_path: str, attribute_map=None):
     and their corresponding Python attribute names.
     :return data: A dictionary of data that was read from the JSON file.
     """
-
     # Attempt to open up the file at the indicated Path and read the data.
     try:
         with open(json_path) as json_file:
-            data = json.load(json_file)
+            data = hjson.load(json_file)
 
     # If the file was not found, log an error and exit.
     except FileNotFoundError:
@@ -115,7 +114,7 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
     :return: None
     """
     with open(json_path, "w") as json_file:
-        json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+        hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 
 def load_file(path: str):
@@ -125,9 +124,9 @@ def load_file(path: str):
     :return:
     """
     # TODO: Add check for '.yaml' and use pyyaml
-    if Path(path).suffix == '.json':
+    if Path(path).suffix in {'.json', '.hjson'}:
         with open(path) as in_file:
-            return json.load(in_file)
+            return hjson.load(in_file)
     else:
         logger.error(f"Currently, we only support .json files. {path}. EXITING")
         sys.exit(-1)
