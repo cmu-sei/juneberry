@@ -93,7 +93,7 @@ def require_tags(label, data: dict, tags: list) -> int:
 
 def validate_schema(data, schema_name, die_on_error=False):
     # Load the schema.
-    schema = json.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
+    schema = jbfs.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
 
     # While we are trying to use the latest, jsonschema seems to only have 7.
     validator = jsonschema.Draft7Validator(schema)

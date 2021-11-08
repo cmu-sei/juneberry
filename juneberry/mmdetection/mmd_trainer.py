@@ -68,6 +68,7 @@ import juneberry.mmdetection.util as mmd_util
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -392,7 +393,7 @@ class MMDTrainer(Trainer):
         # JSON format for each phase of training that was recorded.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = json.loads(line)
+                content = jbfs.loads(line)
 
                 # If it's a summary of training metrics, add the values to the appropriate lists.
                 if content['mode'] == "train":

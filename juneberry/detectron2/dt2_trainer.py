@@ -81,6 +81,7 @@ from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -515,7 +516,7 @@ class Detectron2Trainer(Trainer):
         # Open the dt2 metrics log and read each line. Currently only fast_rcnn accuracies are supported.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = json.loads(line)
+                content = jbfs.loads(line)
                 self.append_metric(content, self.output.results.accuracy, 'fast_rcnn/cls_accuracy')
                 self.append_metric(content, self.output.results.false_negative, 'fast_rcnn/false_negative')
                 self.append_metric(content, self.output.results.fg_cls_accuracy, 'fast_rcnn/fg_cls_accuracy')

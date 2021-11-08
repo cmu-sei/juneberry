@@ -40,6 +40,8 @@ import sys
 
 from juneberry import Platforms
 
+from typing import BinaryIO
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,6 +119,27 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
         hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 
+def load(file: BinaryIO, data_type='json') -> dict:
+    if data_type.lower() in {'json', 'hjson'}:
+        return hjson.load(file)
+    else:
+       logger.error('Currently we only support parsing (H)JSON formatted files.')
+       sys.exit(-1)
+
+
+def loads(data: str, data_type='json') -> dict:
+    """
+    Wrapper for HJSON loads function to provide a public interface for string parsing.
+    :param data: String with JSON or HJSON formatting.
+    :return: 
+    """
+    if data_type.lower() in {'json', 'hjson'}:
+        return hjson.loads(data)
+    else:
+        logger.error('Currently we only support parsing (H)JSON formatted strings.')
+        sys.exit(-1)
+
+
 def load_file(path: str):
     """
     Loads the file from the specified file path.
@@ -124,9 +147,9 @@ def load_file(path: str):
     :return:
     """
     # TODO: Add check for '.yaml' and use pyyaml
-    if Path(path).suffix in {'.json', '.hjson'}:
-        with open(path) as in_file:
-            return hjson.load(in_file)
+    if Path(path).suffix.lower() in {'.json', '.hjson'}:
+        with open(path, 'rb') as in_file:
+            return load(in_file, 'json')
     else:
         logger.error(f"Currently, we only support .json files. {path}. EXITING")
         sys.exit(-1)

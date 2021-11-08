@@ -194,6 +194,6 @@ def test_hash_function(tmp_path):
 def test_json_cleaner():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     str_results = json.dumps(data, indent=4, default=jbfs.json_cleaner)
-    results = json.loads(str_results)
+    results = jbfs.loads(str_results)
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]

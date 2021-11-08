@@ -49,6 +49,7 @@ import json
 import gzip
 
 import juneberry.detection_metrics
+import juneberry.filesystem as jbfs
 
 
 def ltwh2ltrb(ltwh):
@@ -74,10 +75,9 @@ def load_coco_truth(gt_path, wanted_images):
 
     if gt_path.endswith(".gz"):
         with gzip.open(gt_path) as json_file:
-            data = json.load(json_file)
+            data = jbfs.load(json_file, 'json')
     else:
-        with open(gt_path) as json_file:
-            data = json.load(json_file)
+        data = jbfs.load_file(gt_path)
 
     truths = []
     for item in data['annotations']:
@@ -107,11 +107,11 @@ def load_coco_results(results_path):
     results = []
 
     if results_path.endswith(".gz"):
+        # TODO: Should jbfs.load_file be able to handle FileType objects as well as string/path objects?
         with gzip.open(results_path) as json_file:
-            data = json.load(json_file)
+            data = jbfs.load(json_file, 'json')
     else:
-        with open(results_path) as json_file:
-            data = json.load(json_file)
+        data = jbfs.load_file(results_path)
 
     #     {
     #         "image_id": 42,

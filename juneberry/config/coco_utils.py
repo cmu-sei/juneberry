@@ -55,6 +55,8 @@ from random import shuffle as rand_shuffle
 import sys
 from typing import Dict
 
+import juneberry.filesystem as jbfs
+
 logger = logging.getLogger(__name__)
 
 ImageAnnotations = namedtuple('ImageAnnotations', ['image', 'annotations'])
@@ -220,8 +222,7 @@ def load_from_json_file(file_path) -> COCOImageHelper:
     :param file_path:
     :return: Constructed COCOImageHelper
     """
-    with open(file_path) as json_file:
-        return COCOImageHelper(json.load(json_file), file_path)
+    return COCOImageHelper(jbfs.load_file(file_path), file_path)
 
 
 def convert_predictions_to_annotations(predictions: list) -> list:
@@ -360,8 +361,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     logger.info(f"Saving predictions in annotation-style format in {output_file}")
 
     # Open the dataset and get the original coco metadata
-    with open(dataset_config) as config_file:
-        dataset = json.load(config_file)
+    dataset = jbfs.load_file(dataset_config)
 
     # HACK HACK HACK - Assume just one annotations file!
     # TODO: Add a dataset config/coco_utils for providing a unified config
@@ -370,11 +370,9 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
         coco_path = dataset['imageData']['sources'][0]['directory']
     else:
         coco_path = dataset['image_data']['sources'][0]['directory']
-    with open(data_root / coco_path) as json_file:
-        coco_data = json.load(json_file)
+    coco_data = jbfs.load_file(data_root / coco_path)
 
-    with open(predict_file) as json_file:
-        predictions = json.load(json_file)
+    predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions)
     with open(output_file, "w") as json_file:
@@ -407,8 +405,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         logger.info(f"The output directory was not found, so it was created.")
 
     # Load the COCO annotations.
-    with open(coco_json) as f:
-        coco = json.load(f)
+    coco = jbfs.load_file(coco_json)
         
     # Use a COCOImageHelper to obtain the legend.
     helper = COCOImageHelper(coco)

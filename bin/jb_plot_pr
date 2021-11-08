@@ -68,8 +68,7 @@ def get_class_label_map(file):
     """
 
     # Open the annotation file and retrieve the information in the categories field.
-    with open(file) as json_file:
-        categories = json.load(json_file)["categories"]
+    categories = jbfs.load_file(file)['categories']
 
     # Create an ID list, which contains every integer value that appears as a category
     # in the annotations file.
