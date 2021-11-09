@@ -197,7 +197,8 @@ class ExperimentConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading EXPERIMENT CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        with open(data_path, 'rb') as file:
+            data = jbfs.load(file)
 
         # Construct the config.
         return ExperimentConfig.construct(data, data_path)

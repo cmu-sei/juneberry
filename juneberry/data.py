@@ -404,7 +404,8 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        data = jbfs.load_file(filepath)
+        with open(filepath, 'rb') as file:
+            data = jbfs.load(file)
         if self._preprocessors is not None:
             logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
             orig_cats = copy.deepcopy(data['categories'])
@@ -522,7 +523,8 @@ def get_num_classes(data_config_files):
     """
     num_classes = []
     for config_file in data_config_files:
-        config = jbfs.load_file(config_file)
+        with open(config_file, 'rb') as file:
+            config = jbfs.load(file)
         if 'num_model_classes' not in config.keys():
             logger.error(f"Config file {config_file} does not specify the number of classes.")
             exit(-1)
@@ -580,7 +582,8 @@ def load_preprocess_metadata(source_list, preprocessors=None):
             input_paths = source[dataset_type]
             source[dataset_type] = []
             for entry in input_paths:
-                data = jbfs.load_file(entry)
+                with open(entry, 'rb') as file:
+                    data = jbfs.load(file)
 
                 if preprocessors is not None:
                     data = transformers(data)
@@ -899,7 +902,8 @@ def load_coco_json(filepath, output: list) -> None:
     :param output: The output list in which to add out content.
     :return: None
     """
-    data = jbfs.load_file(filepath)
+    with open(filepath, 'rb') as file:
+        data = jbfs.load(file)
     helper = COCOImageHelper(data)
     output.extend(helper.to_image_list())
 
@@ -1067,7 +1071,8 @@ def load_path_label_manifest(filename, relative_to: Path = None):
     :return: A list of pairs of [path, label].
     """
     pairs = []
-    data = jbfs.load_file(filename)
+    with open(filename, 'rb') as file:
+        data = jbfs.load(file)
     for row in data:
         path = row['path']
         if relative_to is not None:

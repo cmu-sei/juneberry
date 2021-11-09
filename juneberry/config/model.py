@@ -213,7 +213,8 @@ class ModelConfig(Prodict):
             # dictionary from inside the indicated file.
             if type(self.label_mapping) is str:
                 self.label_mapping = Path(self.label_mapping)
-                file_content = jbfs.load_file(self.label_mapping)
+                with open(self.label_mapping, 'rb') as file:
+                    file_content = jbfs.load(file)
                 # TODO: Convert these files too and look for both/either
                 self.label_dict = file_content['labelNames']
 
@@ -255,7 +256,8 @@ class ModelConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading MODEL CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        with open(data_path, 'rb') as file:
+            data = jbfs.load(file)
 
         # Validate and construct the model.
         return ModelConfig.construct(data, data_path)

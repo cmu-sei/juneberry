@@ -59,7 +59,8 @@ def main():
     args = parser.parse_args()
 
     # NOTE: We do NOT use the ModelConfig loader, because we do not require a full config at this time.
-    config = jbfs.load_file(args.config_path)
+    with open(args.config_path, 'rb') as file:
+        config = jbfs.load(file)
 
     if 'model_architecture' not in config:
         logger.error("Config does not have stanza 'model_architecture'. EXITING.")

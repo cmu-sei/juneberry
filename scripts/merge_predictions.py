@@ -51,7 +51,8 @@ import juneberry.filesystem as jbfs
 
 
 def add_predictions(filepath, id, csvwriter):
-    data = jbfs.load_file(filepath)
+    with open(filepath, 'rb') as file:
+        data = jbfs.load(file)
 
     labels = data['testResults']['labels']
     for i, preds in enumerate(data['testResults']['predictions']):

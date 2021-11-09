@@ -263,7 +263,9 @@ class DatasetDataframe:
         self._build_anno_df()
 
     def _load_json(self, path):
-        return jbfs.load_file(path)
+        with open(path, 'rb') as file:
+            data = jbfs.load(file)
+        return data
 
     def _build_image_df(self):
         srcs = self.dataset_path_manager.sources
