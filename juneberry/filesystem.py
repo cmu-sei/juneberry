@@ -119,46 +119,37 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
         hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 
-def load(file: BinaryIO, data_type='json') -> dict:
-    if data_type.lower() in {'json', 'hjson'}:
-        return hjson.load(file)
-    else:
-       logger.error('Currently we only support parsing (H)JSON formatted files.')
-       sys.exit(-1)
-
-
-def loads(data: str, data_type='json') -> dict:
-    """
-    Wrapper for HJSON loads function to provide a public interface for string parsing.
-    :param data: String with JSON or HJSON formatting.
-    :return: 
-    """
-    if data_type.lower() in {'json', 'hjson'}:
-        return hjson.loads(data)
-    else:
-        logger.error('Currently we only support parsing (H)JSON formatted strings.')
-        sys.exit(-1)
-
-
 def load_file(path: str):
     """
     Loads the file from the specified file path.
     :param path: The path to the file to load.
     :return:
     """
-    # TODO: Add check for '.yaml' and use pyyaml
     if Path(path).exists():
-        if Path(path).suffix.lower() == {'.json', '.hjson'}:
-            with open(path) as in_file:
-                return load(in_file)
+        ext = Path(path).suffix.lower()
+        if ext in {'.json', '.hjson'}:
+            # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
+            with open(path, 'rb') as in_file:
+                return hjson.load(in_file)
+
+        # TODO: implement file handlers for these formats.
+        elif ext in {'.gzip', '.gz'}:
+            logger.error('TODO: handle gzip extensions.')
+            sys.exit(-1)
+        elif ext in {'.yaml', '.yml'}:
+            logger.error('TODO: handle YAML extensions.')
+            sys.exit(-1)
+        elif ext in {'.toml', '.tml'}:
+            logger.error('TODO: handle TOML extensions.')
+            sys.exit(-1)
         else:
-            logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
+            logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)
 
     else:
-        logger.error(f"Failed to load {path}. The file could not be found. EXITING.")
+        logger.error(f'Failed to load {path}. The file could not be found. EXITING.')
         sys.exit(-1)
-
+    
 
 class ExperimentCreator:
     def __init__(self, experiment_name):

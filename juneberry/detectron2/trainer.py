@@ -22,13 +22,14 @@
 #
 # ======================================================================================================================
 
-import json
 import math
 import types
 import logging
 from pathlib import Path
 from typing import Optional
 from collections import OrderedDict
+
+import hjson
 
 import torch
 from torch.nn.parallel import DistributedDataParallel
@@ -495,7 +496,8 @@ class Detectron2Trainer(Trainer):
         # Open the dt2 metrics log and read each line. Currently only fast_rcnn accuracies are supported.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = jbfs.loads(line)
+                # TODO: Should this be routed through the jbfs load chokepoint?
+                content = hjson.loads(line)
                 self.append_metric(content, self.output.results.accuracy, 'fast_rcnn/cls_accuracy')
                 self.append_metric(content, self.output.results.false_negative, 'fast_rcnn/false_negative')
                 self.append_metric(content, self.output.results.fg_cls_accuracy, 'fast_rcnn/fg_cls_accuracy')

@@ -74,8 +74,9 @@ def load_coco_truth(gt_path, wanted_images):
     #         },
 
     if gt_path.endswith(".gz"):
+        # TODO: Switch over to using jbfs.load_file once gzip support has been implemented.
         with gzip.open(gt_path) as json_file:
-            data = jbfs.load(json_file, 'json')
+            data = json.load(json_file, 'json')
     else:
         data = jbfs.load_file(gt_path)
 
@@ -107,9 +108,9 @@ def load_coco_results(results_path):
     results = []
 
     if results_path.endswith(".gz"):
-        # TODO: Should jbfs.load_file be able to handle FileType objects as well as string/path objects?
+        # TODO: Switch over to using jbfs.load_file once gzip support has been implemented.
         with gzip.open(results_path) as json_file:
-            data = jbfs.load(json_file, 'json')
+            data = json.load(json_file)
     else:
         data = jbfs.load_file(results_path)
 

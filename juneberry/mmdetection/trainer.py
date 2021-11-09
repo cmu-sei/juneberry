@@ -22,11 +22,12 @@
 #
 # ======================================================================================================================
 
-import json
 import logging
 from math import ceil
 from pathlib import Path
 import sys
+
+import hjson
 
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
@@ -373,7 +374,8 @@ class MMDTrainer(Trainer):
         # JSON format for each phase of training that was recorded.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = jbfs.loads(line)
+                # TODO: Should this be routed through the jbfs load chokepoint?
+                content = hjson.loads(line)
 
                 # If it's a summary of training metrics, add the values to the appropriate lists.
                 if content['mode'] == "train":
