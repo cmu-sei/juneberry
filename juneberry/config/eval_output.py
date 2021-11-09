@@ -109,8 +109,7 @@ class EvaluationOutput(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading EVALUATION OUTPUT from {data_path}")
-        with open(data_path, 'rb') as file:
-            data = jbfs.load(file)
+        data = jbfs.load_file(data_path)
 
         # Validate and construct the model.
         return EvaluationOutput.construct(data, data_path)

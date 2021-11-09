@@ -81,8 +81,8 @@ def load_json(json_path: str, attribute_map=None):
     """
     # Attempt to open up the file at the indicated Path and read the data.
     try:
-        with open(json_path, 'rb') as json_file:
-            data = load(json_file)
+        with open(json_path) as json_file:
+            data = hjson.load(json_file)
 
     # If the file was not found, log an error and exit.
     except FileNotFoundError:
@@ -137,6 +137,26 @@ def loads(data: str, data_type='json') -> dict:
         return hjson.loads(data)
     else:
         logger.error('Currently we only support parsing (H)JSON formatted strings.')
+        sys.exit(-1)
+
+
+def load_file(path: str):
+    """
+    Loads the file from the specified file path.
+    :param path: The path to the file to load.
+    :return:
+    """
+    # TODO: Add check for '.yaml' and use pyyaml
+    if Path(path).exists():
+        if Path(path).suffix.lower() == {'.json', '.hjson'}:
+            with open(path) as in_file:
+                return load(in_file)
+        else:
+            logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
+            sys.exit(-1)
+
+    else:
+        logger.error(f"Failed to load {path}. The file could not be found. EXITING.")
         sys.exit(-1)
 
 
@@ -370,8 +390,7 @@ class ModelManager:
             # We need to know the "platform" because it changes the layout.
             # We get the platform from the file but we don't want to do a full ModelConfig instantiation
             # so we just peek into the data as a struct.
-            with open(self.get_model_config(), 'rb') as config_file:
-                data = load(config_file, 'json')
+            data = load_file(self.get_model_config())
             platform = data.get('platform', None)
             if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy', 'tensorflow']:
                 # TODO: Should this be an error? We need to try it and run full tests

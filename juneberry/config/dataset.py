@@ -184,8 +184,7 @@ class DatasetConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading DATASET CONFIG from {data_path}")
-        with open(data_path, 'rb') as file:
-            data = jbfs.load(file)
+        data = jbfs.load_file(data_path)
 
         # Validate and construct the model.
         return DatasetConfig.construct(data, relative_path, data_path)

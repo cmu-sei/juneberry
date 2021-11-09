@@ -107,8 +107,7 @@ class RulesList(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading RULES LIST from {data_path}")
-        with open(data_path) as file:
-            data = jbfs.load(file)
+        data = jbfs.load_file(data_path)
 
         # Construct the config.
         return RulesList.construct(data, data_path)

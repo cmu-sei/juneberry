@@ -73,18 +73,11 @@ def load_coco_truth(gt_path, wanted_images):
     #             "segmentation": [ [ <floats> ] ]
     #         },
 
-    open_manager = (
-        gzip.open if gt_path.endswith('.gz') 
-        else (lambda p: open(p, 'rb')))
-    with open_manager(gt_path) as json_file:
-        data = jbfs.load(json_file, 'json')
-    # if gt_path.endswith(".gz"):
-    #     with gzip.open(gt_path) as json_file:
-    #         data = jbfs.load(json_file, 'json')
-    # else:
-    #     data = jbfs.load_file(gt_path)
-    #     with open(gt_path, 'rb') as json_file:
-    #         data = jbfs.load(json_file, 'json')
+    if gt_path.endswith(".gz"):
+        with gzip.open(gt_path) as json_file:
+            data = jbfs.load(json_file, 'json')
+    else:
+        data = jbfs.load_file(gt_path)
 
     truths = []
     for item in data['annotations']:
@@ -113,17 +106,12 @@ def load_coco_truth(gt_path, wanted_images):
 def load_coco_results(results_path):
     results = []
 
-    open_manager = (
-        gzip.open if results_path.endswith('.gz') 
-        else (lambda p: open(p, 'rb')))
-    with open_manager(results_path) as json_file:
-        data = jbfs.load(json_file, 'json')
-    # if results_path.endswith(".gz"):
-    #     # TODO: Should jbfs.load_file be able to handle FileType objects as well as string/path objects?
-    #     with gzip.open(results_path) as json_file:
-    #         data = jbfs.load(json_file, 'json')
-    # else:
-    #     data = jbfs.load_file(results_path)
+    if results_path.endswith(".gz"):
+        # TODO: Should jbfs.load_file be able to handle FileType objects as well as string/path objects?
+        with gzip.open(results_path) as json_file:
+            data = jbfs.load(json_file, 'json')
+    else:
+        data = jbfs.load_file(results_path)
 
     #     {
     #         "image_id": 42,

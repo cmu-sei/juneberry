@@ -121,8 +121,7 @@ class TrainingOutput(Prodict):
         :return: Loaded, validated and constructed object.
         """
         logger.info(f"Loading TRAINING OUTPUT from {data_path}")
-        with open(data_path, 'rb') as file:
-            data = jbfs.load(file)
+        data = jbfs.load_file(data_path)
 
         # Validate and construct the model.
         return TrainingOutput.construct(data)
