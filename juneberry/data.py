@@ -1052,6 +1052,22 @@ def check_mappings(category_mapping: list, eval_manifest_path: Path, show_source
         return category_mapping
 
 
+def get_config_msgs(model_manager: ModelManager, train_config: DatasetConfig, eval_config: DatasetConfig):
+    model_config_msg = None
+    if model_manager:
+        model_config_msg = model_manager.get_model_config()
+
+    train_config_msg = None
+    if train_config:
+        train_config_msg = train_config.file_path
+
+    eval_config_msg = None
+    if eval_config:
+        eval_config_msg = eval_config.file_path
+
+    return model_config_msg, train_config_msg, eval_config_msg
+
+
 def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager = None,
                          train_config: DatasetConfig = None,
                          eval_config: DatasetConfig = None, data_root: Path = None,
@@ -1115,11 +1131,15 @@ def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager =
         if category_mapping:
             return check_mappings(category_mapping, eval_manifest_path, show_source, "eval config")
 
-    logger.error(f"Failed to retrieve a category mapping via the following args: "
-                 f"  model_manager: {model_manager}"
-                 f"  model_config: {model_manager.get_model_config()}"
-                 f"  train_config: {train_config.file_path}"
-                 f"  eval_config: {eval_config.file_path}"
+    # Log detailed error message and exit
+    model_config_msg, train_config_msg, eval_config_msg = get_config_msgs(model_manager=model_manager,
+                                                                          train_config=train_config,
+                                                                          eval_config=eval_config)
+    logger.error(f"Failed to retrieve a category mapping via the following args:\n"
+                 f"  model_manager: {model_manager}\n"
+                 f"  model_config: {model_config_msg}\n"
+                 f"  train_config: {train_config_msg}\n"
+                 f"  eval_config: {eval_config_msg}\n"
                  f"EXITING.")
     sys.exit(-1)
 

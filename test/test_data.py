@@ -777,7 +777,8 @@ def test_get_category_mapping():
     model_name = "text_detect/dt2/ut"
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
-    data_root = Path("")
+    # TODO: shouldn't hardcode data_root
+    data_root = Path("/datasets")
     test_mapping = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
     eval_manifest_path = model_manager.get_eval_manifest_path(train_config.file_path)
     category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
