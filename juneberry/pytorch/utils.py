@@ -46,6 +46,7 @@ import juneberry.loader as model_loader
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 from juneberry.transform_manager import TransformManager
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -533,18 +534,13 @@ def predict_classes(data_generator, model, device):
     return all_outputs.tolist()
 
 
-def set_seeds(seed: int):
+def set_pytorch_seeds(seed: int):
     """
     Sets all the random seeds used by all the various pieces.
     :param seed: A random seed to use. Can not be None.
     """
-    if seed is None:
-        logger.error("Request to initialize with a seed of None. Exiting")
-        sys.exit(-1)
-
-    logger.info(f"Setting ALL seeds: {str(seed)}")
-    random.seed(seed)
-    np.random.seed(seed)
+    jb_utils.set_seeds(seed)
+    logger.info(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
 

@@ -34,7 +34,7 @@ import typing
 
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
-import juneberry.version_system as jbvs
+# import juneberry.version_system as jbvs
 
 logger = logging.getLogger(__name__)
 
@@ -116,10 +116,12 @@ class PytorchOptions(Prodict):
 
 
 class Detectron2(Prodict):
+    enable_val_loss: bool
     metric_interval: int
     overrides: Prodict
 
     def init(self):
+        self.enable_val_loss = False
         self.metric_interval = 1
 
 
@@ -135,9 +137,8 @@ class TensorFlow(Prodict):
 
 
 class ModelConfig(Prodict):
-    FORMAT_VERSION = '0.2.0'
+    FORMAT_VERSION = '0.3.0'
     SCHEMA_NAME = 'model_schema.json'
-
     batch_size: int
     description: str
     detectron2: Detectron2
@@ -146,6 +147,7 @@ class ModelConfig(Prodict):
     evaluation_procedure: str
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
+    evaluator: Plugin
     format_version: str
     # TODO: Expand hints
     hints: Prodict
@@ -163,6 +165,7 @@ class ModelConfig(Prodict):
     task: str
     tensorflow: TensorFlow
     timestamp: str
+    trainer: Plugin
     training_dataset_config_path: str
     training_transforms: List[TransformEntry]
     training_target_transforms: List[TransformEntry]
@@ -181,8 +184,9 @@ class ModelConfig(Prodict):
         """
 
         # Check the format_version attribute.
-        if self.format_version is not None:
-            jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
+        # We currently don't do a version check because we don't have any breaking version changes.
+        # if self.format_version is not None:
+        #     jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
 
         # There are a handful of keys that should be set to {} if they are still None.
         empty_keys = ["pytorch"]
@@ -229,7 +233,10 @@ class ModelConfig(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: A constructed and validated object.
         """
-        conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
+        # We currently don't do a version check because we don't have any breaking version changes.
+        # conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
+
+        # Validate
         if not conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING!")
             sys.exit(-1)

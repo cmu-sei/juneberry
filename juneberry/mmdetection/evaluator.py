@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -70,24 +48,25 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.util import get_histogram
+from juneberry.evaluation.evaluator import EvaluatorBase
+from juneberry.evaluation.utils import get_histogram
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
-import juneberry.mmdetection.util as mmd_util
+import juneberry.metrics.metrics as metrics
+import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
 
 
-class MMDEvaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+class Evaluator(EvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         # The mmdetection cfg
         self.cfg = None
@@ -98,9 +77,15 @@ class MMDEvaluator(Evaluator):
         self.data_loader = None
         self.eval_options = eval_options
 
-        logger.info(f"Using working directory of: {self.working_dir}")
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
 
-        jb_setup_logger(self.eval_dir_mgr.get_log_path(), "", name="mmdet", level=logging.DEBUG)
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -111,7 +96,10 @@ class MMDEvaluator(Evaluator):
         return count
 
     def setup(self) -> None:
+        jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
+
         # Setup working dir to save files and logs.
+        logger.info(f"Using working directory of: {self.working_dir}")
         if not self.working_dir.exists():
             logger.info(f"Making working dir {str(self.working_dir)}")
             self.working_dir.mkdir(parents=True)
@@ -136,7 +124,9 @@ class MMDEvaluator(Evaluator):
             self.use_train_split, self.use_val_split)
 
         # Get the class names from the dataset.  This must happen AFTER we load the eval file.
-        classes = list(ds_cfg.retrieve_label_names().values())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                eval_config=self.eval_dataset_config_path)
+        classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
         cfg.dataset_type = 'COCODataset'
@@ -163,7 +153,7 @@ class MMDEvaluator(Evaluator):
         cfg.load_from = str(model_path.resolve())
 
         # Set seed, thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # For eval, we only do one gpu.
         cfg.gpu_ids = range(1)
@@ -176,10 +166,10 @@ class MMDEvaluator(Evaluator):
         cfg.data.samples_per_gpu = 1
 
         # Add in the pipelines overrides.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # Bring all the user defined configuration.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
@@ -190,16 +180,13 @@ class MMDEvaluator(Evaluator):
 
         self.cfg = cfg
 
-        if self.eval_options.dryrun:
-            logger.info(f"Dry run complete.")
-            sys.exit(0)
-
     def obtain_dataset(self) -> None:
         # Build the dataset.
         self.dataset = build_dataset(self.cfg.data.test)
 
         # Add the dataset histogram information to the evaluation output.
-        classes = self.eval_dataset_config.retrieve_label_names()
+        classes = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                            eval_config=self.eval_dataset_config)
         self.output.options.dataset.classes = classes
         self.output.options.dataset.histogram = get_histogram(self.eval_list, classes)
 
@@ -265,25 +252,15 @@ class MMDEvaluator(Evaluator):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        width = max([len(k) for k in result])
-        formatted_result = {}
-        per_class = {}
-        for k, v in result.items():
-            logger.info(f"{k:<{width}} = {v}")
+        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
+        self.output.results.metrics.bbox = m.as_dict()
+        self.output.results.metrics.bbox_per_class = m.mAP_per_class
 
-            if self.cfg.evaluation.metric in k:
-                new_k = k.split('_', 1)[1]
-                formatted_result[new_k] = v
-            else:
-                per_class[k] = v
+        for k, v in self.output.results.metrics.bbox.items():
+            logger.info(k + " = " + str(v))
 
-        if self.cfg.evaluation.metric == "bbox":
-            self.output.results.metrics.bbox = formatted_result
-            self.output.results.metrics.bbox_per_class = per_class
-        else:
-            logger.error(f"The desired evaluation metric '{self.cfg.evaluation.metric}' is not currently supported."
-                         f"Exiting.")
-            sys.exit(-1)
+        for k, v in self.output.results.metrics.bbox_per_class.items():
+            logger.info(k + " = " + str(v))
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
 

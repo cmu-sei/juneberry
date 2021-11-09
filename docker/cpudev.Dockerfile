@@ -7,7 +7,7 @@ RUN chmod 1777 /tmp
 
 # These are needed for opencv - not by default on some platforms
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet \
+    && apt-get install -y libgl1-mesa-glx figlet sudo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,8 +60,8 @@ COPY juneberry.ini /root/juneberry.ini
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v6"
-RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '"  >> /root/.bashrc; echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; echo "figlet -w 120 CPU Development v6" >> /root/.bashrc
+ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v7"
+RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '"  >> /root/.bashrc; echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; echo "figlet -w 120 CPU Development v7" >> /root/.bashrc
 RUN echo "if [ -f /juneberry/container_start.sh ]; then echo 'Running bash /juneberry/container_start.sh'; bash /juneberry/container_start.sh; fi" >> /root/.bashrc
 
 

@@ -147,11 +147,16 @@ def load_file(path: str):
     :return:
     """
     # TODO: Add check for '.yaml' and use pyyaml
-    if Path(path).suffix.lower() in {'.json', '.hjson'}:
-        with open(path, 'rb') as in_file:
-            return load(in_file, 'json')
+    if Path(path).exists():
+        if Path(path).suffix.lower() == {'.json', '.hjson'}:
+            with open(path) as in_file:
+                return load(in_file)
+        else:
+            logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
+            sys.exit(-1)
+
     else:
-        logger.error(f"Currently, we only support .json files. {path}. EXITING")
+        logger.error(f"Failed to load {path}. The file could not be found. EXITING.")
         sys.exit(-1)
 
 
@@ -192,7 +197,7 @@ class ExperimentCreator:
 
 
 class EvalDirMgr:
-    def __init__(self, root: str, platform: str, dataset_name: str) -> None:
+    def __init__(self, root: str, platform: str, dataset_name: str = None) -> None:
         """
         Constructs an EvalDirMgr object rooted at the root path for the specified platform
         with the given name.
@@ -201,7 +206,7 @@ class EvalDirMgr:
         :param platform: The platform.
         :param dataset_name: The name of the evaluation dataset.
         """
-        self.root = Path(root) / 'eval' / dataset_name
+        self.root = Path(root) / 'eval' / dataset_name if dataset_name else Path(root) / 'eval'
         self.platform = platform
 
     def setup(self):
@@ -368,13 +373,14 @@ class ModelManager:
 
     # ============ Evaluation ============
 
-    def get_eval_dir_mgr(self, dataset_path: str) -> EvalDirMgr:
+    def get_eval_dir_mgr(self, dataset_path: str = None) -> EvalDirMgr:
         """
         Construct an EvalDirMgr object based on the current model and the provided dataset path.
         :param dataset_path: The path to the dataset file.
         :return: An EvalDirMgr object.
         """
-        return EvalDirMgr(self.model_dir_path, self.model_platform, Path(dataset_path).stem)
+        dataset_arg = Path(dataset_path).stem if dataset_path else None
+        return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
 
     # ============ Misc ============
 

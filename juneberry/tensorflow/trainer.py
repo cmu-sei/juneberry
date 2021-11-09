@@ -100,8 +100,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # Dump some images.
         path = Path(self.model_manager.get_dryrun_imgs_dir())
         path.mkdir(exist_ok=True)
-        tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(),
-                                   self.dataset_config.retrieve_label_names())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(), label_names)
 
         # Setup the model and dump the summary.
         self.setup_model()
@@ -230,7 +231,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         args = self.model_config.model_architecture.args
         if not args:
             args = {}
-        optional_kwargs = {'labels': self.dataset_config.label_names}
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        optional_kwargs = {'labels': label_names}
         jb_data.check_num_classes(args, self.dataset_config.num_model_classes)
         self.model = jb_loader.invoke_call_function_on_class(self.model_config.model_architecture.module, args,
                                                              optional_kwargs)

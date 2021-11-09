@@ -42,28 +42,30 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutputBuilder
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
+from juneberry.lab import Lab
 
 logger = logging.getLogger(__name__)
 
 
-class Evaluator:
+class EvaluatorBase:
     """
     This class encapsulates the process of evaluating a model.
     """
 
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, log_file: str = None):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
         :param lab: The Juneberry Lab in which to run the evaluation.
-        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param model_manager: A Juneberry ModelManager object responsible for managing operations involving the
         model to be evaluated.
         :param eval_dir_mgr: A Juneberry EvalDirMgr object responsible for managing file path operations
         within the model's eval directory.
+        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
-        include the following: top_k, dryrun, extract_validation.
+        include the following: top_k, use_train_split, use_val_split.
+        :param log_file: A string indicating the location of the current log file.
         """
         # TODO: Should we make a model manager or get passed one???
 
@@ -71,14 +73,16 @@ class Evaluator:
         self.eval_dir_mgr = eval_dir_mgr
         self.eval_dir_mgr.setup()
 
+        # Stash the location of the log file.
+        self.log_file_path = log_file
+
         # Stash the lab off so everyone can use it
         self.lab = lab
 
         # Attribute that determines if a dry run of the evaluation is performed.
-        # TODO: Dry run should be supported as a base evaluator concept.
         self.dryrun = False
 
-        # How many gpus to use.  0 is cpu.
+        # How many GPUs to use. 0 is CPU.
         self.num_gpus = 0
 
         # These attributes describe the model being evaluated. The "model_config" is a Juneberry ModelConfig
@@ -95,12 +99,13 @@ class Evaluator:
         self.use_train_split = False
         self.use_val_split = False
 
-        # This is fragile. The file_path in the dataset is OPTIONAL
-        # TODO: Find a way to make a data path if we don't have one for notebook support
-        if dataset.file_path is None:
-            logger.error("The evaluator requires an output file path.")
-        # TODO: This is too long and really muddies up the code.
-        self.eval_dataset_config_path = dataset.file_path
+        if dataset:
+            # This is fragile. The file_path in the dataset is OPTIONAL
+            # TODO: Find a way to make a data path if we don't have one for notebook support
+            if dataset.file_path is None:
+                logger.error("The evaluator requires an output file path.")
+            # TODO: This is too long and really muddies up the code.
+            self.eval_dataset_config_path = dataset.file_path
 
         #  A list of pairs of some item name or id and truth label (target)
         self.eval_name_targets = []
@@ -111,6 +116,15 @@ class Evaluator:
         # how to perform the desired operation.
         self.eval_method = None
         self.eval_output_method = None
+
+        # The output and procedure kwargs to evaluator are meant to provide users to use custom classes
+        # to conduct and format their evaluation. When not provided, the evaluator subclasses will set
+        # these to the correct default classes when required.
+        if self.model_config.evaluator is not None and self.model_config.evaluator.kwargs is not None:
+            if 'output' in self.model_config.evaluator.kwargs:
+                self.eval_output_method = self.model_config.evaluator.kwargs['output']
+            if 'procedure' in self.model_config.evaluator.kwargs:
+                self.eval_method = self.model_config.evaluator.kwargs['procedure']
 
         # These attributes are all related to the output of the evaluation process. They contain the
         # raw data that resulted from the evaluation process, the formatted output data that will be
@@ -126,7 +140,7 @@ class Evaluator:
         # Record some initial information in the evaluation output, such as the model being
         # evaluated and the dataset used in the evaluation.
         self.output.options.model.name = self.model_manager.model_name
-        self.output.options.dataset.config = self.eval_dataset_config.file_path
+        self.output.options.dataset.config = self.eval_dataset_config.file_path if dataset else None
 
         # Check the eval_options for values related to the relevant attributes. If found, set the
         # attribute.
@@ -143,6 +157,13 @@ class Evaluator:
     # |  __\ \/ / __/ _ \ '_ \/ __| |/ _ \| '_ \  |  __/ _ \| | '_ \| __/ __|
     # | |___>  <| ||  __/ | | \__ \ | (_) | | | | | | | (_) | | | | | |_\__ \
     # \____/_/\_\\__\___|_| |_|___/_|\___/|_| |_| \_|  \___/|_|_| |_|\__|___/
+
+    def dry_run(self) -> None:
+        """
+        Executes a "dryrun" of the evaluation, checking for model viability, dataset properties, etc.
+        :return: None
+        """
+        pass
 
     def check_gpu_availability(self, required: int) -> int:
         """

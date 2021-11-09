@@ -52,7 +52,7 @@ install_requires = [
 
 bin_scripts = [
     'bin/jb_clean_predictions',
-    'bin/jb_evaluate_data',
+    'bin/jb_evaluate',
     'bin/jb_experiment_to_rules',
     'bin/jb_generate_experiments',
     'bin/jb_gpu_runner',
