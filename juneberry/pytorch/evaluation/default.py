@@ -44,7 +44,6 @@
 #
 # ======================================================================================================================
 
-import json
 import logging
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
@@ -53,8 +52,8 @@ from torch.nn.functional import softmax
 
 from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
-from juneberry.pytorch.pytorch_evaluator import PytorchEvaluator
-import juneberry.pytorch.util as pyt_utils
+from juneberry.pytorch.evaluator import Evaluator
+import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +62,11 @@ class DefaultEvaluationProcedure:
     """
     This is the default Pytorch evaluation class used for evaluating data in Juneberry.
     """
-    def __call__(self, evaluator: PytorchEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
         of the process is raw evaluation data.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 
@@ -79,12 +78,12 @@ class DefaultEvaluationOutput:
     """
     This is the default Pytorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
-    def __call__(self, evaluator: PytorchEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
         then be written to a file.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 

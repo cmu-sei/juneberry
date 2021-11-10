@@ -98,7 +98,7 @@ OD_CPU_TEST_SET = [
     [
         "text_detect/dt2/ut",
         "data_sets/text_detect_val.json",
-        0.3,
+        0.23,
         0.00004
     ]
 ]
