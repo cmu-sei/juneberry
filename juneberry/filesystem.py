@@ -31,6 +31,7 @@ NOTE: These paths are all relative to the Juneberry workspace root.
 import datetime
 import hashlib
 import hjson
+import json
 import logging
 import numpy as np
 import os
@@ -39,8 +40,6 @@ import socket
 import sys
 
 from juneberry import Platforms
-
-from typing import BinaryIO
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +104,9 @@ def load_json(json_path: str, attribute_map=None):
     return data
 
 
-def save_json(data, json_path, *, indent: int = 4) -> None:
+def save_hjson(data, json_path, *, indent: int = 4) -> None:
     """
-    Save the data to the specified path (string or Path), applying the specified indent (int),
+    Save the data to the specified path (string or Path) in HJSON format, applying the specified indent (int),
     and converting all the traditional non encoding bits (e.g. Path, numpy) to
     the appropriate data structure.
     :param data: The data to save.
@@ -117,6 +116,50 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
     """
     with open(json_path, "w") as json_file:
         hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+
+
+def save_json(data, json_path, *, indent: int = 4) -> None:
+    """
+    Save the data to the specified path (string or Path) in JSON format, applying the specified indent (int),
+    and converting all the traditional non encoding bits (e.g. Path, numpy) to
+    the appropriate data structure.
+    :param data: The data to save.
+    :param json_path: The path to save the data to.
+    :param indent: The indent spacing to use; with a default of 4.
+    :return: None
+    """
+    with open(json_path, "w") as json_file:
+        json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+
+
+def save_file(data, path: str, *, indent: int = 4) -> None:
+    """
+    Generic file saver that chooses the file format based on the extension of the path.
+    :param path: 
+    :param indent: The indent spacing to use; with a default of 4.
+    :return: None
+    """
+    ext = Path(path).suffix.lower()
+    if ext == '.json':
+        with open(path, 'w') as json_file:
+            json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+    elif ext == '.hjson':
+        with open(path, 'w') as hjson_file:
+            hjson.dump(data, hjson_file, indent=indent, default=json_cleaner, sort_keys=True)
+
+    # TODO: implement file handlers for these formats.
+    elif ext in {'.gzip', '.gz'}:
+        logger.error('TODO: handle gzip extensions.')
+        sys.exit(-1)
+    elif ext in {'.yaml', '.yml'}:
+        logger.error('TODO: handle YAML extensions.')
+        sys.exit(-1)
+    elif ext in {'.toml', '.tml'}:
+        logger.error('TODO: handle TOML extensions.')
+        sys.exit(-1)
+    else:
+        logger.error(f'Unsupported file extension {ext}')
+        sys.exit(-1)
 
 
 def load_file(path: str):
