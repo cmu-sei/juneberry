@@ -942,6 +942,15 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
+def return_label_mapping(show_source, source, label_dict, source_path)
+    logger.info()
+    if show_source:
+        return label_dict, source
+    else:
+        return label_dict
+
+
+
 def get_label_mapping(model_manager: ModelManager = None, model_config: ModelConfig = None,
                       train_config: DatasetConfig = None, eval_config: DatasetConfig = None,
                       show_source=False) -> Union[Tuple[Dict[int, str], str], Dict[int, str]]:
@@ -1022,7 +1031,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
                 return label_dict
 
 
-def categories_in_dataset_config(config_path, data_root) -> dict:
+def categories_in_dataset_config(config_path, data_root) -> list:
     with open(config_path) as config_file:
         dataset = json.load(config_file)
     if 'imageData' in dataset:
@@ -1035,10 +1044,28 @@ def categories_in_dataset_config(config_path, data_root) -> dict:
     if 'categories' in coco_data:
         return coco_data["categories"]
     else:
-        return {}
+        return []
 
 
-def check_mappings(category_mapping: list, eval_manifest_path: Path, show_source: bool, source: str):
+def categories_in_model_config(model_config_path) -> list:
+    with open(model_config_path) as json_file:
+        model_config_data = json.load(json_file)
+    if 'preprocessors' in model_config_data:
+        if 'fqcn' in model_config_data['preprocessors']:
+            if model_config_data['preprocessors']['fqcn'] == "juneberry.transforms.metadata_preprocessors" \
+                                                             ".ObjectRelabel":
+                if 'kwargs' in model_config_data['preprocessors']:
+                    if 'labels' in model_config_data['preprocessors']['kwargs']:
+                        category_dict = model_config_data['preprocessors']['kwargs']['labels']
+                        if category_dict:
+                            category_list = []
+                            for k, v in category_dict.items():
+                                category_list.append({'id': int(k), 'name': v})
+                            return category_list
+    return []
+
+
+def check_mappings(category_mapping: list, eval_manifest_path: Path, show_source: bool, source: str, source_path: str):
     with open(eval_manifest_path) as json_file:
         eval_manifest = json.load(json_file)
     eval_manifest_categories = eval_manifest["categories"]
@@ -1046,6 +1073,9 @@ def check_mappings(category_mapping: list, eval_manifest_path: Path, show_source
         logging.warning("The evaluation category mapping does not match that of the eval_manifest:"
                         f"  category_mapping: {category_mapping}"
                         f"  eval_manifest mapping: {eval_manifest_categories}")
+    logging.info(f"Using category mappings from"
+                 f"     Source: {source}"
+                 f"     Path: {source_path}")
     if show_source:
         return category_mapping, source
     else:
@@ -1092,7 +1122,7 @@ def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager =
         if 'categories' in train_manifest_data:
             category_mapping = train_manifest_data['categories']
             if category_mapping:
-                return check_mappings(category_mapping, eval_manifest_path, show_source, "train manifest")
+                return check_mappings(category_mapping, eval_manifest_path, show_source, "train manifest", str(training_manifest_path))
 
         # Check the validation manifest
         validation_manifest_path = model_manager.get_validation_data_manifest_path()
@@ -1101,35 +1131,27 @@ def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager =
         if 'categories' in val_manifest_data:
             category_mapping = val_manifest_data['categories']
             if category_mapping:
-                return check_mappings(category_mapping, eval_manifest_path, show_source, "val manifest")
+                return check_mappings(category_mapping, eval_manifest_path, show_source, "val manifest", str(validation_manifest_path))
 
         # Check the model config
         model_config_path = model_manager.get_model_config()
-        with open(model_config_path) as json_file:
-            model_config_data = json.load(json_file)
-        if 'preprocessors' in model_config_data:
-            if 'fcqn' in model_config_data['preprocessors']:
-                if model_config_data['preprocessors']['fcqn'] == "juneberry.transforms.metadata_preprocessors" \
-                                                                 ".ObjectRelabel":
-                    if 'kwargs' in model_config_data['preprocessors']:
-                        if 'labels' in model_config_data['preprocessors']['kwargs']:
-                            category_mapping = model_config_data['preprocessors']['kwargs']['labels']
-                            if category_mapping:
-                                return check_mappings(category_mapping, eval_manifest_path, show_source, "model config")
+        category_mapping = categories_in_model_config(model_config_path)
+        if category_mapping:
+            return check_mappings(category_mapping, eval_manifest_path, show_source, "model config", model_config_path)
 
     # Check the training config
     if train_config:
         train_config_path = train_config.file_path
         category_mapping = categories_in_dataset_config(train_config_path, data_root)
         if category_mapping:
-            return check_mappings(category_mapping, eval_manifest_path, show_source, "train config")
+            return check_mappings(category_mapping, eval_manifest_path, show_source, "train config", str(train_config_path))
 
     # Check the evaluation config
     if eval_config:
         eval_config_path = eval_config.file_path
         category_mapping = categories_in_dataset_config(eval_config_path, data_root)
         if category_mapping:
-            return check_mappings(category_mapping, eval_manifest_path, show_source, "eval config")
+            return check_mappings(category_mapping, eval_manifest_path, show_source, "eval config", str(eval_config_path))
 
     # Log detailed error message and exit
     model_config_msg, train_config_msg, eval_config_msg = get_config_msgs(model_manager=model_manager,

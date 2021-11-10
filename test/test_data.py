@@ -25,6 +25,7 @@
 import csv
 import json
 from pathlib import Path
+import os
 import random
 from unittest import mock, TestCase
 
@@ -773,31 +774,78 @@ def test_get_label_mapping():
     TestCase().assertDictEqual(func_labels, test_labels)
 
 
-def test_get_category_mapping():
+def safe_open_w(path):
+    """Open "path" for writing, creating any parent directories as needed."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return open(path, 'w')
+
+
+def test_get_category_mapping(monkeypatch, tmp_path):
+    # Grab args
     model_name = "text_detect/dt2/ut"
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
-    # TODO: shouldn't hardcode data_root
-    data_root = Path("/datasets")
-    test_mapping = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
+    data_root = Path(tmp_path)
+    test_mapping_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
+    test_mapping_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
+                      {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
     eval_manifest_path = model_manager.get_eval_manifest_path(train_config.file_path)
+
+    # Make sample coco data file
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
+    lab = Lab(workspace='.', data_root=tmp_path)
+    coco_data = make_sample_coco([], [])
+    coco_path = Path(data_root / 'detectron2-text-detection/val/coco_annotations.json')
+    with safe_open_w(coco_path) as json_file:
+        json.dump(coco_data, json_file)
+
+    # Test DatasetConfig case
+    with TestCase().assertLogs(level='WARNING') as cm:
+        category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
+                                                                train_config=train_config,
+                                                                data_root=data_root,
+                                                                show_source=True)
+    assert test_mapping_2 == category_mapping
+    assert source == "train config"
+
+    # Check for warning message
+    TestCase().assertEqual(cm.output, ["WARNING:root:The evaluation category mapping does not match that of the "
+                                       "eval_manifest:  category_mapping: [{'id': 0, 'name': 'zero'}, {'id': 1, "
+                                       "'name': 'one'}, {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]  "
+                                       "eval_manifest mapping: [{'id': 0, 'name': 'HINDI'}, {'id': 1, "
+                                       "'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]"])
+
+    # Test manifest case
     category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
                                                             model_manager=model_manager,
                                                             train_config=train_config,
                                                             data_root=data_root,
                                                             show_source=True)
-    assert test_mapping == category_mapping
+    assert test_mapping_1 == category_mapping
     assert source == "train manifest"
 
-    category_mapping, source = jb_data.get_category_mapping(eval_manifest_path=eval_manifest_path,
-                                                            train_config=train_config,
-                                                            data_root=data_root,
-                                                            show_source=True)
-    assert test_mapping == category_mapping
-    assert source == "train config"
-
+    # Test no mappings case
     try:
         jb_data.get_category_mapping(eval_manifest_path=Path(""))
         assert False
     except SystemExit:
         assert True
+
+    # Test ModelConfig function
+    model_config = test_model_config.make_basic_config()
+    model_config["preprocessors"] = {"fqcn": "juneberry.transforms.metadata_preprocessors.ObjectRelabel",
+                                     "kwargs": {
+                                         "key": "orig",
+                                         "labels": {
+                                             "0": "HINDI",
+                                             "1": "ENGLISH",
+                                             "2": "OTHER"
+                                            }
+                                        }
+                                     }
+    model_config_path = Path(tmp_path, "config.json")
+    with open(model_config_path, 'w') as out_file:
+        json.dump(model_config, out_file, indent=4)
+    category_mapping = jb_data.categories_in_model_config(model_config_path=model_config_path)
+
+    assert test_mapping_1 == category_mapping
