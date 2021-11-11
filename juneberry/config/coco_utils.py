@@ -471,7 +471,11 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Added bounding boxes to {img_count} {img_str}.")
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
-
+def count_annotations(coco_json: Path) -> int:
+      # Load the COCO annotations.
+    coco = jbfs.load_file(coco_json)
+    return len(coco["annotations"])
+  
 """
 {
     "info" : info, 

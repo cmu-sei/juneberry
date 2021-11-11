@@ -27,6 +27,7 @@ import itertools
 import logging
 import mmcv
 import numpy as np
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 import warnings
@@ -252,15 +253,22 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
-        self.output.results.metrics.bbox = m.as_dict()
-        self.output.results.metrics.bbox_per_class = m.mAP_per_class
+        anno_file = Path(self.eval_dir_mgr.get_manifest_path())
+        num_annotations = coco_utils.count_annotations(anno_file)
 
-        for k, v in self.output.results.metrics.bbox.items():
-            logger.info(k + " = " + str(v))
+        # Populate metrics if there are annotations
+        if num_annotations > 0:
+            m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
+            self.output.results.metrics.bbox = m.as_dict()
+            self.output.results.metrics.bbox_per_class = m.mAP_per_class
 
-        for k, v in self.output.results.metrics.bbox_per_class.items():
-            logger.info(k + " = " + str(v))
+            for k, v in self.output.results.metrics.bbox.items():
+                logger.info(k + " = " + str(v))
+
+            for k, v in self.output.results.metrics.bbox_per_class.items():
+                logger.info(k + " = " + str(v))
+        else:
+            logger.info("There are no annotations; not using Metrics class to populate metrics output.")
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
 
