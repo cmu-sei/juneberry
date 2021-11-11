@@ -834,9 +834,16 @@ def test_get_category_mapping(monkeypatch, tmp_path):
 
     # Test ModelConfig function
     model_config = test_model_config.make_basic_config()
-    model_config["preprocessors"] = [construct_instance("juneberry.transforms.metadata_preprocessors.ObjectRelabel",
-                                                        {"key": "orig",
-                                                         "labels": {"0": "HINDI", "1": "ENGLISH", "2": "OTHER"}})]
+    model_config["preprocessors"] = [{"fqcn": "juneberry.transforms.metadata_preprocessors.ObjectRelabel",
+                                      "kwargs": {
+                                          "key": "orig",
+                                          "labels": {
+                                              "0": "HINDI",
+                                              "1": "ENGLISH",
+                                              "2": "OTHER"
+                                          }
+                                      }
+                                      }]
 
     model_config_path = Path(tmp_path, "config.json")
     with open(model_config_path, 'w') as out_file:
