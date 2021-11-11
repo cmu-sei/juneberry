@@ -56,6 +56,8 @@ import sys
 from typing import Dict, List
 from juneberry.config.dataset import DatasetConfig
 
+import juneberry.filesystem as jbfs
+
 logger = logging.getLogger(__name__)
 
 ImageAnnotations = namedtuple('ImageAnnotations', ['image', 'annotations'])
@@ -221,8 +223,7 @@ def load_from_json_file(file_path) -> COCOImageHelper:
     :param file_path:
     :return: Constructed COCOImageHelper
     """
-    with open(file_path) as json_file:
-        return COCOImageHelper(json.load(json_file), file_path)
+    return COCOImageHelper(jbfs.load_file(file_path), file_path)
 
 
 def convert_predictions_to_annotations(predictions: list) -> list:
@@ -372,8 +373,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     with open(data_root / coco_path) as json_file:
         coco_data = json.load(json_file)
 
-    with open(predict_file) as json_file:
-        predictions = json.load(json_file)
+    predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_mapping)
     with open(output_file, "w") as json_file:
@@ -406,8 +406,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         logger.info(f"The output directory was not found, so it was created.")
 
     # Load the COCO annotations.
-    with open(coco_json) as f:
-        coco = json.load(f)
+    coco = jbfs.load_file(coco_json)
         
     # Use a COCOImageHelper to obtain the legend.
     helper = COCOImageHelper(coco)
