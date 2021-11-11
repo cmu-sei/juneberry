@@ -53,7 +53,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 from random import shuffle as rand_shuffle
 import sys
-from typing import Dict
+from typing import Dict, List
+from juneberry.config.dataset import DatasetConfig
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +256,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: dict = False) -> dict:
+def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: List = None) -> dict:
     annos = []
     obj_id = 0
 
@@ -344,7 +345,7 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     return coco_format
 
 
-def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: dict = False,
+def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: List = False,
                              output_file: Path = None):
     """
     This function is responsible for converting coco-style object detection predictions into
@@ -365,16 +366,9 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     logger.info(f"Saving predictions in annotation-style format in {output_file}")
 
     # Open the dataset and get the original coco metadata
-    with open(dataset_config) as config_file:
-        dataset = json.load(config_file)
+    dataset = DatasetConfig.load(dataset_config)
+    coco_path = dataset.image_data.sources[0]['directory']
 
-    # HACK HACK HACK - Assume just one annotations file!
-    # TODO: Add a dataset config/coco_utils for providing a unified config
-    # TODO: Remove mixedCase call eventually
-    if 'imageData' in dataset:
-        coco_path = dataset['imageData']['sources'][0]['directory']
-    else:
-        coco_path = dataset['image_data']['sources'][0]['directory']
     with open(data_root / coco_path) as json_file:
         coco_data = json.load(json_file)
 

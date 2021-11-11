@@ -978,7 +978,6 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
                                             source_info=model_manager.get_training_out_file(),
                                             label_dict=label_dict)
 
-
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
@@ -1029,18 +1028,15 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
         if label_dict:
             return return_label_mapping(show_source=show_source,
                                         source="eval dataset config",
-                                        source_info=eval_config.file_path,
+                                        source_path=eval_config.file_path,
                                         label_dict=label_dict)
 
 
 def categories_in_dataset_config(config_path, data_root) -> list:
-    with open(config_path) as config_file:
-        dataset = json.load(config_file)
-    if 'imageData' in dataset:
-        coco_path = dataset['imageData']['sources'][0]['directory']
-    else:
-        coco_path = dataset['image_data']['sources'][0]['directory']
+    dataset_config = DatasetConfig.load(config_path)
+    coco_path = dataset_config.image_data.sources[0]['directory']
 
+    # TODO: use future coco prodict
     with open(data_root / coco_path) as json_file:
         coco_data = json.load(json_file)
     if 'categories' in coco_data:
@@ -1050,20 +1046,19 @@ def categories_in_dataset_config(config_path, data_root) -> list:
 
 
 def categories_in_model_config(model_config_path) -> list:
-    with open(model_config_path) as json_file:
-        model_config_data = json.load(json_file)
-    if 'preprocessors' in model_config_data:
-        if 'fqcn' in model_config_data['preprocessors']:
-            if model_config_data['preprocessors']['fqcn'] == "juneberry.transforms.metadata_preprocessors" \
-                                                             ".ObjectRelabel":
-                if 'kwargs' in model_config_data['preprocessors']:
-                    if 'labels' in model_config_data['preprocessors']['kwargs']:
-                        category_dict = model_config_data['preprocessors']['kwargs']['labels']
-                        if category_dict:
-                            category_list = []
-                            for k, v in category_dict.items():
-                                category_list.append({'id': int(k), 'name': v})
-                            return category_list
+    model_config_data = ModelConfig.load(model_config_path)
+    preprocessor_dict = model_config_data.preprocessors
+    object_relabel_dict = next((item for item in preprocessor_dict if item["fqcn"] == "juneberry.transforms"
+                                                                                      ".metadata_preprocessors"
+                                                                                      ".ObjectRelabel"), None)
+    if object_relabel_dict:
+        category_dict = object_relabel_dict.kwargs.labels
+        if category_dict:
+            category_list = []
+            for k, v in category_dict.items():
+                category_list.append({'id': int(k), 'name': v})
+            return category_list
+
     return []
 
 
