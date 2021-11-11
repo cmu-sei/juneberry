@@ -59,6 +59,7 @@ from pathlib import Path
 from PIL import Image
 
 from juneberry.config.dataset import DatasetConfigBuilder
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -262,9 +263,7 @@ class DatasetDataframe:
         self._build_anno_df()
 
     def _load_json(self, path):
-        with path.open() as f:
-            content = json.load(f)
-        return content
+        return jbfs.load_file(path)
 
     def _build_image_df(self):
         srcs = self.dataset_path_manager.sources

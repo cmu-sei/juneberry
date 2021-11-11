@@ -404,30 +404,29 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        with open(filepath) as json_file:
-            data = json.load(json_file)
-            if self._preprocessors is not None:
-                logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
-                orig_cats = copy.deepcopy(data['categories'])
-                data = self._preprocessors(data)
-                if orig_cats != data['categories']:
-                    logger.info(f"......changing categories because preprocessor changed them.")
-                    # The categories were changed by the preprocessors. They win out over all others
-                    # Categories is a list of id, name
-                    # Last preprocessor of all files wins
-                    # NOTE: This might not be a good idea to do it every time depending on how the
-                    # preprocessors are written, but we'll try this for a while.
-                    # TODO: Fix the dichotomy with str vs int labels
-                    str_labels = {str(x['id']): x['name'] for x in data['categories']}
-                    int_labels = {int(x['id']): x['name'] for x in data['categories']}
-                    self.ds_config.label_names = str_labels
-                    self.ds_config.update_label_names(int_labels)
+        data = jbfs.load_file(filepath)
+        if self._preprocessors is not None:
+            logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
+            orig_cats = copy.deepcopy(data['categories'])
+            data = self._preprocessors(data)
+            if orig_cats != data['categories']:
+                logger.info(f"......changing categories because preprocessor changed them.")
+                # The categories were changed by the preprocessors. They win out over all others
+                # Categories is a list of id, name
+                # Last preprocessor of all files wins
+                # NOTE: This might not be a good idea to do it every time depending on how the
+                # preprocessors are written, but we'll try this for a while.
+                # TODO: Fix the dichotomy with str vs int labels
+                str_labels = {str(x['id']): x['name'] for x in data['categories']}
+                int_labels = {int(x['id']): x['name'] for x in data['categories']}
+                self.ds_config.label_names = str_labels
+                self.ds_config.update_label_names(int_labels)
 
-            # Now that we have the file loaded let's load the values
-            helper = COCOImageHelper(data)
-            if remove_image_ids:
-                [helper.remove_image(img_id) for img_id in remove_image_ids]
-            new_values.extend(helper.to_image_list())
+        # Now that we have the file loaded let's load the values
+        helper = COCOImageHelper(data)
+        if remove_image_ids:
+            [helper.remove_image(img_id) for img_id in remove_image_ids]
+        new_values.extend(helper.to_image_list())
 
     @staticmethod
     def _summarize_set(label_name, data_list):
@@ -523,8 +522,7 @@ def get_num_classes(data_config_files):
     """
     num_classes = []
     for config_file in data_config_files:
-        with open(config_file) as file:
-            config = json.load(file)
+        config = jbfs.load_file(config_file)
         if 'num_model_classes' not in config.keys():
             logger.error(f"Config file {config_file} does not specify the number of classes.")
             exit(-1)
@@ -582,8 +580,7 @@ def load_preprocess_metadata(source_list, preprocessors=None):
             input_paths = source[dataset_type]
             source[dataset_type] = []
             for entry in input_paths:
-                with open(entry) as json_file:
-                    data = json.load(json_file)
+                data = jbfs.load_file(entry)
 
                 if preprocessors is not None:
                     data = transformers(data)
@@ -902,10 +899,9 @@ def load_coco_json(filepath, output: list) -> None:
     :param output: The output list in which to add out content.
     :return: None
     """
-    with open(filepath) as json_file:
-        data = json.load(json_file)
-        helper = COCOImageHelper(data)
-        output.extend(helper.to_image_list())
+    data = jbfs.load_file(filepath)
+    helper = COCOImageHelper(data)
+    output.extend(helper.to_image_list())
 
 
 def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
@@ -1071,11 +1067,10 @@ def load_path_label_manifest(filename, relative_to: Path = None):
     :return: A list of pairs of [path, label].
     """
     pairs = []
-    with open(filename) as in_file:
-        data = json.load(in_file)
-        for row in data:
-            path = row['path']
-            if relative_to is not None:
-                path = str(relative_to / path)
-            pairs.append([path, row['label']])
+    data = jbfs.load_file(filename)
+    for row in data:
+        path = row['path']
+        if relative_to is not None:
+            path = str(relative_to / path)
+        pairs.append([path, row['label']])
     return pairs

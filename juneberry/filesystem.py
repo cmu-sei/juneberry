@@ -30,6 +30,7 @@ NOTE: These paths are all relative to the Juneberry workspace root.
 
 import datetime
 import hashlib
+import hjson
 import json
 import logging
 import numpy as np
@@ -77,11 +78,10 @@ def load_json(json_path: str, attribute_map=None):
     and their corresponding Python attribute names.
     :return data: A dictionary of data that was read from the JSON file.
     """
-
     # Attempt to open up the file at the indicated Path and read the data.
     try:
         with open(json_path) as json_file:
-            data = json.load(json_file)
+            data = hjson.load(json_file)
 
     # If the file was not found, log an error and exit.
     except FileNotFoundError:
@@ -104,9 +104,23 @@ def load_json(json_path: str, attribute_map=None):
     return data
 
 
+def save_hjson(data, json_path, *, indent: int = 4) -> None:
+    """
+    Save the data to the specified path (string or Path) in HJSON format, applying the specified indent (int),
+    and converting all the traditional non encoding bits (e.g. Path, numpy) to
+    the appropriate data structure.
+    :param data: The data to save.
+    :param json_path: The path to save the data to.
+    :param indent: The indent spacing to use; with a default of 4.
+    :return: None
+    """
+    with open(json_path, "w") as json_file:
+        hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+
+
 def save_json(data, json_path, *, indent: int = 4) -> None:
     """
-    Save the data to the specified path (string or Path), applying the specified indent (int),
+    Save the data to the specified path (string or Path) in JSON format, applying the specified indent (int),
     and converting all the traditional non encoding bits (e.g. Path, numpy) to
     the appropriate data structure.
     :param data: The data to save.
@@ -118,25 +132,67 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
         json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 
+def save_file(data, path: str, *, indent: int = 4) -> None:
+    """
+    Generic file saver that chooses the file format based on the extension of the path.
+    :param path: 
+    :param indent: The indent spacing to use; with a default of 4.
+    :return: None
+    """
+    ext = Path(path).suffix.lower()
+    if ext == '.json':
+        with open(path, 'w') as json_file:
+            json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+    elif ext == '.hjson':
+        with open(path, 'w') as hjson_file:
+            hjson.dump(data, hjson_file, indent=indent, default=json_cleaner, sort_keys=True)
+
+    # TODO: implement file handlers for these formats.
+    elif ext in {'.gzip', '.gz'}:
+        logger.error('TODO: handle gzip extensions.')
+        sys.exit(-1)
+    elif ext in {'.yaml', '.yml'}:
+        logger.error('TODO: handle YAML extensions.')
+        sys.exit(-1)
+    elif ext in {'.toml', '.tml'}:
+        logger.error('TODO: handle TOML extensions.')
+        sys.exit(-1)
+    else:
+        logger.error(f'Unsupported file extension {ext}')
+        sys.exit(-1)
+
+
 def load_file(path: str):
     """
     Loads the file from the specified file path.
     :param path: The path to the file to load.
     :return:
     """
-    # TODO: Add check for '.yaml' and use pyyaml
     if Path(path).exists():
-        if Path(path).suffix == '.json':
-            with open(path) as in_file:
-                return json.load(in_file)
+        ext = Path(path).suffix.lower()
+        if ext in {'.json', '.hjson'}:
+            # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
+            with open(path, 'rb') as in_file:
+                return hjson.load(in_file)
+
+        # TODO: implement file handlers for these formats.
+        elif ext in {'.gzip', '.gz'}:
+            logger.error('TODO: handle gzip extensions.')
+            sys.exit(-1)
+        elif ext in {'.yaml', '.yml'}:
+            logger.error('TODO: handle YAML extensions.')
+            sys.exit(-1)
+        elif ext in {'.toml', '.tml'}:
+            logger.error('TODO: handle TOML extensions.')
+            sys.exit(-1)
         else:
-            logger.error(f"load_file was called on {path} but it currently only supports loading .json files. EXITING.")
+            logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)
 
     else:
-        logger.error(f"Failed to load {path}. The file could not be found. EXITING.")
+        logger.error(f'Failed to load {path}. The file could not be found. EXITING.')
         sys.exit(-1)
-
+    
 
 class ExperimentCreator:
     def __init__(self, experiment_name):

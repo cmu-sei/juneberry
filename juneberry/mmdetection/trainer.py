@@ -22,11 +22,12 @@
 #
 # ======================================================================================================================
 
-import json
 import logging
 from math import ceil
 from pathlib import Path
 import sys
+
+import hjson
 
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
@@ -46,6 +47,7 @@ import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +374,8 @@ class MMDTrainer(Trainer):
         # JSON format for each phase of training that was recorded.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = json.loads(line)
+                # TODO: Should this be routed through the jbfs load chokepoint?
+                content = hjson.loads(line)
 
                 # If it's a summary of training metrics, add the values to the appropriate lists.
                 if content['mode'] == "train":
