@@ -942,10 +942,10 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
-def return_label_mapping(show_source: bool, source: str, source_info, label_dict: dict):
+def return_label_mapping(show_source: bool, source: str, source_path, label_dict: dict):
     logging.info(f"Using label mapping from"
                  f"     Source: {source}"
-                 f"     Info: {source_info}")
+                 f"     Path: {source_path}")
     if show_source:
         return label_dict, source
     else:
@@ -975,7 +975,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             if label_dict:
                 return return_label_mapping(show_source=show_source,
                                             source="training output",
-                                            source_info=model_manager.get_training_out_file(),
+                                            source_path=model_manager.get_training_out_file(),
                                             label_dict=label_dict)
 
     # If a model config was provided...
@@ -985,8 +985,8 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
         label_dict = get_label_dict(label_val)
         if label_dict:
             return return_label_mapping(show_source=show_source,
-                                        source= "model config",
-                                        source_info=model_config,
+                                        source="model config",
+                                        source_path=model_config.file_path,
                                         label_dict=label_dict)
 
     # If a training config was provided...
@@ -995,7 +995,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
         if label_dict:
             return return_label_mapping(show_source=show_source,
                                         source="training dataset config",
-                                        source_info=train_config.file_path,
+                                        source_path=train_config.file_path,
                                         label_dict=label_dict)
 
     # If the model manager was provided, check the default model config followed by the default training config.
@@ -1009,7 +1009,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             if label_dict:
                 return return_label_mapping(show_source=show_source,
                                             source="model config via model manager",
-                                            source_info=model_manager.get_model_config(),
+                                            source_path=model_manager.get_model_config(),
                                             label_dict=label_dict)
 
         # If the model config didn't have labels, get them from the training config.
@@ -1019,7 +1019,7 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             if label_dict:
                 return return_label_mapping(show_source=show_source,
                                             source="training dataset config via model config via model manager",
-                                            source_info=dc.file_path,
+                                            source_path=dc.file_path,
                                             label_dict=label_dict)
 
     # If an eval config was provided, check this as a last resort.
