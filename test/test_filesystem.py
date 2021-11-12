@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import json
+import hjson
 import numpy as np
 from pathlib import Path
 
@@ -201,6 +202,7 @@ def test_hash_function(tmp_path):
 def test_json_cleaner():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     str_results = json.dumps(data, indent=4, default=jbfs.json_cleaner)
-    results = json.loads(str_results)
+    # TODO: Should this be routed through the jbfs load chokepoint?
+    results = hjson.loads(str_results)
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]

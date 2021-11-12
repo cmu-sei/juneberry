@@ -40,6 +40,7 @@ install_requires = [
     "pycocotools",
     "brambox",
     "pyyaml",
+    "hjson",
     "natsort",
     "prodict",
     "jsonschema",

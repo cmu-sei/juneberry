@@ -216,8 +216,7 @@ class ModelConfig(Prodict):
             # dictionary from inside the indicated file.
             if type(self.label_mapping) is str:
                 self.label_mapping = Path(self.label_mapping)
-                with open(self.label_mapping) as mapping_file:
-                    file_content = json.load(mapping_file)
+                file_content = jbfs.load_file(self.label_mapping)
                 # TODO: Convert these files too and look for both/either
                 self.label_dict = file_content['labelNames']
 

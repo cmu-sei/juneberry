@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -55,6 +33,8 @@ from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
 from juneberry.config.dataset import DatasetConfig
+
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -221,8 +201,7 @@ def load_from_json_file(file_path) -> COCOImageHelper:
     :param file_path:
     :return: Constructed COCOImageHelper
     """
-    with open(file_path) as json_file:
-        return COCOImageHelper(json.load(json_file), file_path)
+    return COCOImageHelper(jbfs.load_file(file_path), file_path)
 
 
 def convert_predictions_to_annotations(predictions: list) -> list:
@@ -256,29 +235,24 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: dict, category_mapping: List = None) -> dict:
-    annos = []
-    obj_id = 0
-
-    # Make a series of annotations from the predictions
-    for pred in predictions:
-        anno = copy.copy(pred)
-        anno['area'] = pred['bbox'][2] * pred['bbox'][3]
-        anno['id'] = obj_id
-        anno['iscrowd'] = 0
-        obj_id += 1
-        annos.append(anno)
-
-    if not category_mapping:
-        category_mapping = coco_data['categories']
+def convert_predictions_to_coco(coco_data: dict, predictions: list, category_list: List = None) -> dict:
+    """
+    Converts a predictions (detections) list to a coco formatted annotation file with images.
+    :param coco_data: A base coco file with images.
+    :param predictions: The list of predictions (detections).
+    :param category_list: Optional list of categories to use instead of the ones int the coco_data.
+    :return: coco formatted data
+    """
+    if not category_list:
+        category_list = coco_data['categories']
 
     return {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
         'images': coco_data['images'],
-        'annotations': annos,
-        'categories': category_mapping
+        'annotations': convert_predictions_to_annotations(predictions),
+        'categories': category_list
     }
 
 
@@ -345,7 +319,7 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     return coco_format
 
 
-def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_mapping: List = False,
+def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
                              output_file: Path = None):
     """
     This function is responsible for converting coco-style object detection predictions into
@@ -353,7 +327,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     :param data_root: A Path to a data root directory where the source images can be found.
     :param dataset_config: A string indicating the path to the dataset config that describes the source images.
     :param predict_file: A string indicating the path to the file containing the bounding boxes that were predicted.
-    :param category_mapping: A dictionary containing the mapping of categories.
+    :param category_list: A list containing the coco formatted categories.
     :param output_file: A optional Path indicating where to save the resulting annotations file. When this is not
     provided, the default will save the annotations file to the current working directory using a variation of
     the name of the predictions file.
@@ -372,10 +346,9 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     with open(data_root / coco_path) as json_file:
         coco_data = json.load(json_file)
 
-    with open(predict_file) as json_file:
-        predictions = json.load(json_file)
+    predictions = jbfs.load_file(predict_file)
 
-    coco_out = convert_predictions_to_coco(coco_data, predictions, category_mapping)
+    coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
     with open(output_file, "w") as json_file:
         json.dump(coco_out, json_file, indent=4)
 
@@ -406,8 +379,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         logger.info(f"The output directory was not found, so it was created.")
 
     # Load the COCO annotations.
-    with open(coco_json) as f:
-        coco = json.load(f)
+    coco = jbfs.load_file(coco_json)
         
     # Use a COCOImageHelper to obtain the legend.
     helper = COCOImageHelper(coco)
