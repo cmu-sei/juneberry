@@ -939,9 +939,17 @@ def convert_dict(stanza):
 
 
 def return_label_mapping(show_source: bool, source: str, source_path, label_dict: dict):
-    logging.info(f"Using label mapping from"
-                 f"     Source: {source}"
-                 f"     Path: {source_path}")
+    """
+    Logs information about the source of the label mapping and returns the label dictionary and (optional) source.
+    :param show_source: Boolean indicating if the source should be returned (for testing purposes).
+    :param source: String indicating the type of file from which the label mapping was retrieved.
+    :param source_path: The path to the file from which the label mapping was retrieved.
+    :param label_dict: A dictionary containing an int -> string mapping of labels.
+    :return: The dictionary of label names and the source from which that dictionary was retrieved (optional).
+    """
+    logger.info(f"Using label mapping from"
+                f"     Source: {source}"
+                f"     Path: {source_path}")
     if show_source:
         return label_dict, source
     else:
@@ -1028,21 +1036,35 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
                                         label_dict=label_dict)
 
 
-def categories_in_dataset_config(config_path, data_root) -> list:
-    dataset_config = DatasetConfig.load(config_path)
-    coco_path = dataset_config.image_data.sources[0]['directory']
+def categories_in_dataset_config(config_path: Path, data_root: Path) -> list:
+    """
+    Pulls and returns the list of categories from the coco data.
+    :param config_path: The path to the dataset config file.
+    :param data_root: The path to the data root.
+    :return: The list of categories.
+    """
+    dataset_config = DatasetConfig.load(str(config_path))
+    # TODO: eliminate use of snake case
+    if 'imageData' in dataset_config:
+        coco_path = dataset_config.imageData['sources'][0]['directory']
+    else:
+        coco_path = dataset_config.image_data['sources'][0]['directory']
 
     # TODO: use future coco prodict
-    with open(data_root / coco_path) as json_file:
-        coco_data = json.load(json_file)
+    coco_data = jbfs.load_file(data_root / coco_path)
     if 'categories' in coco_data:
         return coco_data["categories"]
     else:
         return []
 
 
-def categories_in_model_config(model_config_path) -> list:
-    model_config_data = ModelConfig.load(model_config_path)
+def categories_in_model_config(model_config_path: Path) -> list:
+    """
+    Pulls, reformats, and returns the list of categories from the model config preprocessors.
+    :param model_config_path: The path to the model config file.
+    :returns: The list of categories.
+    """
+    model_config_data = ModelConfig.load(str(model_config_path))
     preprocessor_dict = model_config_data.preprocessors
     object_relabel_dict = next((item for item in preprocessor_dict if item["fqcn"] == "juneberry.transforms"
                                                                                       ".metadata_preprocessors"
@@ -1058,43 +1080,38 @@ def categories_in_model_config(model_config_path) -> list:
     return []
 
 
-def check_mappings(category_mapping: list, eval_manifest_path: Path, show_source: bool, source: str, source_path: str):
-    with open(eval_manifest_path) as json_file:
-        eval_manifest = json.load(json_file)
+def check_category_list(category_list: list, eval_manifest_path: Path, show_source: bool, source: str,
+                        source_path: str) -> Union[List, Tuple[List, str]]:
+    """
+    Checks that the extracted category list matches the evaluation manifest category list, and logs a warning if there
+    is a mismatch. Logs information about the source of the label mapping. Returns the category list and (optional)
+    source.
+    :param category_list: The list of categories.
+    :param eval_manifest_path: The path to the evaluation manifest file.
+    :param show_source: Boolean indicating if the source should be returned (for testing purposes).
+    :param source: String indicating the type of file from which the category list was retrieved.
+    :param source_path: The path to the file from which the category list was retrieved.
+    :return: The list of categories and the source from which the category list was retrieved (optional).
+    """
+    eval_manifest = jbfs.load_file(str(eval_manifest_path))
     eval_manifest_categories = eval_manifest["categories"]
-    if category_mapping != eval_manifest_categories:
-        logging.warning("The evaluation category mapping does not match that of the eval_manifest:"
-                        f"  category_mapping: {category_mapping}"
-                        f"  eval_manifest mapping: {eval_manifest_categories}")
-    logging.info(f"Using category mapping from"
-                 f"     Source: {source}"
-                 f"     Path: {source_path}")
+    if category_list != eval_manifest_categories:
+        logger.warning("The evaluation category list does not match that of the eval_manifest:"
+                       f"  category_list: {category_list}"
+                       f"  eval_manifest list: {eval_manifest_categories}")
+    logger.info(f"Using category mapping from"
+                f"     Source: {source}"
+                f"     Path: {source_path}")
     if show_source:
-        return category_mapping, source
+        return category_list, source
     else:
-        return category_mapping
+        return category_list
 
 
-def get_config_msgs(model_manager: ModelManager, train_config: DatasetConfig, eval_config: DatasetConfig):
-    model_config_msg = None
-    if model_manager:
-        model_config_msg = model_manager.get_model_config()
-
-    train_config_msg = None
-    if train_config:
-        train_config_msg = train_config.file_path
-
-    eval_config_msg = None
-    if eval_config:
-        eval_config_msg = eval_config.file_path
-
-    return model_config_msg, train_config_msg, eval_config_msg
-
-
-def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager = None,
-                         train_config: DatasetConfig = None,
-                         eval_config: DatasetConfig = None, data_root: Path = None,
-                         show_source: bool = False) -> Union[List, Tuple[List, str]]:
+def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = None,
+                      train_config: DatasetConfig = None,
+                      eval_config: DatasetConfig = None, data_root: Path = None,
+                      show_source: bool = False) -> Union[List, Tuple[List, str]]:
     """
     Checks a hierarchy of files to determine the set of categories for use in evaluation. The order of precedence
     is as follows: training manifest, validation manifest, model config, train config, and eval config.
@@ -1106,55 +1123,57 @@ def get_category_mapping(eval_manifest_path: Path, model_manager: ModelManager =
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: A dictionary containing the category mapping.
     """
-
+    model_config_path = None
     if model_manager:
         # Check the training manifest
         training_manifest_path = model_manager.get_training_data_manifest_path()
-        with open(training_manifest_path) as json_file:
-            train_manifest_data = json.load(json_file)
+        train_manifest_data = jbfs.load_file(str(training_manifest_path))
         if 'categories' in train_manifest_data:
-            category_mapping = train_manifest_data['categories']
-            if category_mapping:
-                return check_mappings(category_mapping, eval_manifest_path, show_source, "train manifest", str(training_manifest_path))
+            category_list = train_manifest_data['categories']
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
+                                           str(training_manifest_path))
 
         # Check the validation manifest
         validation_manifest_path = model_manager.get_validation_data_manifest_path()
-        with open(validation_manifest_path) as json_file:
-            val_manifest_data = json.load(json_file)
+        val_manifest_data = jbfs.load_file(str(validation_manifest_path))
         if 'categories' in val_manifest_data:
-            category_mapping = val_manifest_data['categories']
-            if category_mapping:
-                return check_mappings(category_mapping, eval_manifest_path, show_source, "val manifest", str(validation_manifest_path))
+            category_list = val_manifest_data['categories']
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
+                                           str(validation_manifest_path))
 
         # Check the model config
         model_config_path = model_manager.get_model_config()
-        category_mapping = categories_in_model_config(model_config_path)
-        if category_mapping:
-            return check_mappings(category_mapping, eval_manifest_path, show_source, "model config", model_config_path)
+        category_list = categories_in_model_config(model_config_path)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "model config",
+                                       model_config_path)
 
     # Check the training config
+    train_config_path = None
     if train_config:
         train_config_path = train_config.file_path
-        category_mapping = categories_in_dataset_config(train_config_path, data_root)
-        if category_mapping:
-            return check_mappings(category_mapping, eval_manifest_path, show_source, "train config", str(train_config_path))
+        category_list = categories_in_dataset_config(train_config_path, data_root)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "train config",
+                                       str(train_config_path))
 
     # Check the evaluation config
+    eval_config_path = None
     if eval_config:
         eval_config_path = eval_config.file_path
-        category_mapping = categories_in_dataset_config(eval_config_path, data_root)
-        if category_mapping:
-            return check_mappings(category_mapping, eval_manifest_path, show_source, "eval config", str(eval_config_path))
+        category_list = categories_in_dataset_config(eval_config_path, data_root)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "eval config",
+                                       str(eval_config_path))
 
     # Log detailed error message and exit
-    model_config_msg, train_config_msg, eval_config_msg = get_config_msgs(model_manager=model_manager,
-                                                                          train_config=train_config,
-                                                                          eval_config=eval_config)
     logger.error(f"Failed to retrieve a category mapping via the following args:\n"
                  f"  model_manager: {model_manager}\n"
-                 f"  model_config: {model_config_msg}\n"
-                 f"  train_config: {train_config_msg}\n"
-                 f"  eval_config: {eval_config_msg}\n"
+                 f"  model_config: {model_config_path}\n"
+                 f"  train_config: {train_config_path}\n"
+                 f"  eval_config: {eval_config_path}\n"
                  f"EXITING.")
     sys.exit(-1)
 
@@ -1209,6 +1228,7 @@ def load_path_label_manifest(filename, relative_to: Path = None):
     """
     pairs = []
     data = jbfs.load_file(filename)
+
     for row in data:
         path = row['path']
         if relative_to is not None:
