@@ -938,7 +938,7 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
-def return_label_mapping(show_source: bool, source: str, source_info, label_dict: dict):
+def _return_label_mapping(show_source: bool, source: str, source_info, label_dict: dict):
     logging.info(f"Using label mapping from"
                  f"     Source: {source}"
                  f"     Info: {source_info}")
@@ -969,10 +969,10 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
             label_val = training_output.options.label_mapping
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return return_label_mapping(show_source=show_source,
-                                            source="training output",
-                                            source_info=model_manager.get_training_out_file(),
-                                            label_dict=label_dict)
+                return _return_label_mapping(show_source=show_source,
+                                             source="training output",
+                                             source_info=model_manager.get_training_out_file(),
+                                             label_dict=label_dict)
 
     # If a model config was provided...
     if model_config:
@@ -980,19 +980,19 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
         label_val = model_config.label_mapping
         label_dict = get_label_dict(label_val)
         if label_dict:
-            return return_label_mapping(show_source=show_source,
-                                        source= "model config",
-                                        source_info=model_config,
-                                        label_dict=label_dict)
+            return _return_label_mapping(show_source=show_source,
+                                         source= "model config",
+                                         source_info=model_config,
+                                         label_dict=label_dict)
 
     # If a training config was provided...
     if train_config:
         label_dict = train_config.retrieve_label_names()
         if label_dict:
-            return return_label_mapping(show_source=show_source,
-                                        source="training dataset config",
-                                        source_info=train_config.file_path,
-                                        label_dict=label_dict)
+            return _return_label_mapping(show_source=show_source,
+                                         source="training dataset config",
+                                         source_info=train_config.file_path,
+                                         label_dict=label_dict)
 
     # If the model manager was provided, check the default model config followed by the default training config.
     if model_manager:
@@ -1003,29 +1003,29 @@ def get_label_mapping(model_manager: ModelManager = None, model_config: ModelCon
         if label_val is not None:
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return return_label_mapping(show_source=show_source,
-                                            source="model config via model manager",
-                                            source_info=model_manager.get_model_config(),
-                                            label_dict=label_dict)
+                return _return_label_mapping(show_source=show_source,
+                                             source="model config via model manager",
+                                             source_info=model_manager.get_model_config(),
+                                             label_dict=label_dict)
 
         # If the model config didn't have labels, get them from the training config.
         else:
             dc = DatasetConfig.load(mc.training_dataset_config_path)
             label_dict = dc.retrieve_label_names()
             if label_dict:
-                return return_label_mapping(show_source=show_source,
-                                            source="training dataset config via model config via model manager",
-                                            source_info=dc.file_path,
-                                            label_dict=label_dict)
+                return _return_label_mapping(show_source=show_source,
+                                             source="training dataset config via model config via model manager",
+                                             source_info=dc.file_path,
+                                             label_dict=label_dict)
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
         label_dict = eval_config.retrieve_label_names()
         if label_dict:
-            return return_label_mapping(show_source=show_source,
-                                        source="eval dataset config",
-                                        source_path=eval_config.file_path,
-                                        label_dict=label_dict)
+            return _return_label_mapping(show_source=show_source,
+                                         source="eval dataset config",
+                                         source_info=eval_config.file_path,
+                                         label_dict=label_dict)
 
 
 def categories_in_dataset_config(config_path, data_root) -> list:
