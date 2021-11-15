@@ -343,9 +343,8 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     dataset = DatasetConfig.load(dataset_config)
     coco_path = dataset.image_data.sources[0]['directory']
 
-    with open(data_root / coco_path) as json_file:
-        coco_data = json.load(json_file)
-
+    # Load the json files
+    coco_data = jbfs.load_file(data_root / coco_path)
     predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)

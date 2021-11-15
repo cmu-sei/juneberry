@@ -1099,7 +1099,7 @@ def check_category_list(category_list: list, eval_manifest_path: Path, show_sour
         logger.warning("The evaluation category list does not match that of the eval_manifest:"
                        f"  category_list: {category_list}"
                        f"  eval_manifest list: {eval_manifest_categories}")
-    logger.info(f"Using category mapping from"
+    logger.info(f"Using category list from"
                 f"     Source: {source}"
                 f"     Path: {source_path}")
     if show_source:
@@ -1128,20 +1128,18 @@ def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = No
         # Check the training manifest
         training_manifest_path = model_manager.get_training_data_manifest_path()
         train_manifest_data = jbfs.load_file(str(training_manifest_path))
-        if 'categories' in train_manifest_data:
-            category_list = train_manifest_data['categories']
-            if category_list:
-                return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
-                                           str(training_manifest_path))
+        category_list = train_manifest_data.get('categories', None)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
+                                       str(training_manifest_path))
 
         # Check the validation manifest
         validation_manifest_path = model_manager.get_validation_data_manifest_path()
         val_manifest_data = jbfs.load_file(str(validation_manifest_path))
-        if 'categories' in val_manifest_data:
-            category_list = val_manifest_data['categories']
-            if category_list:
-                return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
-                                           str(validation_manifest_path))
+        category_list = val_manifest_data.get('categories', None)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
+                                       str(validation_manifest_path))
 
         # Check the model config
         model_config_path = model_manager.get_model_config()
@@ -1169,7 +1167,7 @@ def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = No
                                        str(eval_config_path))
 
     # Log detailed error message and exit
-    logger.error(f"Failed to retrieve a category mapping via the following args:\n"
+    logger.error(f"Failed to retrieve a category list via the following args:\n"
                  f"  model_manager: {model_manager}\n"
                  f"  model_config: {model_config_path}\n"
                  f"  train_config: {train_config_path}\n"
