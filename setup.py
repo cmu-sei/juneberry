@@ -51,7 +51,7 @@ install_requires = [
 ]
 
 bin_scripts = [
-    'bin/jb_attack_to_rules'
+    'bin/jb_attack_to_rules',
     'bin/jb_clean_predictions',
     'bin/jb_evaluate',
     'bin/jb_experiment_to_rules',
