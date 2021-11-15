@@ -132,10 +132,6 @@ def main():
     bin_dir = Path(__file__).parent.absolute()
     logger.info(f"Using bin directory: {bin_dir}")
 
-    # Find scripts directory
-    scripts_dir = Path(__file__).parent.parent.absolute() / "scripts"
-    logger.info(f"Using scripts directory: {scripts_dir}")
-
     # Generate appropriate dodo.py file for the workflow
     if args.dryrun:
         workflow = "dryrun"
@@ -186,9 +182,10 @@ def main():
     if not rules_path.exists() and attack_path.exists():
         logger.info(f"rules.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment rules.json file for {args.experimentName} using the attack config.")
-        jbworkflow.run_command(dependencies=[],
-                               args=[scripts_dir / "setup_attack.py", args.experimentName],
-                               show_command=show_command)
+        jbworkflow.run_command(
+            dependencies=[],
+            args=[bin_dir / "jb_attack_to_rules", args.experimentName],
+            show_command=show_command)
 
     dodo_path = experiment_manager.get_experiment_dodo(workflow)
     if not dodo_path.exists():

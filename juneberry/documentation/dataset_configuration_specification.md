@@ -241,7 +241,7 @@ specified in `load_kwargs` as an array of 2 strings which are then used verbatim
 
 For Evaluation:
 
-- If neither "use_evaluation_split" or "use_validation_split" are specified to `jb_evaluate_data` on the command line:
+- If neither "use_evaluation_split" or "use_validation_split" are specified to `jb_evaluate` on the command line:
     - If "split" specified, then "split" is used directly.
     - If not specified, then "test" is used as the split value.
 - If either "use_evaluation_split" or "use_validation_split" are specified then the the rules for training above
