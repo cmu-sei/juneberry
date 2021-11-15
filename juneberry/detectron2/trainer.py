@@ -180,7 +180,8 @@ class Detectron2Trainer(Trainer):
 
         # Set our datasets to the ones we registered
         cfg.DATASETS.TRAIN = [dt2_data.TRAIN_DS_NAME]
-        cfg.DATASETS.TEST = [dt2_data.VAL_DS_NAME]
+        if self.val_len > 0:
+            cfg.DATASETS.TEST = [dt2_data.VAL_DS_NAME]
 
         # The num classes should be the same
         cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
@@ -220,9 +221,11 @@ class Detectron2Trainer(Trainer):
 
         # We want to evaluate after every epoch.
         # TODO: Add "validate every N epochs" type config
-        cfg.TEST.EVAL_PERIOD = self.iter_per_epoch
-        # We want to checkpoint every time we evaluate
-        cfg.SOLVER.CHECKPOINT_PERIOD = cfg.TEST.EVAL_PERIOD
+        if self.val_len > 0:
+            cfg.TEST.EVAL_PERIOD = self.iter_per_epoch
+        else:
+            cfg.TEST.EVAL_PERIOD = 0
+        cfg.SOLVER.CHECKPOINT_PERIOD = self.iter_per_epoch
 
         # ===============================================
         # Okay, we need to scale everything based on GPUs.  We use detectron2 to scale everything.
@@ -285,14 +288,15 @@ class Detectron2Trainer(Trainer):
 
         # Set our own dataset mappers to deal with transforms
         self.train_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.training_transforms, True)
-        self.test_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
-        # N.B. To calculate the validation loss, we need a training mapper, the test mappers remove the annotations
-        #      required for calculating the FPN loss terms:
-        #      https://detectron2.readthedocs.io/en/latest/_modules/detectron2/data/dataset_mapper.html#DatasetMapper.__init__
-        self.val_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, True)
+        if self.val_len > 0:
+            self.test_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
+            # N.B. To calculate the validation loss, we need a training mapper, the test mappers remove the annotations
+            #      required for calculating the FPN loss terms:
+            #      https://detectron2.readthedocs.io/en/latest/_modules/detectron2/data/dataset_mapper.html#DatasetMapper.__init__
+            self.val_dataset_mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, True)
 
-        # Construct the loss evaluator
-        self.setup_loss_evaluator()
+            # Construct the loss evaluator
+            self.setup_loss_evaluator()
 
     def train(self) -> None:
         cfg = self.cfg
@@ -344,7 +348,7 @@ class Detectron2Trainer(Trainer):
                 scheduler.step()
 
                 # Compute the loss for this step, if they want it
-                if self.model_config.detectron2.enable_val_loss:
+                if self.loss_evaluator and self.model_config.detectron2.enable_val_loss:
                     self.loss_evaluator.after_step(self)
 
                 # and iteration != max_iter - 1
