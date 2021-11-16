@@ -471,9 +471,14 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Added bounding boxes to {img_count} {img_str}.")
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
-def count_annotations(coco_json: Path) -> int:
-      # Load the COCO annotations.
-    coco = jbfs.load_file(coco_json)
+def count_annotations(coco_anno_json_file: str) -> int:
+    """
+    This function is counts the annotations in a COCO-formatted annotations JSON file.
+    :param coco_anno_json_file: The path to the COCO-formatted annotations JSON file.
+    :return: The number of annotations found.
+    """
+    # Load the COCO annotations.
+    coco = jbfs.load_file(Path(coco_anno_json_file))
     return len(coco["annotations"])
   
 """
