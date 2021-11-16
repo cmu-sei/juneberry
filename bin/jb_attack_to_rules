@@ -193,11 +193,14 @@ class AttackMaker:
 
         # Retrieve the property choice for the private model, the universe of possible choices, and set
         # a string to indicate which universe this private model is for.
-        private_model_arg = self.attack_config.watermarks.private_disjoint_args if disjoint \
-            else self.attack_config.watermarks.private_superset_args
-        universe = self.attack_config.watermarks.disjoint_args if disjoint \
-            else self.attack_config.watermarks.superset_args
-        type_str = 'disjoint' if disjoint else 'superset'
+        if disjoint:
+            private_model_arg = self.attack_config.watermarks.private_disjoint_args
+            universe = self.attack_config.watermarks.disjoint_args
+            type_str = 'disjoint'
+        else:
+            private_model_arg = self.attack_config.watermarks.private_superset_args
+            universe = self.attack_config.watermarks.superset_args
+            type_str = 'superset'
 
         # Verify that the desired selection for the private model is within the universe of possible choices.
         # If it isn't, log an error message and quit setting up the attack.
@@ -255,7 +258,7 @@ class AttackMaker:
         # Add rules to train and evaluate the disjoint shadow models.
         self._add_shadow_model_rule(workflow, disjoint=True)
 
-    def _add_shadow_model_rule(self, workflow, disjoint=False):
+    def _add_shadow_model_rule(self, workflow, disjoint=False) -> None:
         """
         This method is responsible for adding rules to train and evaluate the 'shadow' model(s) for the attack.
         :param workflow: The workflow where the rules will be added.
@@ -281,10 +284,12 @@ class AttackMaker:
 
         # Determine which universe of property choices to use, as well as the correct
         # shadow list to store the resulting evaluation output files.
-        universe = self.attack_config.watermarks.disjoint_args if disjoint \
-            else self.attack_config.watermarks.superset_args
-        shadow_eval_output_file_list = self.shadow_disjoint_eval_output_files_list if disjoint \
-            else self.shadow_superset_eval_output_files_list
+        if disjoint:
+            universe = self.attack_config.watermarks.disjoint_args
+            shadow_eval_output_file_list = self.shadow_disjoint_eval_output_files_list
+        else:
+            universe = self.attack_config.watermarks.superset_args
+            shadow_eval_output_file_list = self.shadow_superset_eval_output_files_list
 
         # Create the requested number of shadow models.
         for i in range(num_shadow_models):
