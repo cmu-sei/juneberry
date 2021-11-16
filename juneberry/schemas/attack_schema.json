@@ -19,7 +19,8 @@
                 "in_out_builder": { "$ref": "#/definitions/plugin" },
                 "query_data": { "type": "string" },
                 "training_data": { "type": "string" }
-            }
+            },
+            "required": ["in_out_builder", "query_data", "training_data"]
         },
         "models": {
             "type": "object",
@@ -29,7 +30,8 @@
                 "shadow": { "type": "string" },
                 "shadow_disjoint_quantity": { "type": "integer" },
                 "shadow_superset_quantity": { "type": "integer" }
-            }
+            },
+            "required": ["meta", "private", "shadow", "shadow_disjoint_quantity", "shadow_superset_quantity"]
         },
         "watermarks": {
             "type": "object",
@@ -40,8 +42,10 @@
                 "query_watermarks": { "$ref": "#/definitions/plugin" },
                 "superset_args": { "type": "array", "items": { "type": "object" } },
                 "training_watermarks": { "$ref": "#/definitions/plugin" }
-            }
+            },
+            "required": ["disjoint_args", "private_disjoint_args", "private_subset_args", "query_watermarks",
+                "superset_args", "training_watermarks"]
         }
     },
-    "required": [ ]
+    "required": ["data_configs", "models", "watermarks"]
 }
