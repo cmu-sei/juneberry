@@ -38,12 +38,12 @@
             "properties": {
                 "disjoint_args": { "type": "array", "items": { "type": "object" } },
                 "private_disjoint_args": { "type": "object" },
-                "private_subset_args": { "type": "object" },
+                "private_superset_args": { "type": "object" },
                 "query_watermarks": { "$ref": "#/definitions/plugin" },
                 "superset_args": { "type": "array", "items": { "type": "object" } },
                 "training_watermarks": { "$ref": "#/definitions/plugin" }
             },
-            "required": ["disjoint_args", "private_disjoint_args", "private_subset_args", "query_watermarks",
+            "required": ["disjoint_args", "private_disjoint_args", "private_superset_args", "query_watermarks",
                 "superset_args", "training_watermarks"]
         }
     },
