@@ -59,7 +59,7 @@ def remove_for_regen(file_path: Path, commit) -> None:
             logger.info(f"Removing {file_path} to ensure it gets regenerated.")
             file_path.unlink()
         else:
-            logger.info(f"WOULD Remove {file_path} so that it gets regenerated.")
+            logger.info(f"Would remove {file_path} so that it gets regenerated.")
 
 
 def main():
@@ -142,15 +142,15 @@ def main():
     exp_creator = jbfs.ExperimentCreator(args.experimentName)
     outline_path = Path(exp_creator.get_experiment_outline())
 
-    # If they want us to regenerate the config, then check for outline and delete config and its outputs
+    # If a regen was requested, try to delete the experiment config, rules file, and main_dodo file so
+    # they get regenerated.
     if args.regen:
-        # THIS IS A HACK
-        # We should NOT need to use the experiment creator.  The experiment creator
-        # class should go into the experiment manager
-        if outline_path.exists():
-            remove_for_regen(Path(experiment_manager.get_experiment_config()), args.commit)
-            remove_for_regen(Path(experiment_manager.get_experiment_rules()), args.commit)
-            remove_for_regen(Path(experiment_manager.get_experiment_dodo(workflow)), args.commit)
+        logger.info(f"Regeneration requested. Deleting files...")
+
+        remove_for_regen(Path(experiment_manager.get_experiment_config()), args.commit)
+        remove_for_regen(Path(experiment_manager.get_experiment_rules()), args.commit)
+        remove_for_regen(Path(experiment_manager.get_experiment_dodo(workflow)), args.commit)
+
         if not args.commit and not args.clean:
             sys.exit(0)
 
