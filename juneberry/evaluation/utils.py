@@ -63,11 +63,9 @@ def get_histogram(dataset_dicts, classes):
     histogram = np.zeros((num_classes,), dtype=np.int)
     for entry in dataset_dicts:
         annos = entry["annotations"]
-        classes = np.asarray(
-            [x["category_id"] for x in annos if not x.get("iscrowd", 0)], dtype=np.int)
+        classes = np.asarray([x["category_id"] for x in annos if not x.get("iscrowd", 0)], dtype=np.int)
         if len(classes):
-            assert classes.min(
-            ) >= 0, f"Got an invalid category_id={classes.min()}"
+            assert classes.min() >= 0, f"Got an invalid category_id={classes.min()}"
             assert (classes.max() < num_classes), \
                 f"Got an invalid category_id={classes.max()} for a dataset of {num_classes} classes"
         histogram += np.histogram(classes, bins=hist_bins)[0]
