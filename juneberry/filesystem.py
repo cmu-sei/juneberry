@@ -399,10 +399,7 @@ class AttackManager(ExperimentManager):
         :return: The path to a particular shadow model subdirectory within either the
         'superset' (default) or 'disjoint' shadow model subdirectory.
         """
-        model_dir = self.get_shadow_subdir(disjoint=disjoint) / str(model_num)
-        if not model_dir.exists():
-            model_dir.mkdir(parents=True, exist_ok=True)
-        return model_dir
+        return self.get_shadow_subdir(disjoint=disjoint) / str(model_num)
 
     def get_shadow_model_training_config_path(self, model_num: int, disjoint=False):
         """

@@ -298,6 +298,7 @@ class AttackMaker:
             # should be stored in, and then set up a ModelManager for this model.
             shadow_model_name = self.attack_manager.get_shadow_model_name(i, disjoint=disjoint)
             shadow_model_dir = self.attack_manager.get_shadow_model_dir(i, disjoint=disjoint)
+            shadow_model_dir.mkdir(parents=True, exist_ok=True)
             shadow_model_mgr = jbfs.ModelManager(shadow_model_name)
             logger.info(f"Adding a training rule for the following shadow model directory: models/{shadow_model_name}")
 
