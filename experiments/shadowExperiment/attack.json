@@ -2,7 +2,7 @@
     "format_version": "0.1.0",
     "models": {
         "shadow": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
-        "private": "imagenette_224x224_rgb_unit_test_tf_resnet50",
+        "private": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
         "meta": "tabular_binary_sample",
         "shadow_superset_quantity": 2,
         "shadow_disjoint_quantity": 2
