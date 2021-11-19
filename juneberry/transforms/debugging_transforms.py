@@ -60,16 +60,36 @@ class SizeCheckImageTransform:
 
 
 class NoOpTensorTransform:
-    def __init__(self, name):
+    def __init__(self, name, **kwargs):
         self.name = name
 
-    def __call__(self, arg):
+    def __call__(self, arg=None, **kwargs):
         """
         Transform that does nothing.
         :param arg: A single source value.
         :return: The value unchanged.
         """
         return arg
+
+
+class MinimumInOutBuilder:
+    def __init__(self, **kwargs):
+        self.base_dataset = "models/tabular_binary_sample/train_data_config.json"
+        self.base_csv = "models/tabular_binary_sample/train_data.csv"
+        self.training_file = kwargs["training_config_destination"]
+        self.val_file = kwargs["val_config_destination"]
+        self.test_file = kwargs["test_config_destination"]
+
+    def __call__(self, **kwargs):
+        from shutil import copyfile
+        from pathlib import Path
+
+        copyfile(self.base_dataset, self.training_file)
+        copyfile(self.base_dataset, self.val_file)
+        copyfile(self.base_dataset, self.test_file)
+
+        csv_name = (Path(self.base_csv)).name
+        copyfile(self.base_csv, Path(self.training_file).parent / csv_name)
 
 
 class TypeLogTransform:

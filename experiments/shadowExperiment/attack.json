@@ -1,46 +1,33 @@
 {
     "format_version": "0.1.0",
     "models": {
-        "shadow": "model_tests/lfw_baselines/leinonet-5-d/",
-        "private": "model_tests/lfw_baselines/leinonet-dp-5-q/",
-        "meta": "model_tests/xor_examples/simple_mlp/",
+        "shadow": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+        "private": "imagenette_224x224_rgb_unit_test_tf_resnet50",
+        "meta": "tabular_binary_sample",
         "shadow_superset_quantity": 2,
         "shadow_disjoint_quantity": 2
     },
     "data_configs": {
-        "training_data": "data_sets/cifar10.json",
-        "query_data": "data_sets/cifar10.json",
+        "training_data": "data_sets/imagenette_unit_train.json",
+        "query_data": "data_sets/imagenette_unit_test.json",
         "in_out_builder": {
-            "fqcn": "juneberry.attack.meta_classifier.QueryToINOUT",
+            "fqcn": "juneberry.transforms.debugging_transforms.MinimumInOutBuilder",
             "kwargs": {
-                "strategy": "iid | per_model"
+                "name": "MinimumInOutBuilder"
             }
         }
     },
     "watermarks": {
         "training_watermarks": {
-            "fqcn": "juneberry.watermark.MNISTColorPairTrain",
+            "fqcn": "juneberry.transforms.debugging_transforms.NoOpTensorTransform",
             "kwargs": {
-                "attribute_to_change": "digit | background",
-                "label_probs": {
-                    "0": [0.1,0.9],
-                    "1": [0.1,0.9],
-                    "2": [0.1,0.9],
-                    "3": [0.1,0.9],
-                    "4": [0.1,0.9],
-                    "5": [0.9,0.1],
-                    "6": [0.9,0.1],
-                    "7": [0.9,0.1],
-                    "8": [0.9,0.1],
-                    "9": [0.9,0.1]
-                }
+                "name": "NoOpTensorTransformer"
             }
         },
         "query_watermarks": {
-            "fqcn": "juneberry.watermark.MNISTColorPairQuery",
+            "fqcn": "juneberry.transforms.debugging_transforms.NoOpTensorTransform",
             "kwargs": {
-                "in_out_probs": [0.5, 0.5],
-                "number_query_groups": 50
+                "name": "NoOpTensorTransformer"
             }
         },
         "superset_args" : [
