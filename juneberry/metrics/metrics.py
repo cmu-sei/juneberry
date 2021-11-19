@@ -113,6 +113,8 @@ class Metrics:
         self.anno = bb.io.load("anno_coco",
                                str(anno_file),
                                parse_image_names=False)
+        if self.anno.empty:
+            raise ValueError("Cannot initialize Metrics with no annotations.")
 
     @staticmethod
     def create_with_filesystem_managers(model_mgr: ModelManager,

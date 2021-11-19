@@ -40,11 +40,10 @@ from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram
+from juneberry.evaluation.utils import get_histogram, populate_metrics
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
-import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
@@ -192,10 +191,7 @@ class Evaluator(EvaluatorBase):
         det.rename(self.eval_dir_mgr.get_detections_path())
         det = self.eval_dir_mgr.get_detections_path()
 
-        # Populate metrics
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
-        self.output.results.metrics.bbox = m.as_dict()
-        self.output.results.metrics.bbox_per_class = m.mAP_per_class
+        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()

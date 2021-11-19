@@ -27,6 +27,7 @@ from pathlib import Path
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
+import pytest
 
 import juneberry.metrics.metrics as metrics
 
@@ -34,6 +35,7 @@ import juneberry.metrics.metrics as metrics
 test_data_dir = Path(__file__).resolve().parent / "data"
 
 ground_truth_filename = test_data_dir / "ground_truth.json"
+ground_truth_no_annos_filename = test_data_dir / "ground_truth_no_annos.json"
 detections_filename = test_data_dir / "detections.json"
 
 with open(ground_truth_filename, 'r') as f:
@@ -54,6 +56,14 @@ def _pytest_assert_frame_equal(frame1, frame2):
         assert True
     except AssertionError:
         assert False
+
+
+def test_create_with_empty_annos():
+    with pytest.raises(ValueError):
+        _ = metrics.Metrics(ground_truth_no_annos_filename,
+                            detections_filename,
+                            "test_create_with_empty_annos_model_name",
+                            "test_create_with_empty_annos_det_name")
 
 
 def test_create_with_data():

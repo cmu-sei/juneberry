@@ -27,6 +27,7 @@ import itertools
 import logging
 import mmcv
 import numpy as np
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 import warnings
@@ -49,12 +50,11 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram
+from juneberry.evaluation.utils import get_histogram, populate_metrics
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
-import juneberry.metrics.metrics as metrics
 import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
@@ -260,15 +260,7 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
-        self.output.results.metrics.bbox = m.as_dict()
-        self.output.results.metrics.bbox_per_class = m.mAP_per_class
-
-        for k, v in self.output.results.metrics.bbox.items():
-            logger.info(k + " = " + str(v))
-
-        for k, v in self.output.results.metrics.bbox_per_class.items():
-            logger.info(k + " = " + str(v))
+        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
 
