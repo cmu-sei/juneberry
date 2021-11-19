@@ -132,8 +132,7 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
             kw_args = {}
         fqcn = model_config.evaluator.fqcn
 
-    reqd_args = ['lab', 'model_config', 'dataset',
-                 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
 
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
     for arg in reqd_args:
@@ -180,8 +179,7 @@ def predict_classes(data_generator, model, device):
     all_outputs = None
     for local_batch, local_labels in tqdm(data_generator):
         # Transfer to GPU
-        local_batch, local_labels = local_batch.to(
-            device), local_labels.to(device)
+        local_batch, local_labels = local_batch.to(device), local_labels.to(device)
 
         # Model computations
         output = model(local_batch)
@@ -190,8 +188,7 @@ def predict_classes(data_generator, model, device):
             if all_outputs is None:
                 all_outputs = output.detach().cpu().numpy()
             else:
-                all_outputs = np.concatenate(
-                    (all_outputs, output.detach().cpu().numpy()))
+                all_outputs = np.concatenate((all_outputs, output.detach().cpu().numpy()))
 
     return all_outputs.tolist()
 
@@ -208,8 +205,7 @@ def invoke_evaluator_method(evaluator, module_name: str):
     class_name = split_name[-1]
     args = {"evaluator": evaluator}
 
-    jb_loader.invoke_method(module_path=module_path, class_name=class_name,
-                            method_name="__call__", method_args=args)
+    jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
 def populate_metrics(model_manager: ModelManager,
