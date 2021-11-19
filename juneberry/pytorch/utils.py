@@ -22,6 +22,7 @@
 #
 # ======================================================================================================================
 
+from collections import namedtuple
 import logging
 import numpy as np
 from pathlib import Path
@@ -33,166 +34,66 @@ import traceback
 
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils import data
+import torch.utils.data as torch_data
+from torch.utils.data.dataset import T_co
 from torchsummary import summary
 from torchvision import transforms
 
-from juneberry.config.dataset import DataType, DatasetConfig, SamplingConfig, TaskType, TorchvisionData
-from juneberry.config.model import ModelConfig, PytorchOptions, SplittingAlgo, SplittingConfig
+from juneberry.config.model import PytorchOptions
 import juneberry.data as jb_data
-from juneberry.lab import Lab
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
-from juneberry.pytorch.image_dataset import ImageDataset
-from juneberry.pytorch.tabular_dataset import TabularDataset
-from juneberry.transform_manager import TransformManager
 import juneberry.utils as jb_utils
+import juneberry.transform_manager as jbtm
 
 logger = logging.getLogger(__name__)
 
+RandomState = namedtuple("RandomState", "numpy python pytorch")
 
-def make_data_loaders(lab, dataset_config, model_config, data_lst, split_lst, *, no_paging=False, predict_mode=False,
-                      collate_fn=None, sampler_args=None):
+
+# ======================================================================================================================
+# RANDOM
+#  ____                 _
+# |  _ \ __ _ _ __   __| | ___  _ __ ___
+# | |_) / _` | '_ \ / _` |/ _ \| '_ ` _ \
+# |  _ < (_| | | | | (_| | (_) | | | | | |
+# |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
+
+
+def get_random_state() -> RandomState:
     """
-    Creates the appropriate data loaders based on provided data lists and the configuration switches.
-    :param lab: The Juneberry Lab in which this operation occurs.
-    :param dataset_config: The data set config that describes the data.
-    :param model_config: A Juneberry ModelConfig object that may contain transforms and validation options.
-    :param data_lst: The data list to load. Pre-shuffled.
-    :param split_lst: The list of data to load that was split from the main dataset.
-    :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
-    :param collate_fn: Function that controls how samples are collated into batches.
-    :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used; None for no sampler
-    :param predict_mode: Boolean indicating if function is being called in prediction mode.
-    :return: When unit_test is False, this function returns data_loader, split_loader.
+    :return: A structure containing all the cached random states
     """
-    split_loader = None
-    if predict_mode:
-        logger.info("Constructing data loader from EVALUATION data set using prediction transforms.")
-        data_loader = make_data_loader(lab, dataset_config, data_lst, model_config.evaluation_transforms,
-                                       model_config.batch_size, no_paging=no_paging)
-
-    else:
-        logger.info("Constructing TRAINING data loader.")
-        data_loader = make_data_loader(lab, dataset_config, data_lst, model_config.training_transforms,
-                                       model_config.batch_size, no_paging=no_paging, collate_fn=collate_fn,
-                                       sampler_args=sampler_args)
-
-        logger.info("Constructing VALIDATION data loader.")
-        split_loader = make_data_loader(lab, dataset_config, split_lst, model_config.evaluation_transforms,
-                                        model_config.batch_size, no_paging=no_paging, collate_fn=collate_fn)
-
-    return data_loader, split_loader
+    return RandomState(numpy=np.random.get_state(),
+                       python=random.getstate(),
+                       pytorch=torch.get_rng_state())
 
 
-def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transform_config, batch_size,
-                     *, no_paging=False, collate_fn=None, sampler_args=None):
+def set_random_state(random_state: RandomState) -> None:
     """
-    A convenience method to:
-    1) Shuffle the data
-    2) Construct a transform manager (if transforms is not None)
-    3) Construct the appropriate data set
-    4) Wrap the data set in a data loader.
-    :param lab: The Juneberry Lab in which this operation occurs.
-    :param dataset_config: The data set configuration file used to construct the data list.
-    :param data_list: The data list to load. Pre-shuffled.
-    :param transform_config: A configuration for a TransformationManager.
-    :param batch_size: The batch size.
-    :param no_paging: Should the loader not page data
-    :param collate_fn: Function that controls how samples are collated into batches.
-    :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used, else None
-    :return: PyTorch DataLoader
+    Sets all the various random states form the random state structure.
+    :param random_state: The random state structure to set
+    :return: None
     """
-
-    # Convenience function to wrap these
-    dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_config, no_paging=no_paging)
-    # NOTE: We do not shuffle since the dataset conversion above already did
-    return wrap_dataset_in_dataloader(lab, dataset, batch_size, collate_fn=collate_fn, sampler_args=sampler_args)
+    np.random.set_state(random_state.numpy)
+    random.setstate(random_state.python)
+    torch.set_rng_state(random_state.pytorch)
 
 
-def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transform_config, *, no_paging=False):
-    """
-    Wraps the data_list in a Juneberry specific custom pytorch dataset:
-    1) Shuffle the data
-    2) Construct a transform manager (if transforms is not None)
-    3) Construct the appropriate dataset
-    :param dataset_config: The dataset configuration file used to construct the data list.
-    :param data_list: The data list to load. Pre-shuffled.
-    :param transform_config: A configuration for a TransformationManager.
-    :param no_paging: Boolean indicating if paging should be disabled.
-    :return: PyTorch dataset
-    """
-    logger.info(f"...shuffling data...")
-    random.shuffle(data_list)
+class PyTorchStagedTransform(jbtm.StagedTransformManager):
+    def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
+        super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
+        self.random_state: RandomState
+        self.random_state = None
 
-    transform_manager = None
+    def save_random_state(self):
+        self.random_state = get_random_state()
 
-    if transform_config is not None:
-        logger.info(f"...found transforms - attempting construction...")
-        transform_manager = TransformManager(transform_config)
+    def restore_random_state(self):
+        set_random_state(self.random_state)
 
-    if dataset_config.data_type == DataType.IMAGE and dataset_config.image_data.task_type == TaskType.CLASSIFICATION:
-        logger.info(f"...constructing ImageDataset...")
-        dataset = ImageDataset(data_list, transform_manager, no_paging)
-
-    elif dataset_config.data_type == DataType.TABULAR:
-        logger.info(f"...constructing TabularDataset...")
-        dataset = TabularDataset(data_list, transform_manager)
-
-    else:
-        logger.error(f"Unsupported DataType - '{dataset_config.data_type}' or task type "
-                     f"{dataset_config.task_type}. EXITING!")
-        sys.exit(-1)
-
-    logger.info(f"...dataset has len={len(dataset)} from data_list len={len(data_list)}")
-
-    return dataset
-
-
-def wrap_dataset_in_dataloader(lab: Lab, dataset, batch_size, *,
-                               collate_fn=None, sampler_args=None, shuffle=False):
-    """
-    Wraps the dataset in a DataLoader with the correct configuration.
-    :param lab: The Juneberry Lab in which this operation occurs.
-    :param dataset: A pytorch dataset to wrap.
-    :param batch_size: The batch size.
-    :param collate_fn: Function that controls how samples are collated into batches.
-    :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used, else None
-    :param shuffle: True to shuffle data.  By default we assume it is shuffled.
-    :return: A pytorch DataLoader
-    """
-
-    # A sampler is usually associated with distributed training. The world size indicates the number of
-    # distributed processes, while the rank is a way to identify which process is which. The sampler is
-    # responsible for making sure the input data is distributed across all processes.
-    sampler = None
-    if sampler_args is not None:
-        world_size, rank = sampler_args
-        logger.info(f"...constructing data sampler rank={rank}, world_size={world_size}")
-        # TODO: The DistributedSampler has its own "shuffle" arg that defaults to True.
-        #  So during distributed training the data gets shuffled, which may lead to
-        #  differing results and might be unnecessary.
-        sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
-        shuffle = False
-
-    # Parameters
-    params = {'batch_size': batch_size,
-              'shuffle': shuffle,
-              'num_workers': lab.num_workers,
-              'collate_fn': collate_fn,
-              'sampler': sampler,
-              'worker_init_fn': worker_init_fn}
-
-    # This is required to make sure pieces of sampled data don't show up in multiple processes.
-    if sampler_args is not None:
-        params['drop_last'] = True
-
-    # We want to pass in batches from the input set so we tell the data loader
-    # to provide us with batches.
-    logger.info(f"...constructing DataLoader with {params} ...")
-    loader = data.DataLoader(dataset, **params)
-    logger.info(f"Constructed data loader has len={len(loader)}")
-    return loader
+    def set_seeds(self, seed):
+        set_pytorch_seeds(seed)
 
 
 def worker_init_fn(worker_id):
@@ -204,190 +105,9 @@ def worker_init_fn(worker_id):
     #   np.random.get_state()[1][0] + worker_id
     # but that ends up being the same for every epoch and we don't want that.
     # Numpy only supports 32-bit seeds, so we just use the lower bits.
-    seed = data.get_worker_info().seed & 0xFFFFFFFF
+    seed = torch_data.get_worker_info().seed & 0xFFFFFFFF
     logger.debug(f"Setting worker {worker_id} numpy seed to {seed}")
     np.random.seed(seed)
-
-
-#  _____              _          _     _
-# |_   _|__  _ __ ___| |____   _(_)___(_) ___  _ __
-#   | |/ _ \| '__/ __| '_ \ \ / / / __| |/ _ \| '_ \
-#   | | (_) | | | (__| | | \ V /| \__ \ | (_) | | | |
-#   |_|\___/|_|  \___|_| |_|\_/ |_|___/_|\___/|_| |_|
-
-
-class DatasetView(data.Dataset):
-    """
-    This dataset takes an ordered set of indices and returns a dataset with the items in that order.
-    """
-
-    def __init__(self, dataset, remap_list: list):
-        """
-        Constructs a view into the dataset.
-        :param dataset: The dataset of items.
-        :param remap_list: A sequence of items to return as the new view.
-        """
-        self.remap_list = remap_list
-        self.dataset = dataset
-
-    def __len__(self):
-        """
-        :return: Total number of samples.
-        """
-        return len(self.remap_list)
-
-    def __getitem__(self, index):
-        """
-        :param index: The index to fetch.
-        :return: The item at this index.
-        """
-        if index >= len(self.remap_list):
-            logger.error(f"Asked for item greater than the our len. "
-                         f"index={index}, view_len={len(self.remap_list)}, ds_len={len(self.dataset)}")
-            sys.exit(-1)
-        return self.dataset[self.remap_list[index]]
-
-
-def construct_transform_manager(transform_list):
-    if transform_list is not None:
-        return TransformManager(transform_list)
-    return None
-
-
-def sample_and_split(count, *, sampling_config: SamplingConfig = None, splitting_config: SplittingConfig = None):
-    """
-    Returns two lists of indices sampled based on the sampling config and then split based on the
-    splitting config.
-    :param count: The number of indices to sample and split.
-    :param sampling_config: Optional sampling config.
-    :param splitting_config: Optional splitting config.
-    :return: Unshuffled list of training indices and validation indices.
-    """
-
-    # Make a list of all the items
-    training_indices = list(range(count))
-    validation_indices = []
-
-    logger.info(f"Sample and Split: Initially {count} items.")
-
-    # Sample if they gave us a config
-    if sampling_config and sampling_config.algo:
-        training_indices = jb_data.sample_data_list(training_indices, **sampling_config._asdict())
-        logger.info(f"Sample and Split: Sampled down to {len(training_indices)} training items.")
-    else:
-        logger.info(f"Sample and Split: No sampling")
-
-    # Split if they gave us a config
-    if splitting_config and splitting_config.algo:
-        # The training_indices are modified IN PLACE
-        validation_indices = jb_data.split_list(training_indices, **splitting_config._asdict())
-        logger.info(f"Sample and Split: Split to {len(training_indices)} training and {len(validation_indices)} "
-                    f"validation items.")
-    else:
-        logger.info(f"Sample and Split: No splitting")
-
-    # Hand them back
-    return training_indices, validation_indices
-
-
-def construct_torchvision_dataloaders(lab, tv_data: TorchvisionData, model_config: ModelConfig,
-                                      sampling_config: SamplingConfig = None,
-                                      *, collate_fn=None, sampler_args=None):
-    """
-    Constructs the training and validation torchvision dataloaders.
-    :param lab: The lab in which this takes place.
-    :param tv_data: The torchvision data object.
-    :param model_config: The model config.
-    :param sampling_config: A config for how to sample the training dataset.
-    :param collate_fn: Optional collate function. (Usually for distributed.)
-    :param sampler_args: Optional sampler arguments. (Usually for distributed.)
-    :return: The constructed training and validation data loaders.
-    """
-    if tv_data is None:
-        logger.error("Asked to construct torchvision datasets but torchvision_data not supplied. EXITING.")
-        sys.exit(-1)
-
-    # Construct the training set
-    train_dataset = construct_torchvision_dataset(
-        lab, tv_data.fqcn, tv_data.root, tv_data.train_kwargs,
-        data_transforms=construct_transform_manager(model_config.training_transforms),
-        target_transforms=construct_transform_manager(model_config.training_target_transforms))
-
-    # Look at the validation split and see where we want to get the validation data from
-    splitting_config = model_config.get_validation_split_config()
-
-    if splitting_config.algo == SplittingAlgo.FROM_FILE:
-        logger.error(f"Torchvision datasets do NOT support 'from_file' splitting.")
-        sys.exit(-1)
-    elif splitting_config.algo == SplittingAlgo.NONE:
-        val_dataset = []
-    elif splitting_config.algo == SplittingAlgo.RANDOM_FRACTION:
-        # Construct a list of indices and sample and split them. Then create two views based on those
-        train_indices, val_indices = sample_and_split(len(train_dataset), sampling_config=sampling_config,
-                                                      splitting_config=splitting_config)
-        orig_dataset = train_dataset
-        train_dataset = DatasetView(orig_dataset, train_indices)
-        val_dataset = DatasetView(orig_dataset, val_indices)
-    elif splitting_config.algo == SplittingAlgo.TORCHVISION:
-        # construct and wrap the validation dataset
-        val_dataset = construct_torchvision_dataset(
-            lab, tv_data.fqcn, tv_data.root, tv_data.val_kwargs,
-            data_transforms=construct_transform_manager(model_config.evaluation_transforms),
-            target_transforms=construct_transform_manager(model_config.evaluation_target_transforms))
-    else:
-        logger.error(f"Unknown splitting algo: {splitting_config.algo}")
-        sys.exit(-1)
-
-    # Now, wrap the dataset in data loaders
-    training_iterable = wrap_dataset_in_dataloader(
-        lab, train_dataset, model_config.batch_size, collate_fn=collate_fn, sampler_args=sampler_args,
-        shuffle=True)
-    validation_iterable = wrap_dataset_in_dataloader(
-        lab, val_dataset, model_config.batch_size, collate_fn=collate_fn, sampler_args=sampler_args,
-        shuffle=True)
-
-    return training_iterable, validation_iterable
-
-
-def construct_torchvision_dataset(lab, fqcn: str, data_path: str, kwargs: dict, *,
-                                  data_transforms=None,
-                                  target_transforms=None):
-    """
-    Constructs a torchvision style dataset.
-    :param lab: The lab in which this takes place.
-    :param fqcn: The FQCN to the class to construct.
-    :param data_path: A branch path within the data root.
-    :param kwargs: A set of kwargs to pass in during construction.
-    :param data_transforms: Optional set of data transforms.  Callable that takes 'data'.
-    :param target_transforms: Optional set of target transforms. Callable that takes 'target'.
-    :return: The constructed instance.
-    """
-    # Example
-    # imagenet_data = torchvision.datasets.ImageNet('path/to/imagenet_root/')
-
-    # Make a copy of their args
-    if kwargs is not None:
-        kwargs = kwargs.copy()
-    else:
-        kwargs = {}
-
-    # Strip out the three we overwrite so we don't leave any old junk
-    for key in ['root', 'transform', 'target_transform']:
-        if key in kwargs:
-            del kwargs[key]
-
-    # NOTE: The root is an optional argument for most but not all
-    opt_args = {'root': str(lab.data_root() / data_path)}
-
-    # Now add our versions
-    if data_transforms is not None:
-        kwargs['transform'] = data_transforms
-    if target_transforms is not None:
-        kwargs['target_transform'] = target_transforms
-
-    logger.info(f"Constructing torchvision dataset: '{fqcn}' with args: {kwargs}, {opt_args}")
-    # Load the module with the args
-    return jbloader.construct_instance(fqcn, kwargs, opt_args)
 
 
 #  __  __           _      _
@@ -540,7 +260,7 @@ def set_pytorch_seeds(seed: int):
     :param seed: A random seed to use. Can not be None.
     """
     jb_utils.set_seeds(seed)
-    logger.info(f"Setting PyTorch seed to: {str(seed)}")
+    logger.debug(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
 
@@ -751,3 +471,16 @@ def invoke_evaluator_method(evaluator, module_name: str):
     args = {"evaluator": evaluator}
 
     jbloader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
+
+
+class EpochDataset(torch_data.Dataset):
+    """ Base class for datasets that support an epoch notion. """
+
+    def __init__(self):
+        self.epoch = 0
+
+    def __getitem__(self, index) -> T_co:
+        raise NotImplementedError
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch

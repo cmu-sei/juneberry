@@ -23,18 +23,21 @@
 # ======================================================================================================================
 
 import datetime as dt
+import inspect
 import logging
 from PIL import Image
-from torch import Tensor
-from torch.utils import data
-import torchvision.transforms.functional as functional
 from typing import Tuple, List
 import warnings
+
+from torch import Tensor
+import torchvision.transforms.functional as functional
+
+from juneberry.pytorch.utils import EpochDataset
 
 logger = logging.getLogger(__name__)
 
 
-class ImageDataset(data.Dataset):
+class ImageDataset(EpochDataset):
     """
     Loads our data set for PyTorch from a list of entries of filename and labels and also allows on the fly
     transformation. This does not change the order of the images.
@@ -48,10 +51,18 @@ class ImageDataset(data.Dataset):
            return an image of same shape.
         :param no_paging: Set to true to disable paging and load all source images
         """
+        super().__init__()
+
         self.data = data_list
         self.transforms = transforms
         self.image_cache = {}
         self.no_paging = no_paging
+
+        # If the transforms takes the extended set, use them all
+        self.extended_signature = False
+        if transforms is not None:
+            params = inspect.signature(transforms).parameters.keys()
+            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
 
         # Filters out a warning associated with a known Pillow issue that occurs
         # when opening images.
@@ -69,7 +80,7 @@ class ImageDataset(data.Dataset):
             elapsed = (dt.datetime.now() - start_time).total_seconds()
 
             logger.info(f"...preloading complete! {len(data_list)} images loaded in {elapsed} seconds. "
-                         f"{len(data_list)/elapsed:0.2f} images per second.")
+                        f"{len(data_list)/elapsed:0.2f} images per second.")
 
     def __len__(self):
         """
@@ -93,7 +104,10 @@ class ImageDataset(data.Dataset):
             image = Image.open(file_path)
 
         if self.transforms is not None:
-            image = self.transforms.transform(image)
+            if self.extended_signature:
+                image = self.transforms(item=image, index=index, epoch=self.epoch)
+            else:
+                image = self.transforms(image)
 
         # We want to pass back a tensor, so convert if it wasn't already converted
         if not isinstance(image, Tensor):

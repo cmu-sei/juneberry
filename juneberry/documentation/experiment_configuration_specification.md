@@ -17,7 +17,7 @@ and the generation of some number of reports from aggregates of the test results
     "filters": [
         {
             "tag": "Tag referenced from the model or test."
-            "cmd": [ string args with repalcement of 
+            "cmd": [ string args with replacement of 
                      {model_name} {train_output}
                      {eval_predictions}  {dataset_path} ],
             "inputs": [ same as command ]

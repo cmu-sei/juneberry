@@ -14,6 +14,10 @@ configuration file as part of the input.
 # Schema
 ```
 {
+    "data_transforms": {
+        "seed": < OPTIONAL int seed for randomization of the data transforms >
+        "transforms": [ <array of transforms - see below> ]
+    },
     "data_type": <Type of data [image | tabular | torchvision]>,
     "description": <OPTIONAL text description>,
     "format_version": <Linux style version string of the format of this file>,
@@ -50,7 +54,7 @@ configuration file as part of the input.
     },
     "tensorflow_data": {
         "name": <The name of the tensorflow dataset, e.g. 'mnist'>,
-        "load_kwargs": <OPTIONAL: kwargs to pass to the load function>,
+        "load_kwargs": <OPTIONAL: kwargs to pass to the load function.>,
     }
     "timestamp": <OPTIONAL last modified - isoformat() with 0 microseconds>
     "torchvision_data": {
@@ -65,6 +69,17 @@ configuration file as part of the input.
 
 # Details
 This section provides the details of each of the fields.
+
+## data_transforms
+**Optional** structure for specifying transforms to apply to the data.
+
+### seed
+**Optional** random seed to use to control the data transforms.
+
+### transforms
+An array of transforms that are applied to the data before either the "training_transforms" or
+"evaluation_transforms" are applied. See the model configuration specification for a description of how 
+to use transforms.
 
 ## data_type
 The type of data this model is consuming. We support either 'image' or 'tabular'.
@@ -162,7 +177,6 @@ the subsequent row is passed to the transformer.
 
 ### algorithm
 This can be:
-* none - All images are used.
 * random_fraction - A random fraction is used to select a subset of images,
 with optional random seed.
 * random_quantity - A specific total quantity is pulled randomly from the images,
@@ -208,11 +222,30 @@ The string name of the TensorFlow dataset, e.g. "mnist".
 
 ### load_kwargs
 
-Additional keyword args to be passed into the dataset during load. Juneberry will automatically add 
-the "as_supervised=True" to set the dataset format properly for the training. The split 
-is usually set by Juneberry based on the "validation" stanza in the model config. However, if the
-validation split is set to "tensorflow", then any split in the keyword args is honored otherwise
-the splits are set to the default "train" and "test."
+This is a dictionary of additional keyword args to be passed to TensorFlow's load function when loading the
+dataset. ( https://www.tensorflow.org/datasets/api_docs/python/tfds/load )  Juneberry will automatically add 
+the "as_supervised=True" to set the dataset to format it properly for the training. 
+Some arguments such as `batch_size` and `shuffle` are stripped because Juneberry handles those aspects
+with a different mechanism. 
+
+**Split** requires special handling and follows these rules.
+
+For Training:
+
+- If "tensorflow" is specified as the validation algorithm in the *model config* then "split" **must** be
+specified in `load_kwargs` as an array of 2 strings which are then used verbatim.
+- If "random_fraction" is specified as the validation algorithm in the *model config* then:
+    - If "split" is in the `load_kwargs` dictionary and the value is a single string, then it is used as the 
+    basis to construct the split databases.
+    - If "split" is not in the `load_kwargs` dictionary then it is defaults to "train". 
+
+For Evaluation:
+
+- If neither "use_evaluation_split" or "use_validation_split" are specified to `jb_evaluate` on the command line:
+    - If "split" specified, then "split" is used directly.
+    - If not specified, then "test" is used as the split value.
+- If either "use_evaluation_split" or "use_validation_split" are specified then the the rules for training above
+  are followed and the appropriate split is selected.
 
 ## timestamp
 **Optional** Time stamp (ISO format with 0 microseconds) for when this file was last updated.
@@ -243,6 +276,7 @@ A set of kwargs to be passed into the **validation** instance, except for 'root'
 **NOTE**: This is ONLY used when the model specifies a validation algorithm of "torchvision".
 
 # History:
+* 0.3.0 - Added tensorflow support.
 * 0.2.0 - Big conversion to snake case in Juneberry 0.4.
 
 # Copyright

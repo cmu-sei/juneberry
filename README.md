@@ -228,21 +228,22 @@ and uses the dataset config files
 [`data_sets/imagenette_unit_train.json`](./data_sets/imagenette_unit_train.json) to 'train' the model and 
 [`data_sets/imagenette_unit_test.json`](./data_sets/imagenette_unit_test.json) to test the model.  The output is stored
 in [`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18). 
-The experiment config file located in [`classificationSmokeTest`](./experiments/classificationSmokeTest) will use this model, along
-with the data sets, to generate two different ROC curves.
+The experiment config file located in [`experiments/smokeTests/classify`](./experiments/smokeTests/classify) will use 
+this model, along with the datasets, to generate several ROC curves.
 
 There are also sample object detection models that demonstrate the use of Detectron2 and MMDetection. They can 
 be found in the [`text_detect/dt2`](./models/text_detect/dt2) and [`text_detect/mmd`](./models/text_detect/mmd)
 directories under the Juneberry models directory.  Each has a "unit test" (`ut`) version and a "full" (`all`) version.
 The "unit test" version has too few images and epochs to provide a useful model output but exercises the infrastructure
-quickly so you can evaluate if things are working properly.
+quickly, so you can evaluate if things are working properly.
 
 # Experiment Tutorial
 
 ## Step 1 - Create a dataset config file
 Example dataset config file: [data_sets/imagenette_unit_train.json](./data_sets/imagenette_unit_train.json)
 
-For this example you will need the Imagenette data, which you can obtain by following the steps [here](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18/README.md)
+For this example you will need the Imagenette data, which you can obtain by following the 
+steps [here](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18/README.md).
 
 Dataset configs follow the format described in 
 [dataset_configuration_specification.md](./juneberry/documentation/dataset_configuration_specification.md) in the
@@ -250,12 +251,6 @@ Juneberry documentation directory. These config files are used to describe a dat
 which is composed of image directories, labels, sampling criteria
 and **desired** image properties. Remember that the paths are relative
 to an externally specified `data_root`.
-
-The script [jb_preview_filelist](./bin/jb_preview_filelist) can be used to preview the files that
-will be selected by a specific dataset config. Provide the data and config
-to the script and it will output a csv (`file_list_preview.csv` by default) listing the files.
-
-```jb_preview_filelist <data_root> data_sets/imagenette_unit_retrain.json```
 
 ## Step 2 - Create a model config file
 Example model config file: 
@@ -270,7 +265,7 @@ transforms, etc. See the documentation for details on each property of the model
 ## Step 3 - Train
 This step demonstrates how to use the training script to train a model. The most commonly
 used training script is [jb_train](./bin/jb_train), which requires a
-model name (i.e. the name of a sub-directory in the models directory containing a valid config.json 
+model name (i.e. the name of a sub-directory in the "models" directory containing a valid config.json 
 file) as input. The output of the training process is a trained model and training metrics in an 
 output JSON file.
 

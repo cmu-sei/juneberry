@@ -1,0 +1,46 @@
+{
+    "format_version": "0.1.0",
+    "models": {
+        "shadow": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+        "private": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+        "meta": "tabular_binary_sample",
+        "shadow_superset_quantity": 2,
+        "shadow_disjoint_quantity": 2
+    },
+    "data_configs": {
+        "training_data": "data_sets/imagenette_unit_train.json",
+        "query_data": "data_sets/imagenette_unit_test.json",
+        "in_out_builder": {
+            "fqcn": "juneberry.transforms.debugging_transforms.MinimumInOutBuilder",
+            "kwargs": {
+                "name": "MinimumInOutBuilder"
+            }
+        }
+    },
+    "watermarks": {
+        "training_watermarks": {
+            "fqcn": "juneberry.transforms.debugging_transforms.NoOpTensorTransform",
+            "kwargs": {
+                "name": "NoOpTensorTransformer"
+            }
+        },
+        "query_watermarks": {
+            "fqcn": "juneberry.transforms.debugging_transforms.NoOpTensorTransform",
+            "kwargs": {
+                "name": "NoOpTensorTransformer"
+            }
+        },
+        "superset_args" : [
+            {"color_pair": ["red", "green"]}, {"color_pair": ["green", "red"]},
+            {"color_pair": ["blue", "green"]}, {"color_pair": ["green", "blue"]},
+            {"color_pair": ["red", "blue"]}, {"color_pair": ["blue", "red"]}
+        ],
+        "disjoint_args" : [
+            {"color_pair": ["purple", "yellow"]}, {"color_pair": ["yellow", "purple"]},
+            {"color_pair": ["orange", "yellow"]}, {"color_pair": ["yellow", "orange"]},
+            {"color_pair": ["purple", "orange"]}, {"color_pair": ["orange", "purple"]}
+        ],
+        "private_superset_args" : {"color_pair": ["red", "green"]},
+        "private_disjoint_args" : {"color_pair": ["purple", "yellow"]}
+    }
+}

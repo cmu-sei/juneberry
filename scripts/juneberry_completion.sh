@@ -113,6 +113,16 @@ function _add_experiment_configs() {
 
 # Uses the traverse function to find model directories and
 # then uses compgen to downselect to useful options
+function _add_experiment_attack_configs() {
+  TRAVREPLY=()
+  find_things experiments attack.json
+  # Flatten all the replies into one list for compgen
+  FOO="${TRAVREPLY[@]}"
+  COMPREPLY+=($(compgen -W "${FOO}" "${COMP_WORDS[${1}]}"))
+}
+
+# Uses the traverse function to find model directories and
+# then uses compgen to downselect to useful options
 function _add_experiment_outlines() {
   TRAVREPLY=()
   find_things experiments experiment_outline.json
@@ -155,6 +165,7 @@ _jb_run_experiment_comp() {
   case ${COMP_CWORD} in
   1)
     _add_experiment_configs 1
+    _add_experiment_attack_configs 1
     _add_experiment_outlines 1
     ;;
   esac

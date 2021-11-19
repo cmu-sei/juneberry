@@ -22,11 +22,14 @@
 #
 # ======================================================================================================================
 
+import inspect
+
 import numpy as np
-from torch.utils import data
+
+from juneberry.pytorch.utils import EpochDataset
 
 
-class TabularDataset(data.Dataset):
+class TabularDataset(EpochDataset):
     """
     Loads data from a list of CSV files.
     We assume the CSV has a header in each input file, and that the headers are the same.
@@ -39,6 +42,14 @@ class TabularDataset(data.Dataset):
         :param rows_labels: A list of pairs of the row data and labels.
         :param transforms: Any transforms to be applied to each row of floats per epoch.
         """
+        super().__init__()
+
+        # If the transforms takes the extended set, use them all
+        self.extended_signature = False
+        if transforms is not None:
+            params = inspect.signature(transforms).parameters.keys()
+            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
+
         self.transforms = transforms
         for item in rows_labels:
             assert len(item) == 2
@@ -63,7 +74,10 @@ class TabularDataset(data.Dataset):
 
         if self.transforms is not None:
             row = row.copy()
-            row = self.transforms.transform(row)
+            if self.extended_signature:
+                image = self.transforms(item=row, index=index, epoch=self.epoch)
+            else:
+                row = self.transforms(row)
 
         # They want a row as float
         row = np.array(row).astype(np.float32)

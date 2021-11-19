@@ -36,16 +36,16 @@ import torch.distributed as dist
 
 import juneberry
 import juneberry.config.dataset as jb_dataset
+from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
+from juneberry.jb_logging import setup_logger
 import juneberry.plotting
+from juneberry.pytorch.acceptance_checker import AcceptanceChecker
+import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 import juneberry.tensorboard as jbtb
-
-from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
-from juneberry.jb_logging import setup_logger
-from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 from juneberry.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
 
@@ -170,9 +170,15 @@ class ClassifierTrainer(EpochTrainer):
         if train:
             self.model.train()
             torch.set_grad_enabled(True)
+            # If our datasets understand epochs, then tell them.
+            if isinstance(self.training_iterable.dataset, pyt_utils.EpochDataset):
+                self.training_iterable.dataset.set_epoch(self.epoch)
         else:
             self.model.eval()
             torch.set_grad_enabled(False)
+            # If our datasets understand epochs, then tell them.
+            if isinstance(self.evaluation_iterable.dataset, pyt_utils.EpochDataset):
+                self.evaluation_iterable.dataset.set_epoch(self.epoch)
 
         # In distributed training, each process will have a different loss/accuracy value. These lists are used to
         # collect the values from each process, so we need one tensor in the list for every process in the "world".
@@ -357,7 +363,7 @@ class ClassifierTrainer(EpochTrainer):
             if self.model_config.validation is not None:
                 logger.warning("Using a Torchvision Dataset. Ignoring validation split.")
 
-            self.training_iterable, self.evaluation_iterable = pyt_utils.construct_torchvision_dataloaders(
+            self.training_iterable, self.evaluation_iterable = pyt_data.construct_torchvision_dataloaders(
                 self.lab, self.dataset_config.torchvision_data, self.model_config,
                 self.dataset_config.get_sampling_config(),
                 sampler_args=sampler_args)
@@ -370,13 +376,13 @@ class ClassifierTrainer(EpochTrainer):
                 preprocessors=TransformManager(self.model_config.preprocessors))
 
             self.training_iterable, self.evaluation_iterable = \
-                pyt_utils.make_data_loaders(self.lab,
-                                            self.dataset_config,
-                                            self.model_config,
-                                            train_list,
-                                            val_list,
-                                            no_paging=self.no_paging,
-                                            sampler_args=sampler_args)
+                pyt_data.make_training_data_loaders(self.lab,
+                                                    self.dataset_config,
+                                                    self.model_config,
+                                                    train_list,
+                                                    val_list,
+                                                    no_paging=self.no_paging,
+                                                    sampler_args=sampler_args)
 
     def setup_model(self):
         logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "

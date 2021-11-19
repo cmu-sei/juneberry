@@ -29,6 +29,18 @@ import inspect
 logger = logging.getLogger(__name__)
 
 
+def takes_args(method, param_names:list) -> bool:
+    """
+    Determines if the method takes all the parameter name.
+    :param method: The method to check
+    :param param_names: A list of parameter names that must be in the function.
+    :return:
+    """
+    params = set(inspect.signature(method).parameters.keys())
+    for param_name in param_names:
+        if param_name not in params:
+            return False
+
 def add_optional_args(kwargs: dict, optional_kwargs: dict, method) -> None:
     """
     Adds arguments from optional_kwargs to kwargs if they exist in the method signature.
@@ -82,6 +94,8 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
 
     if kwargs is None:
         kwargs = {}
+    else:
+        kwargs = dict(kwargs)
 
     module = importlib.import_module(module_path)
     class_obj = getattr(module, class_str)
