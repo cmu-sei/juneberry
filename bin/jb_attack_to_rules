@@ -178,6 +178,12 @@ class AttackMaker:
         # Add a rule to train the private disjoint model.
         self._add_private_model_training_rule(workflow, disjoint=True)
 
+        # Add rules to evaluate the private superset model and build the resulting in_out datasets.
+        self._add_private_model_evaluation_rule(workflow)
+
+        # Add rules to evaluate the private disjoint model and build the resulting in_out datasets.
+        self._add_private_model_evaluation_rule(workflow, disjoint=True)
+
     def _add_private_model_training_rule(self, workflow, disjoint=False):
         """
         This method is responsible for adding a rule to train a 'private' model for the attack.
@@ -246,6 +252,86 @@ class AttackMaker:
         # Add the rule for training the private model to the workflow.
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
         logger.info(f"*** Rule created for PRIVATE {type_str.upper()} model ***\n")
+
+    def _add_private_model_evaluation_rule(self, workflow, disjoint=False):
+        """
+        This method is responsible for adding a rule to evaluate a 'private' model for the attack, and
+        then build the private versions of the in_out datasets using the results of that evaluation.
+        :param workflow: The workflow where the rule will be added.
+        :param disjoint: A boolean indicating whether this rule is for the 'superset' (default) or
+        'disjoint' private model.
+        :return: Nothing.
+        """
+        # Determine the current universe.
+        universe_str = 'disjoint' if disjoint else 'superset'
+
+        # Retrieve the desired model to serve as the baseline for the private models and construct
+        # its ModelManager.
+        private_model_name = self.attack_manager.get_private_model_name(disjoint=disjoint)
+        private_model_mgr = jbfs.ModelManager(private_model_name)
+
+        # Establish the baseline query dataset.
+        baseline_query_dataset = self.attack_config.data_configs.query_data
+        baseline_query_dataset_config = DatasetConfig.load(baseline_query_dataset)
+
+        # Determine which universe of property choices to use, as well as the property selection
+        # that was made for this private model.
+        if disjoint:
+            universe = self.attack_config.watermarks.disjoint_args
+            selection = self.attack_config.watermarks.private_disjoint_args
+        else:
+            universe = self.attack_config.watermarks.superset_args
+            selection = self.attack_config.watermarks.private_superset_args
+
+        # Determine the correct file name for the query dataset and build the query dataset.
+        query_dataset_path = self.attack_manager.get_private_model_query_dataset_config_path(disjoint=disjoint)
+        self._build_query_dataset(selection, universe, baseline_query_dataset_config, query_dataset_path)
+
+        # Create an EvalDirMgr for this shadow model / query dataset combo.
+        private_eval_dir_mgr = private_model_mgr.get_eval_dir_mgr(query_dataset_path)
+
+        # Fill out the components for building a rule to evaluate the shadow model using the query dataset.
+        inputs = [private_model_mgr.get_training_out_file(), str(query_dataset_path)]
+        outputs = [private_eval_dir_mgr.get_predictions_path()]
+        command = [JB_EVALUATE_COMMAND, private_model_name, str(query_dataset_path)]
+        doc = f"{JB_EVALUATE_COMMAND} {private_model_name} with {str(query_dataset_path)}."
+        clean_extras = []
+        requirements = []
+
+        # Add the rule to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added a rule to evaluate the {universe_str.upper()} PRIVATE model. ***\n")
+
+        # Determine the file names for the training, validation, and test in_out datasets. The 'oppo' test
+        # dataset is the test in_out dataset config from the opposite universe.
+        train_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('train', disjoint=disjoint))
+        val_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('val', disjoint=disjoint))
+        test_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=disjoint))
+
+        # Gather the components for constructing the Plugin that's responsible for building the in_out datasets. The
+        # required components are: the desired in_out builder from the attack config, the list evaluation output
+        # files for the current universe, and the destination file names for the train/val/test in_out datasets. Once
+        # all of those components have been gathered together into a dictionary, write that info to a JSON file.
+        in_out_builder = self.attack_config.data_configs.in_out_builder
+        in_out_builder.kwargs['eval_out_files'] = private_eval_dir_mgr.get_predictions_path()
+        in_out_builder.kwargs['training_config_destination'] = train_cfg_dest
+        in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
+        in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
+        plugin_file = self.attack_manager.get_plugin_file(disjoint=disjoint)
+        jbfs.save_json(in_out_builder, plugin_file)
+
+        # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
+        logger.info(f"*** Adding a rule to build the PRIVATE {universe_str} in_out datasets. ***")
+        inputs = [private_eval_dir_mgr.get_predictions_path(), str(plugin_file)]
+        outputs = [train_cfg_dest, val_cfg_dest, test_cfg_dest]
+        command = [JB_PLUGIN_COMMAND, str(plugin_file)]
+        doc = f"{JB_PLUGIN_COMMAND} {str(plugin_file)}"
+        clean_extras = []
+        requirements = []
+
+        # Add the rule for running the in_out Plugin to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added the rule to build the PRIVATE {universe_str} in_out datasets. ***\n")
 
     def add_shadow_model_rules(self):
         """ This method is responsible for adding the rules for the 'shadow' models phase of the attack. """
@@ -395,10 +481,16 @@ class AttackMaker:
 
         # Determine the file names for the training, validation, and test in_out datasets. The 'oppo' test
         # dataset is the test in_out dataset config from the opposite universe.
-        train_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('train', disjoint=disjoint))
-        val_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('val', disjoint=disjoint))
-        test_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=disjoint))
-        oppo_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=(not disjoint)))
+        train_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('train', meta=True,
+                                                                                   disjoint=disjoint))
+        val_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('val', meta=True,
+                                                                                 disjoint=disjoint))
+        test_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('test', meta=True,
+                                                                                  disjoint=disjoint))
+        oppo_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', meta=True,
+                                                                                  disjoint=(not disjoint)))
+        priv_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=disjoint))
+        priv_oppo_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=(not disjoint)))
 
         # Gather the components for constructing the Plugin that's responsible for building the in_out datasets. The
         # required components are: the desired in_out builder from the attack config, the list evaluation output
@@ -409,11 +501,11 @@ class AttackMaker:
         in_out_builder.kwargs['training_config_destination'] = train_cfg_dest
         in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
         in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
-        plugin_file = self.attack_manager.get_meta_plugin_file(disjoint=disjoint)
+        plugin_file = self.attack_manager.get_plugin_file(meta=True, disjoint=disjoint)
         jbfs.save_json(in_out_builder, plugin_file)
 
         # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
-        logger.info(f"*** Adding a rule to build the {universe_str} in_out datasets ***")
+        logger.info(f"*** Adding a rule to build the META {universe_str} in_out datasets. ***")
         inputs = eval_out_files + [str(plugin_file)]
         outputs = [train_cfg_dest, val_cfg_dest, test_cfg_dest]
         command = [JB_PLUGIN_COMMAND, str(plugin_file)]
@@ -423,7 +515,7 @@ class AttackMaker:
 
         # Add the rule for running the in_out Plugin to the workflow.
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
-        logger.info(f"*** Added the rule to build the in_out datasets. ***\n")
+        logger.info(f"*** Added the rule to build the META {universe_str} in_out datasets. ***\n")
 
         # The next step is to add a rule to train the meta classifier. Establish the baseline model.
         logger.info(f"*** Adding a rule to train the {universe_str.upper()} META model. ***")
@@ -458,9 +550,10 @@ class AttackMaker:
 
         logger.info(f"*** Adding the rules to evaluate the {universe_str.upper()} META model. ***")
 
-        # Two evaluations of the trained meta model are possible: one for the test dataset in the current universe and
-        # one for the test dataset in the opposite universe. Build a rule for each evaluation.
-        test_datasets = [test_cfg_dest, oppo_test_cfg]
+        # Four evaluations of the trained meta model are possible: one for the test dataset in the current universe and
+        # one for the test dataset in the opposite universe, and then the same for in_out datasets from the private
+        # model. Build a rule for each evaluation.
+        test_datasets = [test_cfg_dest, oppo_test_cfg, priv_test_cfg, priv_oppo_test_cfg]
         for dataset in test_datasets:
             # Get the EvalDirMgr for this model / dataset combo.
             meta_eval_dir_mgr = meta_model_mgr.get_eval_dir_mgr(dataset)

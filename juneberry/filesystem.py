@@ -335,17 +335,20 @@ class AttackManager(ExperimentManager):
         """
         return self.get_experiment_dataset_dir() / f"{dataset_num}.json"
 
-    def get_experiment_inout_dataset_path(self, dataset_type_str: str, disjoint=False):
+    def get_experiment_inout_dataset_path(self, dataset_type_str: str, meta=False, disjoint=False):
         """
         :param dataset_type_str: A string (usually "training" | "val" | "test") that will be
         used to construct the name of the in_out dataset config file.
+        :param meta: Boolean that controls whether to return the 'meta' (default) or
+        'private' version of the inout dataset.
         :param disjoint: Boolean that controls whether to return the 'superset' (default) or
         'disjoint' version of the desired property.
         :return: The relative path to a particular in_out dataset config file within the
         experiment-specific dataset config files.
         """
         type_str = 'disjoint' if disjoint else 'superset'
-        return self.get_experiment_dataset_dir() / f'in_out_{type_str}_{dataset_type_str}_dataset_config.json'
+        mod_str = 'meta' if meta else 'private'
+        return self.get_experiment_dataset_dir() / f'in_out_{type_str}_{mod_str}_{dataset_type_str}_dataset_config.json'
 
     def get_private_dir(self):
         """ :return: The path to the 'private' subdirectory within the attack's model directory. """
@@ -376,6 +379,14 @@ class AttackManager(ExperimentManager):
         :return: The path to the model config file for either the 'superset' or 'disjoint' private model.
         """
         return self.get_private_subdir(disjoint=disjoint) / 'config.json'
+
+    def get_private_model_query_dataset_config_path(self, disjoint=False):
+        """
+        :param disjoint: Boolean that controls whether to return the 'superset' (default) or
+        'disjoint' version of the desired property.
+        "return: The path to a query dataset config for a particular private model.
+        """
+        return self.get_private_subdir(disjoint=disjoint) / 'query_dataset_config.json'
 
     def get_shadow_dir(self):
         """ :return: The path to the 'shadow' subdirectory within the attack's model directory. """
@@ -443,14 +454,17 @@ class AttackManager(ExperimentManager):
         sub_dir = 'disjoint' if disjoint else 'superset'
         return self.get_meta_dir() / sub_dir
 
-    def get_meta_plugin_file(self, disjoint=False):
+    def get_plugin_file(self, meta=False, disjoint=False):
         """
         :param disjoint: Boolean that controls whether to return the 'superset' (default) or
         'disjoint' version of the desired property.
         : return: The path to the Plugin file used to build the in_out datasets for the
         'disjoint' or 'superset' meta model.
         """
-        return self.get_meta_subdir(disjoint=disjoint) / f'in_out_plugin.json'
+        if meta:
+            return self.get_meta_subdir(disjoint=disjoint) / f'in_out_plugin.json'
+        else:
+            return self.get_private_subdir(disjoint=disjoint) / f'in_out_plugin.json'
 
     def get_meta_model_name(self, disjoint=False):
         """
