@@ -320,7 +320,7 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
 
 
 def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
-                             output_file: Path = None):
+                             output_file: Path = None, eval_manifest_path: Path = None):
     """
     This function is responsible for converting coco-style object detection predictions into
     a coco-style annotations file.
@@ -328,9 +328,12 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     :param dataset_config: A string indicating the path to the dataset config that describes the source images.
     :param predict_file: A string indicating the path to the file containing the bounding boxes that were predicted.
     :param category_list: A list containing the coco formatted categories.
-    :param output_file: A optional Path indicating where to save the resulting annotations file. When this is not
+    :param output_file: An optional Path indicating where to save the resulting annotations file. When this is not
     provided, the default will save the annotations file to the current working directory using a variation of
     the name of the predictions file.
+    :param eval_manifest_path: An optional Path to an eval manifest. When provided, the "images" and "categories"
+    data listed in the manifest will be given priority over the version of those fields retrieved from the dataset
+    config.
     :return: Nothing.
     """
 
@@ -339,12 +342,16 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
 
     logger.info(f"Saving predictions in annotation-style format in {output_file}")
 
-    # Open the dataset and get the original coco metadata
-    dataset = DatasetConfig.load(dataset_config)
-    coco_path = dataset.image_data.sources[0]['directory']
+    # Obtain the coco metadata; the eval_manifest is higher priority.
+    if eval_manifest_path:
+        coco_data = jbfs.load_file(str(eval_manifest_path))
 
-    # Load the json files
-    coco_data = jbfs.load_file(data_root / coco_path)
+    else:
+        # Alternatively, the dataset config should have a version of the metadata.
+        dataset = DatasetConfig.load(dataset_config)
+        coco_path = dataset.image_data.sources[0]['directory']
+        coco_data = jbfs.load_file(data_root / coco_path)
+
     predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
