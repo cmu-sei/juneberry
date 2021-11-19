@@ -149,6 +149,7 @@ class ModelConfig(Prodict):
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
     evaluator: Plugin
+    file_path: Path
     format_version: str
     # TODO: Expand hints
     hints: Prodict
@@ -176,10 +177,11 @@ class ModelConfig(Prodict):
         """
         This is NOT init. This is a similar method called by Prodict to set defaults
         on values BEFORE to_dict is called.
+        :param file_path: Optional - string indicating the model config file used to construct the object.
         """
         self.task = "classification"
 
-    def _finish_init(self):
+    def _finish_init(self, file_path: str = None):
         """
         Initializes a ModelConfig object.
         """
@@ -189,6 +191,7 @@ class ModelConfig(Prodict):
         # if self.format_version is not None:
         #     jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
 
+        self.file_path = Path(file_path) if file_path is not None else None
         # There are a handful of keys that should be set to {} if they are still None.
         empty_keys = ["pytorch"]
         for key in empty_keys:
@@ -247,7 +250,7 @@ class ModelConfig(Prodict):
 
         # Finally, construct the object and do a final value cleanup
         model_config = ModelConfig.from_dict(data)
-        model_config._finish_init()
+        model_config._finish_init(file_path)
         return model_config
 
     @staticmethod
@@ -276,8 +279,10 @@ class ModelConfig(Prodict):
         """ :return: A pure dictionary version suitable for serialization to CURRENT json"""
         as_dict = conf_utils.prodict_to_dict(self)
 
-        if 'label_dict' in as_dict:
-            del as_dict['label_dict']
+        ignore_attrs = ["file_path", "label_dict"]
+        for attr_name in ignore_attrs:
+            if attr_name in as_dict:
+                del as_dict[attr_name]
 
         return as_dict
 

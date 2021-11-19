@@ -199,8 +199,19 @@ class Evaluator(EvaluatorBase):
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
-        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path),
-                                            str(self.eval_dir_mgr.get_detections_path()), out)
+
+        # Find category list
+        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+                                                  model_manager=self.model_manager,
+                                                  train_config=self.dataset_config,
+                                                  eval_config=self.eval_dataset_config,
+                                                  data_root=self.data_root)
+
+        # Save as coco annotations file
+        coco_utils.save_predictions_as_anno(data_root=self.data_root, dataset_config=str(self.dataset_config.file_path),
+                                            predict_file=str(self.eval_dir_mgr.get_detections_path()),
+                                            category_list=category_list, output_file=out)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()

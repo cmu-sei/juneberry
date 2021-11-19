@@ -168,7 +168,7 @@ def test_basic_loading(tmp_path):
         json.dump(config, out_file, indent=4)
 
     data = jbfs.load_json(str(config_path))
-    mc = ModelConfig.construct(data)
+    mc = ModelConfig.construct(data=data, file_path=str(config_path))
 
     mc2 = ModelConfig.load(str(config_path))
 

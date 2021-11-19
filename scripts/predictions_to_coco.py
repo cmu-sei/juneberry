@@ -71,7 +71,8 @@ def main():
     # TODO: Updated jb_scripting to be more clear
     lab = jbscripting.setup_workspace(args, log_file=None)
 
-    coco_utils.save_predictions_as_anno(lab.data_root(), args.dataset, args.predictions, Path(args.output))
+    coco_utils.save_predictions_as_anno(data_root=lab.data_root(), dataset_config=args.dataset,
+                                        predict_file=args.predictions, output_file=Path(args.output))
 
 
 if __name__ == "__main__":

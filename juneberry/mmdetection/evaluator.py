@@ -228,8 +228,16 @@ class Evaluator(EvaluatorBase):
         # NOTE: It is currently unclear what the score is
         # [batch] x [num_classes] x [ bbox(l,t,r,b] + score ]
 
+        # Grab category mapping
+        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+                                                  model_manager=self.model_manager,
+                                                  # train_config = self.dataset_config,
+                                                  eval_config=self.eval_dataset_config,
+                                                  data_root=self.lab.data_root())
+
         # Convert to standard coco-style annotations.
-        coco_annotations = make_coco_annotations(self.eval_coco_anno, self.raw_output)
+        coco_annotations = make_coco_annotations(self.eval_coco_anno, self.raw_output, category_list)
 
         instances_path = self.eval_dir_mgr.get_detections_path()
         logger.info(f"Saving coco detections to: {instances_path}")
@@ -267,7 +275,7 @@ class Evaluator(EvaluatorBase):
         # TODO: Add some samples. Refactor the code out of DT2.
 
 
-def make_coco_annotations(input_anno, outputs):
+def make_coco_annotations(input_anno, outputs, category_list):
     # Inputs are the images from the input set.
     # Outputs come from the model and look like:
     # [batch] x [num_classes] x [ bbox(l,t,r,b] + confidence ]
@@ -294,7 +302,7 @@ def make_coco_annotations(input_anno, outputs):
             'images': input_anno['images'],
             'annotations': annos,
             'licenses': input_anno.get('licenses', []),
-            'categories': input_anno.get('categories', [])
+            'categories': category_list
             }
 
 
