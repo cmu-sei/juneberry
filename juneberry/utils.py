@@ -45,11 +45,9 @@ def set_seeds(seed: int):
         logger.error("Request to initialize with a seed of None. Exiting")
         sys.exit(-1)
 
-    logger.info(f"Setting numpy and random seed to: {str(seed)}")
+    logger.debug(f"Setting numpy and random seed to: {str(seed)}")
     random.seed(seed)
     np.random.seed(seed)
-
-logger = logging.getLogger(__name__)
 
 
 def rekey(struct, key_map: dict, reverse=False) -> None:

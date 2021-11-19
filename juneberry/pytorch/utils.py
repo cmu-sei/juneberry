@@ -59,30 +59,6 @@ RandomState = namedtuple("RandomState", "numpy python pytorch")
 # |  _ < (_| | | | | (_| | (_) | | | | | |
 # |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
 
-def wrap_seed(seed: int):
-    """ :return: A numerically wraps the seed if it exceeds the maximum value. """
-    # Some system has a maximum value of 32 bits
-    return seed & 0xFFFFFFFF
-
-
-def set_seeds(seed: int):
-    """
-    Sets all the random seeds used by all the various pieces.
-    :param seed: A random seed to use. Can not be None.
-    """
-    if seed is None:
-        logger.error("Request to initialize with a seed of None. Exiting")
-        sys.exit(-1)
-
-    if seed > 0xFFFFFFFF:
-        logger.error("Seed exceeds maximum seed value of 2**32 - 1 (4294967295). EXITING")
-        sys.exit(-1)
-
-    logger.info(f"Setting ALL seeds: {str(seed)}")
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-
 
 def get_random_state() -> RandomState:
     """
@@ -117,39 +93,7 @@ class PyTorchStagedTransform(jbtm.StagedTransformManager):
         set_random_state(self.random_state)
 
     def set_seeds(self, seed):
-        set_seeds(seed)
-
-
-# class StagedTransformManager:
-#     """
-#     A callable transform manager that manages the random seed state in a predictable fashion based on an initial
-#     seed state and the seed index.
-#     """
-#
-#     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
-#         self.consistent_transform = consistent
-#         self.consistent_seed = consistent_seed
-#         self.per_epoch_transform = per_epoch
-#         self.per_epoch_seed = per_epoch_seed
-#
-#     def __call__(self, item, index, epoch):
-#         # Capture the random state
-#         random_state = get_random_state()
-#
-#         # Set the random seed based on index only
-#         seed = wrap_seed(self.consistent_seed + index)
-#         set_seeds(seed)
-#         item = self.consistent_transform(item)
-#
-#         # Now, execute the per epoch transform
-#         seed = wrap_seed(self.per_epoch_seed + index + epoch)
-#         set_seeds(seed)
-#         item = self.per_epoch_transform(item)
-#
-#         # Restore the state
-#         set_random_state(random_state)
-#
-#         return item
+        set_pytorch_seeds(seed)
 
 
 def worker_init_fn(worker_id):
@@ -316,7 +260,7 @@ def set_pytorch_seeds(seed: int):
     :param seed: A random seed to use. Can not be None.
     """
     jb_utils.set_seeds(seed)
-    logger.info(f"Setting PyTorch seed to: {str(seed)}")
+    logger.debug(f"Setting PyTorch seed to: {str(seed)}")
     torch.manual_seed(seed)
 
 
