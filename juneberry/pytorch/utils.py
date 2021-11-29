@@ -45,7 +45,7 @@ from juneberry.filesystem import ModelManager
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
 import juneberry.transform_manager as jbtm
-from juneberry.pytorch.eval_utils import compute_accuracy
+from juneberry.pytorch.evaluation.utils import compute_accuracy
 import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
