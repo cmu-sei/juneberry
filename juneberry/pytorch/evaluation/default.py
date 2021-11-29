@@ -1,67 +1,46 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
 import logging
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
-from torch import FloatTensor
-from torch.nn.functional import softmax
 
 from juneberry.config.training_output import TrainingOutput
+import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
-from juneberry.pytorch.evaluator import Evaluator
-import juneberry.pytorch.utils as pyt_utils
+import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
+from juneberry.pytorch.evaluation.evaluator import Evaluator
+
 
 logger = logging.getLogger(__name__)
 
 
-class DefaultEvaluationProcedure:
+class PyTorchEvaluationProcedure:
     """
-    This is the default Pytorch evaluation class used for evaluating data in Juneberry.
+    This is the default PyTorch evaluation class used for evaluating data in Juneberry.
     """
+
     def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
@@ -71,18 +50,19 @@ class DefaultEvaluationProcedure:
         """
 
         # Perform the evaluation; saving the raw data to the correct evaluator attribute.
-        evaluator.raw_output = pyt_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
+        evaluator.raw_output = jb_eval_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
 
 
-class DefaultEvaluationOutput:
+class PyTorchEvaluationOutput:
     """
-    This is the default Pytorch evaluation class used for formatting raw evaluation data in Juneberry.
+    This is the default PyTorch evaluation class used for formatting raw evaluation data in Juneberry.
     """
+
     def __call__(self, evaluator: Evaluator):
         """
-        When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
-        result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
-        then be written to a file.
+        When called, this method uses the attributes of the evaluator to format the raw evaluation data. At the
+        end of this call, the evaluator.output attribute will contain JSON-friendly data which will then be
+        written to a file.
         :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
@@ -94,7 +74,7 @@ class DefaultEvaluationOutput:
         # Diagnostic for accuracy
         # TODO: Switch to configurable and standard accuracy
         is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        predicted_classes = pyt_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
+        predicted_classes = jb_eval_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
 
         # Calculate the accuracy and add it to the output.
         logger.info(f"Computing the accuracy.")
@@ -112,7 +92,7 @@ class DefaultEvaluationOutput:
 
         # Save these as two classes if binary so it's consistent with other outputs.
         if is_binary:
-            evaluator.raw_output = pyt_utils.binary_to_classes(evaluator.raw_output)
+            evaluator.raw_output = jb_eval_utils.binary_to_classes(evaluator.raw_output)
 
         # Add the raw prediction data to the output.
         evaluator.output.results.predictions = evaluator.raw_output
@@ -141,7 +121,7 @@ class DefaultEvaluationOutput:
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:
-            top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
+            jb_pytorch_eval_utils.top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
 
         # Save the predictions portion of the evaluation output to the appropriate file.
         evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
@@ -150,75 +130,3 @@ class DefaultEvaluationOutput:
         # Save the metrics portion of the evaluation output to the appropriate file.
         evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())
         logger.info(f"Saving metrics to {evaluator.eval_dir_mgr.get_metrics_path()}")
-
-
-def top_k_classifications(evaluator, dataset_mapping):
-    """
-    This function is responsible for adding the top-K classification information to the
-    evaluation output.
-    :param evaluator: The Juneberry Evaluator object that is managing the evaluation.
-    :param dataset_mapping: The label mapping of the dataset being evaluated.
-    :return: Nothing.
-    """
-    # Retrieve the label mapping that the MODEL is aware of. Note that this dataset mapping might be
-    # different than the label mapping that the dataset is aware of. For example, a dataset might
-    # only contain labels from 10 different classes in its mapping, whereas the model might be
-    # aware of 1000 different labels.
-    model_mapping = evaluator.model_config.label_dict
-
-    # A logging message indicating top-K classification will occur
-    class_str = "class" if evaluator.top_k == 1 else f"{evaluator.top_k} classes"
-    logger.info(f"Obtaining the top {class_str} predicted for each input.")
-
-    # Add the top-K classification information to the output.
-    evaluator.output.results.classifications = classify_inputs(evaluator.eval_name_targets,
-                                                               evaluator.raw_output,
-                                                               evaluator.top_k,
-                                                               dataset_mapping,
-                                                               model_mapping)
-
-    logger.info(f"Classified {len(evaluator.output.results.classifications)} inputs.")
-
-
-def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mapping, model_mapping):
-    """
-    Determines the top-K predicted classes for a list of inputs.
-    :param eval_name_targets: The list of input files and their true labels.
-    :param predictions: The predictions that were made for the inputs.
-    :param classify_topk: How many classifications we would like to show.
-    :param dataset_mapping: The mapping of class integers to human readable labels that the DATASET is aware of.
-    :param model_mapping: The mapping of class integers to human readable labels that the MODEL is aware of.
-    :return: A list of which classes were predicted for each input.
-    """
-    # Some tensor operations on the predictions; softmax converts the values to percentages.
-    prediction_tensor = FloatTensor(predictions)
-    predict = softmax(prediction_tensor, dim=1)
-    values, indices = predict.topk(classify_topk)
-    values = values.tolist()
-    indices = indices.tolist()
-
-    classification_list = []
-
-    # Each input should have a contribution to the classification list.
-    for i in range(len(eval_name_targets)):
-
-        class_list = []
-        for j in range(classify_topk):
-            try:
-                label_name = dataset_mapping[indices[i][j]]
-            except KeyError:
-                label_name = model_mapping[str(indices[i][j])] if model_mapping is not None else ""
-
-            individual_dict = {'label': indices[i][j], 'labelName': label_name, 'confidence': values[i][j]}
-            class_list.append(individual_dict)
-
-        try:
-            true_label_name = dataset_mapping[eval_name_targets[i][1]]
-        except KeyError:
-            true_label_name = model_mapping[str(eval_name_targets[i][1])] if model_mapping is not None else ""
-
-        classification_dict = {'file': eval_name_targets[i][0], 'actualLabel': eval_name_targets[i][1],
-                               'actualLabelName': true_label_name, 'predictedClasses': class_list}
-        classification_list.append(classification_dict)
-
-    return classification_list
