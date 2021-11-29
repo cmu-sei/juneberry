@@ -24,7 +24,7 @@
 
 import logging
 
-from juneberry.tensorflow.evaluator import Evaluator
+from juneberry.tensorflow.evaluation.evaluator import Evaluator
 
 logger = logging.getLogger(__name__)
 

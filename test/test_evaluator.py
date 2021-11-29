@@ -36,8 +36,8 @@ from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import create_evaluator
 from juneberry.lab import Lab
 from juneberry.mmdetection.evaluator import Evaluator as MMDEvaluator
-from juneberry.pytorch.evaluator import Evaluator as PyTorchEvaluator
-from juneberry.tensorflow.evaluator import Evaluator as TFEvaluator
+from juneberry.pytorch.evaluation.evaluator import Evaluator as PyTorchEvaluator
+from juneberry.tensorflow.evaluation.evaluator import Evaluator as TFEvaluator
 
 
 class EvalTestHelper:

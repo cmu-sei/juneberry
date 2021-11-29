@@ -126,9 +126,9 @@ class Evaluator(EvaluatorBase):
 
         # Use default values if they were not provided in the model config.
         if self.eval_method is None:
-            self.eval_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure"
+            self.eval_method = "juneberry.pytorch.evaluation.default.PyTorchEvaluationProcedure"
         if self.eval_output_method is None:
-            self.eval_output_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput"
+            self.eval_output_method = "juneberry.pytorch.evaluation.default.PyTorchEvaluationOutput"
 
         logger.info(f"PyTorch Evaluator setup steps are complete.")
 

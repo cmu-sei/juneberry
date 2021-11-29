@@ -95,11 +95,11 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
     """
 
     platform_map = {
-        "pytorch": "juneberry.pytorch.evaluator.Evaluator",
-        "pytorch_privacy": "juneberry.pytorch.evaluator.Evaluator",
+        "pytorch": "juneberry.pytorch.evaluation.evaluator.Evaluator",
+        "pytorch_privacy": "juneberry.pytorch.evaluation.evaluator.Evaluator",
         "detectron2": "juneberry.detectron2.evaluator.Evaluator",
         "mmdetection": "juneberry.mmdetection.evaluator.Evaluator",
-        "tensorflow": "juneberry.tensorflow.evaluator.Evaluator",
+        "tensorflow": "juneberry.tensorflow.evaluation.evaluator.Evaluator",
         "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator"
     }
 
