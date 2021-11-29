@@ -22,26 +22,29 @@
 #
 # ======================================================================================================================
 
-import tensorflow as tf
+import logging
+
+import numpy as np
+from tensorflow import keras
+from tensorflow.keras import layers
+
+logger = logging.getLogger(__name__)
 
 
-class EvalEpsilonCallback(tf.keras.callbacks.Callback):
-    def __init__(self, model, eval_epsilon, start_at_epoch=0):
-        self._model = model
-        self._eval_epsilon = eval_epsilon
-        self._start_epoch = start_at_epoch
-        self._last_epsilon = None
-        self._do_change = False
+class SimpleConvnet:
+    # Comments about the model
+    # fine-tuned: base model is not trainable (only last dense layer is trainable)
 
-    def on_epoch_begin(self, epoch, logs=None):
-        if self._start_epoch <= epoch:
-            self._do_change = True
-
-    def on_test_begin(self, logs=None):
-        if self._do_change:
-            self._last_epsilon = self._model.layers[-1].epsilon
-            self._model.layers[-1].epsilon = self._eval_epsilon
-
-    def on_test_end(self, logs=None):
-        if self._do_change:
-            self._model.layers[-1].epsilon = self._last_epsilon
+    def __call__(self, num_classes, img_width, img_height, channels, labels):
+        return keras.Sequential(
+            [
+                keras.Input(shape=(img_width, img_height, channels)),
+                layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+                layers.MaxPooling2D(pool_size=(2, 2)),
+                layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+                layers.MaxPooling2D(pool_size=(2, 2)),
+                layers.Flatten(),
+                layers.Dropout(0.5),
+                layers.Dense(num_classes, activation="softmax"),
+            ]
+        )

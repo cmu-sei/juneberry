@@ -33,8 +33,6 @@ import random
 import re
 import sys
 
-import juneberry.loader as jbloader
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,11 +45,9 @@ def set_seeds(seed: int):
         logger.error("Request to initialize with a seed of None. Exiting")
         sys.exit(-1)
 
-    logger.info(f"Setting numpy and random seed to: {str(seed)}")
+    logger.debug(f"Setting numpy and random seed to: {str(seed)}")
     random.seed(seed)
     np.random.seed(seed)
-
-logger = logging.getLogger(__name__)
 
 
 def rekey(struct, key_map: dict, reverse=False) -> None:
@@ -162,21 +158,6 @@ def none_stripper(obj):
         return obj
 
 
-def invoke_evaluator_method(evaluator, module_name: str):
-    """
-    This function is responsible for invoking methods during evaluation.
-    :param evaluator: A Juneberry Evaluator object that is managing the evaluation.
-    :param module_name: The module being invoked.
-    :return: Nothing.
-    """
-    split_name = module_name.split(".")
-    module_path = ".".join(split_name[:-1])
-    class_name = split_name[-1]
-    args = {"evaluator": evaluator}
-
-    jbloader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
-
-
 #  ____       _                       _
 # |  _ \  ___| |__  _   _  __ _  __ _(_)_ __   __ _
 # | | | |/ _ \ '_ \| | | |/ _` |/ _` | | '_ \ / _` |
@@ -224,3 +205,22 @@ def show_list(rhs, indent=0) -> None:
                 print(f"{' ' * indent}[{i}] - {elem_type}")
                 found_types[elem_type] = i
                 show_type(rhs[i], indent + 4)
+
+# ======================================================================================================================
+# RANDOM
+#  ____                 _
+# |  _ \ __ _ _ __   __| | ___  _ __ ___
+# | |_) / _` | '_ \ / _` |/ _ \| '_ ` _ \
+# |  _ < (_| | | | | (_| | (_) | | | | | |
+# |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
+
+
+
+def wrap_seed(seed: int):
+    """ :return: A numerically wraps the seed if it exceeds the maximum value. """
+    # Some system has a maximum value of 32 bits
+    return seed & 0xFFFFFFFF
+
+
+
+

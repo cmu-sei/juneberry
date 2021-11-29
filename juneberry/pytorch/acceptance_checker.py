@@ -29,7 +29,7 @@ Component for checking the model for acceptances to stop training.
 import logging
 import sys
 
-import juneberry.pytorch.utils as pyutil
+import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class AcceptanceChecker:
         # Look through the options for the stopping mode.
         if threshold is None and plateau_count is None:
             if max_epochs is None:
-                logger.error("AcceptanceChecker requires max_epoch, threshold or plateau_max_count. EXITING")
+                logger.error("AcceptanceChecker requires max_epoch, threshold or plateau_max_count. Exiting.")
                 sys.exit(-1)
         if comparator is None:
             logger.error("AcceptanceChecker: A comparator must be provided. EXITING.")
@@ -150,4 +150,5 @@ class AcceptanceChecker:
         if model_path.exists():
             model_path.unlink()
 
+        pyt_utils.save_model(self.model_manager, model)
         pyutil.save_model(self.model_manager, model, input_sample)

@@ -809,8 +809,6 @@ and it should look something like the following block of code:
         "num_Workers": 0,
         "max_gpus": 2
     },
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationOutput",
     "training_dataset_config_path": "data_sets/torchvision/cifar10.json",
     "validation": {
         "algorithm": "random_fraction",
@@ -1001,19 +999,6 @@ jb_evaluate [model to evaluate] [dataset config to evaluate]
 The "model to evaluate" corresponds to the name of a sub-directory inside the `models` directory which holds the model 
 you would like to evaluate. The "dataset config to evaluate" refers to the Juneberry dataset config file describing the 
 dataset you would like the model to evaluate. 
-
-#### Evaluation Method
-
-When you added the file content to the model config, you may have noticed the following two lines:
-
-```json
-    "evaluation_procedure": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationProcedure",
-    "evaluation_output": "juneberry.pytorch.evaluation.evals.default.PyTorchEvaluationOutput"
-```
-
-The `evaluation_procedure` indicates the class Juneberry should use to evaluate the data. The `evaluation_output` field 
-indicates a class Juneberry should use to format the raw evaluation data produced by the evaluation procedure. In both 
-cases, this vignette relies on the default classes for a Pytorch classifier that have been implemented in Juneberry.
 
 #### Evaluation Output
 

@@ -22,7 +22,13 @@
 #
 # ======================================================================================================================
 
+import logging
 import sys
+import tensorflow as tf
+
+import juneberry.utils as jb_utils
+
+logger = logging.getLogger(__name__)
 
 
 def save_summary(model, summary_file_path):
@@ -30,3 +36,13 @@ def save_summary(model, summary_file_path):
     sys.stdout = open(summary_file_path, 'w+', encoding="utf-8")
     model.summary()
     sys.stdout = orig
+
+
+def set_tensorflow_seeds(seed: int):
+    """
+    Sets all the random seeds used by all the various pieces.
+    :param seed: A random seed to use. Can not be None.
+    """
+    jb_utils.set_seeds(seed)
+    logger.info(f"Setting TensorFlow seed to: {str(seed)}")
+    tf.random.set_seed(seed)

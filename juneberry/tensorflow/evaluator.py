@@ -30,22 +30,23 @@ import numpy as np
 
 import tensorflow as tf
 
-import juneberry.data as jb_data
+import juneberry.evaluation.evaluator
+import juneberry.evaluation.utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import ModelManager, EvalDirMgr
-from juneberry.tensorflow.data import TFImageDataSequence
-from juneberry.transform_manager import TransformManager
+import juneberry.tensorflow.data as tf_data
+import juneberry.tensorflow.utils as tf_utils
 import juneberry.utils
 
 logger = logging.getLogger(__name__)
 
 
-class TFEvaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
+class Evaluator(EvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         # TODO: This should be in base
         self.dataset_config = dataset
@@ -58,14 +59,22 @@ class TFEvaluator(Evaluator):
         self.eval_results = None
         self.predictions = None
 
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
+
     def check_gpu_availability(self, required: int):
         return 0
 
     def setup(self) -> None:
-        logger.info(f"Setting random seed: {self.model_config.seed}")
-        random.seed(self.model_config.seed)
-        np.random.seed(self.model_config.seed)
-        tf.random.set_seed(self.model_config.seed)
+        # Set all seed values.
+        tf_utils.set_tensorflow_seeds(self.model_config.seed)
 
         # Use default values if they were not provided in the model config.
         if self.eval_method is None:
@@ -75,25 +84,9 @@ class TFEvaluator(Evaluator):
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")
-        splitting_config = self.model_config.get_validation_split_config()
-        eval_list, split = jb_data.dataspec_to_manifests(self.lab,
-                                                         dataset_config=self.eval_dataset_config,
-                                                         splitting_config=splitting_config,
-                                                         preprocessors=TransformManager(
-                                                             self.model_config.preprocessors))
-
-        if self.use_train_split:
-            logger.info("Evaluating using ONLY the training portion of the split data.")
-
-        elif self.use_val_split:
-            logger.info("Evaluating using ONLY the validation portion of the split data.")
-            eval_list = split
-
-        transforms = TransformManager(self.model_config.evaluation_transforms)
-        self.eval_loader = TFImageDataSequence(eval_list, self.model_config.batch_size, transforms, self.shape_hwc)
-
-        # Extract all the labels for later.
-        self.eval_labels = [x[1] for x in eval_list]
+        self.eval_loader, self.eval_labels = tf_data.load_eval_dataset(
+            self.lab, self.eval_dataset_config, self.model_config, self.eval_dir_mgr,
+            self.use_train_split, self.use_val_split)
 
     def obtain_model(self) -> None:
         hdf5_file = self.model_manager.get_tensorflow_model_path()
@@ -105,10 +98,10 @@ class TFEvaluator(Evaluator):
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
         logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 
-        juneberry.utils.invoke_evaluator_method(self, self.eval_method)
+        juneberry.evaluation.utils.invoke_evaluator_method(self, self.eval_method)
 
         logger.info(f"EVALUATION COMPLETE.")
 
     def format_evaluation(self) -> None:
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
-        juneberry.utils.invoke_evaluator_method(self, self.eval_output_method)
+        juneberry.evaluation.utils.invoke_evaluator_method(self, self.eval_output_method)

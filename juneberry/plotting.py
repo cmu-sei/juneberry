@@ -1,52 +1,30 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
 
 """
 A set of plotting utilities.
 """
-
-# ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
-#
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
-#
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
-#
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
-#
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
-#
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
-#
-#  DM21-0689
-#
-# ======================================================================================================================
 
 import logging
 import matplotlib.pyplot as plt
@@ -119,7 +97,7 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     """
     results = training_results['results']
 
-    epochs = range(1, len(results['accuracy']) + 1)
+    epochs = range(1, len(results['loss']) + 1)
     fig, ax1 = plt.subplots()
     plt.ylim(0.0, 1.0)
 
@@ -129,15 +107,19 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     color = 'tab:red'
     ax1.set_ylabel('Accuracy', color=color)
 
-    # The try/excepts were added in case data for the particular plot metric doesn't exist.
-    try:
-        ax1.plot(epochs, results['accuracy'], linestyle='-', marker='', color=color, label="Accuracy")
-    except ValueError:
-        pass
-    try:
-        ax1.plot(epochs, results['val_accuracy'], linestyle='--', marker='', color=color, label="Validation Accuracy")
-    except ValueError:
-        pass
+    accuracies = {'accuracy': "Accuracy",
+                  'sparse_categorical_accuracy': 'Sparse Categorical Accuracy'}
+    val_accuracies = {'val_accuracy': "Validation Accuracy",
+                      'val_sparse_categorical_accuracy': 'Validation Sparse Categorical Accuracy'}
+
+    # Make sure the metrics exist and match the number of epochs
+    for k, l in accuracies.items():
+        if results.get(k) and len(epochs) == len(results[k]):
+            ax1.plot(epochs, results[k], linestyle='-', marker='', color=color, label=l)
+    for k, l in val_accuracies.items():
+        if results.get(k) and len(epochs) == len(results[k]):
+            ax1.plot(epochs, results[k], linestyle='--', marker='', color=color, label=l)
+
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2)
 
@@ -147,15 +129,12 @@ def plot_training_summary_chart(training_results, model_manager) -> None:
     color = 'tab:blue'
     ax2.set_ylabel('Loss', color=color)
 
-    # The try/excepts were added in case data for the particular plot metric doesn't exist.
-    try:
+    # Make sure the metrics exist and match the number of epochs
+    if 'loss' in results and len(epochs) == len(results['loss']):
         ax2.plot(epochs, results['loss'], linestyle='-', marker='', color=color, label="Loss")
-    except ValueError:
-        pass
-    try:
+
+    if 'val_loss' in results and len(epochs) == len(results['val_loss']):
         ax2.plot(epochs, results['val_loss'], linestyle='--', marker='', color=color, label="Validation Loss")
-    except ValueError:
-        pass
 
     ax2.tick_params(axis='y', labelcolor=color)
     ax2.legend(loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=2)

@@ -21,6 +21,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "batch_size": <The number of data samples to use per update when training or evaluating the model.>,
     "description": <OPTIONAL text description of the model in this file>,
     "detectron2": {
+        "enable_val_loss": <OPTIONAL; bool; set to true to enable experimental validation loss computation>,
         "metric_interval": <OPTIONAL; integer; logs the training metrics to console every X iterations>,
         "overrides": [ <array of values to add to the config using merge_from_list> ]
     },
@@ -30,7 +31,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "evaluator": {
         "fqcn": <fully qualified name of class that extends the juneberry.evaluator base class>,
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
-    },
+    }
     "format_version": <Linux style version string of the format of this file>,
     "hints": {
         "num_workers": <Integer number of workers the system should prefer>
@@ -175,6 +176,10 @@ evaluating the model.
 ## detectron2
 Specific parameters for detectron2.  This is only used when the platform is detectron2.
 
+### enable_val_loss
+**Optional**: Set to true to enable experimental validation loss computation. Beware: The validation loss computation 
+may interact with some layers during training.
+
 ### metric_interval
 **Optional:** This field is an integer which controls how often detectron2 training will log the training 
 metrics to console. When this argument is not provided, the trainer will log the training metrics after 
@@ -285,15 +290,15 @@ takes 'root', 'transform' and 'target_transform' arguments), then this specifies
 applied to the **target** via the target_transforms parameter during evaluation.
 
 ## evaluator
-The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.Evaluator`.
-Juneberry has a variety of built-in evaluators for the following platforms.  The built-in evaluators require
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.evaluator.EvaluatorBase`.
+Juneberry has a variety of built-in evaluators for the following platforms. The built-in evaluators require
 no additional kwargs.
 
 The basic evaluators for the platforms are:
 * Detectron2 - juneberry.detectron2.evaluator.Evaluator
 * PyTorch - juneberry.pytorch.evaluator.Evaluator
 * MMDetection - juneberry.mmdetection.evaluator.Evaluator
-* Tensorflow - juneberry.tensorflow.evaluator.Evaluator
+* TensorFlow - juneberry.tensorflow.evaluator.Evaluator
 
 ## format_version
 Linux style version of the **format** of the file. Not the version of 
@@ -639,7 +644,7 @@ Keyword args to be provided to the optimizer_fn function during construction.
 
 ## trainer
 The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.trainer.Trainer`.
-Juneberry has a variety of built in trainers for the following platforms.  The built in trainers require
+Juneberry has a variety of built-in trainers for the following platforms.  The built-in trainers require
 no additional kwargs.
 
 The basic trainers for the platforms are:

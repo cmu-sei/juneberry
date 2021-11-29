@@ -28,6 +28,10 @@ from PIL import Image, ImageDraw
 
 import numpy as np
 
+import juneberry.config.dataset as jb_dataset
+from juneberry.config.dataset import TensorFlowData
+import juneberry.config.model as jb_model
+from juneberry.config.model import Validation, ValidationArgs
 import juneberry.tensorflow.data as tf_data
 
 
@@ -130,3 +134,61 @@ def test_dataset(tmp_path):
     assert np.array_equal(image_ds[0][0][1][16][16], [0, 255, 0])
     assert np.array_equal(image_ds[1][0][0][16][16], [0, 0, 255])
     assert np.array_equal(image_ds[1][0][1][16][16], [255, 255, 255])
+
+
+def test_prep_tfds_load_args():
+    tf_stanza = TensorFlowData(name="frodo", load_kwargs={"batch_size": 2, "shuffle": True, "foo": "bar"})
+
+    load_args = tf_data._prep_tfds_load_args(tf_stanza)
+
+    assert load_args.get('as_supervised', None) == True
+    assert 'batch_size' not in load_args
+    assert 'shuffle' not in load_args
+    assert load_args['foo'] == 'bar'
+
+
+def test_make_tfds_split_args():
+    # Tensorflow and split args
+    val_stanza = Validation()
+    val_stanza.algorithm = jb_model.SplittingAlgo.TENSORFLOW.value
+    val_stanza.arguments = {}
+    load_args = {'split': ["foo", "bar"]}
+
+    tf_data._make_tfds_split_args(val_stanza, load_args)
+
+    # Nothing should change
+    assert load_args['split'] == ["foo", "bar"]
+
+    # ===========================
+    # Random fraction and NO split (so use the default train split)
+    val_stanza = Validation()
+    val_stanza.algorithm = jb_model.SplittingAlgo.RANDOM_FRACTION.value
+    val_stanza.arguments = ValidationArgs()
+    val_stanza.arguments.fraction = 0.3
+    load_args = {}
+
+    tf_data._make_tfds_split_args(val_stanza, load_args)
+
+    # Now, we should have two string with the lower and higher percent with the default split
+    assert load_args['split'] == ["train[:70%]", "train[70%:]"]
+
+    # ===========================
+    # Random fraction and split with a custom name
+    load_args = {'split': 'banana'}
+
+    tf_data._make_tfds_split_args(val_stanza, load_args)
+
+    # Now, we should have two string with the lower and higher percent with the default split
+    assert load_args['split'] == ["banana[:70%]", "banana[70%:]"]
+
+
+def test_make_tfds_eval_args():
+    # No split
+    load_args = {}
+    tf_data._make_tfds_eval_args(load_args)
+    assert load_args['split'] == 'test'
+
+    # If they give us a split, we use it.
+    load_args = {'split': "foo"}
+    tf_data._make_tfds_eval_args(load_args)
+    assert load_args['split'] == 'foo'

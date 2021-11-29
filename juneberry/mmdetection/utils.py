@@ -31,7 +31,7 @@ import mmdet
 from mmdet.apis import set_random_seed
 
 from juneberry.config.model import ModelConfig
-import juneberry.pytorch.utils as pyt_util
+import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ def add_reproducibility_configuration(model_config: ModelConfig, cfg) -> None:
     :param cfg: Where to apply the values.
     """
     # Set the basic seeds.
-    pyt_util.set_pytorch_seeds(model_config.seed)
+    pyt_utils.set_pytorch_seeds(model_config.seed)
 
     # Set the back end specific seeds.
     cfg.seed = model_config.seed

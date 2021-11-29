@@ -54,10 +54,11 @@ class SplittingAlgo(str, Enum):
     FROM_FILE = 'from_file'
     NONE = "none"
     RANDOM_FRACTION = 'random_fraction'
+    TENSORFLOW = "tensorflow"
     TORCHVISION = 'torchvision'
 
 
-# TODO Switch to plugin
+# TODO: Switch to plugin
 class TransformEntry(Prodict):
     fqcn: str
     kwargs: Prodict
@@ -116,10 +117,12 @@ class PytorchOptions(Prodict):
 
 
 class Detectron2(Prodict):
+    enable_val_loss: bool
     metric_interval: int
     overrides: Prodict
 
     def init(self):
+        self.enable_val_loss = False
         self.metric_interval = 1
 
 
@@ -137,7 +140,6 @@ class TensorFlow(Prodict):
 class ModelConfig(Prodict):
     FORMAT_VERSION = '0.3.0'
     SCHEMA_NAME = 'model_schema.json'
-
     batch_size: int
     description: str
     detectron2: Detectron2
@@ -145,6 +147,8 @@ class ModelConfig(Prodict):
     evaluator: Plugin
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
+    evaluator: Plugin
+    file_path: Path
     format_version: str
     # TODO: Expand hints
     hints: Prodict
@@ -172,10 +176,11 @@ class ModelConfig(Prodict):
         """
         This is NOT init. This is a similar method called by Prodict to set defaults
         on values BEFORE to_dict is called.
+        :param file_path: Optional - string indicating the model config file used to construct the object.
         """
         self.task = "classification"
 
-    def _finish_init(self):
+    def _finish_init(self, file_path: str = None):
         """
         Initializes a ModelConfig object.
         """
@@ -185,6 +190,7 @@ class ModelConfig(Prodict):
         # if self.format_version is not None:
         #     jbvs.version_check("MODEL", self.format_version, ModelConfig.FORMAT_VERSION, True)
 
+        self.file_path = Path(file_path) if file_path is not None else None
         # There are a handful of keys that should be set to {} if they are still None.
         empty_keys = ["pytorch"]
         for key in empty_keys:
@@ -209,11 +215,13 @@ class ModelConfig(Prodict):
             # If label_mapping is a string, we want to read the file at that path and get the
             # dictionary from inside the indicated file.
             if type(self.label_mapping) is str:
-                self.label_mapping = Path(self.label_mapping)
-                with open(self.label_mapping) as mapping_file:
-                    file_content = json.load(mapping_file)
-                # TODO: Convert these files too and look for both/either
-                self.label_dict = file_content['labelNames']
+                file_content = jbfs.load_json(self.label_mapping)
+                if 'labelNames' in file_content:
+                    self.label_dict = file_content['labelNames']
+                else:
+                    logger.error(f"Could not retrieve a label_mapping from {self.label_mapping}. Is it a JSON file "
+                                 f"containing the key 'labelNames'? EXITING.")
+                    sys.exit(-1)
 
             # label_mapping is already a dictionary, so just set label_dict to that
             else:
@@ -236,12 +244,12 @@ class ModelConfig(Prodict):
 
         # Validate
         if not conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
-            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING!")
+            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
 
         # Finally, construct the object and do a final value cleanup
         model_config = ModelConfig.from_dict(data)
-        model_config._finish_init()
+        model_config._finish_init(file_path)
         return model_config
 
     @staticmethod
@@ -270,8 +278,10 @@ class ModelConfig(Prodict):
         """ :return: A pure dictionary version suitable for serialization to CURRENT json"""
         as_dict = conf_utils.prodict_to_dict(self)
 
-        if 'label_dict' in as_dict:
-            del as_dict['label_dict']
+        ignore_attrs = ["file_path", "label_dict"]
+        for attr_name in ignore_attrs:
+            if attr_name in as_dict:
+                del as_dict[attr_name]
 
         return as_dict
 

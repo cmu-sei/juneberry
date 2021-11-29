@@ -1,0 +1,37 @@
+{
+    "annotations": [
+    ],
+    "images": [
+        {
+            "file_name": "img_1.jpg",
+            "coco_url": "",
+            "height": 200,
+            "width": 200,
+            "id": "1"
+        },
+        {
+            "file_name": "img_2.jpg",
+            "coco_url": "",
+            "height": 200,
+            "width": 200,
+            "id": "2"
+        }
+    ],
+    "categories": [
+        {
+            "supercategory": "sc_1",
+            "id": 1,
+            "name": "class_1"
+        },
+        {
+            "supercategory": "sc_1",
+            "id": 2,
+            "name": "class_2"
+        }
+    ],
+    "info": {
+        "description": "Metrics Unit Test (no annos)",
+        "year": 2021,
+        "date_created": "2021/11/11"
+    }
+}

@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 class DataType(str, Enum):
     UNDEFINED = 'unknown'
     IMAGE = 'image'
+    TENSORFLOW = 'tensorflow'
     TORCHVISION = 'torchvision'
     TABULAR = 'tabular'
 
@@ -60,6 +61,11 @@ class SamplingAlgo(str, Enum):
 
 
 SamplingConfig = namedtuple('SamplingType', 'algo args randomizer')
+
+
+class Plugin(Prodict):
+    fqcn: str
+    kwargs: Prodict
 
 
 class ImagesSource(Prodict):
@@ -89,7 +95,7 @@ class TabularData(Prodict):
 
 class TensorFlowData(Prodict):
     name: str
-    load_args: Prodict
+    load_kwargs: Prodict
 
 
 class TorchvisionData(Prodict):
@@ -100,22 +106,27 @@ class TorchvisionData(Prodict):
     eval_kwargs: Prodict
 
 
+class DataTransforms(Prodict):
+    seed: int
+    transforms: List[Plugin]
+
+
 class Sampling(Prodict):
     algorithm: str
     arguments: Prodict
 
 
 class DatasetConfig(Prodict):
-    FORMAT_VERSION = '0.2.0'
+    FORMAT_VERSION = '0.3.0'
     SCHEMA_NAME = 'dataset_schema.json'
 
+    data_transforms: DataTransforms
     data_type: str
     description: str
-    url: str
     file_path: Path
     format_version: str
     image_data: ImageData
-    label_names: dict
+    label_names: Prodict
     num_model_classes: int
     relative_path: Path
     sampling: Sampling
@@ -123,6 +134,7 @@ class DatasetConfig(Prodict):
     tensorflow_data: TensorFlowData
     timestamp: str
     torchvision_data: TorchvisionData
+    url: str
 
     def _finish_init(self, relative_path: Path = None, file_path: str = None):
         """
@@ -163,8 +175,11 @@ class DatasetConfig(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: A constructed object.
         """
+
+        # We currently do not have any non-compatible versions
+        # conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
+
         # Validate with our schema
-        conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
         if not conf_utils.validate_schema(data, DatasetConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in DatasetConfig from {file_path}. See log. EXITING!")
             sys.exit(-1)

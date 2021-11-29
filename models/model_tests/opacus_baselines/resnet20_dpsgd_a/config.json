@@ -2,8 +2,6 @@
     "batch_size": 128,
     "description": "Quick CIFAR-10 trainer",
     "epochs": 50,
-    "evaluation_output": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput",
-    "evaluation_procedure": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "torchvision.transforms.ToTensor"

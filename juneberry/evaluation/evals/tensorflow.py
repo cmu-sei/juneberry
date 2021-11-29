@@ -24,7 +24,7 @@
 
 import logging
 
-from juneberry.tensorflow.evaluator import TFEvaluator
+from juneberry.tensorflow.evaluator import Evaluator
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,11 @@ class TFEvaluationProcedure:
     Attempt at a TensorFlow eval procedure.
     """
 
-    def __call__(self, evaluator: TFEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
         of the process is raw evaluation data.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 
@@ -60,7 +60,7 @@ class TFEvaluationOutput:
     This is the default TensorFlow evaluation class used for formatting raw evaluation data in Juneberry.
     """
 
-    def __call__(self, evaluator: TFEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will

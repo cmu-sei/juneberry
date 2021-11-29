@@ -24,17 +24,21 @@
 
 import logging
 import numpy as np
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 
 import torch
 from tqdm import tqdm
 
+import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
+from juneberry.metrics.metrics import Metrics
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +81,8 @@ def get_histogram(dataset_dicts, classes):
     return hist_dict
 
 
-def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                     eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace):
+def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                     dataset: DatasetConfig, eval_options: SimpleNamespace, log_file: str):
     """
     This function is responsible for creating the correct evaluator object based on the contents of the ModelConfig.
     :param model_config: The loaded Juneberry ModelConfig which determines which Evaluator to build.
@@ -87,14 +91,15 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig
     :param model_manager: The Juneberry ModelManager that will be used to build the Evaluator.
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to build the Evaluator.
     :param eval_options: A SimpleNamespace of different eval options that will be used to build the Evaluator.
+    :param log_file: A string indicating the location of the current log file.
     """
 
     platform_map = {
-        "pytorch": "juneberry.pytorch.evaluator.PytorchEvaluator",
-        "pytorch_privacy": "juneberry.pytorch.evaluator.PytorchEvaluator",
-        "detectron2": "juneberry.detectron2.evaluator.Detectron2Evaluator",
-        "mmdetection": "juneberry.mmdetection.evaluator.MMDEvaluator",
-        "tensorflow": "juneberry.tensorflow.evaluator.TFEvaluator",
+        "pytorch": "juneberry.pytorch.evaluator.Evaluator",
+        "pytorch_privacy": "juneberry.pytorch.evaluator.Evaluator",
+        "detectron2": "juneberry.detectron2.evaluator.Evaluator",
+        "mmdetection": "juneberry.mmdetection.evaluator.Evaluator",
+        "tensorflow": "juneberry.tensorflow.evaluator.Evaluator",
         "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator"
     }
 
@@ -127,7 +132,7 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, dataset: DatasetConfig
             kw_args = {}
         fqcn = model_config.evaluator.fqcn
 
-    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options']
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
 
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
     for arg in reqd_args:
@@ -186,3 +191,48 @@ def predict_classes(data_generator, model, device):
                 all_outputs = np.concatenate((all_outputs, output.detach().cpu().numpy()))
 
     return all_outputs.tolist()
+
+
+def invoke_evaluator_method(evaluator, module_name: str):
+    """
+    This function is responsible for invoking methods during evaluation.
+    :param evaluator: A Juneberry Evaluator object that is managing the evaluation.
+    :param module_name: The module being invoked.
+    :return: Nothing.
+    """
+    split_name = module_name.split(".")
+    module_path = ".".join(split_name[:-1])
+    class_name = split_name[-1]
+    args = {"evaluator": evaluator}
+
+    jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
+
+
+def populate_metrics(model_manager: ModelManager,
+                     eval_dir_mgr: EvalDirMgr,
+                     eval_output: EvaluationOutput) -> None:
+    """
+    Calculate metrics and populate the output results.
+    :param model_manager: The Juneberry ModelManager that will be used to get data for metrics.
+    :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to get data for metrics.
+    :param eval_output: The Juneberry EvaluationOutput that will be populated with metrics.
+    :return: None
+    """
+    anno_file = Path(eval_dir_mgr.get_manifest_path())
+    num_annotations = coco_utils.count_annotations(anno_file)
+
+    # Only populate metrics output if we have annotations.
+    if num_annotations > 0:
+        m = Metrics.create_with_filesystem_managers(model_manager,
+                                                    eval_dir_mgr)
+        eval_output.results.metrics.bbox = m.as_dict()
+        eval_output.results.metrics.bbox_per_class = m.mAP_per_class
+
+        for k, v in eval_output.results.metrics.bbox.items():
+            logger.info(k + " = " + str(v))
+
+        for k, v in eval_output.results.metrics.bbox_per_class.items():
+            logger.info(k + " = " + str(v))
+    else:
+        logger.info(
+            "There are no annotations; not using Metrics class to populate metrics output.")

@@ -158,8 +158,9 @@ def make_split_metadata_manifest_files(lab: Lab,
         preprocessors=TransformManager(model_config.preprocessors))
 
     # Convert out COCO like intermediate list format into pure coco file.
-    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, dataset_config.retrieve_label_names())
-    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
+    train_coco_meta = coco_utils.convert_jbmeta_to_coco(train_meta, label_names)
+    split_coco_meta = coco_utils.convert_jbmeta_to_coco(split_meta, label_names)
 
     # Serialize
     train_path = model_manager.get_training_data_manifest_path()
@@ -212,7 +213,8 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
     output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
 
-    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, dataset_config.retrieve_label_names())
+    label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
+    coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
     jbfs.save_json(coco_style, output_path)
 
     logger.info(f"Saving evaluation data manifest: {output_path}")
@@ -252,10 +254,6 @@ class DatasetMarshal:
         # Arrays the individual entries
         self.train = []
         self.val = []
-
-        # We'll need to rebuild this if we preprocess
-        # TODO: DO NOT CACHE THIS! The dataset changes it and we should always fetch from there
-        self.label_mapping = dataset_config.retrieve_label_names()
 
         self._splitting_config = splitting_config
         self._preprocessors = preprocessors
@@ -406,31 +404,29 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        with open(filepath) as json_file:
-            data = json.load(json_file)
-            if self._preprocessors is not None:
-                logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
-                orig_cats = copy.deepcopy(data['categories'])
-                data = self._preprocessors(data)
-                if orig_cats != data['categories']:
-                    logger.info(f"......changing categories because preprocessor changed them.")
-                    # The categories were changed by the preprocessors. They win out over all others
-                    # Categories is a list of id, name
-                    # Last preprocessor of all files wins
-                    # NOTE: This might not be a good idea to do it every time depending on how the
-                    # preprocessors are written, but we'll try this for a while.
-                    # TODO: Fix the dichotomy with str vs int labels
-                    str_labels = {str(x['id']): x['name'] for x in data['categories']}
-                    int_labels = {int(x['id']): x['name'] for x in data['categories']}
-                    self.ds_config.label_names = str_labels
-                    self.ds_config.update_label_names(int_labels)
-                    self.label_mapping = self.ds_config.retrieve_label_names()
+        data = jbfs.load_file(filepath)
+        if self._preprocessors is not None:
+            logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
+            orig_cats = copy.deepcopy(data['categories'])
+            data = self._preprocessors(data)
+            if orig_cats != data['categories']:
+                logger.info(f"......changing categories because preprocessor changed them.")
+                # The categories were changed by the preprocessors. They win out over all others
+                # Categories is a list of id, name
+                # Last preprocessor of all files wins
+                # NOTE: This might not be a good idea to do it every time depending on how the
+                # preprocessors are written, but we'll try this for a while.
+                # TODO: Fix the dichotomy with str vs int labels
+                str_labels = {str(x['id']): x['name'] for x in data['categories']}
+                int_labels = {int(x['id']): x['name'] for x in data['categories']}
+                self.ds_config.label_names = str_labels
+                self.ds_config.update_label_names(int_labels)
 
-            # Now that we have the file loaded let's load the values
-            helper = COCOImageHelper(data)
-            if remove_image_ids:
-                [helper.remove_image(img_id) for img_id in remove_image_ids]
-            new_values.extend(helper.to_image_list())
+        # Now that we have the file loaded let's load the values
+        helper = COCOImageHelper(data)
+        if remove_image_ids:
+            [helper.remove_image(img_id) for img_id in remove_image_ids]
+        new_values.extend(helper.to_image_list())
 
     @staticmethod
     def _summarize_set(label_name, data_list):
@@ -526,8 +522,7 @@ def get_num_classes(data_config_files):
     """
     num_classes = []
     for config_file in data_config_files:
-        with open(config_file) as file:
-            config = json.load(file)
+        config = jbfs.load_file(config_file)
         if 'num_model_classes' not in config.keys():
             logger.error(f"Config file {config_file} does not specify the number of classes.")
             exit(-1)
@@ -585,8 +580,7 @@ def load_preprocess_metadata(source_list, preprocessors=None):
             input_paths = source[dataset_type]
             source[dataset_type] = []
             for entry in input_paths:
-                with open(entry) as json_file:
-                    data = json.load(json_file)
+                data = jbfs.load_file(entry)
 
                 if preprocessors is not None:
                     data = transformers(data)
@@ -905,10 +899,9 @@ def load_coco_json(filepath, output: list) -> None:
     :param output: The output list in which to add out content.
     :return: None
     """
-    with open(filepath) as json_file:
-        data = json.load(json_file)
-        helper = COCOImageHelper(data)
-        output.extend(helper.to_image_list())
+    data = jbfs.load_file(filepath)
+    helper = COCOImageHelper(data)
+    output.extend(helper.to_image_list())
 
 
 def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
@@ -921,8 +914,8 @@ def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
     :return: Returns a dictionary of integer keys mapped to string values.
     """
     if label_val:
-        if isinstance(label_val, str):
-            file_content = jbfs.load_json(label_val)
+        if isinstance(label_val, str) or isinstance(label_val, Path):
+            file_content = jbfs.load_json(str(label_val))
             if key in file_content:
                 stanza = file_content[key]
                 return convert_dict(stanza)
@@ -945,16 +938,35 @@ def convert_dict(stanza):
         return {int(k): v for (k, v) in stanza.items()}
 
 
-def get_label_mapping(model_manager: ModelManager = None, model_config=None, train_config=None, eval_config=None,
-                      show_source=False):
+def return_label_mapping(show_source: bool, source: str, source_path, label_dict: dict):
+    """
+    Logs information about the source of the label mapping and returns the label dictionary and (optional) source.
+    :param show_source: Boolean indicating if the source should be returned (for testing purposes).
+    :param source: String indicating the type of file from which the label mapping was retrieved.
+    :param source_path: The path to the file from which the label mapping was retrieved.
+    :param label_dict: A dictionary containing an int -> string mapping of labels.
+    :return: The dictionary of label names and the source from which that dictionary was retrieved (optional).
+    """
+    logger.info(f"Using label mapping from"
+                f"     Source: {source}"
+                f"     Path: {source_path}")
+    if show_source:
+        return label_dict, source
+    else:
+        return label_dict
+
+
+def get_label_mapping(model_manager: ModelManager = None, model_config: ModelConfig = None,
+                      train_config: DatasetConfig = None, eval_config: DatasetConfig = None,
+                      show_source=False) -> Union[Tuple[Dict[int, str], str], Dict[int, str]]:
     """
     Checks a hierarchy of files to determine the set of label names used by the trained model. The order of precedence
-    is as follows: training output.json file, specified model config file, specified training config file, specified
-    eval config file, default model config file, and default training config file.
-    :param model_manager: ModelManager object for the model.
-    :param model_config: Path to the model config for the model.
-    :param train_config: Path to the training dataset config for the model.
-    :param eval_config: Path to the evaluation dataset config for the model.
+    is as follows: training output.json file, specified model config file, specified training config file, default model
+    config file, default training config file, and specified eval config file.
+    :param model_manager: The ModelManager object for the model.
+    :param model_config: The ModelConfig object for the model configuration.
+    :param train_config: The DatasetConfig object for model training.
+    :param eval_config: The DatasetConfig object for model evaluation.
     :param show_source: Set to True to return the source from which the label names were extracted.
     :return: The label names as a dict of int -> string.
     """
@@ -965,23 +977,30 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
             label_val = training_output.options.label_mapping
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return label_dict, "training output" if show_source else label_dict
+                return return_label_mapping(show_source=show_source,
+                                            source="training output",
+                                            source_path=model_manager.get_training_out_file(),
+                                            label_dict=label_dict)
 
     # If a model config was provided...
     if model_config:
         # Check the model config for label names.
-        mc = ModelConfig.load(model_config)
-        label_val = mc.label_mapping
+        label_val = model_config.label_mapping
         label_dict = get_label_dict(label_val)
         if label_dict:
-            return label_dict, "model config" if show_source else label_dict
+            return return_label_mapping(show_source=show_source,
+                                        source="model config",
+                                        source_path=model_config.file_path,
+                                        label_dict=label_dict)
 
     # If a training config was provided...
     if train_config:
-        dc = DatasetConfig.load(train_config)
-        label_dict = dc.retrieve_label_names()
+        label_dict = train_config.retrieve_label_names()
         if label_dict:
-            return label_dict, "training dataset config" if show_source else label_dict
+            return return_label_mapping(show_source=show_source,
+                                        source="training dataset config",
+                                        source_path=train_config.file_path,
+                                        label_dict=label_dict)
 
     # If the model manager was provided, check the default model config followed by the default training config.
     if model_manager:
@@ -992,22 +1011,169 @@ def get_label_mapping(model_manager: ModelManager = None, model_config=None, tra
         if label_val is not None:
             label_dict = get_label_dict(label_val)
             if label_dict:
-                return label_dict, "model config via model manager" if show_source else label_dict
+                return return_label_mapping(show_source=show_source,
+                                            source="model config via model manager",
+                                            source_path=model_manager.get_model_config(),
+                                            label_dict=label_dict)
 
         # If the model config didn't have labels, get them from the training config.
         else:
             dc = DatasetConfig.load(mc.training_dataset_config_path)
             label_dict = dc.retrieve_label_names()
             if label_dict:
-                return label_dict, "training dataset config via model config via model manager" if show_source \
-                    else label_dict
+                return return_label_mapping(show_source=show_source,
+                                            source="training dataset config via model config via model manager",
+                                            source_path=dc.file_path,
+                                            label_dict=label_dict)
 
     # If an eval config was provided, check this as a last resort.
     if eval_config:
-        dc = DatasetConfig.load(eval_config)
-        label_dict = dc.retrieve_label_names()
+        label_dict = eval_config.retrieve_label_names()
         if label_dict:
-            return label_dict, "eval dataset config" if show_source else label_dict
+            return return_label_mapping(show_source=show_source,
+                                        source="eval dataset config",
+                                        source_path=eval_config.file_path,
+                                        label_dict=label_dict)
+
+
+def categories_in_dataset_config(config_path: Path, data_root: Path) -> list:
+    """
+    Pulls and returns the list of categories from the coco data.
+    :param config_path: The path to the dataset config file.
+    :param data_root: The path to the data root.
+    :return: The list of categories.
+    """
+    dataset_config = DatasetConfig.load(str(config_path))
+    # TODO: eliminate use of snake case
+    if 'imageData' in dataset_config:
+        coco_path = dataset_config.imageData['sources'][0]['directory']
+    else:
+        coco_path = dataset_config.image_data['sources'][0]['directory']
+
+    # TODO: use future coco prodict
+    coco_data = jbfs.load_file(data_root / coco_path)
+    if 'categories' in coco_data:
+        return coco_data["categories"]
+    else:
+        return []
+
+
+def categories_in_model_config(model_config_path: Path) -> list:
+    """
+    Pulls, reformats, and returns the list of categories from the model config preprocessors.
+    :param model_config_path: The path to the model config file.
+    :returns: The list of categories.
+    """
+    model_config_data = ModelConfig.load(str(model_config_path))
+    preprocessor_dict = model_config_data.preprocessors
+    object_relabel_dict = next((item for item in preprocessor_dict if item["fqcn"] == "juneberry.transforms"
+                                                                                      ".metadata_preprocessors"
+                                                                                      ".ObjectRelabel"), None)
+    if object_relabel_dict:
+        category_dict = object_relabel_dict.kwargs.labels
+        if category_dict:
+            category_list = []
+            for k, v in category_dict.items():
+                category_list.append({'id': int(k), 'name': v})
+            return category_list
+
+    return []
+
+
+def check_category_list(category_list: list, eval_manifest_path: Path, show_source: bool, source: str,
+                        source_path: str) -> Union[List, Tuple[List, str]]:
+    """
+    Checks that the extracted category list matches the evaluation manifest category list, and logs a warning if there
+    is a mismatch. Logs information about the source of the label mapping. Returns the category list and (optional)
+    source.
+    :param category_list: The list of categories.
+    :param eval_manifest_path: The path to the evaluation manifest file.
+    :param show_source: Boolean indicating if the source should be returned (for testing purposes).
+    :param source: String indicating the type of file from which the category list was retrieved.
+    :param source_path: The path to the file from which the category list was retrieved.
+    :return: The list of categories and the source from which the category list was retrieved (optional).
+    """
+    eval_manifest = jbfs.load_file(str(eval_manifest_path))
+    eval_manifest_categories = eval_manifest["categories"]
+    if category_list != eval_manifest_categories:
+        logger.warning("The evaluation category list does not match that of the eval_manifest:"
+                       f"  category_list: {category_list}"
+                       f"  eval_manifest list: {eval_manifest_categories}")
+    logger.info(f"Using category list from"
+                f"     Source: {source}"
+                f"     Path: {source_path}")
+    if show_source:
+        return category_list, source
+    else:
+        return category_list
+
+
+def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = None,
+                      train_config: DatasetConfig = None,
+                      eval_config: DatasetConfig = None, data_root: Path = None,
+                      show_source: bool = False) -> Union[List, Tuple[List, str]]:
+    """
+    Checks a hierarchy of files to determine the set of categories for use in evaluation. The order of precedence
+    is as follows: training manifest, validation manifest, model config, train config, and eval config.
+    :param eval_manifest_path: The path to the model's evaluation manifest file.
+    :param model_manager: The ModelManager object for the model.
+    :param train_config: The DatasetConfig object for model training.
+    :param eval_config: The DatasetConfig object for model evaluation.
+    :param data_root: The path to the data root of source images.
+    :param show_source: Set to True to return the source from which the label names were extracted.
+    :return: A dictionary containing the category mapping.
+    """
+    model_config_path = None
+    if model_manager:
+        # Check the training manifest
+        training_manifest_path = model_manager.get_training_data_manifest_path()
+        train_manifest_data = jbfs.load_file(str(training_manifest_path))
+        category_list = train_manifest_data.get('categories', None)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
+                                       str(training_manifest_path))
+
+        # Check the validation manifest
+        validation_manifest_path = model_manager.get_validation_data_manifest_path()
+        val_manifest_data = jbfs.load_file(str(validation_manifest_path))
+        category_list = val_manifest_data.get('categories', None)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
+                                       str(validation_manifest_path))
+
+        # Check the model config
+        model_config_path = model_manager.get_model_config()
+        category_list = categories_in_model_config(model_config_path)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "model config",
+                                       model_config_path)
+
+    # Check the training config
+    train_config_path = None
+    if train_config:
+        train_config_path = train_config.file_path
+        category_list = categories_in_dataset_config(train_config_path, data_root)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "train config",
+                                       str(train_config_path))
+
+    # Check the evaluation config
+    eval_config_path = None
+    if eval_config:
+        eval_config_path = eval_config.file_path
+        category_list = categories_in_dataset_config(eval_config_path, data_root)
+        if category_list:
+            return check_category_list(category_list, eval_manifest_path, show_source, "eval config",
+                                       str(eval_config_path))
+
+    # Log detailed error message and exit
+    logger.error(f"Failed to retrieve a category list via the following args:\n"
+                 f"  model_manager: {model_manager}\n"
+                 f"  model_config: {model_config_path}\n"
+                 f"  train_config: {train_config_path}\n"
+                 f"  eval_config: {eval_config_path}\n"
+                 f"EXITING.")
+    sys.exit(-1)
 
 
 def check_num_classes(args: dict, num_model_classes: int) -> None:
@@ -1059,11 +1225,69 @@ def load_path_label_manifest(filename, relative_to: Path = None):
     :return: A list of pairs of [path, label].
     """
     pairs = []
-    with open(filename) as in_file:
-        data = json.load(in_file)
-        for row in data:
-            path = row['path']
-            if relative_to is not None:
-                path = str(relative_to / path)
-            pairs.append([path, row['label']])
+    data = jbfs.load_file(filename)
+
+    for row in data:
+        path = row['path']
+        if relative_to is not None:
+            path = str(relative_to / path)
+        pairs.append([path, row['label']])
     return pairs
+
+
+def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
+                           opt_args: dict, stage_transform_class, eval: bool):
+    """
+    Constructs the appropriate transform manager for the this data.
+    :param model_cfg: The model config.
+    :param ds_cfg: The datasett config.
+    :param set_size: The size of the data set.
+    :param opt_args: Optional args to pass into the construction of the plugin.
+    :param eval: Are we in train (False) or eval mode (True).
+    :param stage_transform_class: The class of a staged transform manager to construct
+                                  for when we have both dataset and model transforms.
+                                  These class should be StagedTransformManager or look like it.
+    :return: Transform manager.
+    """
+    assert model_cfg is not None
+    model_transforms = None
+    if model_cfg.seed is not None:
+        model_seed = model_cfg.seed
+    else:
+        logger.warning("Creating a dataset with a random seed!!!")
+        model_seed = random.randint(0, 2 ** 32 - 1)
+
+    if eval:
+        if model_cfg.evaluation_transforms is not None:
+            logger.info(f"Making transform manager from model config EVALUATION transforms.")
+            model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
+    else:
+        if model_cfg.training_transforms is not None:
+            logger.info(f"Making transform manager from model config TRAINING transforms.")
+            model_transforms = TransformManager(model_cfg.training_transforms, opt_args)
+
+    if ds_cfg.data_transforms is not None:
+        logger.info(f"Making transform manager from DATASET transforms.")
+        ds_transforms = TransformManager(ds_cfg.data_transforms.transforms, opt_args)
+        if ds_cfg.data_transforms.seed is not None:
+            data_seed = ds_cfg.data_transforms.seed
+        else:
+            data_seed = model_seed + set_size
+    else:
+        ds_transforms = None
+        data_seed = 0
+
+    if model_transforms and ds_transforms:
+        if stage_transform_class is not None:
+            logger.info(f"Making STAGED transform manager with seed {data_seed}.")
+            return stage_transform_class(data_seed, ds_transforms, model_seed, model_transforms)
+        else:
+            logger.error("This platform does not support making BOTH dataset AND model transforms. EXITING.")
+            sys.exit(-1)
+
+    elif model_transforms:
+        return model_transforms
+    elif ds_transforms:
+        return ds_transforms
+    else:
+        return None

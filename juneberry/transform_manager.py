@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -48,6 +26,7 @@ import logging
 import sys
 
 import juneberry.loader as loader
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +63,7 @@ class TransformManager:
             self.kwargs = kwargs
             self.transform = None
 
-    def __init__(self, config: list):
+    def __init__(self, config: list, opt_args: dict = None):
         """
         Initializer that takes the augmentations stanza as configuration
         :param config: A configuration list of dicts of name, args.
@@ -99,7 +78,7 @@ class TransformManager:
             entry = TransformManager.Entry(i['fqcn'], i.get('kwargs', None))
 
             logger.info(f"Constructing transform: {entry.fqcn} with args: {entry.kwargs}")
-            entry.transform = loader.construct_instance(entry.fqcn, entry.kwargs)
+            entry.transform = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
 
             self.config.append(entry)
 
@@ -137,19 +116,6 @@ class TransformManager:
         """
         return self.config[index].fqcn
 
-    def transform_pair(self, a, b):
-        # TODO: We can replace this just by passing in a tuple...
-        """
-        Performs all the transformations, in sequence, on the input pair and returns the last output.
-        :param a: The first component
-        :param b: The second component.
-        :return: The transformed image and target.
-        """
-        for entry in self.config:
-            a, b = entry.transform(a, b)
-
-        return a, b
-
     def get_transforms(self) -> list:
         """ :return: The transforms as a list. """
         return [x.transform for x in self.config]
@@ -160,4 +126,56 @@ class TransformManager:
     def __repr__(self) -> str:
         # Note for repr we should have more data
         return self.__str__()
+
+
+class StagedTransformManager:
+    """
+    A callable transform manager that manages the random seed state in a predictable fashion based
+    on an initial seed state and the seed index.
+    """
+    def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
+        """
+        Initialize the two stage manager with seeds and transforms for two stages.  The first
+        stage, "consistent" is handled the same way for each epoch.  The second stage
+        "epoch" is set differently for each epoch.
+        Each seed will also be set differently based on the index of each element. Thus,
+        regardless of the order the inputs are retrieved, they should provide the same value.
+        :param consistent_seed: A seed for the 'con
+        :param consistent: The transforms to be run consistently per epoch.
+        :param per_epoch_seed: The BASE seed to be used for each epoch. It will be incremented every epoch.
+        :param per_epoch: The transforms to be applied with the per-epoch seed.
+        """
+        self.consistent_transform = consistent
+        self.consistent_seed = consistent_seed
+        self.per_epoch_transform = per_epoch
+        self.per_epoch_seed = per_epoch_seed
+
+    def __call__(self, item, index, epoch):
+        # Capture the random state
+        self.save_random_state()
+
+        # Set the random seed based on index only
+        seed = jb_utils.wrap_seed(self.consistent_seed + index)
+        self.set_seeds(seed)
+        item = self.consistent_transform(item)
+
+        # Now, execute the per epoch transform
+        seed = jb_utils.wrap_seed(self.per_epoch_seed + index + epoch)
+        self.set_seeds(seed)
+        item = self.per_epoch_transform(item)
+
+        # Restore the state
+        self.restore_random_state()
+
+        return item
+
+    # Extension points
+    def save_random_state(self):
+        pass
+
+    def restore_random_state(self):
+        pass
+
+    def set_seeds(self, seed):
+        pass
 

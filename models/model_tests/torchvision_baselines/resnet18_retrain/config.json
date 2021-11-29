@@ -3,8 +3,6 @@
     "batch_size": 768,
     "description": "Retrain a resnet18 from pytorch",
     "epochs": 20,
-    "evaluation_output": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput",
-    "evaluation_procedure": "juneberry.evaluation.evals.pytorch.PyTorchEvaluationProcedure",
     "evaluation_transforms": [
         {
             "fqcn": "torchvision.transforms.Resize",

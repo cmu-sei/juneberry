@@ -32,9 +32,11 @@ from torch import Tensor
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
+import juneberry.pytorch.data as pyt_data
+import juneberry.pytorch.utils as pyt_utils
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 from juneberry.transform_manager import TransformManager
@@ -43,27 +45,28 @@ import juneberry.utils
 logger = logging.getLogger(__name__)
 
 
-class PytorchEvaluator(Evaluator):
+class Evaluator(EvaluatorBase):
     """
     This subclass is the Pytorch-specific version of the Evaluator.
     """
 
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: jb_dataset.DatasetConfig,
-                 model_manager: ModelManager, eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
+    def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
         """
-        Creates a PytorchEvaluator object based on command line arguments and a Juneberry
+        Creates an Evaluator object based on command line arguments and a Juneberry
         ModelManager object.
         :param model_config: The model config to be used during evaluation.
         :param lab: The Juneberry lab describing the current execution.
-        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param model_manager: A Juneberry ModelManager object responsible for managing operations involving the
         model to be evaluated.
         :param eval_dir_mgr: A Juneberry EvalDirMgr object responsible for managing file path operations
         within the model's eval directory.
+        :param dataset: A Juneberry DatasetConfig object representing the dataset to be evaluated.
         :param eval_options: A SimpleNamespace containing various options for the evaluation. Expected options
-        include the following: topK, dryrun, extract_validation.
+        include the following: topK, use_train_split, use_val_split.
+        :param log_file: A string indicating the location of the current log file.
         """
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         # These attributes are used by Pytorch to send information to the correct device (CPU | GPU)
         self.use_cuda = False
@@ -72,6 +75,16 @@ class PytorchEvaluator(Evaluator):
 
         # These attributes relate to Pytorch's way of loading data from a dataloader.
         self.eval_loader = None
+
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -83,10 +96,10 @@ class PytorchEvaluator(Evaluator):
 
     def setup(self) -> None:
         """
-        This is the Pytorch version of the extension point that's responsible for setting up the Evaluator.
+        This is the PyTorch version of the extension point that's responsible for setting up the Evaluator.
         :return: Nothing.
         """
-        logger.info(f"Performing Pytorch setup steps...")
+        logger.info(f"Performing PyTorch setup steps...")
 
         # Check if cuda is available; set the appropriate "default" device.
         if self.num_gpus == 0:
@@ -99,7 +112,7 @@ class PytorchEvaluator(Evaluator):
             self.device_ids = [0]
         else:
             # We should NEVER get here because the GPU availability should never return more than one.
-            logger.error("PyTorch Evaluator does NOT support more than one GPU device. EXITING.")
+            logger.error("PyTorch Evaluator does NOT support more than one GPU device. Exiting.")
             sys.exit(-1)
 
         # TODO: Shouldn't this be done in the lab??
@@ -118,7 +131,7 @@ class PytorchEvaluator(Evaluator):
         if self.eval_output_method is None:
             self.eval_output_method = "juneberry.evaluation.evals.pytorch.PyTorchEvaluationOutput"
 
-        logger.info(f"PyTorch setup steps are complete.")
+        logger.info(f"PyTorch Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
         """
@@ -138,7 +151,7 @@ class PytorchEvaluator(Evaluator):
                 data_transforms = TransformManager(self.model_config.evaluation_transforms)
             if self.model_config.evaluation_target_transforms:
                 target_transforms = TransformManager(self.model_config.evaluation_target_transforms)
-            val_dataset = pyt_utils.construct_torchvision_dataset(
+            val_dataset = pyt_data.construct_torchvision_dataset(
                 self.lab, tv_data.fqcn, tv_data.root, tv_data.eval_kwargs,
                 data_transforms=data_transforms,
                 target_transforms=target_transforms)
@@ -152,7 +165,8 @@ class PytorchEvaluator(Evaluator):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_utils.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(
+                self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -178,11 +192,10 @@ class PytorchEvaluator(Evaluator):
             # The eval list is the already a list of name and targets
             self.eval_name_targets = eval_list
 
-            self.eval_loader = pyt_utils.make_data_loader(self.lab,
-                                                          self.eval_dataset_config,
-                                                          eval_list,
-                                                          self.model_config.evaluation_transforms,
-                                                          self.model_config.batch_size)
+            self.eval_loader = pyt_data.make_eval_data_loader(self.lab,
+                                                              self.eval_dataset_config,
+                                                              self.model_config,
+                                                              eval_list)
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")
@@ -212,7 +225,7 @@ class PytorchEvaluator(Evaluator):
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
         # Load the weights into the model.
-        logger.info(f"Loading model weights.")
+        logger.info(f"Loading model weights...")
         pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model)
 
         # If a GPU is present, wrap the model in DataParallel.
@@ -233,13 +246,12 @@ class PytorchEvaluator(Evaluator):
         external method, usually found in juneberry.pytorch.evaluation.
         :return: Nothing.
         """
-
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
         logger.info(f"Will evaluate model {self.model_manager.model_name} using {self.eval_dataset_config_path}")
 
-        juneberry.utils.invoke_evaluator_method(self, self.eval_method)
+        pyt_utils.invoke_evaluator_method(self, self.eval_method)
 
-        logger.info(f"EVALUATION COMPLETE.")
+        logger.info(f"EVALUATION COMPLETE")
 
     def format_evaluation(self) -> None:
         """
@@ -250,4 +262,4 @@ class PytorchEvaluator(Evaluator):
         """
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
 
-        juneberry.utils.invoke_evaluator_method(self, self.eval_output_method)
+        pyt_utils.invoke_evaluator_method(self, self.eval_output_method)

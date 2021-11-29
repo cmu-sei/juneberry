@@ -41,6 +41,7 @@ install_requires = [
     "pycocotools",
     "brambox",
     "pyyaml",
+    "hjson",
     "natsort",
     "prodict",
     "jsonschema",
@@ -51,6 +52,7 @@ install_requires = [
 ]
 
 bin_scripts = [
+    'bin/jb_attack_to_rules',
     'bin/jb_clean_predictions',
     'bin/jb_evaluate',
     'bin/jb_experiment_to_rules',
@@ -60,8 +62,9 @@ bin_scripts = [
     'bin/jb_plot_roc',
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',
+    'bin/jb_run_plugin',
     'bin/jb_summary_report',
-    'bin/jb_train',
+    'bin/jb_train'
 ]
 
 setuptools.setup(

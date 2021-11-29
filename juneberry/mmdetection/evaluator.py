@@ -27,6 +27,7 @@ import itertools
 import logging
 import mmcv
 import numpy as np
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 import warnings
@@ -48,25 +49,24 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.utils import get_histogram
+from juneberry.evaluation.evaluator import EvaluatorBase
+from juneberry.evaluation.utils import get_histogram, populate_metrics
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
-import juneberry.metrics.metrics as metrics
-import juneberry.mmdetection.utils as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
 
 
-class MMDEvaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
+class Evaluator(EvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         # The mmdetection cfg
         self.cfg = None
@@ -77,9 +77,15 @@ class MMDEvaluator(Evaluator):
         self.data_loader = None
         self.eval_options = eval_options
 
-        logger.info(f"Using working directory of: {self.working_dir}")
+    # ==========================================================================
+    def dry_run(self) -> None:
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
 
-        jb_setup_logger(self.eval_dir_mgr.get_log_path(), "", name="mmdet", level=logging.DEBUG)
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
@@ -90,7 +96,10 @@ class MMDEvaluator(Evaluator):
         return count
 
     def setup(self) -> None:
+        jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
+
         # Setup working dir to save files and logs.
+        logger.info(f"Using working directory of: {self.working_dir}")
         if not self.working_dir.exists():
             logger.info(f"Making working dir {str(self.working_dir)}")
             self.working_dir.mkdir(parents=True)
@@ -115,7 +124,9 @@ class MMDEvaluator(Evaluator):
             self.use_train_split, self.use_val_split)
 
         # Get the class names from the dataset.  This must happen AFTER we load the eval file.
-        classes = list(ds_cfg.retrieve_label_names().values())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                eval_config=self.eval_dataset_config_path)
+        classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
         cfg.dataset_type = 'COCODataset'
@@ -142,7 +153,7 @@ class MMDEvaluator(Evaluator):
         cfg.load_from = str(model_path.resolve())
 
         # Set seed, thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # For eval, we only do one gpu.
         cfg.gpu_ids = range(1)
@@ -155,10 +166,10 @@ class MMDEvaluator(Evaluator):
         cfg.data.samples_per_gpu = 1
 
         # Add in the pipelines overrides.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # Bring all the user defined configuration.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
@@ -174,7 +185,8 @@ class MMDEvaluator(Evaluator):
         self.dataset = build_dataset(self.cfg.data.test)
 
         # Add the dataset histogram information to the evaluation output.
-        classes = self.eval_dataset_config.retrieve_label_names()
+        classes = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                            eval_config=self.eval_dataset_config)
         self.output.options.dataset.classes = classes
         self.output.options.dataset.histogram = get_histogram(self.eval_list, classes)
 
@@ -216,8 +228,16 @@ class MMDEvaluator(Evaluator):
         # NOTE: It is currently unclear what the score is
         # [batch] x [num_classes] x [ bbox(l,t,r,b] + score ]
 
+        # Grab category mapping
+        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+                                                  model_manager=self.model_manager,
+                                                  # train_config = self.dataset_config,
+                                                  eval_config=self.eval_dataset_config,
+                                                  data_root=self.lab.data_root())
+
         # Convert to standard coco-style annotations.
-        coco_annotations = make_coco_annotations(self.eval_coco_anno, self.raw_output)
+        coco_annotations = make_coco_annotations(self.eval_coco_anno, self.raw_output, category_list)
 
         instances_path = self.eval_dir_mgr.get_detections_path()
         logger.info(f"Saving coco detections to: {instances_path}")
@@ -240,22 +260,14 @@ class MMDEvaluator(Evaluator):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
-        self.output.results.metrics.bbox = m.as_dict()
-        self.output.results.metrics.bbox_per_class = m.mAP_per_class
-
-        for k, v in self.output.results.metrics.bbox.items():
-            logger.info(k + " = " + str(v))
-
-        for k, v in self.output.results.metrics.bbox_per_class.items():
-            logger.info(k + " = " + str(v))
+        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
 
         # TODO: Add some samples. Refactor the code out of DT2.
 
 
-def make_coco_annotations(input_anno, outputs):
+def make_coco_annotations(input_anno, outputs, category_list):
     # Inputs are the images from the input set.
     # Outputs come from the model and look like:
     # [batch] x [num_classes] x [ bbox(l,t,r,b] + confidence ]
@@ -282,7 +294,7 @@ def make_coco_annotations(input_anno, outputs):
             'images': input_anno['images'],
             'annotations': annos,
             'licenses': input_anno.get('licenses', []),
-            'categories': input_anno.get('categories', [])
+            'categories': category_list
             }
 
 

@@ -24,7 +24,6 @@
 
 import logging
 from pathlib import Path
-import sys
 from torchvision import transforms
 from types import SimpleNamespace
 
@@ -40,22 +39,20 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
-from juneberry.evaluation.evaluator import Evaluator
-from juneberry.evaluation.utils import get_histogram
+from juneberry.evaluation.evaluator import EvaluatorBase
+from juneberry.evaluation.utils import get_histogram, populate_metrics
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
-import juneberry.metrics.metrics as metrics
 import juneberry.pytorch.processing as processing
-
 
 logger = logging.getLogger(__name__)
 
 
-class Detectron2Evaluator(Evaluator):
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
+class Evaluator(EvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         self.lab = lab
         self.dataset_config = dataset
@@ -73,35 +70,79 @@ class Detectron2Evaluator(Evaluator):
         # Establish an evaluation output directory and save the detectron2 logging messages
         self.output_dir = self.eval_dir_mgr.root
 
-        # TODO: The evaluator base class should pass down the log path.
-        log_file_path = self.eval_dir_mgr.get_log_dryrun_path() if self.dryrun else self.eval_dir_mgr.get_log_path()
+    # ==========================================================================
+    def dry_run(self) -> None:
+        dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
+        dryrun_path.mkdir(parents=True, exist_ok=True)
 
-        jb_setup_logger(log_file_path, "", name="fvcore", level=logging.DEBUG)
-        jb_setup_logger(log_file_path, "", name="detectron2", level=logging.DEBUG)
+        self.setup()
+        self.obtain_dataset()
+        self.obtain_model()
+
+        # Test for the presence of the annotations file.
+        anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
+        logger.info(f"Checking for annotations file at {anno_file}")
+        if anno_file.exists():
+            logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
+        else:
+            logger.info(f"Annotations file not found. A new one would be generated during evaluation.")
+
+        # Test the creation of the detectron2 evaluator used to perform the evaluation.
+        logger.info(f"Attempting to build the evaluator.")
+        try:
+            evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False,
+                                      output_dir=self.output_dir)
+        except Exception:
+            logger.exception(f"Error building the evaluator.")
+            raise
+        else:
+            logger.info(f"Evaluator built.")
+
+        # Test the creation of the detectron2 test loader used to perform the evaluation.
+        logger.info(f"Attempting to build the loader for the evaluator.")
+        try:
+            mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
+            eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
+        except Exception:
+            logger.exception(f"Error building the loader for the evaluator.")
+            raise
+        else:
+            logger.info(f"Built the loader for the evaluator.")
+
+        # Now produce a few sample images from the evaluation dataloader.
+        logger.info(f"Obtaining the first 5 sample images from the eval loader.")
+        for sample_idx, image in enumerate(eval_loader):
+            if sample_idx > 4:
+                break
+
+            save_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir()) / Path(image[0]['file_name']).name
+            img = transforms.ToPILImage()(image[0]['image'])
+            img.save(save_path)
+
+        logger.info(f"Saved 5 sample images to {self.eval_dir_mgr.get_dryrun_imgs_dir()}")
+
+        logger.info(f"Dryrun complete.")
+
+    # ==========================================================================
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
         # TODO: Test to see if we can use more than 1 gpu with DP.
         if count > 1:
-            logger.warning(f"The evaluator is only configured to support 1 gpu. Reducing {count} to 1")
+            logger.warning(f"The evaluator is only configured to support 1 GPU. Reducing {count} to 1.")
             count = 1
         return count
 
     def setup(self) -> None:
-        # If dryrun mode was requested, perform a "lighter" version of this method.
-        if self.eval_opts.dryrun:
-            self.perform_dryrun()
+        jb_setup_logger(self.log_file_path, "", name="fvcore", level=logging.DEBUG)
+        jb_setup_logger(self.log_file_path, "", name="detectron2", level=logging.DEBUG)
 
     def obtain_dataset(self) -> None:
 
-        if self.dryrun:
-            # Establish a directory for storing dry run images and create it if it doesn't exist.
-            dryrun_imgs_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
-            dryrun_imgs_path.mkdir(parents=True, exist_ok=True)
-
         # TODO: Move this to a preprocessing step for distributed
         # Load the evaluation list
-        label_names = self.dataset_config.retrieve_label_names()
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config, eval_config=self.eval_dataset_config)
         logger.info(f"Evaluating using label_names={label_names}")
 
         self.eval_list, _ = jb_data.make_eval_manifest_file(self.lab, self.dataset_config, self.model_config,
@@ -150,15 +191,23 @@ class Detectron2Evaluator(Evaluator):
         det.rename(self.eval_dir_mgr.get_detections_path())
         det = self.eval_dir_mgr.get_detections_path()
 
-        # Populate metrics
-        m = metrics.Metrics.create_with_filesystem_managers(self.model_manager, self.eval_dir_mgr)
-        self.output.results.metrics.bbox = m.as_dict()
-        self.output.results.metrics.bbox_per_class = m.mAP_per_class
+        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
-        coco_utils.save_predictions_as_anno(self.data_root, str(self.dataset_config.file_path),
-                                            str(self.eval_dir_mgr.get_detections_path()), out)
+
+        # Find category list
+        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+                                                  model_manager=self.model_manager,
+                                                  train_config=self.dataset_config,
+                                                  eval_config=self.eval_dataset_config,
+                                                  data_root=self.data_root)
+
+        # Save as coco annotations file
+        coco_utils.save_predictions_as_anno(data_root=self.data_root, dataset_config=str(self.dataset_config.file_path),
+                                            predict_file=str(self.eval_dir_mgr.get_detections_path()),
+                                            category_list=category_list, output_file=out)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()
@@ -167,87 +216,3 @@ class Detectron2Evaluator(Evaluator):
         # Save the eval output to file.
         logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_predictions_path()}")
         self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
-
-    def perform_dryrun(self):
-        """
-        This method is responsible for executing "dryrun" mode for the detectron2 evaluator. In this mode,
-        the evaluator will attempt to load the model config and the detectron2 config, check for the
-        presence of the annotations file, and create some sample images. The evaluator will then exit
-        without performing any actual evaluation tasks.
-        :return:
-        """
-
-        # Test the loading of the model config.
-        logger.info(f"Attempting to load model config: {self.model_manager.get_model_config()}")
-        try:
-            model_config = ModelConfig.load(self.model_manager.get_model_config())
-        except Exception:
-            logger.exception(f"Error loading the model config.")
-            raise
-        else:
-            logger.info(f"Finished loading model config.")
-
-        # Test the loading and manipulation of the detectron2 config.
-        logger.info(f"Fetching the detectron2 config.")
-        model_arch_name = model_config.model_architecture['module']
-        cfg = get_cfg()
-        cfg.merge_from_file(model_zoo.get_config_file(model_arch_name))
-        cfg.MODEL.WEIGHTS = str(self.model_manager.get_model_dir() / "dt2output" / "model_final.pth")
-        cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
-
-        if self.num_gpus == 0:
-            cfg.MODEL.DEVICE = "cpu"
-
-        if hasattr(model_config, "detectron2"):
-            if "overrides" in model_config.detectron2:
-                cfg.merge_from_list(model_config.detectron2['overrides'])
-
-        # Save the resulting detectron2 config to file.
-        dryrun_cfg_path = dryrun_path / "dt2_cfg.txt"
-        logger.info(f"Saving the detectron2 config to {dryrun_cfg_path}")
-        with open(dryrun_cfg_path, "w") as cfg_outfile:
-            cfg_outfile.write(str(cfg))
-
-        # Test for the presence of the annotations file.
-        anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
-        logger.info(f"Checking for annotations file at {anno_file}")
-        if anno_file.exists():
-            logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
-        else:
-            logger.info(f"Annotations file not found. A new one would be generated during evaluation.")
-
-        # Test the creation of the detectron2 evaluator used to perform the evaluation.
-        logger.info(f"Attempting to build the evaluator.")
-        try:
-            evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False, output_dir=self.output_dir)
-        except Exception:
-            logger.exception(f"Error building the evaluator.")
-            raise
-        else:
-            logger.info(f"Evaluator built.")
-
-        # Test the creation of the detectron2 test loader used to perform the evaluation.
-        logger.info(f"Attempting to build the loader for the evaluator.")
-        try:
-            mapper = dt2_data.create_mapper(cfg, model_config.evaluation_transforms, False)
-            eval_loader = build_detection_test_loader(cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
-        except Exception:
-            logger.exception(f"Error building the loader for the evaluator.")
-            raise
-        else:
-            logger.info(f"Built the loader for the evaluator.")
-
-        # The final piece of the dry run is to produce a few sample images from the evaluation dataloader.
-        logger.info(f"Obtaining the first 5 sample images from the eval loader.")
-        for sample_idx, image in enumerate(eval_loader):
-            if sample_idx > 4:
-                break
-
-            save_path = Path(dryrun_path) / Path(image[0]['file_name']).name
-            img = transforms.ToPILImage()(image[0]['image'])
-            img.save(save_path)
-
-        logger.info(f"Saved 5 sample images to {dryrun_path}")
-        logger.info(f"Dry run complete.")
-
-        sys.exit(0)

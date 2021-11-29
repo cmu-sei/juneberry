@@ -40,6 +40,7 @@ import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
+import juneberry.plotting
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
@@ -102,8 +103,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # Dump some images.
         path = Path(self.model_manager.get_dryrun_imgs_dir())
         path.mkdir(exist_ok=True)
-        tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(),
-                                   self.dataset_config.retrieve_label_names())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        tf_data.save_sample_images(self.train_ds, self.model_manager.get_dryrun_imgs_dir(), label_names)
 
         # Setup the model and dump the summary.
         self.setup_model()
@@ -114,8 +116,12 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     # ==========================
 
     def node_setup(self) -> None:
-        """ Called to prepare the node for either single process or distributed training. """
-        pass
+        # Not sure need this, but might need it for multiple concurrent models per cpu
+        # https://stackoverflow.com/questions/60048292/how-to-set-dynamic-memory-growth-on-tf-2-1/60064123#60064123
+        logger.info("Setting TensorFlow's dynamic memory growth.")
+        physical_devices = tf.config.list_physical_devices('GPU')
+        for gpu_instance in physical_devices:
+            tf.config.experimental.set_memory_growth(gpu_instance, True)
 
     def establish_loggers(self) -> None:
         logger.warning("establish_loggers() not implemented in base Trainer.")
@@ -171,22 +177,14 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         history['batch_loss'] = self.bl_callback.batch_loss if self.bl_callback is not None else []
 
         history_to_results(history, self.results)
+        self._serialize_results()
 
         out_model_filename = self.model_manager.get_tensorflow_model_path()
         logger.info(f"Saving model to '{out_model_filename}'")
         self.model.save(str(out_model_filename))
 
-        # TODO: Check near the bottom of https://github.com/onnx/tensorflow-onnx/blob/master/examples/getting_started.py
-        #  for an os.system call that may help with converting to ONNX model.
-        model = tf.keras.models.load_model(out_model_filename)
-        tf.saved_model.save(model, "tmp_model")
-        onnx_outfile = self.model_manager.get_onnx_model_path()
-        os.system(f"python -m tf2onnx.convert --saved-model tmp_model --output {onnx_outfile}")
-
-        self.results['results']['model_hash'] = jbfs.generate_file_hash(out_model_filename)
-        self.results['results']['onnx_model_hash'] = jbfs.generate_file_hash(onnx_outfile)
-
-        self._serialize_results()
+        logger.info("Generating summary plot...")
+        juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
     # ==========================
 
@@ -212,8 +210,8 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     def setup_datasets(self) -> None:
         logger.info(f"Preparing data loaders...")
 
-        self.train_ds, self.val_ds = tf_data.load_datasets(self.lab, self.dataset_config, self.model_config,
-                                                           self.model_manager)
+        self.train_ds, self.val_ds = tf_data.load_split_datasets(self.lab, self.dataset_config, self.model_config,
+                                                                 self.model_manager)
 
         # output['options']['num_training_images'] = reporting['num_train_images']
         self.results['num_training_images'] = len(self.train_ds) * self.model_config.batch_size
@@ -243,7 +241,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         args = self.model_config.model_architecture.args
         if not args:
             args = {}
-        optional_kwargs = {'labels': self.dataset_config.label_names}
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        optional_kwargs = {'labels': label_names}
         jb_data.check_num_classes(args, self.dataset_config.num_model_classes)
         self.model = jb_loader.invoke_call_function_on_class(self.model_config.model_architecture.module, args,
                                                              optional_kwargs)
@@ -329,25 +329,35 @@ def history_to_results(history, output: TrainingOutput):
     :param history: A history of the training.
     :param output: Where to store the information so it can be retrieved when constructing the final output.
     """
-
     # TODO: Move in time from timing callback - epoch_duration_sec
+    # TODO: Why handle type conversion here? Wouldn't it be better to assume that a metric must return a correctly typed value?
+    from typing import Iterable
+    for k, v in history.items():
+        if isinstance(v, Iterable):
+            v = [float(x) for x in v]
+        output.results[k] = v
 
-    output.results.loss = history['loss']
-    output.results.val_loss = history['val_loss']
+    # TODO: Are these extra metrics always necessary?
+    output.results.train_error = history.get('train_error')
+    output.results.val_error = history.get('val_error')
+    return
 
-    # TODO: What are the list versions from?
-    if isinstance(history['accuracy'], list):
-        output.results.accuracy = [float(i) for i in history['accuracy']]
-    else:
-        output.results.accuracy = history['accuracy']
+    # output.results.loss = history['loss']
+    # output.results.val_loss = history['val_loss']
 
-    if isinstance(history['val_accuracy'], list):
-        output.results.val_accuracy = [float(i) for i in history['val_accuracy']]
-    else:
-        output.results.val_accuracy = history['val_accuracy']
+    # # TODO: What are the list versions from?
+    # if isinstance(history['accuracy'], list):
+    #     output.results.accuracy = [float(i) for i in history['accuracy']]
+    # else:
+    #     output.results.accuracy = history['accuracy']
 
-    # These will only be there if the metrics callback was added.
-    output.results.train_error = history.get('train_error', None)
-    output.results.val_error = history.get('val_error', None)
+    # if isinstance(history['val_accuracy'], list):
+    #     output.results.val_accuracy = [float(i) for i in history['val_accuracy']]
+    # else:
+    #     output.results.val_accuracy = history['val_accuracy']
 
-    output.results.batch_loss = history['batch_loss']
+    # # These will only be there if the metrics callback was added.
+    # output.results.train_error = history.get('train_error', None)
+    # output.results.val_error = history.get('val_error', None)
+
+    # output.results.batch_loss = history['batch_loss']

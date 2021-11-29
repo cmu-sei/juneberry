@@ -26,7 +26,7 @@ from torch import FloatTensor
 from torch.nn.functional import softmax
 
 from juneberry.evaluation import utils as jb_eval_utils
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import logger
 
 
@@ -74,7 +74,7 @@ def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mappi
     return classification_list
 
 
-def top_k_classifications(evaluator: Evaluator, dataset_mapping):
+def top_k_classifications(evaluator: EvaluatorBase, dataset_mapping):
     """
     This function is responsible for adding the top-K classification information to the
     evaluation output.

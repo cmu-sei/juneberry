@@ -22,11 +22,12 @@
 #
 # ======================================================================================================================
 
-import json
 import logging
 from math import ceil
 from pathlib import Path
 import sys
+
+import hjson
 
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
@@ -42,10 +43,11 @@ import juneberry.data as jb_data
 from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab
-import juneberry.mmdetection.utils as mmd_util
+import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
+import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ class MMDTrainer(Trainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.working_dir = model_manager.get_train_scratch_path()
-        self.mm_home = mmd_util.find_mmdetection()
+        self.mm_home = mmd_utils.find_mmdetection()
 
         self.cfg = None
         self.datasets = None
@@ -159,14 +161,16 @@ class MMDTrainer(Trainer):
         # TODO: Should we adjust base pipelines and just repoint? Based on
         #       https://mmdetection.readthedocs.io/en/latest/tutorials/config.html
         #       this seems the way to go.
-        mmd_util.adjust_pipelines(self.model_config, cfg)
+        mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # ============ Setup Datasets
 
         # jb_data.make_split_dataset_files(self.lab, self.dataset_config, self.model_config, self.model_manager)
 
         # Get the class names from the dataset AFTER IT HAS BEEN PROCESSED.
-        classes = list(self.dataset_config.retrieve_label_names().values())
+        label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
+                                                train_config=self.dataset_config)
+        classes = list(label_names.values())
         logger.info(f"Using classes={classes}")
 
         # Their ConfigDict doesn't seem to work like other attribute dicts in that it lets adding any old term.
@@ -226,7 +230,7 @@ class MMDTrainer(Trainer):
         cfg.lr_config.warmup = None
 
         # Set seed thus the results are more reproducible.
-        mmd_util.add_reproducibility_configuration(self.model_config, cfg)
+        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # We set this for non-distributed.
         cfg.gpu_ids = range(self.num_gpus)
@@ -244,7 +248,7 @@ class MMDTrainer(Trainer):
         cfg.runner.max_epochs = self.model_config.epochs
 
         # Add in the overrides if they have any, which they usually do.
-        mmd_util.add_config_overrides(self.model_config, cfg)
+        mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # Save the entire config to the working dir.  At this point we should be able to
         # use the mmdetection "train.py" script with the config file.
@@ -370,14 +374,15 @@ class MMDTrainer(Trainer):
         # JSON format for each phase of training that was recorded.
         with open(file, 'r') as log_file:
             for line in log_file:
-                content = json.loads(line)
+                # TODO: Should this be routed through the jbfs load chokepoint?
+                content = hjson.loads(line)
 
                 # If it's a summary of training metrics, add the values to the appropriate lists.
                 if content['mode'] == "train":
                     # TODO: The time reported here is actually the per iteration time, not per epoch.
                     #  Need to figure out if it's possible to get the per epoch time without tracking
                     #  the time spent for each iteration.
-                    #self.output.times.epoch_duration_sec.append(content['time'])
+                    # self.output.times.epoch_duration_sec.append(content['time'])
                     self.output.results.learning_rate.append(content['lr'])
                     self.output.results.loss_rpn_cls.append(content['loss_rpn_cls'])
                     self.output.results.loss_rpn_bbox.append(content['loss_rpn_bbox'])

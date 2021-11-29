@@ -83,7 +83,7 @@ OD_GPU_TEST_SET = [
         # Single GPU (0.34), 2 GPU (0.27), 4 GPU (0.31)
         0.27,
         #  Single GPU (0.004), 2 GPU (0.003), 4 GPU (0.004)
-        0.003
+        0.00003
     ],
     [
         "text_detect/mmd/ut",
@@ -98,7 +98,7 @@ OD_CPU_TEST_SET = [
     [
         "text_detect/dt2/ut",
         "data_sets/text_detect_val.json",
-        0.3,
+        0.23,
         0.00004
     ]
 ]
@@ -423,8 +423,7 @@ def get_model_train_file_patterns(model_name: str) -> list:
     if model_name in ["imagenette_224x224_rgb_unit_test_tf_resnet50"]:
         return files
 
-    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18",
-                      "tabular_binary_sample"]:
+    if model_name in ["imagenette_160x160_rgb_unit_test_pyt_resnet18", "tabular_binary_sample"]:
         files.append('/'.join(model_mgr.get_training_summary_plot().parts[-2:]))
         return files
 

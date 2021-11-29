@@ -1,0 +1,603 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+from pathlib import Path
+from random import choice, randint
+import shutil
+import sys
+
+import juneberry.config.attack as jb_attack
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig
+from juneberry.config.rule_list import RuleListBuilder
+import juneberry.filesystem as jbfs
+import juneberry.scripting as jbscripting
+
+logger = logging.getLogger("juneberry.jb_attack_to_rules")
+
+JB_TRAIN_COMMAND = 'jb_train'
+JB_EVALUATE_COMMAND = 'jb_evaluate'
+JB_PLOT_PR_COMMAND = 'jb_plot_pr'
+JB_PLOT_ROC_COMMAND = 'jb_plot_roc'
+JB_SUMMARY_COMMAND = 'jb_summary_report'
+JB_PLUGIN_COMMAND = 'jb_run_plugin'
+
+
+class AttackMaker:
+    """
+    Initialize some attributes for the AttackMaker, setup the workspace and logging, and
+    load the attack configuration file.
+    """
+    def __init__(self, args):
+        self.experiment_name = args.experimentName
+        self.attack_manager = jbfs.AttackManager(self.experiment_name)
+        self.attack_config = jb_attack.AttackConfig()
+        self.builder = RuleListBuilder("")
+        self.dryrun = args.dryrun
+
+        # This mapping links choices from the superset | disjoint universes to dataset config files.
+        self.dataset_mapping = {}
+
+        # These lists will contain paths to evaluation output files from the shadow models. There
+        # is one list for each universe.
+        self.shadow_superset_eval_output_files_list = []
+        self.shadow_disjoint_eval_output_files_list = []
+
+        # Setup the experiment directory for the attack.
+        self.attack_manager.setup()
+
+        # Set logging properties depending on whether or not dry run mode was requested.
+        log_prefix = "<<DRY_RUN>> " if self.dryrun else ""
+        log_file = self.attack_manager.get_attack_setup_dryrun_log() if self.dryrun \
+            else self.attack_manager.get_attack_setup_log()
+
+        # Set up the workspace, and logging.
+        jbscripting.setup_for_experiment_creation(args, self.attack_manager, log_file=log_file, log_prefix=log_prefix)
+
+        # Load the attack config for the experiment.
+        self.attack_config = self.attack_config.load(self.attack_manager.get_experiment_attack_file())
+
+    def build_attack_training_datasets(self):
+        """
+        Use the information in the AttackConfig to construct the training datasets for the attack.
+        """
+        baseline_dataset = self.attack_config.data_configs.training_data
+        baseline_dataset_config = DatasetConfig.load(baseline_dataset)
+
+        # Create a training dataset config for each arg in the superset universe.
+        dataset_count = 0
+        for arg in self.attack_config.watermarks.superset_args:
+            dataset_count = self._build_training_dataset(baseline_dataset_config, arg, dataset_count)
+
+        # Create a training dataset config for each arg in the disjoint universe.
+        for arg in self.attack_config.watermarks.disjoint_args:
+            dataset_count = self._build_training_dataset(baseline_dataset_config, arg, dataset_count)
+
+        # Summarize how many training dataset configs were created.
+        dataset_str = "dataset config" if dataset_count == 1 else "dataset configs"
+        action_str = f"Would have added" if self.dryrun else "Added"
+        logger.info(f"{action_str} {dataset_count} {dataset_str} to {self.attack_manager.get_experiment_dataset_dir()}")
+
+    def _build_training_dataset(self, dataset: DatasetConfig, selection, count: int):
+        """
+        This method is responsible for setting parameters inside a DatasetConfig object and saving the resulting
+        DatasetConfig to the appropriate location for the attack, using the appropriate filename.
+        :param dataset: The baseline DatasetConfig to be modified with the appropriate transforms.
+        :param selection: A single element from the superset or disjoint universe, to be included in the
+        parameters of a new DatasetConfig.
+        :param count: An integer indicating the current number of the dataset being created. The number will
+        be used to establish the filename of the resulting dataset config.
+        :return: An integer corresponding to the number of the next dataset config to be created.
+        """
+        # Establish a dictionary (mapping) for determining which training dataset config file corresponds to
+        # which superset | disjoint universe element. The keys in the mapping are superset | disjoint
+        # elements, while the value is the integer of the dataset config file that corresponds to that element.
+        key = tuple(list(selection.to_dict().values())[0])
+        self.dataset_mapping[key] = count
+        new_dataset_path = self.attack_manager.get_experiment_dataset_path(count)
+
+        # Retrieve the desired training dataset transformations, substitute in the unique property from the
+        # universe of supserset | disjoint args, and add the transform to the dataset config.
+        training_watermarks = self.attack_config.watermarks.training_watermarks
+        training_watermarks.kwargs.update(selection)
+        dataset.data_transforms = {'seed': randint(0, 2 ** 32 - 1), 'transforms': [training_watermarks]}
+
+        # Save the DatasetConfig if the script isn't in dryrun mode.
+        if not self.dryrun:
+            dataset.save(new_dataset_path)
+
+        return count + 1
+
+    def _build_query_dataset(self, selection, universe: list, baseline_query_dataset: DatasetConfig,
+                             target_path: Path):
+        """
+        This method is responsible for producing a dataset config file for a query dataset that will be used
+        to evaluate a shadow model.
+        :param selection: A single element from the universe of possible choices.
+        :param universe: A list of possible choices for a property in the DatasetConfig.
+        :param baseline_query_dataset: The baseline DatasetConfig that will serve as the foundation of the
+        query DatasetConfig.
+        :param target_path: A Path indicating where to save the resulting query DatasetConfig.
+        """
+        # Retrieve the query watermarks from the attack config. Substitute in the whichever property was
+        # chosen from the universe of choices, as well as the pool of available choices (the universe).
+        query_watermarks = self.attack_config.watermarks.query_watermarks
+        query_watermarks.kwargs['chosen_property'] = selection
+        query_watermarks.kwargs['property_universe'] = universe
+
+        # Add a transform consisting of a random seed and the desired query watermarks
+        # to the baseline dataset config.
+        baseline_query_dataset.data_transforms = {'seed': randint(0, 2 ** 32 - 1), 'transforms': [query_watermarks]}
+
+        # Save the DatasetConfig if the script isn't in dryrun mode.
+        if not self.dryrun:
+            baseline_query_dataset.save(str(target_path))
+
+    def create_rules(self, file_path):
+        """ This method is responsible for adding the rules for each of the three attack phases and saving
+         the resulting rules file."""
+        # Add the rules for the private, shadow, and meta phases of the attack.
+        self.add_private_model_rules()
+        self.add_shadow_model_rules()
+        self.add_meta_model_rules()
+
+        # Save the rules file.
+        self.builder.rules_list.save(file_path)
+
+    def add_private_model_rules(self):
+        """ This method is responsible for adding the rules for the 'private' models phase of the attack. """
+        logger.info(f"Adding rules for the private models.\n")
+        workflow = self.builder.get_workflow("main")
+
+        # Add a rule to train the private superset model.
+        self._add_private_model_training_rule(workflow)
+
+        # Add a rule to train the private disjoint model.
+        self._add_private_model_training_rule(workflow, disjoint=True)
+
+        # Add rules to evaluate the private superset model and build the resulting in_out datasets.
+        self._add_private_model_evaluation_rule(workflow)
+
+        # Add rules to evaluate the private disjoint model and build the resulting in_out datasets.
+        self._add_private_model_evaluation_rule(workflow, disjoint=True)
+
+    def _add_private_model_training_rule(self, workflow, disjoint=False):
+        """
+        This method is responsible for adding a rule to train a 'private' model for the attack.
+        :param workflow: The workflow where the rule will be added.
+        :param disjoint: A boolean indicating whether this rule is for the 'superset' (default) or
+        'disjoint' private model.
+        :return: Nothing.
+        """
+        # Retrieve the desired model to serve as the baseline for the private models and construct
+        # its ModelManager.
+        baseline_model_name = self.attack_config.models.private
+        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+
+        # Retrieve the property choice for the private model, the universe of possible choices, and set
+        # a string to indicate which universe this private model is for.
+        if disjoint:
+            private_model_arg = self.attack_config.watermarks.private_disjoint_args
+            universe = self.attack_config.watermarks.disjoint_args
+            type_str = 'disjoint'
+        else:
+            private_model_arg = self.attack_config.watermarks.private_superset_args
+            universe = self.attack_config.watermarks.superset_args
+            type_str = 'superset'
+
+        # Verify that the desired selection for the private model is within the universe of possible choices.
+        # If it isn't, log an error message and quit setting up the attack.
+        if private_model_arg not in universe:
+            logger.error(f"Requested a private_{type_str} {private_model_arg} that is not present in the "
+                         f"{type_str}_args. EXITING.")
+            sys.exit(-1)
+
+        # Get the model name for the private model and set up its ModelManager.
+        logger.info(f"*** Building rule for training the PRIVATE {type_str.upper()} model. ***")
+        model_name = self.attack_manager.get_private_model_name(disjoint=disjoint)
+        model_mgr = jbfs.ModelManager(model_name)
+        logger.info(f"Private {type_str} model directory: models/{model_name}")
+
+        # Copy the baseline model config into the appropriate private model directory, and load
+        # the copied ModelConfig.
+        shutil.copy(baseline_model_mgr.get_model_config(),
+                    self.attack_manager.get_private_model_config(disjoint=disjoint))
+        logger.info(f"Copied {baseline_model_mgr.get_model_config()} to the model directory.")
+        model_config = ModelConfig.load(model_mgr.get_model_config())
+
+        # For the desired property selection, use the mapping to retrieve the integer for the
+        # matching dataset config, and then set the training config property in the model config
+        # to that dataset config file.
+        logger.info(f"Model will be trained with the following args: {private_model_arg}")
+        key = tuple(list(private_model_arg.to_dict().values())[0])
+        dataset_num = self.dataset_mapping[key]
+        dataset_config_path = self.attack_manager.get_experiment_dataset_path(dataset_num)
+        logger.info(f"The dataset for this arg is {dataset_config_path}")
+        model_config.training_dataset_config_path = str(dataset_config_path)
+
+        # Now that the model config has the correct training dataset, save the model config.
+        model_config.save(self.attack_manager.get_private_model_config(disjoint=disjoint))
+
+        # Fill out the components for building a rule to train the private model.
+        inputs = [model_mgr.get_model_config(), dataset_config_path]
+        outputs = [str(x) for x in model_mgr.get_training_output_list()]
+        command = [JB_TRAIN_COMMAND, model_name]
+        doc = f"{JB_TRAIN_COMMAND} {model_name} with {private_model_arg} and training watermarks."
+        clean_extras = model_mgr.get_training_clean_extras_list()
+        requirements = []
+
+        # Add the rule for training the private model to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Rule created for PRIVATE {type_str.upper()} model ***\n")
+
+    def _add_private_model_evaluation_rule(self, workflow, disjoint=False):
+        """
+        This method is responsible for adding a rule to evaluate a 'private' model for the attack, and
+        then build the private versions of the in_out datasets using the results of that evaluation.
+        :param workflow: The workflow where the rule will be added.
+        :param disjoint: A boolean indicating whether this rule is for the 'superset' (default) or
+        'disjoint' private model.
+        :return: Nothing.
+        """
+        # Determine the current universe.
+        universe_str = 'disjoint' if disjoint else 'superset'
+
+        # Retrieve the desired model to serve as the baseline for the private models and construct
+        # its ModelManager.
+        private_model_name = self.attack_manager.get_private_model_name(disjoint=disjoint)
+        private_model_mgr = jbfs.ModelManager(private_model_name)
+
+        # Establish the baseline query dataset.
+        baseline_query_dataset = self.attack_config.data_configs.query_data
+        baseline_query_dataset_config = DatasetConfig.load(baseline_query_dataset)
+
+        # Determine which universe of property choices to use, as well as the property selection
+        # that was made for this private model.
+        if disjoint:
+            universe = self.attack_config.watermarks.disjoint_args
+            selection = self.attack_config.watermarks.private_disjoint_args
+        else:
+            universe = self.attack_config.watermarks.superset_args
+            selection = self.attack_config.watermarks.private_superset_args
+
+        # Determine the correct file name for the query dataset and build the query dataset.
+        query_dataset_path = self.attack_manager.get_private_model_query_dataset_config_path(disjoint=disjoint)
+        self._build_query_dataset(selection, universe, baseline_query_dataset_config, query_dataset_path)
+
+        # Create an EvalDirMgr for this shadow model / query dataset combo.
+        private_eval_dir_mgr = private_model_mgr.get_eval_dir_mgr(query_dataset_path)
+
+        # Fill out the components for building a rule to evaluate the shadow model using the query dataset.
+        inputs = [private_model_mgr.get_training_out_file(), str(query_dataset_path)]
+        outputs = [private_eval_dir_mgr.get_predictions_path()]
+        command = [JB_EVALUATE_COMMAND, private_model_name, str(query_dataset_path)]
+        doc = f"{JB_EVALUATE_COMMAND} {private_model_name} with {str(query_dataset_path)}."
+        clean_extras = []
+        requirements = []
+
+        # Add the rule to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added a rule to evaluate the {universe_str.upper()} PRIVATE model. ***\n")
+
+        # Determine the file names for the training, validation, and test in_out datasets. The 'oppo' test
+        # dataset is the test in_out dataset config from the opposite universe.
+        train_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('train', disjoint=disjoint))
+        val_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('val', disjoint=disjoint))
+        test_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=disjoint))
+
+        # Gather the components for constructing the Plugin that's responsible for building the in_out datasets. The
+        # required components are: the desired in_out builder from the attack config, the list evaluation output
+        # files for the current universe, and the destination file names for the train/val/test in_out datasets. Once
+        # all of those components have been gathered together into a dictionary, write that info to a JSON file.
+        in_out_builder = self.attack_config.data_configs.in_out_builder
+        in_out_builder.kwargs['eval_out_files'] = private_eval_dir_mgr.get_predictions_path()
+        in_out_builder.kwargs['training_config_destination'] = train_cfg_dest
+        in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
+        in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
+        plugin_file = self.attack_manager.get_plugin_file(disjoint=disjoint)
+        jbfs.save_json(in_out_builder, plugin_file)
+
+        # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
+        logger.info(f"*** Adding a rule to build the PRIVATE {universe_str} in_out datasets. ***")
+        inputs = [private_eval_dir_mgr.get_predictions_path(), str(plugin_file)]
+        outputs = [train_cfg_dest, val_cfg_dest, test_cfg_dest]
+        command = [JB_PLUGIN_COMMAND, str(plugin_file)]
+        doc = f"{JB_PLUGIN_COMMAND} {str(plugin_file)}"
+        clean_extras = []
+        requirements = []
+
+        # Add the rule for running the in_out Plugin to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added the rule to build the PRIVATE {universe_str} in_out datasets. ***\n")
+
+    def add_shadow_model_rules(self):
+        """ This method is responsible for adding the rules for the 'shadow' models phase of the attack. """
+        logger.info(f"Adding rules for the shadow models.\n")
+        workflow = self.builder.get_workflow("main")
+
+        # Add rules to train and evaluate the superset shadow models.
+        self._add_shadow_model_rule(workflow)
+
+        # Add rules to train and evaluate the disjoint shadow models.
+        self._add_shadow_model_rule(workflow, disjoint=True)
+
+    def _add_shadow_model_rule(self, workflow, disjoint=False) -> None:
+        """
+        This method is responsible for adding rules to train and evaluate the 'shadow' model(s) for the attack.
+        :param workflow: The workflow where the rules will be added.
+        :param disjoint: A boolean indicating whether to build rules for the 'superset' (default) or
+        'disjoint' shadow model(s).
+        :return: Nothing.
+        """
+        # Indicate which universe these shadow models will belong to.
+        universe_str = 'disjoint' if disjoint else 'superset'
+        logger.info(f"*** Adding rules to train the SHADOW {universe_str.upper()} models. ***")
+
+        # Indicate how many shadow models will be created.
+        num_shadow_models = self.attack_config.models.shadow_disjoint_quantity if disjoint \
+            else self.attack_config.models.shadow_superset_quantity
+        model_str = 'model' if num_shadow_models == 1 else 'models'
+        logger.info(f"Attack config requested {num_shadow_models} SHADOW {universe_str.upper()} {model_str}.")
+
+        # Establish the baseline model and the baseline query dataset.
+        baseline_model_name = self.attack_config.models.shadow
+        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+        baseline_query_dataset = self.attack_config.data_configs.query_data
+        baseline_query_dataset_config = DatasetConfig.load(baseline_query_dataset)
+
+        # Determine which universe of property choices to use, as well as the correct
+        # shadow list to store the resulting evaluation output files.
+        if disjoint:
+            universe = self.attack_config.watermarks.disjoint_args
+            shadow_eval_output_file_list = self.shadow_disjoint_eval_output_files_list
+        else:
+            universe = self.attack_config.watermarks.superset_args
+            shadow_eval_output_file_list = self.shadow_superset_eval_output_files_list
+
+        # Create the requested number of shadow models.
+        for i in range(num_shadow_models):
+
+            # Determine which name to use for the current shadow model, which model directory the files
+            # should be stored in, and then set up a ModelManager for this model.
+            shadow_model_name = self.attack_manager.get_shadow_model_name(i, disjoint=disjoint)
+            shadow_model_dir = self.attack_manager.get_shadow_model_dir(i, disjoint=disjoint)
+            shadow_model_dir.mkdir(parents=True, exist_ok=True)
+            shadow_model_mgr = jbfs.ModelManager(shadow_model_name)
+            logger.info(f"Adding a training rule for the following shadow model directory: models/{shadow_model_name}")
+
+            # Copy over the baseline model config to the new shadow model directory. Load the ModelConfig
+            # from the new location.
+            shutil.copy(baseline_model_mgr.get_model_config(), shadow_model_dir)
+            logger.info(f"Copied {baseline_model_mgr.get_model_config()} to the shadow model directory.")
+            shadow_model_cfg = ModelConfig.load(shadow_model_mgr.get_model_config())
+
+            # Make a selection from the universe of properties and log which choice was made.
+            selection = choice(universe)
+            logger.info(f"Model will be trained with the following arg: {selection}")
+
+            # Determine which dataset config file corresponds to the selected property.
+            key = tuple(list(selection.to_dict().values())[0])
+            dataset_num = self.dataset_mapping[key]
+            dataset_path_str = str(self.attack_manager.get_experiment_dataset_path(dataset_num))
+
+            # Load the matching dataset config file, add a random seed to the DatasetConfig, and then
+            # save the result as the training dataset config inside the current shadow model directory.
+            training_dataset_config = DatasetConfig.load(dataset_path_str)
+            training_dataset_config.data_transforms.seed = randint(0, 2 ** 32 - 1)
+            training_dataset_path = self.attack_manager.get_shadow_model_training_config_path(i, disjoint=disjoint)
+            training_dataset_config.save(training_dataset_path)
+            logger.info(f"The dataset for this arg is {training_dataset_path}")
+
+            # Update the ModelConfig for this shadow model to reflect which dataset config to use for training.
+            shadow_model_cfg.training_dataset_config_path = str(training_dataset_path)
+
+            # Save the ModelConfig for the shadow model to the shadow model directory.
+            shadow_model_cfg.save(shadow_model_mgr.get_model_config())
+
+            # Fill out the components for building a rule to train the shadow model.
+            inputs = [shadow_model_mgr.get_model_config(), training_dataset_path]
+            outputs = shadow_model_mgr.get_training_output_list()
+            command = [JB_TRAIN_COMMAND, shadow_model_name]
+            doc = f"{JB_TRAIN_COMMAND} {shadow_model_name} with {selection}."
+            clean_extras = shadow_model_mgr.get_training_clean_extras_list()
+            requirements = []
+
+            # Add a rule to train the shadow model to the workflow.
+            workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+            # The next step is to add a rule to evaluate the shadow model.
+
+            # Determine the correct file name for the query dataset and build the query dataset.
+            query_dataset_path = self.attack_manager.get_shadow_model_query_dataset_config_path(i, disjoint=disjoint)
+            self._build_query_dataset(selection, universe, baseline_query_dataset_config, query_dataset_path)
+
+            # Create an EvalDirMgr for this shadow model / query dataset combo.
+            shadow_eval_dir_mgr = shadow_model_mgr.get_eval_dir_mgr(query_dataset_path)
+
+            # Fill out the components for building a rule to evaluate the shadow model using the query dataset.
+            inputs = [shadow_model_mgr.get_training_out_file(), str(query_dataset_path)]
+            outputs = [shadow_eval_dir_mgr.get_predictions_path()]
+            command = [JB_EVALUATE_COMMAND, shadow_model_name, str(query_dataset_path)]
+            doc = f"{JB_EVALUATE_COMMAND} {shadow_model_name} with {str(query_dataset_path)}."
+            clean_extras = []
+            requirements = []
+
+            # Add the rule to the workflow.
+            workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+            # Add the resulting evaluation output file to the list
+            shadow_eval_output_file_list.append(str(shadow_eval_dir_mgr.get_predictions_path()))
+
+        logger.info(f"*** All rules have been created for training and evaluating the "
+                    f"SHADOW {universe_str.upper()} models. ***\n")
+
+    def add_meta_model_rules(self):
+        """ This method is responsible for adding the rules for the 'meta' models phase of the attack. """
+        logger.info(f"Adding rules for the meta models.\n")
+        workflow = self.builder.get_workflow("main")
+
+        # Add rules to create in_out datasets, and to train and evaluate the superset meta model.
+        self._add_meta_model_rule(workflow)
+
+        # Add rules to create in_out datasets, and to train and evaluate the disjoint meta model.
+        self._add_meta_model_rule(workflow, disjoint=True)
+
+    def _add_meta_model_rule(self, workflow, disjoint=False):
+        """
+        This method is responsible for adding rules to build in_out datasets and to train and evaluate
+        the 'meta' model(s) for the attack.
+        :param workflow: The workflow where the rules will be added.
+        :param disjoint: A boolean indicating whether to build rules for the 'superset' (default) or
+        'disjoint' meta model.
+        :return: Nothing.
+        """
+        # Determine the current universe, and which list of shadow eval output files to use.
+        universe_str = 'disjoint' if disjoint else 'superset'
+        eval_out_files = self.shadow_disjoint_eval_output_files_list if disjoint \
+            else self.shadow_superset_eval_output_files_list
+
+        # Determine the file names for the training, validation, and test in_out datasets. The 'oppo' test
+        # dataset is the test in_out dataset config from the opposite universe.
+        train_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('train', meta=True,
+                                                                                   disjoint=disjoint))
+        val_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('val', meta=True,
+                                                                                 disjoint=disjoint))
+        test_cfg_dest = str(self.attack_manager.get_experiment_inout_dataset_path('test', meta=True,
+                                                                                  disjoint=disjoint))
+        oppo_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', meta=True,
+                                                                                  disjoint=(not disjoint)))
+        priv_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=disjoint))
+        priv_oppo_test_cfg = str(self.attack_manager.get_experiment_inout_dataset_path('test', disjoint=(not disjoint)))
+
+        # Gather the components for constructing the Plugin that's responsible for building the in_out datasets. The
+        # required components are: the desired in_out builder from the attack config, the list evaluation output
+        # files for the current universe, and the destination file names for the train/val/test in_out datasets. Once
+        # all of those components have been gathered together into a dictionary, write that info to a JSON file.
+        in_out_builder = self.attack_config.data_configs.in_out_builder
+        in_out_builder.kwargs['eval_out_files'] = eval_out_files
+        in_out_builder.kwargs['training_config_destination'] = train_cfg_dest
+        in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
+        in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
+        plugin_file = self.attack_manager.get_plugin_file(meta=True, disjoint=disjoint)
+        jbfs.save_json(in_out_builder, plugin_file)
+
+        # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
+        logger.info(f"*** Adding a rule to build the META {universe_str} in_out datasets. ***")
+        inputs = eval_out_files + [str(plugin_file)]
+        outputs = [train_cfg_dest, val_cfg_dest, test_cfg_dest]
+        command = [JB_PLUGIN_COMMAND, str(plugin_file)]
+        doc = f"{JB_PLUGIN_COMMAND} {str(plugin_file)}"
+        clean_extras = []
+        requirements = []
+
+        # Add the rule for running the in_out Plugin to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added the rule to build the META {universe_str} in_out datasets. ***\n")
+
+        # The next step is to add a rule to train the meta classifier. Establish the baseline model.
+        logger.info(f"*** Adding a rule to train the {universe_str.upper()} META model. ***")
+        baseline_model_name = self.attack_config.models.meta
+        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+
+        # Copy the baseline model config over to the correct meta model subdirectory. Determine the model name
+        # for the meta model and establish its ModelManager.
+        shutil.copy(baseline_model_mgr.get_model_config(), self.attack_manager.get_meta_subdir(disjoint=disjoint))
+        meta_model_name = self.attack_manager.get_meta_model_name(disjoint=disjoint)
+        meta_model_mgr = jbfs.ModelManager(meta_model_name)
+
+        # Load the meta model config and set its training and validation dataset files to the expected values.
+        meta_model_cfg = ModelConfig.load(meta_model_mgr.get_model_config())
+        meta_model_cfg.training_dataset_config_path = train_cfg_dest
+        meta_model_cfg.validation.arguments.file_path = val_cfg_dest
+
+        # Save the meta model config file (with the updated dataset config values) to the meta model directory.
+        meta_model_cfg.save(meta_model_mgr.get_model_config())
+
+        # Fill out the components for building a rule to train the meta model.
+        inputs = [str(meta_model_mgr.get_model_config()), train_cfg_dest, val_cfg_dest]
+        outputs = meta_model_mgr.get_training_output_list()
+        command = [JB_TRAIN_COMMAND, meta_model_name]
+        doc = f"{JB_TRAIN_COMMAND} {meta_model_name}"
+        clean_extras = meta_model_mgr.get_training_clean_extras_list()
+        requirements = []
+
+        # Add the rule for training the meta model to the workflow.
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        logger.info(f"*** Added the rule to train the {universe_str.upper()} META model ***\n")
+
+        logger.info(f"*** Adding the rules to evaluate the {universe_str.upper()} META model. ***")
+
+        # Four evaluations of the trained meta model are possible: one for the test dataset in the current universe and
+        # one for the test dataset in the opposite universe, and then the same for in_out datasets from the private
+        # model. Build a rule for each evaluation.
+        test_datasets = [test_cfg_dest, oppo_test_cfg, priv_test_cfg, priv_oppo_test_cfg]
+        for dataset in test_datasets:
+            # Get the EvalDirMgr for this model / dataset combo.
+            meta_eval_dir_mgr = meta_model_mgr.get_eval_dir_mgr(dataset)
+
+            # Fill out the components for building a rule to evaluate the meta model.
+            inputs = [meta_model_mgr.get_training_out_file(), dataset]
+            outputs = [meta_eval_dir_mgr.get_predictions_path()]
+            command = [JB_EVALUATE_COMMAND, meta_model_name, dataset]
+            doc = f"{JB_EVALUATE_COMMAND} {meta_model_name} {dataset}"
+            clean_extras = []
+            requirements = []
+
+            # Add the rule for evaluating the meta model with this dataset to the workflow.
+            workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+        logger.info(f"*** Added the rules to evaluate the {universe_str.upper()} META model. ***\n")
+        logger.info(f"*** All rules have been created for training and evaluating the "
+                    f"META {universe_str.upper()} model. ***\n")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument('experimentName', help='Name of the experiment directory for this attack.')
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
+
+
+def main():
+    # Setup and parse all arguments.
+    parser = argparse.ArgumentParser(description="")
+    setup_args(parser)
+    jbscripting.setup_args(parser)
+    args = parser.parse_args()
+
+    # Setup an attack maker, construct the experiment datasets, and create the experiment rules.
+    maker = AttackMaker(args)
+    maker.build_attack_training_datasets()
+    maker.create_rules(maker.attack_manager.get_experiment_rules())
+
+    logger.info(f"Rules file has been created for experiment `{args.experimentName}`.")
+    logger.info(f"Done.")
+
+
+if __name__ == "__main__":
+    main()
