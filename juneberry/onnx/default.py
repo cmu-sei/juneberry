@@ -30,7 +30,7 @@ from torch import split
 from tqdm import tqdm
 
 from juneberry.config.training_output import TrainingOutput
-from juneberry.evaluation.onnx import OnnxEvaluator
+from juneberry.onnx.evaluator import OnnxEvaluator
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.pytorch.eval_utils as jb_pytorch_eval_utils
