@@ -30,22 +30,24 @@ from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.evaluation.evaluator import Evaluator
+from juneberry.evaluation.evaluator import EvaluatorBase
+import juneberry.evaluation.utils as jb_eval_utils
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.utils as jb_utils
 
+
 logger = logging.getLogger(__name__)
 
 
-class OnnxEvaluator(Evaluator):
+class Evaluator(EvaluatorBase):
     """
         This subclass is the ONNX-specific version of the Evaluator.
         """
 
-    def __init__(self, model_config: ModelConfig, lab: Lab, dataset: DatasetConfig, model_manager: ModelManager,
-                 eval_dir_mgr: EvalDirMgr, eval_options: SimpleNamespace = None, **kwargs):
-        super().__init__(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options, **kwargs)
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
 
         self.input_data = []
         self.onnx_model = None
@@ -71,9 +73,9 @@ class OnnxEvaluator(Evaluator):
 
         # Use default values if they were not provided in the model config.
         if self.eval_method is None:
-            self.eval_method = "juneberry.evaluation.evals.onnx.OnnxEvaluationProcedure"
+            self.eval_method = "juneberry.onnx.default.OnnxEvaluationProcedure"
         if self.eval_output_method is None:
-            self.eval_output_method = "juneberry.evaluation.evals.onnx.OnnxEvaluationOutput"
+            self.eval_output_method = "juneberry.onnx.default.OnnxEvaluationOutput"
 
         logger.info(f"ONNX Evaluator setup steps are complete.")
 
@@ -88,17 +90,15 @@ class OnnxEvaluator(Evaluator):
         # TODO: I think there's a risk here if the datasets are too large to fit in memory.
         #  self.input_data could end up being very large.
 
-
         # If a PyTorch model is being evaluated, create a separate PyTorch specific evaluator
         # and use it to construct a PyTorch dataloader. Once the dataloader exists, convert it
         # into the format that ONNX expects.
         if self.model_config.platform == "pytorch":
-            from juneberry.pytorch.evaluator import PytorchEvaluator
-            from torch import split
+            from juneberry.pytorch.evaluation.evaluator import Evaluator
 
             # Create a PytorchEvaluator and use it to build a PyTorch dataloader for the input data.
-            evaluator = PytorchEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
-                                         self.eval_dir_mgr, None)
+            evaluator = Evaluator(self.lab, self.model_config, self.model_manager, self.eval_dir_mgr,
+                                  self.eval_dataset_config, None)
             evaluator.obtain_dataset()
             self.eval_loader = evaluator.eval_loader
 
@@ -107,9 +107,9 @@ class OnnxEvaluator(Evaluator):
 
         # This bit will be responsible for converting the TensorFlow input data into the format ONNX expects.
         elif self.model_config.platform == "tensorflow":
-            from juneberry.tensorflow.evaluator import TFEvaluator
-            evaluator = TFEvaluator(self.model_config, self.lab, self.eval_dataset_config, self.model_manager,
-                                    self.eval_dir_mgr, None)
+            from juneberry.tensorflow.evaluation.evaluator import Evaluator
+            evaluator = Evaluator(self.model_config, self.lab, self.model_manager, self.eval_dir_mgr,
+                                  self.eval_dataset_config, None)
             evaluator.obtain_dataset()
             self.eval_loader = evaluator.eval_loader
 
@@ -153,7 +153,7 @@ class OnnxEvaluator(Evaluator):
         logger.info(f"Will evaluate model '{self.model_manager.model_name}' using {self.eval_dataset_config_path}")
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
 
-        jb_utils.invoke_evaluator_method(self, self.eval_method)
+        jb_eval_utils.invoke_evaluator_method(self, self.eval_method)
 
         logger.info(f"EVALUATION COMPLETE.")
 
@@ -166,6 +166,6 @@ class OnnxEvaluator(Evaluator):
         """
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
 
-        jb_utils.invoke_evaluator_method(self, self.eval_output_method)
+        jb_eval_utils.invoke_evaluator_method(self, self.eval_output_method)
 
         logger.info(f"EVALUATION data has been formatted.")

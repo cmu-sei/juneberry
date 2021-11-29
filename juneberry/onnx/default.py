@@ -30,10 +30,10 @@ from torch import split
 from tqdm import tqdm
 
 from juneberry.config.training_output import TrainingOutput
-from juneberry.onnx.evaluator import OnnxEvaluator
+from juneberry.onnx.evaluator import Evaluator
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
-import juneberry.pytorch.eval_utils as jb_pytorch_eval_utils
+import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class OnnxEvaluationProcedure:
     Attempt at an ONNX eval procedure.
     """
 
-    def __call__(self, evaluator: OnnxEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
         of the process is raw evaluation data.
@@ -73,7 +73,7 @@ class OnnxEvaluationProcedure:
 
     @staticmethod
     def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
-        return OnnxEvaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
+        return Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
 
     @staticmethod
     def sample_pytorch_data(batch):
@@ -100,12 +100,12 @@ class OnnxEvaluationOutput:
     This is the default ONNX evaluation class used for formatting raw evaluation data in Juneberry.
     """
 
-    def __call__(self, evaluator: OnnxEvaluator):
+    def __call__(self, evaluator: Evaluator):
         """
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
         then be written to a file.
-        :param evaluator: The OnnxEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 

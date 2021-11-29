@@ -65,7 +65,7 @@ class TFEvaluationOutput:
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
         then be written to a file.
-        :param evaluator: The OnnxEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
 
