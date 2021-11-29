@@ -150,5 +150,4 @@ class AcceptanceChecker:
         if model_path.exists():
             model_path.unlink()
 
-        pyt_utils.save_model(self.model_manager, model)
-        pyutil.save_model(self.model_manager, model, input_sample)
+        pyt_utils.save_model(self.model_manager, model, input_sample)

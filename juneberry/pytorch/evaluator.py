@@ -30,17 +30,16 @@ import torch
 from torch import Tensor
 
 import juneberry.config.dataset as jb_dataset
+from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jbdata
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
-import juneberry.pytorch.utils as pyt_utils
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 from juneberry.transform_manager import TransformManager
-import juneberry.utils
 
 logger = logging.getLogger(__name__)
 
