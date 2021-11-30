@@ -24,9 +24,6 @@
 
 import logging
 from types import SimpleNamespace
-import random
-
-import numpy as np
 
 import tensorflow as tf
 
@@ -78,9 +75,9 @@ class Evaluator(EvaluatorBase):
 
         # Use default values if they were not provided in the model config.
         if self.eval_method is None:
-            self.eval_method = "juneberry.evaluation.evals.tensorflow.TFEvaluationProcedure"
+            self.eval_method = "juneberry.tensorflow.evaluation.default.TFEvaluationProcedure"
         if self.eval_output_method is None:
-            self.eval_output_method = "juneberry.evaluation.evals.tensorflow.TFEvaluationOutput"
+            self.eval_output_method = "juneberry.tensorflow.evaluation.default.TFEvaluationOutput"
 
     def obtain_dataset(self) -> None:
         logger.info(f"Splitting the dataset according to the model's validation split instructions.")

@@ -296,9 +296,9 @@ no additional kwargs.
 
 The basic evaluators for the platforms are:
 * Detectron2 - juneberry.detectron2.evaluator.Evaluator
-* PyTorch - juneberry.pytorch.evaluator.Evaluator
+* PyTorch - juneberry.pytorch.evaluation.evaluator.Evaluator
 * MMDetection - juneberry.mmdetection.evaluator.Evaluator
-* TensorFlow - juneberry.tensorflow.evaluator.Evaluator
+* TensorFlow - juneberry.tensorflow.evaluation.evaluator.Evaluator
 
 ## format_version
 Linux style version of the **format** of the file. Not the version of 
