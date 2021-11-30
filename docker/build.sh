@@ -25,3 +25,4 @@ docker build \
   --build-arg NO_PROXY=${NO_PROXY} \
   --build-arg no_proxy=${no_proxy} \
   --network=host -f "${DOCKERFILE}" -t ${TARGET_TAG} ${SCRIPT_DIR}
+  
