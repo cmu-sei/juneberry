@@ -6,7 +6,7 @@
             "type": "object",
             "properties": {
                 "year": { "type": "integer" },
-                "version": { "type": "string" },
+                "version": { "type": "number" },
                 "description": { "type": "string" },
                 "contributor": { "type": "string" },
                 "url": { "type": "string" },
@@ -82,7 +82,8 @@
                             {
                                 "type": "array",
                                 "items": {
-                                    "type": "integer"
+                                    "type": "array",
+                                    "items": {"type":  "integer"}
                                 }
                             }
                         ]
@@ -98,6 +99,7 @@
         }
     },
     "required": [
+        "info",
         "categories",
         "images",
         "annotations"

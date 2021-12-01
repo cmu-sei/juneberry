@@ -23,18 +23,13 @@
 # ======================================================================================================================
 
 from collections import namedtuple
-from enum import Enum
-import json
 import logging
-from pathlib import Path
 from prodict import List, Prodict
-import random
 import sys
 import typing
 
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
-# import juneberry.version_system as jbvs
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +84,7 @@ class Annotation(Prodict):
     id: int
     image_id: int
     category_id: int
-    segmentation: typing.Union[RLE, List[int]]
+    segmentation: typing.Union[Prodict, List[List[int]]]
     area: float
     bbox: List[float]
     iscrowd: int
@@ -99,13 +94,13 @@ class CocoAnnotations(Prodict):
     """
     A class to validate and manage the coco annotations files.
     """
-    FORMAT_VERSION = '0.2.0'
+    FORMAT_VERSION = '1.2'
     SCHEMA_NAME = 'coco_anno_schema.json'
 
     info: Info
     licenses: List[License]
     categories: List[Category]
-    image: List[Image]
+    images: List[Image]
     annotations: List[Annotation]
 
     def _finish_init(self) -> None:
@@ -117,12 +112,12 @@ class CocoAnnotations(Prodict):
 
         # Check for duplicate images
         id_set = set()
-        for image_id in self.image.id:
-            if image_id in id_set:
-                logger.error(f"Found duplicate image id: id= '{image_id}'.")
+        for image in self.images:
+            if image.id in id_set:
+                logger.error(f"Found duplicate image id: id= '{image.id}'.")
                 error_count += 1
             else:
-                id_set.add(image_id)
+                id_set.add(image.id)
 
         # If errors found, report and exit
         if error_count > 0:
@@ -140,10 +135,11 @@ class CocoAnnotations(Prodict):
         # Check version number
         data_version = data["info"]["version"]
         min_version = CocoAnnotations.FORMAT_VERSION
-        if data_version < min_version:
+        if float(data_version) < float(min_version):
             logger.error(
-                f"Coco annotations file at {file_path} has version {data_version} and we require {min_version}."
-                f"EXITING.")
+                f"Coco annotations file at {file_path} has version {data_version} and we require a minimum of version"
+                f"{min_version}. EXITING."
+            )
             sys.exit(-1)
 
         # Validate with our schema
@@ -155,7 +151,6 @@ class CocoAnnotations(Prodict):
         config = CocoAnnotations.from_dict(data)
         config._finish_init()
         return config
-
 
     @staticmethod
     def load(data_path: str):

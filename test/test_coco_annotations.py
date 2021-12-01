@@ -45,8 +45,8 @@
 # ======================================================================================================================
 
 import unittest
-
-from juneberry.config.coco_anno import CocoAnnotations
+from prodict import List, Prodict
+from juneberry.config.coco_anno import CocoAnnotations, RLE
 
 
 def make_basic_config():
@@ -56,7 +56,7 @@ def make_basic_config():
             "year": 2021,
             "version": 1.2
         },
-        "licenses": {},
+        "licenses": [],
         "categories": [
             {
                 "id": 1,
@@ -73,7 +73,7 @@ def make_basic_config():
                 "color": [2, 0, 0]
             }
         ],
-        "image": [
+        "images": [
             {
                 "id": 122214,
                 "width": 640,
@@ -93,24 +93,15 @@ def make_basic_config():
                 "category_id": 1,
                 "id": 934
             }
-        ],
+        ]
     }
 
 
-def replace_with_rle(coco_dict: dict):
-    """
-    Replaces segmentation portion of annotation with run-length encoding (RLE).
-    :param coco_dict:
-    :return Coco dictionary containing an annotation with an RLE-style segmentation property.
-    """
-    rle_segmentation = {
-        "segmentation": {
-            "counts": [34, 55, 10, 71],
-            "size": [240, 480]
-        }
-    }
-    coco_dict["annotations"]["segmentation"] = rle_segmentation
-    return coco_dict
+def make_rle_segmentation():
+    rle_segmentation = RLE
+    rle_segmentation.size = [1]
+    rle_segmentation.counts = [1]
+    return rle_segmentation
 
 
 def test_config_basics():
@@ -123,7 +114,7 @@ def test_config_basics():
 class TestFormatErrors(unittest.TestCase):
     def test_version(self):
         config = make_basic_config()
-        config['formatVersion'] = "0.0.0"
+        config['info']['version'] = 0.1
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
             CocoAnnotations.construct(config)
@@ -136,10 +127,10 @@ class TestFormatErrors(unittest.TestCase):
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
             CocoAnnotations.construct(config)
-        message = "Found duplicate image id: id= '0'."
+        message = "Found duplicate image id: id= '122214'."
         self.assertIn(message, log.output[0])
 
     def test_rle_segmentation(self):
         config = make_basic_config()
-        config = replace_with_rle(config)
+        config["annotations"][0]["segmentation"] = make_rle_segmentation()
         CocoAnnotations.construct(config)
