@@ -20,6 +20,9 @@
         "num_Workers": 0,
         "max_gpus": 2
     },
+    "trainer": {
+        "fqcn": "juneberry.pytorch.classifier_trainer.ClassifierTrainer"
+    },
     "training_dataset_config_path": "data_sets/cifar10.json",
     "validation": {
         "algorithm": "random_fraction",
@@ -64,6 +67,9 @@
             }
         }
     ],
+    "evaluator": {
+        "fqcn": "juneberry.pytorch.evaluation.evaluator.Evaluator"
+    },
     "evaluation_transforms":[
         {
             "fqcn": "torchvision.transforms.ToTensor"
