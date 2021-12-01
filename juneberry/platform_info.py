@@ -22,8 +22,8 @@
 #
 # ======================================================================================================================
 
-import json
 import importlib
+import json
 import os
 import subprocess
 import sys
@@ -32,8 +32,8 @@ from prodict import List, Prodict
 
 
 class CUDA(Prodict):
-    is_available: bool
     device_count: int
+    is_available: bool
     nvidia_smi_version: str
 
 
@@ -41,10 +41,10 @@ class Report(Prodict):
     cuda: CUDA
     environment: Prodict
     gpu_list: List[str]
+    pip_freeze: List[str]
     platform: str
     python_path: List[str]
     python_version: str
-    pip_freeze: List[str]
 
 
 def locate_nvidia_smi():
@@ -61,8 +61,8 @@ def locate_nvidia_smi():
 
 def get_cuda_devices():
     """:return: a list of devices using nvidia-smi """
-    # Run "nvidia-smi -L" to get the list of gpus. If the command fails we consider that 0.
-    # Count the lines in the list for the number of gpus.  Each line comes with the following.
+    # Run "nvidia-smi -L" to get the list of GPUs. If the command fails we consider that 0.
+    # Count the lines in the list for the number of GPUs. Each line comes with the following:
     # GPU 0: Tesla V100-PCIE-16GB (UUID: GPU-4b0a37d8-225a-b487-0ceb-a64003cea4c0)
     gpu_list = []
     try:
@@ -78,6 +78,7 @@ def capture_pip_freeze():
     output = subprocess.run(['pip', 'freeze'], capture_output=True, text=True)
     return output.stdout.split('\n')
 
+
 def capture_versions():
     versions = {}
     for pkg in ['juneberry', 'detectron2', 'mmcv', 'mmdet', 'numpy', 'onnx', 'onnxruntime', 'onnxruntime-gpu',
@@ -91,6 +92,7 @@ def capture_versions():
         except ModuleNotFoundError:
             versions[pkg] = "Not found"
     return versions
+
 
 def make_report(show_cuda=True):
     report = Report()
