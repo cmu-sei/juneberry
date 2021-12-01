@@ -49,9 +49,6 @@ def setup_args(parser) -> None:
 
 
 def main():
-    # Let's get rid of some warnings from sklearn
-    import warnings
-    warnings.filterwarnings(action='ignore', category=UserWarning, message="y_pred contains classes not in y_true")
 
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
@@ -76,6 +73,11 @@ def main():
 
     # Convert the verbose argument to the corresponding logging level.
     log_level = logging.DEBUG if args.verbose else logging.INFO
+
+    # Let's get rid of some warnings from sklearn
+    import warnings
+    logger.info("Removing warning 'y_pred contains classes not in y_true'")
+    warnings.filterwarnings(action='ignore', category=UserWarning, message="y_pred contains classes not in y_true")
 
     # Kick off the logging
     logger.info(f"Beginning training with model: {model_name}")
