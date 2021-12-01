@@ -1,0 +1,114 @@
+{
+    "format_version": "0.2.0",
+    "description": "CIFAR-10 ResNet Model Configuration",
+    "timestamp": "2021-06-11T10:00:00",
+    "platform": "pytorch",
+    "model_architecture": {
+        "module": "juneberry.architectures.pytorch.resnet_simple.Resnet32x32",
+        "args": {
+            "img_width": 32,
+            "img_height": 32,
+            "channels": 3,
+            "num_classes": 10,
+            "layers": 20
+        }
+    },
+    "seed": 31415,
+    "batch_size": 128,
+    "task": "classification",
+    "hints": {
+        "num_Workers": 0,
+        "max_gpus": 2
+    },
+    "training_dataset_config_path": "data_sets/cifar10.json",
+    "validation": {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "fraction": 0.1,
+            "seed": 31415
+        }
+    },
+    "training_transforms": [
+        {
+            "fqcn": "juneberry.transforms.random_crop_mirror.RandomCropMirror",
+            "kwargs": {
+                "width_pixels": 4,
+                "height_pixels": 4,
+                "mirror": true
+            }
+        },
+        {
+            "fqcn": "juneberry.transforms.debugging_transforms.SizeCheckImageTransform",
+            "kwargs": {
+                "width": 32,
+                "height": 32,
+                "mode": "RGB"
+            }
+        },
+        {
+            "fqcn": "torchvision.transforms.ToTensor"
+        },
+        {
+            "fqcn": "torchvision.transforms.Normalize",
+            "kwargs": {
+                "mean": [
+                    0.4914,
+                    0.4822,
+                    0.4465
+                ],
+                "std": [
+                    0.2023,
+                    0.1994,
+                    0.2010
+                ]
+            }
+        }
+    ],
+    "evaluation_transforms":[
+        {
+            "fqcn": "torchvision.transforms.ToTensor"
+        },
+        {
+            "fqcn": "torchvision.transforms.Normalize",
+            "kwargs": {
+                "mean": [
+                    0.4914,
+                    0.4822,
+                    0.4465
+                ],
+                "std": [
+                    0.2023,
+                    0.1994,
+                    0.2010
+                ]
+            }
+        }
+    ],
+    "model_transforms": [
+    {
+        "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
+        "kwargs": {
+            "imageShape": [
+                3,
+                32,
+                32
+            ]
+        }
+    }
+    ],
+    "epochs": 182,
+    "pytorch": {
+        "loss_fn": "torch.nn.CrossEntropyLoss",
+        "optimizer_fn": "torch.optim.SGD",
+        "optimizer_args": {
+            "lr": 0.1,
+            "momentum": 0.9,
+            "weight_decay": 0.0001
+        },
+        "lr_schedule_fn": "torch.optim.lr_scheduler.MultiStepLR",
+        "lr_schedule_args": {
+            "milestones": [92, 138],
+            "gamma": 0.1
+        }
+    }
+}

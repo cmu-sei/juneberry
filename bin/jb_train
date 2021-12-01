@@ -49,6 +49,10 @@ def setup_args(parser) -> None:
 
 
 def main():
+    # Let's get rid of some warnings from sklearn
+    import warnings
+    warnings.filterwarnings(action='ignore', category=UserWarning, message="y_pred contains classes not in y_true")
+
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
                                                  "configuration file.")

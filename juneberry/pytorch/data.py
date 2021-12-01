@@ -202,6 +202,10 @@ def wrap_dataset_in_dataloader(lab: Lab, dataset, batch_size, *,
         sampler = torch.utils.data.distributed.DistributedSampler(dataset, num_replicas=world_size, rank=rank)
         shuffle = False
 
+    import os
+    if os.environ.get("JB_SHUFFLE_TEST", "0") == "1":
+        shuffle = True
+
     # Parameters
     params = {'batch_size': batch_size,
               'shuffle': shuffle,
