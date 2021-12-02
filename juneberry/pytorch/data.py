@@ -204,6 +204,9 @@ def wrap_dataset_in_dataloader(lab: Lab, dataset, batch_size, *,
 
     import os
     if os.environ.get("JB_SHUFFLE_TEST", "0") == "1":
+        logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHUFFLING TEST ENABLED %%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         shuffle = True
 
     # Parameters
