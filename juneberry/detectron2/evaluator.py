@@ -207,7 +207,8 @@ class Evaluator(EvaluatorBase):
         # Save as coco annotations file
         coco_utils.save_predictions_as_anno(data_root=self.data_root, dataset_config=str(self.dataset_config.file_path),
                                             predict_file=str(self.eval_dir_mgr.get_detections_path()),
-                                            category_list=category_list, output_file=out)
+                                            category_list=category_list, output_file=out,
+                                            eval_manifest_path=eval_manifest_path)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()
