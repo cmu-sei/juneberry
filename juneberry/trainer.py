@@ -114,12 +114,18 @@ class Trainer:
     # ==========================
 
     def train_model(self, gpu: int = None) -> None:
+
         """
         Executes construction, training and serialization of the model.
         :param gpu: The gpu/process number to use for training.  None indicates CPU only.
         :return: None
         """
         self.gpu = gpu
+
+        # Let's get rid of some warnings from sklearn
+        import warnings
+        logger.info("Removing warning 'y_pred contains classes not in y_true'")
+        warnings.filterwarnings(action='ignore', category=UserWarning, message="y_pred contains classes not in y_true")
 
         # This allows each platform to have its own particular way of setting up logging.
         # Logging must be set up prior to the first logging banner.

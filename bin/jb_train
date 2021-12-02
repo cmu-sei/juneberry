@@ -74,11 +74,6 @@ def main():
     # Convert the verbose argument to the corresponding logging level.
     log_level = logging.DEBUG if args.verbose else logging.INFO
 
-    # Let's get rid of some warnings from sklearn
-    import warnings
-    logger.info("Removing warning 'y_pred contains classes not in y_true'")
-    warnings.filterwarnings(action='ignore', category=UserWarning, message="y_pred contains classes not in y_true")
-
     # Kick off the logging
     logger.info(f"Beginning training with model: {model_name}")
 
