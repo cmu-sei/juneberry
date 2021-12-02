@@ -24,7 +24,7 @@
 
 from collections import namedtuple
 import logging
-from prodict import List, Prodict
+from prodict import List, Prodict, Any
 import sys
 import typing
 
@@ -75,16 +75,11 @@ class Image(Prodict):
     date_captured: str
 
 
-class RLE(Prodict):
-    counts: List[int]
-    size: List[int]
-
-
 class Annotation(Prodict):
     id: int
     image_id: int
     category_id: int
-    segmentation: typing.Union[Prodict, List[List[int]]]
+    segmentation: Any
     area: float
     bbox: List[float]
     iscrowd: int
@@ -132,15 +127,6 @@ class CocoAnnotations(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: The constructed object.
         """
-        # Check version number
-        data_version = data["info"]["version"]
-        min_version = CocoAnnotations.FORMAT_VERSION
-        if float(data_version) < float(min_version):
-            logger.error(
-                f"Coco annotations file at {file_path} has version {data_version} and we require a minimum of version"
-                f"{min_version}. EXITING."
-            )
-            sys.exit(-1)
 
         # Validate with our schema
         if not conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):

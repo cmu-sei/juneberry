@@ -6,12 +6,13 @@
             "type": "object",
             "properties": {
                 "year": { "type": "integer" },
-                "version": { "type": "number" },
+                "version": { "type": "string" },
                 "description": { "type": "string" },
                 "contributor": { "type": "string" },
                 "url": { "type": "string" },
                 "date_created": { "type": "string" }
-            }
+            },
+            "additionalProperties": false
         },
         "licenses": {
             "type": "array",
@@ -21,7 +22,8 @@
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
                     "url": { "type": "string" }
-                }
+                },
+                "additionalProperties": false
             }
         },
         "categories": {
@@ -37,7 +39,12 @@
                         "type": "array",
                         "items": { "type": "integer" }
                     }
-                }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "additionalProperties": false
             }
         },
         "images": {
@@ -53,7 +60,14 @@
                     "flickr_url": { "type": "string" },
                     "coco_url": { "type": "string" },
                     "data_captured": { "type": "string" }
-                }
+                },
+                "required": [
+                    "id",
+                    "width",
+                    "height",
+                    "file_name"
+                ],
+                "additionalProperties": false
             }
         },
         "annotations": {
@@ -64,44 +78,26 @@
                     "id": { "type": "integer" },
                     "image_id": { "type": "integer" },
                     "category_id": { "type": "integer" },
-                    "segmentation": {
-                        "oneOf": [
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "counts": {
-                                        "type": "array",
-                                        "items": { "type": "integer" }
-                                    },
-                                    "size": {
-                                        "type": "array",
-                                        "items": { "type": "integer" }
-                                    }
-                                }
-                            },
-                            {
-                                "type": "array",
-                                "items": {
-                                    "type": "array",
-                                    "items": {"type":  "integer"}
-                                }
-                            }
-                        ]
-                    },
+                    "segmentation": {},
                     "area": { "type": "number" },
                     "bbox": {
                         "type": "array",
                         "items": { "type": "number" }
                     },
                     "iscrowd": { "type": "integer" }
-                }
+                },
+                "required": [
+                    "id",
+                    "image_id",
+                    "category_id"
+                ],
+                "additionalProperties": false
             }
         }
     },
     "required": [
-        "info",
         "categories",
-        "images",
-        "annotations"
-    ]
+        "images"
+    ],
+    "additionalProperties": false
 }

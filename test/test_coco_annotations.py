@@ -46,7 +46,7 @@
 
 import unittest
 from prodict import List, Prodict
-from juneberry.config.coco_anno import CocoAnnotations, RLE
+from juneberry.config.coco_anno import CocoAnnotations
 
 
 def make_basic_config():
@@ -54,7 +54,7 @@ def make_basic_config():
     return {
         "info": {
             "year": 2021,
-            "version": 1.2
+            "version": "1.2"
         },
         "licenses": [],
         "categories": [
@@ -85,7 +85,6 @@ def make_basic_config():
         ],
         "annotations": [
             {
-                "segmentation": [[34, 55, 10, 71, 76, 23, 98, 43, 11, 8]],
                 "area": 600.4,
                 "iscrowd": 1,
                 "image_id": 122214,
@@ -97,29 +96,12 @@ def make_basic_config():
     }
 
 
-def make_rle_segmentation():
-    rle_segmentation = RLE
-    rle_segmentation.size = [1]
-    rle_segmentation.counts = [1]
-    return rle_segmentation
-
-
-def test_config_basics():
-    config = make_basic_config()
-    coco_anno = CocoAnnotations.construct(config)
-    assert len(config['images']) == len(coco_anno['images'])
-    assert len(config['annotations']) == len(coco_anno['annotations'])
-
-
-class TestFormatErrors(unittest.TestCase):
-    def test_version(self):
+class TestCocoAnno(unittest.TestCase):
+    def test_config_basics(self):
         config = make_basic_config()
-        config['info']['version'] = 0.1
-
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
-            CocoAnnotations.construct(config)
-        message = "Coco annotations file at"
-        self.assertIn(message, log.output[0])
+        coco_anno = CocoAnnotations.construct(config)
+        assert len(config['images']) == len(coco_anno['images'])
+        assert len(config['annotations']) == len(coco_anno['annotations'])
 
     def test_duplicate_images(self):
         config = make_basic_config()
@@ -129,8 +111,3 @@ class TestFormatErrors(unittest.TestCase):
             CocoAnnotations.construct(config)
         message = "Found duplicate image id: id= '122214'."
         self.assertIn(message, log.output[0])
-
-    def test_rle_segmentation(self):
-        config = make_basic_config()
-        config["annotations"][0]["segmentation"] = make_rle_segmentation()
-        CocoAnnotations.construct(config)
