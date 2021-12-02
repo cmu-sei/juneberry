@@ -140,13 +140,16 @@ def construct_model(arch_config, num_model_classes):
                                       dry_run=False)
 
 
-def save_model(model_manager: ModelManager, model, input_sample) -> None:
+def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -> None:
     """
     Saves the model to the specified directory using our naming scheme and format.
     :param model_manager: The model manager controlling the model being saved.
     :param model: The model to save.
     :param input_sample: A single sample from the input data. The dimensions of this sample are used to
     perform the tracing when exporting the ONNX model file.
+    :param native: A Boolean controlling whether or not to save the model in the native PyTorch format.
+    :param onnx: A Boolean controlling whether or not to save the model in ONNX format.
+    :return: Nothing.
     """
     # We only want to save the non DDP version of the model, so the model without wrappers.
     # We shouldn't be passed a wrapped model.
@@ -156,15 +159,17 @@ def save_model(model_manager: ModelManager, model, input_sample) -> None:
         sys.exit(-1)
 
     # Save the model in PyTorch format.
-    logging.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
-    model_path = model_manager.get_pytorch_model_path()
-    torch.save(model.state_dict(), model_path)
+    if native:
+        logging.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
+        model_path = model_manager.get_pytorch_model_path()
+        torch.save(model.state_dict(), model_path)
 
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
-    logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
-    torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
+    if onnx:
+        logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
+        torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 
 def load_model(model_path, model) -> None:

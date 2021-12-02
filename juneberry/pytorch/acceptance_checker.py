@@ -69,13 +69,17 @@ class AcceptanceChecker:
         # We keep going until we are done
         self.done = False
 
+        # Booleans that keep track of what format to use when saving the trained model.
+        self.native = True
+        self.onnx = False
+
         # Look through the options for the stopping mode.
         if threshold is None and plateau_count is None:
             if max_epochs is None:
                 logger.error("AcceptanceChecker requires max_epoch, threshold or plateau_max_count. Exiting.")
                 sys.exit(-1)
         if comparator is None:
-            logger.error("AcceptanceChecker: A comparator must be provided. EXITING.")
+            logger.error("AcceptanceChecker: A comparator must be provided. Exiting.")
             sys.exit(-1)
 
         if self.plateau_count is not None:
@@ -97,7 +101,7 @@ class AcceptanceChecker:
         :return self.done: Boolean status indicating if the training process should end.
         """
         if self.done:
-            logger.error(f"AcceptanceChecker called with another checkpoint when already completed! EXITING.")
+            logger.error(f"AcceptanceChecker called with another checkpoint when already completed! Exiting.")
             sys.exit(-1)
 
         # We always increase epoch count
@@ -150,4 +154,4 @@ class AcceptanceChecker:
         if model_path.exists():
             model_path.unlink()
 
-        pyt_utils.save_model(self.model_manager, model, input_sample)
+        pyt_utils.save_model(self.model_manager, model, input_sample, self.native, self.onnx)

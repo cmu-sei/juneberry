@@ -132,6 +132,13 @@ class MMDTrainer(Trainer):
         logger_initialized["mmdet"] = True
 
     def setup(self) -> None:
+
+        if self.onnx:
+            logger.warning(f"An ONNX model format was requested, but mmdetection training does not support saving "
+                           f"model files in ONNX format. Switching to the MMD native format.")
+            self.onnx = False
+            self.native = True
+
         # Load cfg based on what they said in the model.
         cfg = Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture['module']))
         cfg.work_dir = str(self.working_dir)

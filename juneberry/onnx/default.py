@@ -61,12 +61,12 @@ class OnnxEvaluationProcedure:
 
         for i, (batch, target) in enumerate(tqdm(data_loader)):
             if evaluator.model_config.platform == "pytorch":
-                thing = self.sample_pytorch_data(batch)
+                sample = self.sample_pytorch_data(batch)
             elif evaluator.model_config.platform == "tensorflow":
-                thing = self.sample_tensorflow_data(batch)
+                sample = self.sample_tensorflow_data(batch)
             else:
                 sys.exit(-1)
-            for item in thing:
+            for item in sample:
                 ort_out = evaluator.ort_session.run([], {input_name: item})
                 ort_out = np.array(ort_out[0]).tolist()
                 evaluator.raw_output.append(ort_out[0])
