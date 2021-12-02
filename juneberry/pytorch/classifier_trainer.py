@@ -173,12 +173,22 @@ class ClassifierTrainer(EpochTrainer):
             # If our datasets understand epochs, then tell them.
             if isinstance(self.training_iterable.dataset, pyt_utils.EpochDataset):
                 self.training_iterable.dataset.set_epoch(self.epoch)
+
+            if os.environ.get("JB_SHUFFLE_TEST", "0") == "1":
+                logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHUFFLING TEST ENABLED %%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+                from torch.utils import data
+                if isinstance(self.training_iterable.sampler, torch.utils.data.distributed.DistributedSampler):
+                    self.training_iterable.sampler.set_epoch(self.epoch)
+
         else:
             self.model.eval()
             torch.set_grad_enabled(False)
             # If our datasets understand epochs, then tell them.
             if isinstance(self.evaluation_iterable.dataset, pyt_utils.EpochDataset):
                 self.evaluation_iterable.dataset.set_epoch(self.epoch)
+
 
         # In distributed training, each process will have a different loss/accuracy value. These lists are used to
         # collect the values from each process, so we need one tensor in the list for every process in the "world".
