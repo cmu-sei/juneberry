@@ -19,8 +19,8 @@ RUN pip3 install --upgrade pip
 # We install tensorflow FIRST because it is very picky about versions of things such
 # as numpy. And when other things need numpy (such as to compile against it, such as
 # pycocotools) we can't have tensorflow moving to old versions.
-#RUN pip install tensorflow==2.6.0 tensorflow-datasets====4.4.0
-RUN pip install tensorflow tensorflow-datasets
+RUN pip install tensorflow==2.7.0 tensorflow-datasets==4.4.0
+#RUN pip install tensorflow tensorflow-datasets
 
 # ============ JUNEBERRY ============
 
@@ -46,12 +46,12 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
 # We don't force CUDA here because we don't expect any
 # ENV FORCE_CUDA="1"
 
-#RUN pip install mmcv-full==1.3.13
-RUN pip install mmcv-full
+RUN pip install mmcv-full==1.3.17
+#RUN pip install mmcv-full
 
 # This is pretty straightforward
-#RUN git clone --depth 1 --branch v2.16.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
-RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
+RUN git clone --depth 1 --branch v2.18.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
+#RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
 WORKDIR /mmdetection
 RUN pip install -r requirements/build.txt
 RUN pip install -v -e .
