@@ -3,6 +3,7 @@
 if [ $# -lt 1 ]; then
   echo "This script requires one argument, the part BEFORE the '.Dockerfile'"
   echo "e.g. 'cudadev' or 'cpudev'"
+  echo "Optionally a docker tag can be provided as a second argument otherwise 'dev' is used."
   exit -1
 fi
 
