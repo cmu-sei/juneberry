@@ -782,16 +782,20 @@ def test_get_category_list(monkeypatch, tmp_path):
     test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
     test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
                    {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
-    eval_manifest_path = model_manager.get_eval_manifest_path(train_config.file_path)
 
     # Make sample coco data file
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
     coco_data = make_sample_coco([], [])
     coco_path = Path(data_root / 'detectron2-text-detection/val/')
-
     Path(coco_path).mkdir(parents=True, exist_ok=True)
     with open(coco_path / 'coco_annotations.json', 'w') as json_file:
         json.dump(coco_data, json_file)
+
+    # Make sample eval manifest file
+    eval_manifest_path = data_root / 'eval_manifest.json'
+    eval_manifest_data = {'categories': test_list_1}
+    with open(eval_manifest_path, 'w') as json_file:
+        json.dump(eval_manifest_data, json_file)
 
     # Test DatasetConfig case
     with TestCase().assertLogs(level='WARNING') as cm:
