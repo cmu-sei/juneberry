@@ -127,6 +127,9 @@ class CocoAnnotations(Prodict):
         :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: The constructed object.
         """
+        # Convert category ids to integers
+        for index in range(0, len(data["categories"])):
+            data["categories"][index]["id"] = int(data["categories"][index]["id"])
 
         # Validate with our schema
         if not conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):

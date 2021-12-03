@@ -131,15 +131,15 @@ def test_remove_image():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
     helper = COCOImageHelper(data)
 
-    helper.remove_image(4)
+    data = helper.remove_image(4)
     assert len(helper.keys()) == 3
     assert len(list(helper.values())) == 3
     assert len(helper) == 3
-    assert len(helper.data['images']) == 3
-    assert len(helper.data['annotations']) == 8
+    assert len(helper.data.images) == 3
+    assert len(helper.data.annotations) == 8
     # Make sure it _really_ modified the underlying store.
-    for anno in data['annotations']:
-        assert anno['image_id'] != 4
+    for anno in data.annotations:
+        assert anno.image_id != 4
 
 
 def test_add_annotation():
@@ -159,9 +159,9 @@ def test_add_annotation():
     assert len(helper.keys()) == 4
     assert len(list(helper.values())) == 4
     assert len(helper) == 4
-    assert len(helper.data['images']) == 4
-    assert len(helper.data['annotations']) == 12
-    assert helper.data['annotations'][-1]['foo'] == 'bar'
+    assert len(helper.data.images) == 4
+    assert len(helper.data.annotations) == 12
+    assert helper.data.annotations[-1]['foo'] == 'bar'
 
 
 def test_to_image_list():
