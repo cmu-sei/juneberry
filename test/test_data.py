@@ -773,6 +773,21 @@ def test_get_label_mapping():
     TestCase().assertDictEqual(func_labels, test_labels)
 
 
+def make_sample_manifest(model_manager, category_list):
+    manifest_path = model_manager.get_training_data_manifest_path()
+    make_manifest_path = False
+    if not manifest_path.exists():
+        manifest_data = {
+            "images": [],
+            "annotations": [],
+            "categories": category_list
+        }
+        with open(manifest_path, 'w') as json_file:
+            json.dump(manifest_data, json_file)
+        make_manifest_path = True
+    return make_manifest_path, manifest_path
+
+
 def test_get_category_list(monkeypatch, tmp_path):
     # Grab args
     model_name = "text_detect/dt2/ut"
@@ -782,6 +797,10 @@ def test_get_category_list(monkeypatch, tmp_path):
     test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
     test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
                    {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
+
+    # Make sample manifests if not instantiated
+    temp_train_manifest, train_manifest_path = make_sample_manifest(model_manager, test_list_1)
+    temp_val_manifest, val_manifest_path = make_sample_manifest(model_manager, test_list_1)
 
     # Make sample coco data file
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
@@ -851,3 +870,9 @@ def test_get_category_list(monkeypatch, tmp_path):
     category_list = jb_data.categories_in_model_config(model_config_path=model_config_path)
 
     assert test_list_1 == category_list
+
+    # Remove sample manifests from filesystem
+    if temp_train_manifest:
+        train_manifest_path.unlink()
+    if temp_val_manifest:
+        val_manifest_path.unlink()
