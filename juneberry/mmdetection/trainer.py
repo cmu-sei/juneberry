@@ -372,7 +372,7 @@ class MMDTrainer(Trainer):
 
         # Open the mmd training log and read each line. Each line contains a metrics summary in
         # JSON format for each phase of training that was recorded.
-        with open(file, 'r') as log_file:
+        with open(str(file), 'r') as log_file:
             for line in log_file:
                 # TODO: Should this be routed through the jbfs load chokepoint?
                 content = hjson.loads(line)
@@ -383,13 +383,19 @@ class MMDTrainer(Trainer):
                     #  Need to figure out if it's possible to get the per epoch time without tracking
                     #  the time spent for each iteration.
                     # self.output.times.epoch_duration_sec.append(content['time'])
-                    self.output.results.learning_rate.append(content['lr'])
-                    self.output.results.loss_rpn_cls.append(content['loss_rpn_cls'])
-                    self.output.results.loss_rpn_bbox.append(content['loss_rpn_bbox'])
-                    self.output.results.loss_cls.append(content['loss_cls'])
-                    self.output.results.loss_bbox.append(content['loss_bbox'])
-                    self.output.results.loss.append(content['loss'])
-                    self.output.results.accuracy.append(content['acc'] / 100)
+
+                    # Check to see if these exist
+                    for k1, k2 in [['lr', 'learning_rate'],
+                                   ['loss_rpn_cls', 'loss_rpn_cls'],
+                                   ['loss_rpn_bbox', 'loss_rpn_bbox'],
+                                   ['loss_cls', 'loss_cls'],
+                                   ['loss_bbox', 'loss_bbox'],
+                                   ['loss', 'loss']]:
+                        if k1 in content:
+                            self.output.results[k2].append(content[k1])
+
+                    if 'acc' in content:
+                        self.output.results.accuracy.append(content['acc'] / 100)
 
                 # TODO: Will need to be enabled again once val_loss returns.
                 # If the content isn't training metrics, they must be validation metrics. Therefore
