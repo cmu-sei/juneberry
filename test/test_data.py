@@ -773,9 +773,7 @@ def test_get_label_mapping():
     TestCase().assertDictEqual(func_labels, test_labels)
 
 
-def make_sample_manifest(model_manager, category_list):
-    manifest_path = model_manager.get_training_data_manifest_path()
-    make_manifest_path = False
+def make_sample_manifest(manifest_path, category_list):
     if not manifest_path.exists():
         manifest_data = {
             "images": [],
@@ -784,8 +782,8 @@ def make_sample_manifest(model_manager, category_list):
         }
         with open(manifest_path, 'w') as json_file:
             json.dump(manifest_data, json_file)
-        make_manifest_path = True
-    return make_manifest_path, manifest_path
+        return True
+    return False
 
 
 def test_get_category_list(monkeypatch, tmp_path):
@@ -798,9 +796,11 @@ def test_get_category_list(monkeypatch, tmp_path):
     test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
                    {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
 
-    # Make sample manifests if not instantiated
-    temp_train_manifest, train_manifest_path = make_sample_manifest(model_manager, test_list_1)
-    temp_val_manifest, val_manifest_path = make_sample_manifest(model_manager, test_list_1)
+    # Make sample manifest files (if not instantiated already)
+    train_manifest_path = model_manager.get_training_data_manifest_path()
+    temp_train_manifest = make_sample_manifest(train_manifest_path, test_list_1)
+    val_manifest_path = model_manager.get_validation_data_manifest_path()
+    temp_val_manifest = make_sample_manifest(val_manifest_path, test_list_1)
 
     # Make sample coco data file
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
@@ -810,15 +810,9 @@ def test_get_category_list(monkeypatch, tmp_path):
     with open(coco_path / 'coco_annotations.json', 'w') as json_file:
         json.dump(coco_data, json_file)
 
-    # Make sample eval manifest file
-    eval_manifest_path = data_root / 'eval_manifest.json'
-    eval_manifest_data = {'categories': test_list_1}
-    with open(eval_manifest_path, 'w') as json_file:
-        json.dump(eval_manifest_data, json_file)
-
     # Test DatasetConfig case
     with TestCase().assertLogs(level='WARNING') as cm:
-        category_list, source = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+        category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                           train_config=train_config,
                                                           data_root=data_root,
                                                           show_source=True)
@@ -836,7 +830,7 @@ def test_get_category_list(monkeypatch, tmp_path):
                                        "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
 
     # Test manifest case
-    category_list, source = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+    category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                       model_manager=model_manager,
                                                       train_config=train_config,
                                                       data_root=data_root,
