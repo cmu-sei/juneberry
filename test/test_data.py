@@ -775,6 +775,11 @@ def test_get_label_mapping():
 
 def make_sample_manifest(manifest_path, category_list):
     if not manifest_path.exists():
+        # With a clean checkout there is no training directory.
+        if not manifest_path.parent.exists():
+            manifest_path.parent.mkdir(parents=True)
+
+        # Currently, for these tests we really only need categories.
         manifest_data = {
             "images": [],
             "annotations": [],
