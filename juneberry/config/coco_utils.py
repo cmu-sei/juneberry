@@ -33,7 +33,6 @@ from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.coco_anno import CocoAnnotations
 
 import juneberry.filesystem as jbfs
 
@@ -77,22 +76,24 @@ class COCOImageHelper:
         :param data: The data such as one would get from a file
         :param file_path: Optional file path if read from a file.
         """
-        self.file_path = file_path
-        self.data = CocoAnnotations.construct(data, file_path)
+        self.data = data
 
         # Image lookup
-        self.images = {i.id: i for i in self.data.images}
+        self.images = {i['id']: i for i in self.data['images']}
 
         # Annotations lookup
         self.annotations = defaultdict(list)
-        for anno in self.data.annotations:
-            self.annotations[anno.image_id].append(anno)
+        for anno in self.data['annotations']:
+            self.annotations[anno['image_id']].append(anno)
+
+        # Optional file path for debugging
+        self.file_path = file_path
 
         # Determine the maximum annotation ID so that new annotations receive the correct ID.
         self._next_annotation_id = -1
-        for anno in self.data.annotations:
-            if anno.id > self._next_annotation_id:
-                self._next_annotation_id = anno.id
+        for anno in self.data['annotations']:
+            if anno['id'] > self._next_annotation_id:
+                self._next_annotation_id = anno['id']
         self._next_annotation_id += 1
 
     def __contains__(self, item: int):
@@ -136,20 +137,18 @@ class COCOImageHelper:
         for k in self.images.keys():
             yield self.images[k], tuple(self.annotations[k])
 
-    def remove_image(self, image_id: int) -> CocoAnnotations:
+    def remove_image(self, image_id: int) -> None:
         """
         Removes the image and any annotations associated with this image.
         :param image_id: The image_id
-        :return: Modified CocoAnnotations object
+        :return: None
         """
-        self.data.images = [i for i in self.data.images if i.id != image_id]
-        self.data.annotations = [i for i in self.data.annotations if i.image_id != image_id]
+        self.data['images'] = [i for i in self.data['images'] if i['id'] != image_id]
+        self.data['annotations'] = [i for i in self.data['annotations'] if i['image_id'] != image_id]
 
         # Remove from the quick lookups
         del self.images[image_id]
         del self.annotations[image_id]
-
-        return self.data
 
     def add_annotation(self, annotation) -> None:
         """
@@ -166,7 +165,7 @@ class COCOImageHelper:
         self._next_annotation_id += 1
 
         # Add it to the underlying store and the quick lookup
-        self.data.annotations.append(annotation)
+        self.data['annotations'].append(annotation)
         self.annotations[annotation['image_id']].append(annotation)
 
     def to_image_list(self):
@@ -193,7 +192,7 @@ class COCOImageHelper:
         are the human-readable string.
         :return:
         """
-        return {int(x.id): x.name for x in self.data.categories}
+        return {int(x["id"]): x["name"] for x in self.data['categories']}
 
 
 def load_from_json_file(file_path) -> COCOImageHelper:

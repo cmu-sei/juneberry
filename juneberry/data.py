@@ -42,7 +42,6 @@ from juneberry.config.coco_utils import COCOImageHelper
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig, SplittingConfig
-from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
@@ -1051,8 +1050,12 @@ def categories_in_dataset_config(config_path: Path, data_root: Path) -> list:
     else:
         coco_path = dataset_config.image_data['sources'][0]['directory']
 
-    coco_data = CocoAnnotations.load(data_root / coco_path)
-    return coco_data.categories
+    # TODO: use future coco prodict
+    coco_data = jbfs.load_file(data_root / coco_path)
+    if 'categories' in coco_data:
+        return coco_data["categories"]
+    else:
+        return []
 
 
 def categories_in_model_config(model_config_path: Path) -> list:
