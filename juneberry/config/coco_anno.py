@@ -22,23 +22,16 @@
 #
 # ======================================================================================================================
 
-from collections import namedtuple
 import logging
-from prodict import List, Prodict, Any
 import sys
-import typing
-
+from prodict import List, Prodict, Any
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
-SplittingConfig = namedtuple('SplittingType', 'algo args randomizer')
 
-ShapeHWC = namedtuple('ShapeHWC', 'height width channels')
-
-
-# =======
+# For more information about the COCO annotations data format, see https://cocodataset.org/#format-data
 
 
 class Info(Prodict):
@@ -166,5 +159,3 @@ class CocoAnnotations(Prodict):
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json"""
         return conf_utils.prodict_to_dict(self)
-
-
