@@ -773,6 +773,24 @@ def test_get_label_mapping():
     TestCase().assertDictEqual(func_labels, test_labels)
 
 
+def make_sample_manifest(manifest_path, category_list):
+    if not manifest_path.exists():
+        # With a clean checkout there is no training directory.
+        if not manifest_path.parent.exists():
+            manifest_path.parent.mkdir(parents=True)
+
+        # Currently, for these tests we really only need categories.
+        manifest_data = {
+            "images": [],
+            "annotations": [],
+            "categories": category_list
+        }
+        with open(manifest_path, 'w') as json_file:
+            json.dump(manifest_data, json_file)
+        return True
+    return False
+
+
 def test_get_category_list(monkeypatch, tmp_path):
     # Grab args
     model_name = "text_detect/dt2/ut"
@@ -782,20 +800,24 @@ def test_get_category_list(monkeypatch, tmp_path):
     test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
     test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
                    {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
-    eval_manifest_path = model_manager.get_eval_manifest_path(train_config.file_path)
+
+    # Make sample manifest files (if not instantiated already)
+    train_manifest_path = model_manager.get_training_data_manifest_path()
+    temp_train_manifest = make_sample_manifest(train_manifest_path, test_list_1)
+    val_manifest_path = model_manager.get_validation_data_manifest_path()
+    temp_val_manifest = make_sample_manifest(val_manifest_path, test_list_1)
 
     # Make sample coco data file
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
     coco_data = make_sample_coco([], [])
     coco_path = Path(data_root / 'detectron2-text-detection/val/')
-
     Path(coco_path).mkdir(parents=True, exist_ok=True)
     with open(coco_path / 'coco_annotations.json', 'w') as json_file:
         json.dump(coco_data, json_file)
 
     # Test DatasetConfig case
     with TestCase().assertLogs(level='WARNING') as cm:
-        category_list, source = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+        category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                           train_config=train_config,
                                                           data_root=data_root,
                                                           show_source=True)
@@ -813,7 +835,7 @@ def test_get_category_list(monkeypatch, tmp_path):
                                        "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
 
     # Test manifest case
-    category_list, source = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
+    category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                       model_manager=model_manager,
                                                       train_config=train_config,
                                                       data_root=data_root,
@@ -847,3 +869,9 @@ def test_get_category_list(monkeypatch, tmp_path):
     category_list = jb_data.categories_in_model_config(model_config_path=model_config_path)
 
     assert test_list_1 == category_list
+
+    # Remove sample manifests from filesystem
+    if temp_train_manifest:
+        train_manifest_path.unlink()
+    if temp_val_manifest:
+        val_manifest_path.unlink()

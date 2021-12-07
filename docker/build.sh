@@ -1,12 +1,18 @@
 #! /usr/bin/env bash
 
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
   echo "This script requires one argument, the part BEFORE the '.Dockerfile'"
   echo "e.g. 'cudadev' or 'cpudev'"
+  echo "Optionally a docker tag can be provided as a second argument otherwise 'dev' is used."
   exit -1
 fi
 
-TARGET_TAG="juneberry/${1}:dev"
+REV="dev"
+if [ $# -eq 2 ]; then
+	REV=${2}
+fi
+
+TARGET_TAG="juneberry/${1}:${REV}"
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 DOCKERFILE=${SCRIPT_DIR}/${1}.Dockerfile
 

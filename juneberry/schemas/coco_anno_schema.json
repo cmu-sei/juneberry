@@ -1,0 +1,103 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "info": {
+            "type": "object",
+            "properties": {
+                "year": { "type": "integer" },
+                "version": { "type": "string" },
+                "description": { "type": "string" },
+                "contributor": { "type": "string" },
+                "url": { "type": "string" },
+                "date_created": { "type": "string" }
+            },
+            "additionalProperties": false
+        },
+        "licenses": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "url": { "type": "string" }
+                },
+                "additionalProperties": false
+            }
+        },
+        "categories": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "supercategory": { "type": "string" },
+                    "isthing": { "type": "integer" },
+                    "color": {
+                        "type": "array",
+                        "items": { "type": "integer" }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "additionalProperties": false
+            }
+        },
+        "images": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "width": { "type": "integer" },
+                    "height": { "type": "integer" },
+                    "file_name": { "type": "string" },
+                    "license": { "type": "integer" },
+                    "flickr_url": { "type": "string" },
+                    "coco_url": { "type": "string" },
+                    "date_captured": { "type": "string" }
+                },
+                "required": [
+                    "id",
+                    "width",
+                    "height",
+                    "file_name"
+                ],
+                "additionalProperties": false
+            }
+        },
+        "annotations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer" },
+                    "image_id": { "type": "integer" },
+                    "category_id": { "type": "integer" },
+                    "segmentation": {},
+                    "area": { "type": "number" },
+                    "bbox": {
+                        "type": "array",
+                        "items": { "type": "number" }
+                    },
+                    "iscrowd": { "type": "integer" }
+                },
+                "required": [
+                    "id",
+                    "image_id",
+                    "category_id"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "categories",
+        "images"
+    ],
+    "additionalProperties": false
+}
