@@ -231,7 +231,7 @@ class DatasetConfig(Prodict):
         for k, v in self.label_names.items():
             label_names[int(k)] = v
             if int(k) >= self.num_model_classes:
-                logger.error(f"Label name entry {k} exceeds num_model_classes {self.num_model_classes}.")
+                logger.warning(f"Label name entry {k} exceeds num_model_classes {self.num_model_classes}.")
         return label_names
 
     def update_label_names(self, label_names: dict):

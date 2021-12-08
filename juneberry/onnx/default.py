@@ -64,6 +64,8 @@ class OnnxEvaluationProcedure:
                 sample = self.sample_pytorch_data(batch)
             elif evaluator.model_config.platform == "tensorflow":
                 sample = self.sample_tensorflow_data(batch)
+            elif evaluator.model_config.platform == "onnx":
+                sample = self.sample_onnx_data(batch)
             else:
                 sys.exit(-1)
             for item in sample:
@@ -94,6 +96,14 @@ class OnnxEvaluationProcedure:
 
         return return_list
 
+    @staticmethod
+    def sample_onnx_data(batch):
+        return_list = []
+        print(batch)
+        input("HERE")
+        for item in np.split(batch, batch.shape[0]):
+            return_list.append(item.astype(np.float32))
+
 
 class OnnxEvaluationOutput:
     """
@@ -108,6 +118,15 @@ class OnnxEvaluationOutput:
         :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
+
+        if evaluator.model_config.task == "objectDetection":
+            from juneberry.evaluation.utils import populate_metrics
+            populate_metrics(evaluator.model_manager, evaluator.eval_dir_mgr, evaluator.output)
+            input("NOW WHAT?")
+            logger.error(f"OD not implemented yet.")
+            sys.exit(-1)
+            # This probably goes here.
+
 
         # Add the predicted labels for each image to the output.
         labels = [item[1] for item in evaluator.eval_name_targets]
