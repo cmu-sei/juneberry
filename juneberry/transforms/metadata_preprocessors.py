@@ -47,6 +47,7 @@
 from collections import defaultdict
 import logging
 from juneberry.config.coco_utils import COCOImageHelper
+from juneberry.config.coco_anno import CocoAnnotations
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ class LogLabel:
     """
 
     def __call__(self, data):
-        helper = COCOImageHelper(data)
+        helper = COCOImageHelper(CocoAnnotations.construct(data))
         for image, annotations in helper.values():
             logger.info(f"{image['file_name']} category_ids={[x['category_id'] for x in annotations]}")
 
@@ -137,7 +138,7 @@ class LogExtendedLabels:
     """
 
     def __call__(self, data):
-        helper = COCOImageHelper(data)
+        helper = COCOImageHelper(CocoAnnotations.construct(data))
         for image, annotations in helper.values():
             logger.info(f"{image['file_name']} "
                         f"extended_categories={[x.get('extended_categories', '') for x in annotations]}")

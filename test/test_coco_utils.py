@@ -46,6 +46,7 @@
 
 from juneberry.config.coco_utils import COCOImageHelper
 import juneberry.config.coco_utils as coco_utils
+from juneberry.config.coco_anno import CocoAnnotations
 
 IMAGE_IDS = [2, 4, 8, 20]
 OBJECT_IDS = [[0, 1], [2, 3, 4], [5, 6, 7, 8], [9, 10]]
@@ -74,15 +75,16 @@ def create_annotation(image_idx, object_idx, image_ids, object_ids):
     }
 
 
-def make_sample_coco(image_ids, object_ids):
+def make_sample_coco(image_ids, object_ids) -> CocoAnnotations:
     images = [create_image(i, image_ids) for i in range(len(object_ids))]
     annos = [create_annotation(img_idx, obj_idx, image_ids, object_ids)
              for img_idx, anno_ids in enumerate(object_ids) for obj_idx in range(len(anno_ids))]
-    return {
+    data = {
         "images": images,
         "annotations": annos,
         "categories": [{"id": k, "name": v} for k, v in LABEL_MAP.items()]
     }
+    return CocoAnnotations.construct(data)
 
 
 def test_coco_helper_reading():

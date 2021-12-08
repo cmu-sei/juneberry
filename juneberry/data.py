@@ -47,6 +47,7 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
 from juneberry.config.training_output import TrainingOutput
+from juneberry.config.coco_anno import CocoAnnotations
 
 logger = logging.getLogger(__name__)
 
@@ -404,12 +405,12 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        data = jbfs.load_file(filepath)
+        data = CocoAnnotations.load(filepath)
         if self._preprocessors is not None:
             logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
-            orig_cats = copy.deepcopy(data['categories'])
+            orig_cats = copy.deepcopy(data.categories)
             data = self._preprocessors(data)
-            if orig_cats != data['categories']:
+            if orig_cats != data.categories:
                 logger.info(f"......changing categories because preprocessor changed them.")
                 # The categories were changed by the preprocessors. They win out over all others
                 # Categories is a list of id, name
@@ -417,8 +418,8 @@ class CocoMetadataMarshal(DatasetMarshal):
                 # NOTE: This might not be a good idea to do it every time depending on how the
                 # preprocessors are written, but we'll try this for a while.
                 # TODO: Fix the dichotomy with str vs int labels
-                str_labels = {str(x['id']): x['name'] for x in data['categories']}
-                int_labels = {int(x['id']): x['name'] for x in data['categories']}
+                str_labels = {str(x.id): x.name for x in data.categories}
+                int_labels = {int(x.id): x.name for x in data.categories}
                 self.ds_config.label_names = str_labels
                 self.ds_config.update_label_names(int_labels)
 
@@ -899,7 +900,7 @@ def load_coco_json(filepath, output: list) -> None:
     :param output: The output list in which to add out content.
     :return: None
     """
-    data = jbfs.load_file(filepath)
+    data = CocoAnnotations.load(filepath)
     helper = COCOImageHelper(data)
     output.extend(helper.to_image_list())
 
@@ -1050,12 +1051,8 @@ def categories_in_dataset_config(config_path: Path, data_root: Path) -> list:
     else:
         coco_path = dataset_config.image_data['sources'][0]['directory']
 
-    # TODO: use future coco prodict
-    coco_data = jbfs.load_file(data_root / coco_path)
-    if 'categories' in coco_data:
-        return coco_data["categories"]
-    else:
-        return []
+    coco_data = CocoAnnotations.load(data_root / coco_path)
+    return coco_data.categories
 
 
 def categories_in_model_config(model_config_path: Path) -> list:
