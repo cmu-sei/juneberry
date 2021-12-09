@@ -34,7 +34,7 @@ import sys
 def create_juneberry_ini(workspace_dir: Path):
     config = configparser.ConfigParser()
     config["DEFAULT"] = {
-        "workspace": f"/{workspace_dir.name}",
+        "workspace": f"/workspace",
         "data_root": f"/datasets",
         "tensorboard": "/tensorboard",
         "num_workers": "1",
@@ -59,15 +59,17 @@ def create_subdirs(workspace_dir):
     src_dir = workspace_dir / "src"
     src_dir.mkdir()
 
-def copy_container_start(workspace_dir):
-    container_start = Path("docker/container_start.sh")
+def copy_container_start(project_dir, workspace_dir):
+    container_start = Path(project_dir, "juneberry/docker/container_start.sh")
     shutil.copy(container_start, workspace_dir)
     
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--project_dir")
     parser.add_argument("-w", "--workspace")
     args = parser.parse_args()
 
+    project_dir = Path(args.project_dir)
     workspace_dir = Path(args.workspace)
     
     # If the workspace directory exists and is a directory...
@@ -87,12 +89,12 @@ def main():
                 sys.exit(1)
 
         else:
-            copy_container_start(workspace_dir)
+            copy_container_start(project_dir, workspace_dir)
             create_subdirs(workspace_dir)
 
     else:
         create_workspace_dir(workspace_dir)
-        copy_container_start(workspace_dir)
+        copy_container_start(project_dir, workspace_dir)
         create_subdirs(workspace_dir)
 
     create_juneberry_ini(workspace_dir)

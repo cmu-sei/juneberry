@@ -64,9 +64,9 @@ if [ -z ${WS} ]; then
   JB="${JB} -w /juneberry"
 else
   echo "Using workspace ${WS}..."
-  ${PROJ}/scripts/setup_workspace.py -w ${WS}
+  ${PROJ}/juneberry/scripts/setup_workspace.py -p ${PROJ} -w ${WS}
   if [ $? -eq 0 ]; then
-    WS="-v ${WS}:/$(basename ${WS}) -w /$(basename ${WS})"
+    WS="-v ${WS}:/workspace -w /workspace"
   fi
 fi
 
