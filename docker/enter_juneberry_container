@@ -34,7 +34,7 @@
 
 
 # Show usage and exit if we don't get at least one command line argument.
-[ $# -eq 0 ] && { echo "Usage: $0 <project> [workspace]"; exit 1; }
+([ $# -eq 0 ] || [ $# -gt 2 ]) && { echo "Usage: $0 <project> [workspace]"; exit 1; }
 
 # Set PROJ and WS (project and workspace) to the first and second cmdline args.
 PROJ=${1}
