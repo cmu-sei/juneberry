@@ -28,6 +28,7 @@ import onnxruntime as ort
 import sys
 from types import SimpleNamespace
 
+from juneberry.config.coco_anno import CocoAnnotations
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.evaluation.evaluator import EvaluatorBase
@@ -136,40 +137,49 @@ class Evaluator(EvaluatorBase):
             self.output.options.dataset.classes = label_names
             self.output.options.dataset.histogram = get_histogram(self.eval_list, label_names)
 
-            from juneberry.config.coco_anno import CocoAnnotations
             coco_anno = CocoAnnotations.construct(coco_data)
             self.eval_loader = []
+            batch_size = 10
+            batch = []
             for image in coco_anno.images:
-                self.eval_loader.append((self.lab.data_root() / image.file_name, image.id))
+                if len(batch) < batch_size:
+                    batch.append((self.lab.data_root() / image.file_name, image.id))
+                else:
+                    self.eval_loader.append((batch, None))
+                    batch = [(self.lab.data_root() / image.file_name, image.id)]
 
-            inputs_num = len(self.eval_loader)
-            import onnx_tf.backend as backend
+            if batch:
+                self.eval_loader.append((batch, None))
 
-            detections = []
-            self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
+            # TODO: END HERE
 
-            from tqdm import tqdm
-            for i in tqdm(range(inputs_num)):
-                input_file, image_id = self.eval_loader[i]
-                img = Image.open(input_file)
-                ratio = 800.0 / min(img.size[0], img.size[1])
-                img_data = preprocess(img)
-                output = list(backend.run_model(self.onnx_model, img_data))
-                det_list = convert_to_detection(output, image_id, ratio)
-                for detection in det_list:
-                    detections.append(detection)
+            # inputs_num = len(self.eval_loader)
+            # import onnx_tf.backend as backend
+            #
+            # detections = []
+            # self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
+            #
+            # from tqdm import tqdm
+            # for i in tqdm(range(inputs_num)):
+            #     input_file, image_id = self.eval_loader[i]
+            #     img = Image.open(input_file)
+            #     ratio = 800.0 / min(img.size[0], img.size[1])
+            #     img_data = preprocess(img)
+            #     output = list(backend.run_model(self.onnx_model, img_data))
+            #     det_list = convert_to_detection(output, image_id, ratio)
+            #     for detection in det_list:
+            #         detections.append(detection)
+            #
+            #     if i == 1:
+            #         break
+            #
+            # import json
+            # with open(self.eval_dir_mgr.get_detections_path(), "w") as det_file:
+            #     json.dump(detections, det_file, indent=4)
+            #
+            # populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
 
-                if i == 1:
-                    break
-
-            import json
-            with open(self.eval_dir_mgr.get_detections_path(), "w") as det_file:
-                json.dump(detections, det_file, indent=4)
-            input("GOTHERE")
-            # TODO: Need a detections.json
-
-            populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
-            input("GOT HERE")
+            # TODO: END OF GOOD CODE
             # import glob
             # import os
             # from onnx import numpy_helper
