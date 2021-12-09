@@ -73,7 +73,7 @@ class OnnxEvaluationProcedure:
                 if evaluator.model_config.platform == "onnx":
                     session_input, ratio, image_id = item
                     ort_out = evaluator.ort_session.run([], {input_name: session_input})
-                    evaluator.raw_output.append(self.convert_to_detection(ort_out, image_id, ratio))
+                    evaluator.raw_output += self.convert_to_detection(ort_out, image_id, ratio)
                 else:
                     ort_out = evaluator.ort_session.run([], {input_name: item})
                     ort_out = np.array(ort_out[0]).tolist()
