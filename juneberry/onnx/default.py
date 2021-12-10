@@ -151,8 +151,16 @@ class OnnxEvaluationProcedure:
         boxes, labels, scores = output
         boxes /= ratio
         for i in range(len(labels)):
-            detections.append({"image_id": image_id, "category_id": int(labels[i]), "bbox": boxes[i].tolist(),
-                               "score": float(scores[i])})
+            # The boxes, labels, and scores need to be converted to a format that is JSON-serializable.
+            box = boxes[i].tolist()
+            category_id = int(labels[i])
+            score = float(scores[i])
+
+            # The bbox also needs to be converted from (x_min, y_min, x_max, y_max) to (x_min, y_min, width, height)
+            box[2] = box[2] - box[0]
+            box[3] = box[3] - box[1]
+
+            detections.append({"image_id": image_id, "category_id": category_id, "bbox": box, "score": score})
         return detections
 
 
