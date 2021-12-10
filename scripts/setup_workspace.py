@@ -26,6 +26,7 @@ import argparse
 import configparser
 import os
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 import sys
@@ -86,6 +87,27 @@ def copy_container_start(workspace_dir: Path, project_dir: Path) -> None:
     shutil.copy(container_start, workspace_dir)
 
 
+def add_host_os_to_container_start(workspace_dir: Path) -> None:
+    """
+    Write the HOST_OS to the workspace's copy of container_start.sh.
+    :param workspace_dir: The Juneberry workspace directory.
+    :return: None
+    """
+    container_start = Path(workspace_dir / "container_start.sh")
+    lines = []
+
+    # This assumes line 0 is the hashbang line
+    # TODO write these after pattern matching against that line
+    with open(container_start, "r") as f:
+        lines = f.readlines()
+        lines.insert(1, "\n")
+        lines.insert(2, f"HOST_OS=\"{platform.system()}\"")
+        lines.insert(3, "\n")
+
+    with open(container_start, "w") as f:
+        f.writelines(lines)
+
+
 def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
     """
     Create Juneberry workspace files if missing from this workspace.
@@ -99,6 +121,7 @@ def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
     if not (workspace_dir / "container_start.sh").exists():
         print(f"Creating new container_start.sh...")
         copy_container_start(workspace_dir, project_dir)
+        add_host_os_to_container_start(workspace_dir)
 
     
 def main():
