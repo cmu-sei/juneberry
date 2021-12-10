@@ -30,7 +30,7 @@ project-name/
 
 First, you'll need to have a docker environment installed.
 See the following the installation steps
-[here - (external link)](https://docs.docker.com/get-docker/).
+[on the Docker website - (external link)](https://docs.docker.com/get-docker/).
 
 The Juneberry docker containers can be built from scratch (see building_docker.md) or from using a 
 downloaded container such as: 
@@ -48,15 +48,15 @@ docker pull amellinger/juneberry:cudadev
 ```
 
 These docker images do not contain any of the Juneberry code or data.  When the container
-is started the juneberry code, data and you code is _mounted_ into the container. This means that
-the directory in the host environment is directly accessible from withing the container. Therefore
-all edits made to content outside as well as inside are available inside. This means that you can
-use your favorite code editor in your host environment and have those modifications in your container.
-Also, any outputs created by the container such as models, log files, and plots which are in your models 
-directory are available outside the container and not lost when you exit the container.
+is started, the juneberry code, data and code is _mounted_ into the container. This means that
+the directory in the host environment is directly accessible from withing the container. Therefore,
+all edits made to content via the host environment are available inside the container. This means 
+that one can use any editor in the host environment and have those modifications available in the container.
+Also, any outputs created by the container such as models, log files, and plots which are in the models 
+directory are available outside the container and are therefore peristed when the container terminates.
 
-The is a sample script called `enter_juneberry_container` tha starts up a **temporary** 'cudadev' container 
-on your host using all available gpus. It assumes the project directory structure described above.
+There is a sample script called `enter_juneberry_container` tha starts up a **temporary** 'cudadev' container 
+on the host using all available gpus. It assumes the project directory structure described above.
 
 Change _into_ the project directory and run the enter_juneberry_container.  By default it tries
 to use the `juneberry/cudadev:dev` container that would be built with locally. If you downloaded
