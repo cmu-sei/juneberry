@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+HOST_OS=""
+
 pip install -e /juneberry
 if [ -d "src" ]; then
   export PYTHONPATH="/workspace/src:${PYTHONPATH}"

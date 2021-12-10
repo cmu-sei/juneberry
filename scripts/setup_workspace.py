@@ -27,6 +27,7 @@ import configparser
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -94,18 +95,17 @@ def add_host_os_to_container_start(workspace_dir: Path) -> None:
     :return: None
     """
     container_start = Path(workspace_dir / "container_start.sh")
-    lines = []
+    outlines = []
 
-    # This assumes line 0 is the hashbang line
-    # TODO write these after pattern matching against that line
     with open(container_start, "r") as f:
-        lines = f.readlines()
-        lines.insert(1, "\n")
-        lines.insert(2, f"HOST_OS=\"{platform.system()}\"")
-        lines.insert(3, "\n")
+        inlines = f.readlines()
+
+        for l in inlines:
+            outlines.append(re.sub(r"^HOST_OS=\"\"$",
+                f"HOST_OS=\"{platform.system()}\"", l))
 
     with open(container_start, "w") as f:
-        f.writelines(lines)
+        f.writelines(outlines)
 
 
 def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
