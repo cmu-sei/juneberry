@@ -1,1 +1,1 @@
-recursive_include juneberry/schemas *
+recursive-include juneberry/schemas *
