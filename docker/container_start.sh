@@ -4,7 +4,7 @@ HOST_OS=""
 
 pip install -e /juneberry
 if [ -d "src" ]; then
-  export PYTHONPATH=/workspace/src:${PYTHONPATH}
+  export PYTHONPATH="/workspace/src:${PYTHONPATH}"
 fi
 source /juneberry/scripts/juneberry_completion.sh
 
