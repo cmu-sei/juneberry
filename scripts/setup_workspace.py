@@ -31,73 +31,94 @@ import subprocess
 import sys
 
 
-def create_juneberry_ini(workspace_dir: Path):
+def create_juneberry_ini(workspace_dir: Path) -> None:
+    """
+    Create a juneberry.ini file for this workspace.
+    :param workspace_dir: The Juneberry workspace directory.
+    :return: None
+    """
     config = configparser.ConfigParser()
     config["DEFAULT"] = {
         "workspace": f"/workspace",
-        "data_root": f"/datasets",
+        "data_root": f"/dataroot",
         "tensorboard": "/tensorboard",
         "num_workers": "1",
     }
     with open((workspace_dir / "juneberry.ini"), "w") as f:
         config.write(f)
 
-def create_workspace_dir(workspace_dir):
-    print(f"Creating new workspace {workspace_dir}")
-    workspace_dir.mkdir()
 
-def create_subdirs(workspace_dir):
-    data_sets_dir = workspace_dir / "data_sets"
-    data_sets_dir.mkdir()
+def create_dir(dir: Path) -> None:
+    """
+    Create a directory if it doesn't already exist.
+    :param dir: The directory to create.
+    :return: None
+    """
+    # Doing it this way instead of using the flags on mkdir
+    # so we can print the status message.
+    if not dir.exists():
+        print(f"Creating {dir.name} directory...")
+        dir.mkdir()
 
-    experiments_dir = workspace_dir / "experiments"
-    experiments_dir.mkdir()
 
-    models_dir = workspace_dir / "models"
-    models_dir.mkdir()
+def create_workspace_dirs(workspace_dir: Path) -> None:
+    """
+    Create the Juneberry workspace directory and subdirectories, if necessary.
+    :param workspace_dir: The Juneberry workspace directory.
+    :return: None
+    """
+    create_dir(workspace_dir)
+    create_dir(workspace_dir / "data_sets")
+    create_dir(workspace_dir / "experiments")
+    create_dir(workspace_dir / "models")
+    create_dir(workspace_dir / "src")
 
-    src_dir = workspace_dir / "src"
-    src_dir.mkdir()
 
-def copy_container_start(project_dir, workspace_dir):
+def copy_container_start(workspace_dir: Path, project_dir: Path) -> None:
+    """
+    Copy the template container_start.sh file from the project to the
+    workspace.
+    :param workspace_dir: The Juneberry workspace directory.
+    :param project_dir: The Juneberry project directory.
+    :return: None
+    """
     container_start = Path(project_dir, "juneberry/docker/container_start.sh")
     shutil.copy(container_start, workspace_dir)
+
+
+def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
+    """
+    Create Juneberry workspace files if missing from this workspace.
+    :param workspace_dir: The Juneberry workspace directory.
+    :param project_dir: The Juneberry project directory.
+    :return: None
+    """
+    if not (workspace_dir / "juneberry.ini").exists():
+        print(f"Creating new juneberry.ini...")
+        create_juneberry_ini(workspace_dir)
+    if not (workspace_dir / "container_start.sh").exists():
+        print(f"Creating new container_start.sh...")
+        copy_container_start(workspace_dir, project_dir)
+
     
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--project_dir")
-    parser.add_argument("-w", "--workspace")
+    parser.add_argument("-p", "--project_dir", help="Directory containing the Juneberry project.")
+    parser.add_argument("-w", "--workspace", help="Juneberry workspace to set up and run in.")
     args = parser.parse_args()
 
     project_dir = Path(args.project_dir)
     workspace_dir = Path(args.workspace)
     
-    # If the workspace directory exists and is a directory...
-    if workspace_dir.exists() and workspace_dir.is_dir():
+    # Create the Juneberry workspace directories and files.
+    # Return 0 for success, 1 for failure.
+    try:
+        create_workspace_dirs(workspace_dir)
+        create_workspace_files(workspace_dir, project_dir)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
 
-        # If the workspace directory is not empty...
-        if os.listdir(workspace_dir):
-
-            # If the workspace directory is a Juneberry workspace...
-            if (workspace_dir / "juneberry.ini").exists():
-                # ... nothing to do, just report success.
-                print(f"{workspace_dir} exists and is a Juneberry workspace.")
-                sys.exit(0)
-            else:
-                # ... report failure.
-                print(f"{workspace_dir} is non-empty, and is not a Juneberry workspace.")
-                sys.exit(1)
-
-        else:
-            copy_container_start(project_dir, workspace_dir)
-            create_subdirs(workspace_dir)
-
-    else:
-        create_workspace_dir(workspace_dir)
-        copy_container_start(project_dir, workspace_dir)
-        create_subdirs(workspace_dir)
-
-    create_juneberry_ini(workspace_dir)
     sys.exit(0)
 
 

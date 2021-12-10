@@ -27,7 +27,7 @@
 # organized as subdirectories according to the following layout:
 # <project>/
 #   juneberry <- This is the Juneberry repo that was pulled
-#   datasets <- This is where the source data is located, i.e. the Juneberry "dataroot".
+#   dataroot <- This is where the source data is located, i.e. the Juneberry "dataroot".
 #   tensorboard <- This is where tensorboard outputs will be stored.
 #   cache <- This where the model downloads are cached.
 #   workspace <- This is an optional external workspace directory, see docker/README.md for details
@@ -70,7 +70,7 @@ else
   fi
 fi
 
-DATA="-v ${PROJ}/datasets:/datasets:ro"
+DATA="-v ${PROJ}/dataroot:/dataroot:ro"
 TB="-v ${PROJ}/tensorboard:/tensorboard"
 HUB_CACHE="-v ${PROJ}/cache/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${PROJ}/cache/torch:/root/.torch"
