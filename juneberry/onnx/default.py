@@ -24,7 +24,6 @@
 
 import logging
 import numpy as np
-from PIL import Image
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from torch import split
@@ -52,32 +51,21 @@ class OnnxEvaluationProcedure:
         :return: Nothing.
         """
 
-        self.evaluator = evaluator
-
         input_name = evaluator.ort_session.get_inputs()[0].name
 
         data_loader = evaluator.eval_loader
-
-        # output_list = list()
 
         for i, (batch, target) in enumerate(tqdm(data_loader)):
             if evaluator.model_config.platform == "pytorch":
                 sample = self.sample_pytorch_data(batch)
             elif evaluator.model_config.platform == "tensorflow":
                 sample = self.sample_tensorflow_data(batch)
-            elif evaluator.model_config.platform == "onnx":
-                sample = self.sample_onnx_data(batch)
             else:
                 sys.exit(-1)
             for item in sample:
-                if evaluator.model_config.platform == "onnx":
-                    session_input, ratio, image_id = item
-                    ort_out = evaluator.ort_session.run([], {input_name: session_input})
-                    evaluator.raw_output += self.convert_to_detection(ort_out, image_id, ratio)
-                else:
-                    ort_out = evaluator.ort_session.run([], {input_name: item})
-                    ort_out = np.array(ort_out[0]).tolist()
-                    evaluator.raw_output.append(ort_out[0])
+                ort_out = evaluator.ort_session.run([], {input_name: item})
+                ort_out = np.array(ort_out[0]).tolist()
+                evaluator.raw_output.append(ort_out[0])
 
     @staticmethod
     def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
@@ -102,67 +90,6 @@ class OnnxEvaluationProcedure:
 
         return return_list
 
-    def sample_onnx_data(self, batch):
-        return_list = []
-
-        for img_path, img_id in batch:
-            logger.info(f"Working on img {img_path}")
-            img = Image.open(img_path)
-            proc_img, ratio = self.preprocess(img)
-            return_list.append((proc_img, ratio, img_id))
-
-        return return_list
-
-    @staticmethod
-    def preprocess(image):
-        # Resize
-        ratio = 800.0 / min(image.size[0], image.size[1])
-        image = image.resize((int(ratio * image.size[0]), int(ratio * image.size[1])), Image.BILINEAR)
-
-        # Convert to BGR
-        try:
-            image = np.array(image)[:, :, [2, 1, 0]].astype('float32')
-        except IndexError:
-            stacked_image = np.stack((image,)*3, axis=-1)
-            image = np.array(stacked_image)[:, :, [2, 1, 0]].astype('float32')
-
-        # HWC -> CHW
-        image = np.transpose(image, [2, 0, 1])
-
-        # Normalize
-        mean_vec = np.array([102.9801, 115.9465, 122.7717])
-        for i in range(image.shape[0]):
-            image[i, :, :] = image[i, :, :] - mean_vec[i]
-
-        # Pad to be divisible of 32
-        import math
-        padded_h = int(math.ceil(image.shape[1] / 32) * 32)
-        padded_w = int(math.ceil(image.shape[2] / 32) * 32)
-
-        padded_image = np.zeros((3, padded_h, padded_w), dtype=np.float32)
-        padded_image[:, :image.shape[1], :image.shape[2]] = image
-        image = padded_image
-
-        return image, ratio
-
-    @staticmethod
-    def convert_to_detection(output, image_id, ratio):
-        detections = []
-        boxes, labels, scores = output
-        boxes /= ratio
-        for i in range(len(labels)):
-            # The boxes, labels, and scores need to be converted to a format that is JSON-serializable.
-            box = boxes[i].tolist()
-            category_id = int(labels[i])
-            score = float(scores[i])
-
-            # The bbox also needs to be converted from (x_min, y_min, x_max, y_max) to (x_min, y_min, width, height)
-            box[2] = box[2] - box[0]
-            box[3] = box[3] - box[1]
-
-            detections.append({"image_id": image_id, "category_id": category_id, "bbox": box, "score": score})
-        return detections
-
 
 class OnnxEvaluationOutput:
     """
@@ -177,20 +104,6 @@ class OnnxEvaluationOutput:
         :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
-
-        if evaluator.model_config.task == "objectDetection":
-            import json
-
-            with open(evaluator.eval_dir_mgr.get_detections_path(), "w") as det_file:
-                json.dump(evaluator.raw_output, det_file, indent=4)
-
-            from juneberry.evaluation.utils import populate_metrics
-            populate_metrics(evaluator.model_manager, evaluator.eval_dir_mgr, evaluator.output)
-            input("NOW WHAT?")
-            logger.error(f"OD not implemented yet.")
-            sys.exit(-1)
-            # This probably goes here.
-
 
         # Add the predicted labels for each image to the output.
         labels = [item[1] for item in evaluator.eval_name_targets]
