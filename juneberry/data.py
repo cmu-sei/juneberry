@@ -405,12 +405,12 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        data = CocoAnnotations.load(filepath)
+        data = jbfs.load_file(filepath)
         if self._preprocessors is not None:
             logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
-            orig_cats = copy.deepcopy(data.categories)
+            orig_cats = copy.deepcopy(data['categories'])
             data = self._preprocessors(data)
-            if orig_cats != data.categories:
+            if orig_cats != data['categories']:
                 logger.info(f"......changing categories because preprocessor changed them.")
                 # The categories were changed by the preprocessors. They win out over all others
                 # Categories is a list of id, name
@@ -418,12 +418,13 @@ class CocoMetadataMarshal(DatasetMarshal):
                 # NOTE: This might not be a good idea to do it every time depending on how the
                 # preprocessors are written, but we'll try this for a while.
                 # TODO: Fix the dichotomy with str vs int labels
-                str_labels = {str(x['id']): x['name'] for x in data.categories}
-                int_labels = {int(x['id']): x['name'] for x in data.categories}
+                str_labels = {str(x['id']): x['name'] for x in data['categories']}
+                int_labels = {int(x['id']): x['name'] for x in data['categories']}
                 self.ds_config.label_names = str_labels
                 self.ds_config.update_label_names(int_labels)
 
         # Now that we have the file loaded let's load the values
+        data = CocoAnnotations.load(filepath)
         helper = COCOImageHelper(data)
         if remove_image_ids:
             [helper.remove_image(img_id) for img_id in remove_image_ids]
