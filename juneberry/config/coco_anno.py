@@ -24,7 +24,6 @@
 
 import logging
 import sys
-import typing
 from prodict import List, Prodict, Any
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs

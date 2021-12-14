@@ -145,7 +145,7 @@ def assert_correct_list(test_list, frodo_indexes, sam_indexes, data_root='data_r
         assert train[1] == correct_labels[idx]
 
 
-def test_generate_image_list(monkeypatch, tmp_path):
+def test_generate_image_list(monkeypatch):
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
     dataset_struct = make_image_classification_config()
@@ -216,7 +216,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
         json.dump(config, out_file, indent=4)
 
     # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(config_path)
+    model_config = ModelConfig.load(str(config_path))
     model_config.validation = {
         "algorithm": "random_fraction",
         "arguments": {
@@ -722,14 +722,14 @@ def test_make_balanced_dict():
     check_allocation(data_dict, result_dict)
 
 
-def mock_generate_image_list(root, ds, model_config=None, splitting_config=None):
+def mock_generate_image_list(splitting_config=None):
     if splitting_config is not None:
         return ['image_train'], ['image_val']
     else:
         return ['image_train'], []
 
 
-def mock_load_tabular_data(mc, ds):
+def mock_load_tabular_data(mc):
     if mc is not None:
         return ['tab_train'], ['tab_val']
     else:
