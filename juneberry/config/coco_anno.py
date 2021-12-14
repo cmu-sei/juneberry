@@ -24,6 +24,7 @@
 
 import logging
 import sys
+import typing
 from prodict import List, Prodict, Any
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
@@ -37,10 +38,6 @@ logger = logging.getLogger(__name__)
 class Info(Prodict):
     year: int
     version: str
-    description: str
-    contributor: str
-    url: str
-    date_created: str
 
 
 class License(Prodict):
@@ -52,9 +49,6 @@ class License(Prodict):
 class Category(Prodict):
     id: int
     name: str
-    # supercategory: str
-    # isthing: int
-    # color: List[int]
 
 
 class Image(Prodict):
@@ -62,20 +56,12 @@ class Image(Prodict):
     width: int
     height: int
     file_name: str
-    license: int
-    flickr_url: str
-    coco_url: str
-    date_captured: str
 
 
 class Annotation(Prodict):
     id: int
     image_id: int
     category_id: int
-    segmentation: Any
-    area: float
-    bbox: List[float]
-    iscrowd: int
 
 
 class CocoAnnotations(Prodict):
