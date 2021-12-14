@@ -300,6 +300,22 @@ The basic evaluators for the platforms are:
 * MMDetection - juneberry.mmdetection.evaluator.Evaluator
 * TensorFlow - juneberry.tensorflow.evaluation.evaluator.Evaluator
 
+The following Evaluator can be used to evaluate ONNX models.
+* ONNX - juneberry.onnx.evaluator.Evaluator
+
+The ONNX Evaluator behaves slightly differently than the basic platform 
+evaluators. The ONNX Evaluator requires three kwargs to be specified in the 
+model config, or it will not work. These three kwargs are:
+"loader": <fully qualified name of class that describes how to construct a data loader for the evaluation>
+"output": <fully qualified name of class that describes how to format the evaluation output data>
+"procedure": <fully qualified name of class that describes how to conduct the evaluation>
+
+Some examples of these classes can be found in juneberry.onnx.faster_rcnn, juneberry.onnx.pytorch, 
+juneberry.onnx.tensorflow, and juneberry.onnx.default. The PyTorch and TensorFlow files contain classes that 
+would allow you to construct the appropriate platform's data loader and evaluation procedure for any 
+ONNX models that were produced by Juneberry. For classification evaluations, both platforms are 
+compatible with the OnnxEvaluationOutput class defined in juneberry.onnx.default.
+
 ## format_version
 Linux style version of the **format** of the file. Not the version of 
 the data, but the version of the semantics of the fields of this file. 

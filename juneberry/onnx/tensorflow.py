@@ -42,7 +42,7 @@ class DataLoader:
         """
         When called, this method uses the same process as a non-ONNX TensorFlow evaluation to
         construct the evaluation dataloader. A slight adjustment needs to be made to the labels in
-        order for the evaluation to work properly.
+        order for the ONNX evaluation to work properly.
         """
 
         # Create a TensorFlowEvaluator and use it to build a TensorFlow dataloader for the input data.
@@ -52,7 +52,7 @@ class DataLoader:
         evaluator.eval_loader = tf_evaluator.eval_loader
 
         # Retrieve the labels for the input data.
-        evaluator.eval_name_targets = [('', x) for x in tf_evaluator.eval_name_targets]
+        evaluator.eval_name_targets = [('', x) for x in tf_evaluator.eval_labels]
 
 
 class EvaluationProcedure:

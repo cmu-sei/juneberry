@@ -101,7 +101,7 @@ class DataLoader:
 
 class EvaluationProcedure:
     """
-    This class is Faster R-CNN ONNX model version of the code responsible for sending the data
+    This class is the Faster R-CNN ONNX model version of the code responsible for sending the data
     from the eval data loader into the onnxruntime inference session and producing the data
     for the detected objects.
     """
@@ -109,7 +109,7 @@ class EvaluationProcedure:
     def __call__(self, evaluator: Evaluator):
         """
         When called, this method will loop through all batches from the eval data loader and send
-        in each image into the onnxruntime inference session. The inference output will then be
+        each image into the onnxruntime inference session. The inference output will then be
         converted to match the usual format for a Juneberry detections file.
         """
 
@@ -123,9 +123,9 @@ class EvaluationProcedure:
             # Preprocess the images in the batch.
             preprocessed_imgs = self.preprocess_img_batch(batch)
 
-            # Break up the img data into its components, send the numpy array for the image
-            # into the inference session, adjust the inference output to match the expected
-            # detections format, and store the formatted output.
+            # For each image in the batch, break up the img data into its components, send the
+            # numpy array for the image into the inference session, adjust the inference output
+            # to match the typical detections format, and store the formatted output.
             for img in preprocessed_imgs:
                 img_as_np_array, ratio, image_id = img
                 ort_output = evaluator.ort_session.run([], {input_name: img_as_np_array})
@@ -140,11 +140,11 @@ class EvaluationProcedure:
         # Start with an empty list.
         return_list = []
 
-        # Loop through every in the batch of data.
+        # Loop through every image in the batch of data.
         for img_path, img_id in batch:
 
-            # Open the image, preprocess it, then store the result and the resize ratio used
-            # during preprocessing.
+            # Open the image, preprocess it, then store the result along with the resize ratio
+            # used during preprocessing.
             img = Image.open(img_path)
             proc_img, ratio = self.preprocess(img)
             return_list.append((proc_img, ratio, img_id))
@@ -202,7 +202,7 @@ class EvaluationProcedure:
         boxes /= ratio
 
         for i in range(len(labels)):
-            # The boxes, labels, and scores need to be converted to a format that is JSON-serializable.
+            # The boxes, labels, and scores need to be converted to formats that are JSON-serializable.
             box = boxes[i].tolist()
             category_id = int(labels[i])
             score = float(scores[i])
@@ -241,7 +241,7 @@ class EvaluationOutput:
         evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
         logger.info(f"Hash of the ONNX model that was evaluated: '{evaluated_model_hash}'")
 
-        # Add the hash of the model used for evaluation to the output.
+        # Record the hash of the model used for evaluation to the output.
         evaluator.output.options.model.hash = evaluated_model_hash
 
         # Calculate the metrics.

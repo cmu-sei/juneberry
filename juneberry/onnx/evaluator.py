@@ -75,26 +75,27 @@ class Evaluator(EvaluatorBase):
 
         if self.eval_data_loader_method is None:
             logger.error(f"ONNX evaluations expect a 'loader' kwarg in the 'evaluator' stanza of the model "
-                         f"config to define which data loader to use, but no 'loader' was found. Exiting.")
+                         f"config to define which data loader to use, but no 'loader' was found.")
             error = True
         if self.eval_method is None:
             logger.error(f"ONNX evaluations expect a 'procedure' kwarg in the 'evaluator' stanza of the model "
-                         f"config to define which ONNX eval class to use, but no 'procedure' was found. Exiting.")
+                         f"config to define which ONNX eval class to use, but no 'procedure' was found.")
             error = True
         if self.eval_output_method is None:
             logger.error(f"ONNX evaluations expect an 'output' kwarg in the 'evaluator' stanza of the model "
                          f"config to define which ONNX eval output formatting class to use, but no 'output' was "
-                         f"found. Exiting.")
+                         f"found.")
             error = True
 
         # Check if the model directory contains an ONNX model.
         if not self.model_manager.get_onnx_model_path().exists():
             logger.error(f"An ONNX evaluation was requested for model '{self.model_manager.model_name}', however "
-                         f"the model directory does not contain a 'model.onnx' file. Exiting.")
+                         f"the model directory does not contain a 'model.onnx' file.")
             error = True
 
         # Exit if an error was encountered.
         if error:
+            logger.error(f"Exiting.")
             sys.exit(-1)
 
         logger.info(f"ONNX Evaluator setup steps are complete.")

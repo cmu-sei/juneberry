@@ -51,7 +51,7 @@ class DataLoader:
         evaluator.eval_loader = pyt_evaluator.eval_loader
 
         # Retrieve the labels for the input data.
-        evaluator.eval_name_targets = evaluator.eval_name_targets.copy()
+        evaluator.eval_name_targets = pyt_evaluator.eval_name_targets.copy()
 
 
 class EvaluationProcedure:
