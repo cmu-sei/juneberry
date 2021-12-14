@@ -418,8 +418,8 @@ class CocoMetadataMarshal(DatasetMarshal):
                 # NOTE: This might not be a good idea to do it every time depending on how the
                 # preprocessors are written, but we'll try this for a while.
                 # TODO: Fix the dichotomy with str vs int labels
-                str_labels = {str(x.id): x.name for x in data.categories}
-                int_labels = {int(x.id): x.name for x in data.categories}
+                str_labels = {str(x['id']): x['name'] for x in data.categories}
+                int_labels = {int(x['id']): x['name'] for x in data.categories}
                 self.ds_config.label_names = str_labels
                 self.ds_config.update_label_names(int_labels)
 

@@ -797,9 +797,13 @@ def test_get_category_list(monkeypatch, tmp_path):
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
     data_root = Path(tmp_path)
-    test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
-    test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
-                   {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
+    test_list_1 = [{'id': 0, 'name': 'HINDI'},
+                   {'id': 1, 'name': 'ENGLISH'},
+                   {'id': 2, 'name': 'OTHER'}]
+    test_list_2 = [{'id': 0, 'name': 'zero'},
+                   {'id': 1, 'name': 'one'},
+                   {'id': 2, 'name': 'two'},
+                   {'id': 3, 'name': 'three'}]
 
     # Make sample manifest files (if not instantiated already)
     train_manifest_path = model_manager.get_training_data_manifest_path()
@@ -824,15 +828,9 @@ def test_get_category_list(monkeypatch, tmp_path):
     assert test_list_2 == category_list
     assert source == "train config"
 
-    # Check for warning message
-    TestCase().assertEqual(cm.output, ["WARNING:juneberry.data:The evaluation category list does not match that of the "
-                                       "eval_manifest:  category_list: [OrderedDict([('id', 0), ('name', 'zero')]), "
-                                       "OrderedDict([('id', 1), ('name', 'one')]), "
-                                       "OrderedDict([('id', 2), ('name', 'two')]), "
-                                       "OrderedDict([('id', 3), ('name', 'three')])]  "
-                                       "eval_manifest list: [OrderedDict([('id', 0), ('name', 'HINDI')]), "
-                                       "OrderedDict([('id', 1), ('name', 'ENGLISH')]), "
-                                       "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
+    # Check for a warning message
+    TestCase().assertIn("WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
+                        cm.output[0])
 
     # Test manifest case
     category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,

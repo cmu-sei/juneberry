@@ -2,30 +2,8 @@
     "$schema": "https://json-schema.org/draft-07/schema",
     "type": "object",
     "properties": {
-        "info": {
-            "type": "object",
-            "properties": {
-                "year": { "type": "integer" },
-                "version": { "type": "string" },
-                "description": { "type": "string" },
-                "contributor": { "type": "string" },
-                "url": { "type": "string" },
-                "date_created": { "type": "string" }
-            },
-            "additionalProperties": false
-        },
-        "licenses": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": { "type": "integer" },
-                    "name": { "type": "string" },
-                    "url": { "type": "string" }
-                },
-                "additionalProperties": false
-            }
-        },
+        "info": {},
+        "licenses": {},
         "categories": {
             "type": "array",
             "items": {
@@ -33,12 +11,9 @@
                 "properties": {
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
-                    "supercategory": { "type": "string" },
-                    "isthing": { "type": "integer" },
-                    "color": {
-                        "type": "array",
-                        "items": { "type": "integer" }
-                    }
+                    "supercategory": {},
+                    "isthing": {},
+                    "color": {}
                 },
                 "required": [
                     "id",
@@ -56,10 +31,10 @@
                     "width": { "type": "integer" },
                     "height": { "type": "integer" },
                     "file_name": { "type": "string" },
-                    "license": { "type": "integer" },
-                    "flickr_url": { "type": "string" },
-                    "coco_url": { "type": "string" },
-                    "date_captured": { "type": "string" }
+                    "license": {},
+                    "flickr_url": {},
+                    "coco_url": {},
+                    "date_captured": {}
                 },
                 "required": [
                     "id",

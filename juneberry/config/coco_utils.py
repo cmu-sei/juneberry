@@ -236,7 +236,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: list, category_list: List = None) -> dict:
+def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list, category_list: List = None) -> dict:
     """
     Converts a predictions (detections) list to a coco formatted annotation file with images.
     :param coco_data: A base coco file with images.
@@ -245,13 +245,13 @@ def convert_predictions_to_coco(coco_data: dict, predictions: list, category_lis
     :return: coco formatted data
     """
     if not category_list:
-        category_list = coco_data['categories']
+        category_list = coco_data.categories
 
     return {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
-        'images': coco_data['images'],
+        'images': coco_data.images,
         'annotations': convert_predictions_to_annotations(predictions),
         'categories': category_list
     }
@@ -351,7 +351,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
         # Alternatively, the dataset config should have a version of the metadata.
         dataset = DatasetConfig.load(dataset_config)
         coco_path = dataset.image_data.sources[0]['directory']
-        coco_data = jbfs.load_file(data_root / coco_path)
+        coco_data = CocoAnnotations.load(data_root / coco_path)
 
     predictions = jbfs.load_file(predict_file)
 

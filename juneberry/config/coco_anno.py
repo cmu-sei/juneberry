@@ -52,9 +52,9 @@ class License(Prodict):
 class Category(Prodict):
     id: int
     name: str
-    supercategory: str
-    isthing: int
-    color: List[int]
+    # supercategory: str
+    # isthing: int
+    # color: List[int]
 
 
 class Image(Prodict):
