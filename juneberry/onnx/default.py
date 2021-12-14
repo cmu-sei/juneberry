@@ -23,11 +23,8 @@
 # ======================================================================================================================
 
 import logging
-import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
-from torch import split
-from tqdm import tqdm
 
 from juneberry.config.training_output import TrainingOutput
 from juneberry.onnx.evaluator import Evaluator
@@ -38,62 +35,10 @@ import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
 logger = logging.getLogger(__name__)
 
 
-class OnnxEvaluationProcedure:
-    """
-    Attempt at an ONNX eval procedure.
-    """
-
-    def __call__(self, evaluator: Evaluator):
-        """
-        When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
-        of the process is raw evaluation data.
-        :param evaluator: The PytorchEvaluator object managing the evaluation.
-        :return: Nothing.
-        """
-
-        input_name = evaluator.ort_session.get_inputs()[0].name
-
-        data_loader = evaluator.eval_loader
-
-        for i, (batch, target) in enumerate(tqdm(data_loader)):
-            if evaluator.model_config.platform == "pytorch":
-                sample = self.sample_pytorch_data(batch)
-            elif evaluator.model_config.platform == "tensorflow":
-                sample = self.sample_tensorflow_data(batch)
-            else:
-                sys.exit(-1)
-            for item in sample:
-                ort_out = evaluator.ort_session.run([], {input_name: item})
-                ort_out = np.array(ort_out[0]).tolist()
-                evaluator.raw_output.append(ort_out[0])
-
-    @staticmethod
-    def establish_evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options):
-        return Evaluator(model_config, lab, dataset, model_manager, eval_dir_mgr, eval_options)
-
-    @staticmethod
-    def sample_pytorch_data(batch):
-        # Convert the individual tensors in the batch to numpy arrays and place them in
-        # the input data list.
-
-        return_list = []
-        for item in split(batch, 1):
-            return_list.append(item.data.numpy())
-
-        return return_list
-
-    @staticmethod
-    def sample_tensorflow_data(batch):
-        return_list = []
-        for item in np.split(batch, batch.shape[0]):
-            return_list.append(item.astype(np.float32))
-
-        return return_list
-
-
 class OnnxEvaluationOutput:
     """
-    This is the default ONNX evaluation class used for formatting raw evaluation data in Juneberry.
+    This is the default ONNX evaluation class used for formatting raw classification evaluation data
+    in Juneberry.
     """
 
     def __call__(self, evaluator: Evaluator):
@@ -152,7 +97,7 @@ class OnnxEvaluationOutput:
             if hash_from_output != evaluated_model_hash:
                 logger.error(f"Hash of the model that was just evaluated: '{evaluated_model_hash}'")
                 logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
-                             f"output file. EXITING.")
+                             f"output file. Exiting.")
                 sys.exit(-1)
             else:
                 logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")

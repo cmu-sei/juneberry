@@ -41,14 +41,13 @@ logger = logging.getLogger(__name__)
 
 class Evaluator(EvaluatorBase):
     """
-        This subclass is the ONNX-specific version of the Evaluator.
-        """
+    This subclass is the ONNX-specific version of the Evaluator.
+    """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
 
-        self.input_data = []
         self.onnx_model = None
         self.ort_session = None
         self.raw_output = []
@@ -70,60 +69,47 @@ class Evaluator(EvaluatorBase):
         # Set the seeds using the value from the ModelConfig.
         jb_utils.set_seeds(self.model_config.seed)
 
-        # Use default values if they were not provided in the model config.
+        # Check that the model config defines the classes required to perform the ONNX evaluation.
+        # Log an error for those that are not defined.
+        error = False
+
+        if self.eval_data_loader_method is None:
+            logger.error(f"ONNX evaluations expect a 'loader' kwarg in the 'evaluator' stanza of the model "
+                         f"config to define which data loader to use, but no 'loader' was found. Exiting.")
+            error = True
         if self.eval_method is None:
-            self.eval_method = "juneberry.onnx.default.OnnxEvaluationProcedure"
+            logger.error(f"ONNX evaluations expect a 'procedure' kwarg in the 'evaluator' stanza of the model "
+                         f"config to define which ONNX eval class to use, but no 'procedure' was found. Exiting.")
+            error = True
         if self.eval_output_method is None:
-            self.eval_output_method = "juneberry.onnx.default.OnnxEvaluationOutput"
+            logger.error(f"ONNX evaluations expect an 'output' kwarg in the 'evaluator' stanza of the model "
+                         f"config to define which ONNX eval output formatting class to use, but no 'output' was "
+                         f"found. Exiting.")
+            error = True
+
+        # Check if the model directory contains an ONNX model.
+        if not self.model_manager.get_onnx_model_path().exists():
+            logger.error(f"An ONNX evaluation was requested for model '{self.model_manager.model_name}', however "
+                         f"the model directory does not contain a 'model.onnx' file. Exiting.")
+            error = True
+
+        # Exit if an error was encountered.
+        if error:
+            sys.exit(-1)
 
         logger.info(f"ONNX Evaluator setup steps are complete.")
 
     def obtain_dataset(self) -> None:
         """
         This is the ONNX version of the extension point that's responsible for obtaining the
-        dataset to be evaluated. The input_data is expected to be a list of individual tensors,
-        where each tensor will be fed in to the evaluation procedure, one at a time.
+        dataset to be evaluated.
         :return: Nothing.
         """
 
-        # TODO: I think there's a risk here if the datasets are too large to fit in memory.
-        #  self.input_data could end up being very large.
-
-        if self.eval_data_loader_method is not None:
-            logger.info(f"Creating a custom EVALUATION data loader according to {self.eval_data_loader_method}")
-            jb_eval_utils.invoke_evaluator_method(self, self.eval_data_loader_method)
-            logger.info(f"EVALUATION data loader has been created.")
-
-        # If a PyTorch model is being evaluated and no data loader method was specified, assume the following
-        # (default) loader for PyTorch platform ONNX evaluations.
-        elif self.model_config.platform == "pytorch":
-            from juneberry.pytorch.evaluation.evaluator import Evaluator
-
-            # Create a PytorchEvaluator and use it to build a PyTorch dataloader for the input data.
-            evaluator = Evaluator(self.lab, self.model_config, self.model_manager, self.eval_dir_mgr,
-                                  self.eval_dataset_config, None)
-            evaluator.obtain_dataset()
-            self.eval_loader = evaluator.eval_loader
-
-            # Retrieve the labels for the input data.
-            self.eval_name_targets = evaluator.eval_name_targets.copy()
-
-        # If a TensorFlow model is being evaluated and no data loader method was specified, assume the following
-        # (default) loader for TensorFlow platform ONNX evaluations.
-        elif self.model_config.platform == "tensorflow":
-            from juneberry.tensorflow.evaluation.evaluator import Evaluator
-            evaluator = Evaluator(self.model_config, self.lab, self.model_manager, self.eval_dir_mgr,
-                                  self.eval_dataset_config, None)
-            evaluator.obtain_dataset()
-            self.eval_loader = evaluator.eval_loader
-
-            self.eval_name_targets = evaluator.eval_labels
-            self.eval_name_targets = [('', x) for x in self.eval_name_targets]
-
-        # Handle cases where the model platform does not support an ONNX evaluation.
-        else:
-            logger.info(f"ONNX evaluations are currently NOT supported for the {self.model_config.platform} platform.")
-            sys.exit(-1)
+        # Invoke the desired data loader class.
+        logger.info(f"Creating a custom EVALUATION data loader according to {self.eval_data_loader_method}")
+        jb_eval_utils.invoke_evaluator_method(self, self.eval_data_loader_method)
+        logger.info(f"EVALUATION data loader has been created.")
 
     def obtain_model(self) -> None:
         """
@@ -131,6 +117,7 @@ class Evaluator(EvaluatorBase):
         to be evaluated.
         :return: Nothing.
         """
+
         # Load the ONNX model.
         self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
 
@@ -148,17 +135,18 @@ class Evaluator(EvaluatorBase):
         :return: Nothing.
         """
 
+        # Establish an onnxruntime inference session.
         self.ort_session = ort.InferenceSession(str(self.model_manager.get_onnx_model_path()))
 
+        # At this point the dry run should terminate since the next action is to conduct the evaluation.
         if self.dryrun:
             logger.info(f"Dry run complete.")
             sys.exit(0)
 
+        # Invoke the desired evaluation class.
         logger.info(f"Will evaluate model '{self.model_manager.model_name}' using {self.eval_dataset_config_path}")
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")
-
         jb_eval_utils.invoke_evaluator_method(self, self.eval_method)
-
         logger.info(f"EVALUATION COMPLETE.")
 
     def format_evaluation(self) -> None:
@@ -168,8 +156,8 @@ class Evaluator(EvaluatorBase):
         usually defined in some external method, typically found in juneberry.pytorch.evaluation.
         :return: Nothing.
         """
+
+        # Invoke the desired evaluation output formatting class.
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
-
         jb_eval_utils.invoke_evaluator_method(self, self.eval_output_method)
-
         logger.info(f"EVALUATION data has been formatted.")
