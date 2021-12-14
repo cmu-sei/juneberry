@@ -70,10 +70,10 @@ COPY juneberry.ini /root/juneberry.ini
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v8"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v8.2"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CUDA Development v8" >> /root/.bashrc; \
+    echo "figlet -w 120 CUDA Development v8.2" >> /root/.bashrc; \
     echo "if [ -f /juneberry/container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING bash /juneberry/container_start.sh'"  >> /root/.bashrc; \
     echo "    source /juneberry/container_start.sh" >> /root/.bashrc; \
