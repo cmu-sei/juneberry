@@ -828,9 +828,15 @@ def test_get_category_list(monkeypatch, tmp_path):
     assert test_list_2 == category_list
     assert source == "train config"
 
-    # Check for a warning message
-    TestCase().assertIn("WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
-                        cm.output[0])
+    # Check for warning message
+    TestCase().assertEqual(cm.output, ["WARNING:juneberry.data:The evaluation category list does not match that of the "
+                                       "eval_manifest:  category_list: [OrderedDict([('id', 0), ('name', 'zero')]), "
+                                       "OrderedDict([('id', 1), ('name', 'one')]), "
+                                       "OrderedDict([('id', 2), ('name', 'two')]), "
+                                       "OrderedDict([('id', 3), ('name', 'three')])]  "
+                                       "eval_manifest list: [OrderedDict([('id', 0), ('name', 'HINDI')]), "
+                                       "OrderedDict([('id', 1), ('name', 'ENGLISH')]), "
+                                       "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
 
     # Test manifest case
     category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
