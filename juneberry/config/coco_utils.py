@@ -345,7 +345,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
 
     # Obtain the coco metadata; the eval_manifest is higher priority.
     if eval_manifest_path:
-        coco_data = jbfs.load_file(str(eval_manifest_path))
+        coco_data = CocoAnnotations.load(str(eval_manifest_path))
 
     else:
         # Alternatively, the dataset config should have a version of the metadata.

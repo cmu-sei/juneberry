@@ -39,16 +39,12 @@ def make_basic_config():
             {
                 "id": 1,
                 "name": "poodle",
-                "supercategory": "dog",
-                "isthing": 1,
-                "color": [1, 0, 0]
+                "supercategory": "dog"
             },
             {
                 "id": 2,
                 "name": "ragdoll",
-                "supercategory": "cat",
-                "isthing": 1,
-                "color": [2, 0, 0]
+                "supercategory": "cat"
             }
         ],
         "images": [

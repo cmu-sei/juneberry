@@ -11,9 +11,7 @@
                 "properties": {
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
-                    "supercategory": {},
-                    "isthing": {},
-                    "color": {}
+                    "supercategory": { "type": "string" }
                 },
                 "required": [
                     "id",
@@ -31,10 +29,10 @@
                     "width": { "type": "integer" },
                     "height": { "type": "integer" },
                     "file_name": { "type": "string" },
-                    "license": {},
-                    "flickr_url": {},
-                    "coco_url": {},
-                    "date_captured": {}
+                    "license": { "type": "integer" },
+                    "flickr_url": { "type": "string" },
+                    "coco_url": { "type":  "string" },
+                    "date_captured": { "type":  "string" }
                 },
                 "required": [
                     "id",
@@ -59,7 +57,8 @@
                         "type": "array",
                         "items": { "type": "number" }
                     },
-                    "iscrowd": { "type": "integer" }
+                    "iscrowd": { "type": "integer" },
+                    "score": { "type": "number" }
                 },
                 "required": [
                     "id",
