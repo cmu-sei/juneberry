@@ -1,11 +1,18 @@
+README
+======
+
 The purpose of this model is to demonstrate how to Juneberry can be used to evaluate an ONNX model 
 that was trained outside of Juneberry. There are some preparation tasks you will need to perform in 
 order for this evaluation to succeed. 
 
  - Download a copy of the Faster R-CNN model from the ONNX model zoo. You can obtain the model here: 
-https://github.com/onnx/models/tree/master/vision/object_detection_segmentation/faster-rcnn
- - Obtain a copy of the COCO 2017 validation data. This is the dataset used to achieve the 
-published accuracy metric, an mAP of 0.35.
+https://github.com/onnx/models/tree/master/vision/object_detection_segmentation/faster-rcnn and place
+it in your models/onnx/FasterRCNN-10 directory with the name "model.onnx".
+```
+curl --output model.onnx https://media.githubusercontent.com/media/onnx/models/master/vision/object_detection_segmentation/faster-rcnn/model/FasterRCNN-10.onnx
+```
+ - Obtain a copy of the COCO 2017 validation data and place it in your data root in the directory `coco2017/val2017`.
+This is the dataset used to achieve the published accuracy metric, an mAP of 0.35.
  - Note: If you obtain the COCO2017 validation data from some external source, you may need to 
 adjust the label numbers in the annotations file to match the model's view of the labels. 
 You can see the model labels at the following location: 
