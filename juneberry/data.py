@@ -37,17 +37,18 @@ import random
 import sys
 from typing import Any, Dict, List, Tuple, Union
 
+from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.coco_utils import COCOImageHelper
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig, SplittingConfig
+from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
-from juneberry.config.training_output import TrainingOutput
-from juneberry.config.coco_anno import CocoAnnotations
+
 
 logger = logging.getLogger(__name__)
 
@@ -1233,14 +1234,14 @@ def load_path_label_manifest(filename, relative_to: Path = None):
 
 
 def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
-                           opt_args: dict, stage_transform_class, eval: bool):
+                           opt_args: dict, stage_transform_class, eval_mode: bool):
     """
     Constructs the appropriate transform manager for the this data.
     :param model_cfg: The model config.
-    :param ds_cfg: The datasett config.
+    :param ds_cfg: The dataset config.
     :param set_size: The size of the data set.
     :param opt_args: Optional args to pass into the construction of the plugin.
-    :param eval: Are we in train (False) or eval mode (True).
+    :param eval_mode: Are we in train (False) or eval mode (True).
     :param stage_transform_class: The class of a staged transform manager to construct
                                   for when we have both dataset and model transforms.
                                   These class should be StagedTransformManager or look like it.
@@ -1254,7 +1255,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
         logger.warning("Creating a dataset with a random seed!!!")
         model_seed = random.randint(0, 2 ** 32 - 1)
 
-    if eval:
+    if eval_mode:
         if model_cfg.evaluation_transforms is not None:
             logger.info(f"Making transform manager from model config EVALUATION transforms.")
             model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
