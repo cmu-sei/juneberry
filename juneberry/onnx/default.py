@@ -50,39 +50,8 @@ class OnnxEvaluationOutput:
         :return: Nothing.
         """
 
-        # Add the predicted labels for each image to the output.
-        labels = [item[1] for item in evaluator.eval_name_targets]
-        evaluator.output.results.labels = labels
-
-        # Diagnostic for accuracy
-        # TODO: Switch to configurable and standard accuracy
-        is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        onnx_predicted_classes = jb_eval_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
-
-        # Calculate the accuracy and add it to the output.
-        logger.info(f"Computing the accuracy.")
-        onnx_accuracy = accuracy_score(labels, onnx_predicted_classes)
-        evaluator.output.results.metrics.accuracy = onnx_accuracy
-
-        # Calculate the balanced accuracy and add it to the output.
-        logger.info(f"Computing the balanced accuracy.")
-        onnx_balanced_acc = balanced_accuracy_score(labels, onnx_predicted_classes)
-        evaluator.output.results.metrics.balanced_accuracy = onnx_balanced_acc
-
-        # Log the the accuracy values.
-        logger.info(f"******          Accuracy: {onnx_accuracy:.4f}")
-        logger.info(f"****** Balanced Accuracy: {onnx_balanced_acc:.4f}")
-
-        # Save these as two classes if binary so it's consistent with other outputs.
-        if is_binary:
-            evaluator.raw_output = jb_eval_utils.binary_to_classes(evaluator.raw_output)
-
-        # Add the prediction data to the output.
-        evaluator.output.results.predictions = evaluator.raw_output
-
-        # Add the dataset mapping and the number of classes the model is aware of to the output.
-        evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
-        evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
+        # Perform the common eval output processing steps for a classifier.
+        jb_eval_utils.prepare_classification_eval_output(evaluator)
 
         # Calculate the hash of the model that was used to conduct the evaluation.
         evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())

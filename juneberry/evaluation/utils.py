@@ -25,6 +25,7 @@
 import logging
 import numpy as np
 from pathlib import Path
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
 
@@ -35,6 +36,7 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
+from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
@@ -236,3 +238,46 @@ def populate_metrics(model_manager: ModelManager,
     else:
         logger.info(
             "There are no annotations; not using Metrics class to populate metrics output.")
+
+
+def prepare_classification_eval_output(evaluator: Evaluator):
+    """
+    This function is responsible for performing some of the common preparation tasks when working
+    to format the evaluation output from a classifier.
+    :param evaluator: A Juneberry Evaluator object.
+    :return: Nothing.
+    """
+
+    # Add the predicted labels for each image to the output.
+    labels = [item[1] for item in evaluator.eval_name_targets]
+    evaluator.output.results.labels = labels
+
+    # Diagnostic for accuracy
+    # TODO: Switch to configurable and standard accuracy
+    is_binary = evaluator.eval_dataset_config.num_model_classes == 2
+    predicted_classes = continuous_predictions_to_class(evaluator.raw_output, is_binary)
+
+    # Calculate the accuracy and add it to the output.
+    logger.info(f"Computing the accuracy.")
+    accuracy = accuracy_score(labels, predicted_classes)
+    evaluator.output.results.metrics.accuracy = accuracy
+
+    # Calculate the balanced accuracy and add it to the output.
+    logger.info(f"Computing the balanced accuracy.")
+    balanced_acc = balanced_accuracy_score(labels, predicted_classes)
+    evaluator.output.results.metrics.balanced_accuracy = balanced_acc
+
+    # Log the the accuracy values.
+    logger.info(f"******          Accuracy: {accuracy:.4f}")
+    logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
+
+    # Save these as two classes if binary so it's consistent with other outputs.
+    if is_binary:
+        evaluator.raw_output = binary_to_classes(evaluator.raw_output)
+
+    # Add the raw prediction data to the output.
+    evaluator.output.results.predictions = evaluator.raw_output
+
+    # Add the dataset mapping and the number of classes the model is aware of to the output.
+    evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
+    evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes

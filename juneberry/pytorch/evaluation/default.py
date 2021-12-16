@@ -23,7 +23,6 @@
 # ======================================================================================================================
 
 import logging
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 
 from juneberry.config.training_output import TrainingOutput
@@ -67,39 +66,8 @@ class PyTorchEvaluationOutput:
         :return: Nothing.
         """
 
-        # Add the predicted labels for each image to the output.
-        labels = [item[1] for item in evaluator.eval_name_targets]
-        evaluator.output.results.labels = labels
-
-        # Diagnostic for accuracy
-        # TODO: Switch to configurable and standard accuracy
-        is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-        predicted_classes = jb_eval_utils.continuous_predictions_to_class(evaluator.raw_output, is_binary)
-
-        # Calculate the accuracy and add it to the output.
-        logger.info(f"Computing the accuracy.")
-        accuracy = accuracy_score(labels, predicted_classes)
-        evaluator.output.results.metrics.accuracy = accuracy
-
-        # Calculate the balanced accuracy and add it to the output.
-        logger.info(f"Computing the balanced accuracy.")
-        balanced_acc = balanced_accuracy_score(labels, predicted_classes)
-        evaluator.output.results.metrics.balanced_accuracy = balanced_acc
-
-        # Log the the accuracy values.
-        logger.info(f"******          Accuracy: {accuracy:.4f}")
-        logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
-
-        # Save these as two classes if binary so it's consistent with other outputs.
-        if is_binary:
-            evaluator.raw_output = jb_eval_utils.binary_to_classes(evaluator.raw_output)
-
-        # Add the raw prediction data to the output.
-        evaluator.output.results.predictions = evaluator.raw_output
-
-        # Add the dataset mapping and the number of classes the model is aware of to the output.
-        evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
-        evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
+        # Perform the common eval output processing steps for a classifier.
+        jb_eval_utils.prepare_classification_eval_output(evaluator)
 
         # Calculate the hash of the model that was used to conduct the evaluation.
         evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
@@ -112,7 +80,7 @@ class PyTorchEvaluationOutput:
             hash_from_output = training_output.results.model_hash
             if hash_from_output != evaluated_model_hash:
                 logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
-                             f"output file. EXITING.")
+                             f"output file. Exiting.")
                 logger.error(f"Expected: '{hash_from_output}' Found: '{evaluated_model_hash}'")
                 sys.exit(-1)
 
