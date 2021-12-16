@@ -25,7 +25,6 @@
 from collections import defaultdict, namedtuple
 import copy
 from datetime import datetime as dt
-import json
 import logging
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -225,6 +224,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     """
     annos = []
     obj_id = 0
+
     for pred in predictions:
         anno = copy.copy(pred)
         anno['area'] = pred['bbox'][2] * pred['bbox'][3]
@@ -236,7 +236,8 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list, category_list: List = None) -> dict:
+def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list,
+                                category_list: List = None) -> CocoAnnotations:
     """
     Converts a predictions (detections) list to a coco formatted annotation file with images.
     :param coco_data: A base coco file with images.
@@ -247,7 +248,7 @@ def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list, c
     if not category_list:
         category_list = coco_data.categories
 
-    return {
+    coco_data = {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
@@ -255,6 +256,7 @@ def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list, c
         'annotations': convert_predictions_to_annotations(predictions),
         'categories': category_list
     }
+    return CocoAnnotations.construct(coco_data)
 
 
 def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumber=True, add_info=True) -> dict:
@@ -306,18 +308,18 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     if crowd_added > 0:
         logger.warning(f"Added 'iscrowd' to {crowd_added} annotations.")
 
-    coco_format = {
+    coco_data = {
         'images': images,
         'annotations': annotations,
         'categories': [{"id": k, "name": v} for k, v in categories.items()]
     }
 
     if add_info:
-        coco_format['info'] = {
+        coco_data['info'] = {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         }
 
-    return coco_format
+    return CocoAnnotations.construct(coco_data)
 
 
 def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
@@ -356,8 +358,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
     predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
-    with open(output_file, "w") as json_file:
-        json.dump(coco_out, json_file, indent=4)
+    coco_out.save(str(output_file))
 
 
 def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limit: int = None, shuffle: bool = False):
@@ -387,7 +388,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
 
     # Load the COCO annotations.
     coco = CocoAnnotations.load(str(coco_json))
-        
+
     # Use a COCOImageHelper to obtain the legend.
     helper = COCOImageHelper(coco)
     legend = helper.get_category_map()
@@ -396,7 +397,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     box_total = 0
 
     # Establish the list of images.
-    image_list = coco["images"]
+    image_list = coco.images
 
     # If requested, shuffle the list of images.
     if shuffle:
@@ -409,14 +410,14 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         if sample_limit is not None and img_count >= sample_limit:
             break
 
-        img_file = lab.data_root() / Path(image["file_name"])
-        image_id = image["id"]
+        img_file = lab.data_root() / Path(image.file_name)
+        image_id = image.id
 
         logger.info(f"Attempting to draw boxes on {img_file}")
 
         # Grab the associated bounding boxes and labels
-        bbox_labels = [{"bbox": x['bbox'], "category_id": x['category_id'], "category": legend[x['category_id']],
-                        "score": x['score'], } for x in coco['annotations'] if x['image_id'] == image_id]
+        bbox_labels = [{"bbox": x.bbox, "category_id": x.category_id, "category": legend[x.category_id],
+                        "score": x.score, } for x in coco.annotations if x.image_id == image_id]
 
         box_str = "bounding box" if len(bbox_labels) else "bounding boxes"
         logger.info(f"    Adding {len(bbox_labels)} {box_str} to the above image.")
@@ -438,7 +439,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
             end_point = (bbox[0] + bbox[2] - 1 + line_width, bbox[1] + bbox[3] - 1 + line_width)
             outline = palette[obj['category_id'] % len(palette)]
             draw.rectangle(xy=[start_point, end_point], outline=outline, width=line_width)
-            draw.text(start_point, f"{obj['category_id']} - {obj['category']}: {obj['score']*100:.2f}%")
+            draw.text(start_point, f"{obj['category_id']} - {obj['category']}: {obj['score'] * 100:.2f}%")
             box_count += 1
 
         if box_count > 0:
@@ -452,6 +453,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Added bounding boxes to {img_count} {img_str}.")
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
+
 def count_annotations(coco_anno_json_file: str) -> int:
     """
     This function is counts the annotations in a COCO-formatted annotations JSON file.
@@ -459,9 +461,10 @@ def count_annotations(coco_anno_json_file: str) -> int:
     :return: The number of annotations found.
     """
     # Load the COCO annotations.
-    coco = jbfs.load_file(Path(coco_anno_json_file))
-    return len(coco["annotations"])
-  
+    coco = CocoAnnotations.load(coco_anno_json_file)
+    return len(coco.annotations)
+
+
 """
 {
     "info" : info, 
