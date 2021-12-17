@@ -2,8 +2,35 @@
     "$schema": "https://json-schema.org/draft-07/schema",
     "type": "object",
     "properties": {
-        "info": {},
-        "licenses": {},
+        "info": {
+            "type": "object",
+            "properties": {
+                "year": { "type": "integer"},
+                "version": { "type": "string"},
+                "description": { "type": "string"},
+                "contributor": { "type": "string"},
+                "url": { "type": "string"},
+                "date_created": { "type": "string"}
+            },
+            "additionalProperties": false
+        },
+        "licenses": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "integer"},
+                    "name": { "type": "integer" },
+                    "url": { "type": "integer"}
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "url"
+                ],
+                "additionalProperties": false
+            }
+        },
         "categories": {
             "type": "array",
             "items": {

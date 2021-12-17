@@ -35,11 +35,6 @@ logger = logging.getLogger(__name__)
 # For more information about the COCO annotations data format, see https://cocodataset.org/#format-data
 
 
-class Info(Prodict):
-    year: int
-    version: str
-
-
 class License(Prodict):
     id: int
     name: str
@@ -71,7 +66,7 @@ class CocoAnnotations(Prodict):
     FORMAT_VERSION = '1.2'
     SCHEMA_NAME = 'coco_anno_schema.json'
 
-    info: Info
+    info: dict
     licenses: List[License]
     categories: List[Category]
     images: List[Image]
@@ -109,6 +104,12 @@ class CocoAnnotations(Prodict):
         # Convert category ids to integers
         for index in range(0, len(data["categories"])):
             data["categories"][index]["id"] = int(data["categories"][index]["id"])
+
+        # Set info and licenses to their default data structures
+        if "info" not in data:
+            data["info"] = {}
+        if "licenses" not in data:
+            data["licenses"] = []
 
         # Validate with our schema
         if not conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):
