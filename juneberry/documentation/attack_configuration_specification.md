@@ -10,29 +10,29 @@ In Juneberry, an attack sequence consists of three phases and two universes. The
 describe the full scope of dataset properties, with some properties belonging to the "superset" 
 universe and the remaining properties belonging to the "disjoint" universe. 
 
-The first "phase" involves training two "private" models. One model is trained by a dataset 
-with the training watermarks and a property from the "superset" universe. The other model is 
-trained by a dataset with the training watermarks and a property from the "disjoint" 
-universe. Each "private" model is evaluated using a query dataset from its respective universe. 
-The evaluation results will be used to construct "private" in-out datasets, which will be used 
-later during the "meta" model phase.
+The first phase involves training two "private" models. One private model is trained using a 
+dataset augmented with a property from the "superset" universe and the training watermarks. 
+The other private model is trained using a dataset with the training watermarks and a property 
+from the "disjoint" universe. Each private model is also evaluated using a query dataset from its 
+respective universe. The evaluation results help construct the "private" in-out datasets, 
+which are used in the "meta" model phase.
 
 The next phase involves the training and evaluation of multiple "shadow" models. The  
 number of shadow models involved in this phase is user-defined; it is controlled by two 
 quantity properties in the attack config. Shadow models belong to either the "superset" 
 or "disjoint" universe, and there is a quantity field to control the amount of shadow 
-models in each universe. Regardless of how many shadow models are involved, the 
-operations surrounding each of them is the same. First the shadow model is trained using 
+models in each universe. Regardless of how many shadow models are involved, the general 
+process for each of them follows the same pattern. First the shadow model trains using 
 one of the training datasets from its respective universe. Next, the shadow model is 
 evaluated using a query dataset composed of the query watermarks and the same property 
-from the same universe that was used during training of the shadow model. Once all the 
+from the same universe that was used to train that particular shadow model. Once all the 
 shadow models have been trained in both universes, the evaluation results are used 
 by the in-out builder to construct additional in-out datasets for the "meta" phase.
 
 The final phase of the attack is the "meta" phase, which involves the training and 
 evaluation of two final models, one in each universe. A meta-model gets trained 
-using one of the in-out datasets created during the "private" phase, leading to a 
-"superset" meta-model and a "disjoint" meta-model. Once they are trained, each 
+using each of the two in-out datasets created during the "private" phase, leading to a 
+"superset" meta-model and a "disjoint" meta-model. Once both models are trained, each 
 meta-model is evaluated four times, using each of the in-out test datasets. There 
 is a "superset" in-out test dataset from the private phase, a "superset" in-out 
 test dataset from the shadow phase, a "disjoint" in-out test dataset from the 
