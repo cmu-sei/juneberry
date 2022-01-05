@@ -235,6 +235,30 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
     assert_correct_list(train_list, [1, 2, 4, 5], [1, 2, 3, 4])
     assert_correct_list(val_list, [3, 0], [5, 0])
 
+    # Now test the "from_file" validation algorithm.
+    # Create a dataset config file.
+    dataset_path = Path(tmp_path / "dataset_config.json")
+    dataset_config.save(dataset_path)
+
+    # Adjust the validation stanza to the "from_file" algorithm.
+    model_config.validation = {
+        "algorithm": "from_file",
+        "arguments": {
+            "file_path": str(dataset_path)
+        }
+    }
+
+    # Get the train and val lists.
+    split_config = model_config.get_validation_split_config()
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config, splitting_config=split_config)
+
+    # Check the train list for correctness. We expect 12 images; 6 frodo and 6 sam.
+    assert len(train_list) == 12
+    assert_correct_list(train_list, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5])
+
+    # The val list should be identical to the train list, since it's the same dataset config just loaded from file.
+    assert train_list == val_list
+
 
 #  __  __      _            _       _
 # |  \/  | ___| |_ __ _  __| | __ _| |_ __ _
@@ -420,6 +444,29 @@ def test_generate_image_metadata_validation_split(monkeypatch, tmp_path):
 
     assert_correct_metadata_list(train_list, {1: [1, 11], 12: [22, 32, 42]})
     assert_correct_metadata_list(val_list, {2: [2, 12], 11: [21, 31, 41]})
+
+    # Now test the "from_file" validation algorithm.
+    # Create a dataset config file.
+    dataset_path = Path(tmp_path / "dataset_config.json")
+    dataset_config.save(dataset_path)
+
+    # Adjust the validation stanza to the "from_file" algorithm.
+    model_config.validation = {
+        "algorithm": "from_file",
+        "arguments": {
+            "file_path": str(dataset_path)
+        }
+    }
+
+    # Get the train and val lists.
+    split_config = model_config.get_validation_split_config()
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config, splitting_config=split_config)
+
+    # Check the train list for correctness.
+    assert_correct_metadata_list(train_list, {1: [1, 11], 2: [2, 12], 11: [21, 31, 41], 12: [22, 32, 42]})
+
+    # The val list should be identical to the train list, since it's the same dataset config just loaded from file.
+    assert train_list == val_list
 
 
 def get_labels(meta):
