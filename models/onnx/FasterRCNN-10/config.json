@@ -14,7 +14,6 @@
         "args": {},
         "module": ""
     },
-    "platform": "onnx",
     "seed": 12345,
     "task": "objectDetection",
     "training_dataset_config_path": "data_sets/coco2017_val.json",
