@@ -25,7 +25,6 @@
 from collections import defaultdict, namedtuple
 import copy
 from datetime import datetime as dt
-import json
 import logging
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -33,6 +32,7 @@ from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.coco_anno import CocoAnnotations
 
 import juneberry.filesystem as jbfs
 
@@ -70,7 +70,7 @@ class COCOImageHelper:
         item.annotations[...]
     """
 
-    def __init__(self, data: dict, file_path=None):
+    def __init__(self, data: CocoAnnotations, file_path=None):
         """
         Creates a helper object to manage the coco annotations structure.
         :param data: The data such as one would get from a file
@@ -79,21 +79,21 @@ class COCOImageHelper:
         self.data = data
 
         # Image lookup
-        self.images = {i['id']: i for i in self.data['images']}
+        self.images = {i.id: i for i in self.data.images}
 
         # Annotations lookup
         self.annotations = defaultdict(list)
-        for anno in self.data['annotations']:
-            self.annotations[anno['image_id']].append(anno)
+        for anno in self.data.annotations:
+            self.annotations[anno.image_id].append(anno)
 
         # Optional file path for debugging
         self.file_path = file_path
 
         # Determine the maximum annotation ID so that new annotations receive the correct ID.
         self._next_annotation_id = -1
-        for anno in self.data['annotations']:
-            if anno['id'] > self._next_annotation_id:
-                self._next_annotation_id = anno['id']
+        for anno in self.data.annotations:
+            if anno.id > self._next_annotation_id:
+                self._next_annotation_id = anno.id
         self._next_annotation_id += 1
 
     def __contains__(self, item: int):
@@ -143,8 +143,8 @@ class COCOImageHelper:
         :param image_id: The image_id
         :return: None
         """
-        self.data['images'] = [i for i in self.data['images'] if i['id'] != image_id]
-        self.data['annotations'] = [i for i in self.data['annotations'] if i['image_id'] != image_id]
+        self.data.images = [i for i in self.data.images if i.id != image_id]
+        self.data.annotations = [i for i in self.data.annotations if i.image_id != image_id]
 
         # Remove from the quick lookups
         del self.images[image_id]
@@ -165,7 +165,7 @@ class COCOImageHelper:
         self._next_annotation_id += 1
 
         # Add it to the underlying store and the quick lookup
-        self.data['annotations'].append(annotation)
+        self.data.annotations.append(annotation)
         self.annotations[annotation['image_id']].append(annotation)
 
     def to_image_list(self):
@@ -192,7 +192,7 @@ class COCOImageHelper:
         are the human-readable string.
         :return:
         """
-        return {int(x["id"]): x["name"] for x in self.data['categories']}
+        return {int(x.id): x.name for x in self.data.categories}
 
 
 def load_from_json_file(file_path) -> COCOImageHelper:
@@ -201,7 +201,7 @@ def load_from_json_file(file_path) -> COCOImageHelper:
     :param file_path:
     :return: Constructed COCOImageHelper
     """
-    return COCOImageHelper(jbfs.load_file(file_path), file_path)
+    return COCOImageHelper(CocoAnnotations.load(file_path), file_path)
 
 
 def convert_predictions_to_annotations(predictions: list) -> list:
@@ -224,6 +224,7 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     """
     annos = []
     obj_id = 0
+
     for pred in predictions:
         anno = copy.copy(pred)
         anno['area'] = pred['bbox'][2] * pred['bbox'][3]
@@ -235,7 +236,8 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     return annos
 
 
-def convert_predictions_to_coco(coco_data: dict, predictions: list, category_list: List = None) -> dict:
+def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list,
+                                category_list: List = None) -> CocoAnnotations:
     """
     Converts a predictions (detections) list to a coco formatted annotation file with images.
     :param coco_data: A base coco file with images.
@@ -244,16 +246,17 @@ def convert_predictions_to_coco(coco_data: dict, predictions: list, category_lis
     :return: coco formatted data
     """
     if not category_list:
-        category_list = coco_data['categories']
+        category_list = coco_data.categories
 
-    return {
+    coco_data = {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
-        'images': coco_data['images'],
+        'images': coco_data.images,
         'annotations': convert_predictions_to_annotations(predictions),
         'categories': category_list
     }
+    return CocoAnnotations.construct(coco_data)
 
 
 def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumber=True, add_info=True) -> dict:
@@ -305,18 +308,18 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     if crowd_added > 0:
         logger.warning(f"Added 'iscrowd' to {crowd_added} annotations.")
 
-    coco_format = {
+    coco_data = {
         'images': images,
         'annotations': annotations,
         'categories': [{"id": k, "name": v} for k, v in categories.items()]
     }
 
     if add_info:
-        coco_format['info'] = {
+        coco_data['info'] = {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         }
 
-    return coco_format
+    return CocoAnnotations.construct(coco_data)
 
 
 def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
@@ -344,19 +347,18 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
 
     # Obtain the coco metadata; the eval_manifest is higher priority.
     if eval_manifest_path:
-        coco_data = jbfs.load_file(str(eval_manifest_path))
+        coco_data = CocoAnnotations.load(str(eval_manifest_path))
 
     else:
         # Alternatively, the dataset config should have a version of the metadata.
         dataset = DatasetConfig.load(dataset_config)
         coco_path = dataset.image_data.sources[0]['directory']
-        coco_data = jbfs.load_file(data_root / coco_path)
+        coco_data = CocoAnnotations.load(data_root / coco_path)
 
     predictions = jbfs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
-    with open(output_file, "w") as json_file:
-        json.dump(coco_out, json_file, indent=4)
+    coco_out.save(str(output_file))
 
 
 def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limit: int = None, shuffle: bool = False):
@@ -385,8 +387,8 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         logger.info(f"The output directory was not found, so it was created.")
 
     # Load the COCO annotations.
-    coco = jbfs.load_file(coco_json)
-        
+    coco = CocoAnnotations.load(str(coco_json))
+
     # Use a COCOImageHelper to obtain the legend.
     helper = COCOImageHelper(coco)
     legend = helper.get_category_map()
@@ -395,7 +397,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     box_total = 0
 
     # Establish the list of images.
-    image_list = coco["images"]
+    image_list = coco.images
 
     # If requested, shuffle the list of images.
     if shuffle:
@@ -408,14 +410,14 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         if sample_limit is not None and img_count >= sample_limit:
             break
 
-        img_file = lab.data_root() / Path(image["file_name"])
-        image_id = image["id"]
+        img_file = lab.data_root() / Path(image.file_name)
+        image_id = image.id
 
         logger.info(f"Attempting to draw boxes on {img_file}")
 
         # Grab the associated bounding boxes and labels
-        bbox_labels = [{"bbox": x['bbox'], "category_id": x['category_id'], "category": legend[x['category_id']],
-                        "score": x['score'], } for x in coco['annotations'] if x['image_id'] == image_id]
+        bbox_labels = [{"bbox": x.bbox, "category_id": x.category_id, "category": legend[x.category_id],
+                        "score": x.score, } for x in coco.annotations if x.image_id == image_id]
 
         box_str = "bounding box" if len(bbox_labels) else "bounding boxes"
         logger.info(f"    Adding {len(bbox_labels)} {box_str} to the above image.")
@@ -437,7 +439,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
             end_point = (bbox[0] + bbox[2] - 1 + line_width, bbox[1] + bbox[3] - 1 + line_width)
             outline = palette[obj['category_id'] % len(palette)]
             draw.rectangle(xy=[start_point, end_point], outline=outline, width=line_width)
-            draw.text(start_point, f"{obj['category_id']} - {obj['category']}: {obj['score']*100:.2f}%")
+            draw.text(start_point, f"{obj['category_id']} - {obj['category']}: {obj['score'] * 100:.2f}%")
             box_count += 1
 
         if box_count > 0:
@@ -451,6 +453,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Added bounding boxes to {img_count} {img_str}.")
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
+
 def count_annotations(coco_anno_json_file: str) -> int:
     """
     This function is counts the annotations in a COCO-formatted annotations JSON file.
@@ -458,9 +461,10 @@ def count_annotations(coco_anno_json_file: str) -> int:
     :return: The number of annotations found.
     """
     # Load the COCO annotations.
-    coco = jbfs.load_file(Path(coco_anno_json_file))
-    return len(coco["annotations"])
-  
+    coco = CocoAnnotations.load(coco_anno_json_file)
+    return len(coco.annotations)
+
+
 """
 {
     "info" : info, 

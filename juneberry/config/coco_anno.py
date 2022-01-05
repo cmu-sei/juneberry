@@ -23,8 +23,9 @@
 # ======================================================================================================================
 
 import logging
+from prodict import List, Prodict
 import sys
-from prodict import List, Prodict, Any
+
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
 
@@ -32,15 +33,6 @@ logger = logging.getLogger(__name__)
 
 
 # For more information about the COCO annotations data format, see https://cocodataset.org/#format-data
-
-
-class Info(Prodict):
-    year: int
-    version: str
-    description: str
-    contributor: str
-    url: str
-    date_created: str
 
 
 class License(Prodict):
@@ -52,9 +44,6 @@ class License(Prodict):
 class Category(Prodict):
     id: int
     name: str
-    supercategory: str
-    isthing: int
-    color: List[int]
 
 
 class Image(Prodict):
@@ -62,20 +51,12 @@ class Image(Prodict):
     width: int
     height: int
     file_name: str
-    license: int
-    flickr_url: str
-    coco_url: str
-    date_captured: str
 
 
 class Annotation(Prodict):
     id: int
     image_id: int
     category_id: int
-    segmentation: Any
-    area: float
-    bbox: List[float]
-    iscrowd: int
 
 
 class CocoAnnotations(Prodict):
@@ -85,7 +66,7 @@ class CocoAnnotations(Prodict):
     FORMAT_VERSION = '1.2'
     SCHEMA_NAME = 'coco_anno_schema.json'
 
-    info: Info
+    info: dict
     licenses: List[License]
     categories: List[Category]
     images: List[Image]
@@ -123,6 +104,12 @@ class CocoAnnotations(Prodict):
         # Convert category ids to integers
         for index in range(0, len(data["categories"])):
             data["categories"][index]["id"] = int(data["categories"][index]["id"])
+
+        # Set info and licenses to their default data structures
+        if "info" not in data:
+            data["info"] = {}
+        if "licenses" not in data:
+            data["licenses"] = []
 
         # Validate with our schema
         if not conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):

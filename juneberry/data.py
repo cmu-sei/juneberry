@@ -37,16 +37,18 @@ import random
 import sys
 from typing import Any, Dict, List, Tuple, Union
 
+from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.coco_utils import COCOImageHelper
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig, SplittingConfig
+from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
-from juneberry.config.training_output import TrainingOutput
+
 
 logger = logging.getLogger(__name__)
 
@@ -404,12 +406,12 @@ class CocoMetadataMarshal(DatasetMarshal):
         # Then we add any more file annotation files
 
         logger.info(f"...loading: {filepath}...")
-        data = jbfs.load_file(filepath)
+        data = CocoAnnotations.load(filepath)
         if self._preprocessors is not None:
             logger.info(f"...applying ({len(self._preprocessors)}) preprocessors...")
-            orig_cats = copy.deepcopy(data['categories'])
+            orig_cats = copy.deepcopy(data.categories)
             data = self._preprocessors(data)
-            if orig_cats != data['categories']:
+            if orig_cats != data.categories:
                 logger.info(f"......changing categories because preprocessor changed them.")
                 # The categories were changed by the preprocessors. They win out over all others
                 # Categories is a list of id, name
@@ -417,8 +419,8 @@ class CocoMetadataMarshal(DatasetMarshal):
                 # NOTE: This might not be a good idea to do it every time depending on how the
                 # preprocessors are written, but we'll try this for a while.
                 # TODO: Fix the dichotomy with str vs int labels
-                str_labels = {str(x['id']): x['name'] for x in data['categories']}
-                int_labels = {int(x['id']): x['name'] for x in data['categories']}
+                str_labels = {str(x['id']): x['name'] for x in data.categories}
+                int_labels = {int(x['id']): x['name'] for x in data.categories}
                 self.ds_config.label_names = str_labels
                 self.ds_config.update_label_names(int_labels)
 
@@ -899,7 +901,7 @@ def load_coco_json(filepath, output: list) -> None:
     :param output: The output list in which to add out content.
     :return: None
     """
-    data = jbfs.load_file(filepath)
+    data = CocoAnnotations.load(filepath)
     helper = COCOImageHelper(data)
     output.extend(helper.to_image_list())
 
@@ -1050,12 +1052,8 @@ def categories_in_dataset_config(config_path: Path, data_root: Path) -> list:
     else:
         coco_path = dataset_config.image_data['sources'][0]['directory']
 
-    # TODO: use future coco prodict
-    coco_data = jbfs.load_file(data_root / coco_path)
-    if 'categories' in coco_data:
-        return coco_data["categories"]
-    else:
-        return []
+    coco_data = CocoAnnotations.load(data_root / coco_path)
+    return coco_data.categories
 
 
 def categories_in_model_config(model_config_path: Path) -> list:
@@ -1236,14 +1234,14 @@ def load_path_label_manifest(filename, relative_to: Path = None):
 
 
 def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
-                           opt_args: dict, stage_transform_class, eval: bool):
+                           opt_args: dict, stage_transform_class, eval_mode: bool):
     """
     Constructs the appropriate transform manager for the this data.
     :param model_cfg: The model config.
-    :param ds_cfg: The datasett config.
+    :param ds_cfg: The dataset config.
     :param set_size: The size of the data set.
     :param opt_args: Optional args to pass into the construction of the plugin.
-    :param eval: Are we in train (False) or eval mode (True).
+    :param eval_mode: Are we in train (False) or eval mode (True).
     :param stage_transform_class: The class of a staged transform manager to construct
                                   for when we have both dataset and model transforms.
                                   These class should be StagedTransformManager or look like it.
@@ -1257,7 +1255,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
         logger.warning("Creating a dataset with a random seed!!!")
         model_seed = random.randint(0, 2 ** 32 - 1)
 
-    if eval:
+    if eval_mode:
         if model_cfg.evaluation_transforms is not None:
             logger.info(f"Making transform manager from model config EVALUATION transforms.")
             model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)

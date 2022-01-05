@@ -145,7 +145,7 @@ def assert_correct_list(test_list, frodo_indexes, sam_indexes, data_root='data_r
         assert train[1] == correct_labels[idx]
 
 
-def test_generate_image_list(monkeypatch, tmp_path):
+def test_generate_image_list(monkeypatch):
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
     dataset_struct = make_image_classification_config()
@@ -216,7 +216,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
         json.dump(config, out_file, indent=4)
 
     # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(config_path)
+    model_config = ModelConfig.load(str(config_path))
     model_config.validation = {
         "algorithm": "random_fraction",
         "arguments": {
@@ -722,14 +722,14 @@ def test_make_balanced_dict():
     check_allocation(data_dict, result_dict)
 
 
-def mock_generate_image_list(root, ds, model_config=None, splitting_config=None):
+def mock_generate_image_list(splitting_config=None):
     if splitting_config is not None:
         return ['image_train'], ['image_val']
     else:
         return ['image_train'], []
 
 
-def mock_load_tabular_data(mc, ds):
+def mock_load_tabular_data(mc):
     if mc is not None:
         return ['tab_train'], ['tab_val']
     else:
@@ -797,9 +797,13 @@ def test_get_category_list(monkeypatch, tmp_path):
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
     data_root = Path(tmp_path)
-    test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
-    test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
-                   {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
+    test_list_1 = [{'id': 0, 'name': 'HINDI'},
+                   {'id': 1, 'name': 'ENGLISH'},
+                   {'id': 2, 'name': 'OTHER'}]
+    test_list_2 = [{'id': 0, 'name': 'zero'},
+                   {'id': 1, 'name': 'one'},
+                   {'id': 2, 'name': 'two'},
+                   {'id': 3, 'name': 'three'}]
 
     # Make sample manifest files (if not instantiated already)
     train_manifest_path = model_manager.get_training_data_manifest_path()
@@ -825,14 +829,8 @@ def test_get_category_list(monkeypatch, tmp_path):
     assert source == "train config"
 
     # Check for warning message
-    TestCase().assertEqual(cm.output, ["WARNING:juneberry.data:The evaluation category list does not match that of the "
-                                       "eval_manifest:  category_list: [OrderedDict([('id', 0), ('name', 'zero')]), "
-                                       "OrderedDict([('id', 1), ('name', 'one')]), "
-                                       "OrderedDict([('id', 2), ('name', 'two')]), "
-                                       "OrderedDict([('id', 3), ('name', 'three')])]  "
-                                       "eval_manifest list: [OrderedDict([('id', 0), ('name', 'HINDI')]), "
-                                       "OrderedDict([('id', 1), ('name', 'ENGLISH')]), "
-                                       "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
+    TestCase().assertIn("WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
+                        cm.output[0])
 
     # Test manifest case
     category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
