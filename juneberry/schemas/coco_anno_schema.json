@@ -20,8 +20,8 @@
                 "type": "object",
                 "properties": {
                     "id": { "type": "integer"},
-                    "name": { "type": "integer" },
-                    "url": { "type": "integer"}
+                    "name": { "type": "string" },
+                    "url": { "type": "string"}
                 },
                 "required": [
                     "id",
