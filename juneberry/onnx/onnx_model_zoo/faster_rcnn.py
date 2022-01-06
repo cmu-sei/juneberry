@@ -29,7 +29,6 @@ from PIL import Image
 from tqdm import tqdm
 from types import SimpleNamespace
 
-from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.config.coco_utils as jb_coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
