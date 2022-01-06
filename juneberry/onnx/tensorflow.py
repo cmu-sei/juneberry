@@ -25,11 +25,38 @@
 import logging
 import numpy as np
 from tqdm import tqdm
+from types import SimpleNamespace
 
-from juneberry.onnx.evaluator import Evaluator
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig
+from juneberry.filesystem import EvalDirMgr, ModelManager
+from juneberry.lab import Lab
+from juneberry.onnx.default import OnnxEvaluationOutput
+from juneberry.onnx.evaluator import Evaluator as OnnxEvaluatorBase
 from juneberry.tensorflow.evaluation.evaluator import Evaluator as TensorFlowEvaluator
 
 logger = logging.getLogger(__name__)
+
+
+class Evaluator(OnnxEvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
+
+        # If the user did not specify any classes in the evaluator kwargs, use the default classes
+        # for this platform.
+
+        # The default value for the data loader.
+        if self.eval_data_loader_method is None:
+            self.eval_data_loader_method = DataLoader
+
+        # The default value for the formatting of the evaluation output.
+        if self.eval_output_method is None:
+            self.eval_output_method = OnnxEvaluationOutput
+
+        # The default value for the evaluation procedure.
+        if self.eval_method is None:
+            self.eval_method = EvaluationProcedure
 
 
 class DataLoader:

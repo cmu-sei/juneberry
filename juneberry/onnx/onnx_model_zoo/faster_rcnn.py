@@ -27,15 +27,40 @@ import logging
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from types import SimpleNamespace
 
 from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.config.coco_utils as jb_coco_utils
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.utils import get_histogram, populate_metrics
-import juneberry.filesystem as jbfs
-from juneberry.onnx.evaluator import Evaluator
+from juneberry.filesystem import EvalDirMgr, generate_file_hash, ModelManager
+from juneberry.lab import Lab
+from juneberry.onnx.evaluator import Evaluator as OnnxEvaluatorBase
 
 logger = logging.getLogger(__name__)
+
+
+class Evaluator(OnnxEvaluatorBase):
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, **kwargs):
+        super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, **kwargs)
+
+        # If the user did not specify any classes in the evaluator kwargs, use the default classes
+        # for this platform.
+
+        # The default value for the data loader.
+        if self.eval_data_loader_method is None:
+            self.eval_data_loader_method = DataLoader
+
+        # The default value for the formatting of the evaluation output.
+        if self.eval_output_method is None:
+            self.eval_output_method = EvaluationOutput
+
+        # The default value for the evaluation procedure.
+        if self.eval_method is None:
+            self.eval_method = EvaluationProcedure
 
 
 class DataLoader:
@@ -238,7 +263,7 @@ class EvaluationOutput:
         logger.info(f"Detections saved.")
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
+        evaluated_model_hash = generate_file_hash(evaluator.model_manager.get_onnx_model_path())
         logger.info(f"Hash of the ONNX model that was evaluated: '{evaluated_model_hash}'")
 
         # Record the hash of the model used for evaluation to the output.

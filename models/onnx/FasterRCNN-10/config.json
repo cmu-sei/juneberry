@@ -2,12 +2,7 @@
     "batch_size": 20,
     "description": "Minimum required model config for evaluating the Faster R-CNN ONNX model available from https://github.com/onnx/models/tree/master/vision/object_detection_segmentation/faster-rcnn",
     "evaluator": {
-        "fqcn": "juneberry.onnx.evaluator.Evaluator",
-        "kwargs": {
-            "loader": "juneberry.onnx.faster_rcnn.DataLoader",
-            "output": "juneberry.onnx.faster_rcnn.EvaluationOutput",
-            "procedure": "juneberry.onnx.faster_rcnn.EvaluationProcedure"
-        }
+        "fqcn": "juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator"
     },
     "format_version": "0.2.0",
     "model_architecture": {
