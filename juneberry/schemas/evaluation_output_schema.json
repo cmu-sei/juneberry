@@ -36,15 +36,15 @@
                         "type": "object",
                         "properties": {
                             "file": { "type": "string" },
-                            "actualLabel": { "type": "number" },
-                            "actualLabelName": { "type": "string" },
-                            "predictedClasses": {
+                            "actual_label": { "type": "number" },
+                            "actual_label_name": { "type": "string" },
+                            "predicted_classes": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
                                     "properties": {
                                         "label": { "type": "number" },
-                                        "labelName": { "type": "string" },
+                                        "label_name": { "type": "string" },
                                         "confidence": { "type": "number" }
                                     }
                                 }

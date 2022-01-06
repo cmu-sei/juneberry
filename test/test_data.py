@@ -145,7 +145,7 @@ def assert_correct_list(test_list, frodo_indexes, sam_indexes, data_root='data_r
         assert train[1] == correct_labels[idx]
 
 
-def test_generate_image_list(monkeypatch, tmp_path):
+def test_generate_image_list(monkeypatch):
     monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
 
     dataset_struct = make_image_classification_config()
@@ -216,7 +216,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
         json.dump(config, out_file, indent=4)
 
     # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(config_path)
+    model_config = ModelConfig.load(str(config_path))
     model_config.validation = {
         "algorithm": "random_fraction",
         "arguments": {
@@ -234,6 +234,30 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
     # NOTE: Another fragile secret we know is the order from the validation is reversed.
     assert_correct_list(train_list, [1, 2, 4, 5], [1, 2, 3, 4])
     assert_correct_list(val_list, [3, 0], [5, 0])
+
+    # Now test the "from_file" validation algorithm.
+    # Create a dataset config file.
+    dataset_path = Path(tmp_path / "dataset_config.json")
+    dataset_config.save(dataset_path)
+
+    # Adjust the validation stanza to the "from_file" algorithm.
+    model_config.validation = {
+        "algorithm": "from_file",
+        "arguments": {
+            "file_path": str(dataset_path)
+        }
+    }
+
+    # Get the train and val lists.
+    split_config = model_config.get_validation_split_config()
+    train_list, val_list = jb_data.generate_image_manifests(lab, dataset_config, splitting_config=split_config)
+
+    # Check the train list for correctness. We expect 12 images; 6 frodo and 6 sam.
+    assert len(train_list) == 12
+    assert_correct_list(train_list, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5])
+
+    # The val list should be identical to the train list, since it's the same dataset config just loaded from file.
+    assert train_list == val_list
 
 
 #  __  __      _            _       _
@@ -420,6 +444,29 @@ def test_generate_image_metadata_validation_split(monkeypatch, tmp_path):
 
     assert_correct_metadata_list(train_list, {1: [1, 11], 12: [22, 32, 42]})
     assert_correct_metadata_list(val_list, {2: [2, 12], 11: [21, 31, 41]})
+
+    # Now test the "from_file" validation algorithm.
+    # Create a dataset config file.
+    dataset_path = Path(tmp_path / "dataset_config.json")
+    dataset_config.save(dataset_path)
+
+    # Adjust the validation stanza to the "from_file" algorithm.
+    model_config.validation = {
+        "algorithm": "from_file",
+        "arguments": {
+            "file_path": str(dataset_path)
+        }
+    }
+
+    # Get the train and val lists.
+    split_config = model_config.get_validation_split_config()
+    train_list, val_list = jb_data.generate_metadata_manifests(lab, dataset_config, splitting_config=split_config)
+
+    # Check the train list for correctness.
+    assert_correct_metadata_list(train_list, {1: [1, 11], 2: [2, 12], 11: [21, 31, 41], 12: [22, 32, 42]})
+
+    # The val list should be identical to the train list, since it's the same dataset config just loaded from file.
+    assert train_list == val_list
 
 
 def get_labels(meta):
@@ -722,14 +769,14 @@ def test_make_balanced_dict():
     check_allocation(data_dict, result_dict)
 
 
-def mock_generate_image_list(root, ds, model_config=None, splitting_config=None):
+def mock_generate_image_list(splitting_config=None):
     if splitting_config is not None:
         return ['image_train'], ['image_val']
     else:
         return ['image_train'], []
 
 
-def mock_load_tabular_data(mc, ds):
+def mock_load_tabular_data(mc):
     if mc is not None:
         return ['tab_train'], ['tab_val']
     else:
@@ -797,9 +844,13 @@ def test_get_category_list(monkeypatch, tmp_path):
     model_manager = ModelManager(model_name)
     train_config = DatasetConfig.load("data_sets/text_detect_val.json")
     data_root = Path(tmp_path)
-    test_list_1 = [{'id': 0, 'name': 'HINDI'}, {'id': 1, 'name': 'ENGLISH'}, {'id': 2, 'name': 'OTHER'}]
-    test_list_2 = [{'id': 0, 'name': 'zero'}, {'id': 1, 'name': 'one'},
-                   {'id': 2, 'name': 'two'}, {'id': 3, 'name': 'three'}]
+    test_list_1 = [{'id': 0, 'name': 'HINDI'},
+                   {'id': 1, 'name': 'ENGLISH'},
+                   {'id': 2, 'name': 'OTHER'}]
+    test_list_2 = [{'id': 0, 'name': 'zero'},
+                   {'id': 1, 'name': 'one'},
+                   {'id': 2, 'name': 'two'},
+                   {'id': 3, 'name': 'three'}]
 
     # Make sample manifest files (if not instantiated already)
     train_manifest_path = model_manager.get_training_data_manifest_path()
@@ -825,14 +876,8 @@ def test_get_category_list(monkeypatch, tmp_path):
     assert source == "train config"
 
     # Check for warning message
-    TestCase().assertEqual(cm.output, ["WARNING:juneberry.data:The evaluation category list does not match that of the "
-                                       "eval_manifest:  category_list: [OrderedDict([('id', 0), ('name', 'zero')]), "
-                                       "OrderedDict([('id', 1), ('name', 'one')]), "
-                                       "OrderedDict([('id', 2), ('name', 'two')]), "
-                                       "OrderedDict([('id', 3), ('name', 'three')])]  "
-                                       "eval_manifest list: [OrderedDict([('id', 0), ('name', 'HINDI')]), "
-                                       "OrderedDict([('id', 1), ('name', 'ENGLISH')]), "
-                                       "OrderedDict([('id', 2), ('name', 'OTHER')])]"])
+    TestCase().assertIn("WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
+                        cm.output[0])
 
     # Test manifest case
     category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,

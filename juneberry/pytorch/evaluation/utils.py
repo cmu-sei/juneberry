@@ -59,7 +59,7 @@ def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mappi
             except KeyError:
                 label_name = model_mapping[str(indices[i][j])] if model_mapping is not None else ""
 
-            individual_dict = {'label': indices[i][j], 'labelName': label_name, 'confidence': values[i][j]}
+            individual_dict = {'label': indices[i][j], 'label_name': label_name, 'confidence': values[i][j]}
             class_list.append(individual_dict)
 
         try:
@@ -67,8 +67,8 @@ def classify_inputs(eval_name_targets, predictions, classify_topk, dataset_mappi
         except KeyError:
             true_label_name = model_mapping[str(eval_name_targets[i][1])] if model_mapping is not None else ""
 
-        classification_dict = {'file': eval_name_targets[i][0], 'actualLabel': eval_name_targets[i][1],
-                               'actualLabelName': true_label_name, 'predictedClasses': class_list}
+        classification_dict = {'file': eval_name_targets[i][0], 'actual_label': eval_name_targets[i][1],
+                               'actual_label_name': true_label_name, 'predicted_classes': class_list}
         classification_list.append(classification_dict)
 
     return classification_list

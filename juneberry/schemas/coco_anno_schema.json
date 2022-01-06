@@ -5,12 +5,12 @@
         "info": {
             "type": "object",
             "properties": {
-                "year": { "type": "integer" },
-                "version": { "type": "string" },
-                "description": { "type": "string" },
-                "contributor": { "type": "string" },
-                "url": { "type": "string" },
-                "date_created": { "type": "string" }
+                "year": { "type": "integer"},
+                "version": { "type": "string"},
+                "description": { "type": "string"},
+                "contributor": { "type": "string"},
+                "url": { "type": "string"},
+                "date_created": { "type": "string"}
             },
             "additionalProperties": false
         },
@@ -19,10 +19,15 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "id": { "type": "integer" },
+                    "id": { "type": "integer"},
                     "name": { "type": "string" },
-                    "url": { "type": "string" }
+                    "url": { "type": "string"}
                 },
+                "required": [
+                    "id",
+                    "name",
+                    "url"
+                ],
                 "additionalProperties": false
             }
         },
@@ -33,12 +38,7 @@
                 "properties": {
                     "id": { "type": "integer" },
                     "name": { "type": "string" },
-                    "supercategory": { "type": "string" },
-                    "isthing": { "type": "integer" },
-                    "color": {
-                        "type": "array",
-                        "items": { "type": "integer" }
-                    }
+                    "supercategory": { "type": "string" }
                 },
                 "required": [
                     "id",
@@ -58,8 +58,8 @@
                     "file_name": { "type": "string" },
                     "license": { "type": "integer" },
                     "flickr_url": { "type": "string" },
-                    "coco_url": { "type": "string" },
-                    "date_captured": { "type": "string" }
+                    "coco_url": { "type":  "string" },
+                    "date_captured": { "type":  "string" }
                 },
                 "required": [
                     "id",
@@ -84,7 +84,8 @@
                         "type": "array",
                         "items": { "type": "number" }
                     },
-                    "iscrowd": { "type": "integer" }
+                    "iscrowd": { "type": "integer" },
+                    "score": { "type": "number" }
                 },
                 "required": [
                     "id",
