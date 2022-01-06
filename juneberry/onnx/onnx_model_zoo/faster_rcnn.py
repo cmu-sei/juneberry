@@ -96,16 +96,13 @@ class DataLoader:
         evaluator.output.options.dataset.histogram = get_histogram(evaluator.eval_list,
                                                                    evaluator.output.options.dataset.classes)
 
-        # Convert the coco_data to COCO annotations format.
-        coco_anno = CocoAnnotations.construct(coco_data)
-
         # Now start assembling the eval loader. Start with some empty lists and retrieve the desired batch size.
         evaluator.eval_loader = []
         batch_size = evaluator.model_config.batch_size
         batch = []
 
         # Loop through the image list in the COCO annotations.
-        for image in coco_anno.images:
+        for image in coco_data.images:
 
             # If the batch size hasn't been achieved, add the image to the batch.
             if len(batch) < batch_size:
