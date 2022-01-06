@@ -48,15 +48,15 @@ class Evaluator(OnnxEvaluatorBase):
 
         # The default value for the data loader.
         if self.eval_data_loader_method is None:
-            self.eval_data_loader_method = DataLoader
+            self.eval_data_loader_method = "juneberry.onnx.tensorflow.DataLoader"
 
         # The default value for the formatting of the evaluation output.
         if self.eval_output_method is None:
-            self.eval_output_method = OnnxEvaluationOutput
+            self.eval_output_method = "juneberry.onnx.default.OnnxEvaluationOutput"
 
         # The default value for the evaluation procedure.
         if self.eval_method is None:
-            self.eval_method = EvaluationProcedure
+            self.eval_method = "juneberry.onnx.tensorflow.EvaluationProcedure"
 
 
 class DataLoader:
