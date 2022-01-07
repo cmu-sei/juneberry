@@ -222,6 +222,12 @@ class EvaluatorBase:
         :return: Nothing
         """
         self.setup()
+
+        # Report what the methods are we are finally using
+        logger.info(f"Eval Data Loader FQCN: {self.eval_data_loader_method}")
+        logger.info(f"Eval Procedure FQCN: {self.eval_method}")
+        logger.info(f"Eval Output FQCN: {self.eval_output_method}")
+
         self.obtain_dataset()
         self.obtain_model()
 
