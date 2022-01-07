@@ -36,7 +36,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
     opacus==0.14.0 \
     protobuf==3.16.0 onnx onnxruntime-gpu \
     tf2onnx \
-    opencv-python \
+    opencv-python==4.5.5.62 \
     pytest pylint
 
 # ============ DETECTRON2 ============
