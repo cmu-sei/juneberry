@@ -36,11 +36,13 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
+from juneberry.config.training_output import TrainingOutput
 from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 from juneberry.metrics.metrics import Metrics
+
 
 logger = logging.getLogger(__name__)
 
@@ -281,3 +283,42 @@ def prepare_classification_eval_output(evaluator: Evaluator):
     # Add the dataset mapping and the number of classes the model is aware of to the output.
     evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
     evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
+
+
+def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
+    """
+    This function is responsible for checking the hash of the model being evaluated. When a model is
+    trained in Juneberry, the hash of the model is stored in the training output.json. This function
+    will compare the hash of the model being evaluated to the hash of the model that was trained, if
+    the hash of the trained model can be retrieved from the training output.
+    :param evaluator: A Juneberry Evaluator object.
+    :param evaluated_model_hash: The hash of the model being evaluated.
+    :param onnx: A boolean which controls whether to retrieve the hash of the ONNX model, or the
+    non-ONNX model hash.
+    returns: Nothing.
+    """
+    # If Juneberry was used to train the model, retrieve the hash from the training output file
+    # and verify the hash matches the hash of the model used to evaluate the data.
+    training_output_file_path = evaluator.model_manager.get_training_out_file()
+    if training_output_file_path.is_file():
+        training_output = TrainingOutput.load(training_output_file_path)
+
+        # Determine which hash to retrieve based on the ONNX boolean.
+        if onnx:
+            hash_from_output = training_output.results.onnx_model_hash
+        else:
+            hash_from_output = training_output.results.model_hash
+
+        logger.info(f"Model hash retrieved from training output: {hash_from_output}")
+
+        # Perform the hash comparison.
+        if hash_from_output != evaluated_model_hash:
+            logger.error(f"Hash of the model that was just evaluated: '{evaluated_model_hash}'")
+            logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
+                         f"output file. Exiting.")
+            sys.exit(-1)
+        else:
+            logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")
+
+    # Add the hash of the model used for evaluation to the Evaluator output.
+    evaluator.output.options.model.hash = evaluated_model_hash

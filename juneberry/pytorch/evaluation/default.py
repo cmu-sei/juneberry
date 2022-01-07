@@ -23,9 +23,7 @@
 # ======================================================================================================================
 
 import logging
-import sys
 
-from juneberry.config.training_output import TrainingOutput
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
@@ -72,20 +70,9 @@ class PyTorchEvaluationOutput:
         # Calculate the hash of the model that was used to conduct the evaluation.
         evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
 
-        # If Juneberry was used to train the model, we can retrieve the hash from the training output file
-        # and verify that the hash matches the model we used to evaluate the data.
-        training_output_file_path = evaluator.model_manager.get_training_out_file()
-        if training_output_file_path.is_file():
-            training_output = TrainingOutput.load(training_output_file_path)
-            hash_from_output = training_output.results.model_hash
-            if hash_from_output != evaluated_model_hash:
-                logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
-                             f"output file. Exiting.")
-                logger.error(f"Expected: '{hash_from_output}' Found: '{evaluated_model_hash}'")
-                sys.exit(-1)
-
-        # Add the hash of the model used for evaluation to the output.
-        evaluator.output.options.model.hash = evaluated_model_hash
+        # If the model Juneberry trained the model, a hash would have been calculated after training.
+        # Compare that hash (if it exists) to the hash of the model being evaluated.
+        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:

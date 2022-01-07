@@ -23,10 +23,7 @@
 # ======================================================================================================================
 
 import logging
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
-import sys
 
-from juneberry.config.training_output import TrainingOutput
 from juneberry.onnx.evaluator import Evaluator
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
@@ -56,23 +53,9 @@ class OnnxEvaluationOutput:
         # Calculate the hash of the model that was used to conduct the evaluation.
         evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
 
-        # If Juneberry was used to train the model, retrieve the hash from the training output file
-        # and verify the hash matches the hash of the model used to evaluate the data.
-        training_output_file_path = evaluator.model_manager.get_training_out_file()
-        if training_output_file_path.is_file():
-            training_output = TrainingOutput.load(training_output_file_path)
-            hash_from_output = training_output.results.onnx_model_hash
-            logger.info(f"Model hash retrieved from training output: {hash_from_output}")
-            if hash_from_output != evaluated_model_hash:
-                logger.error(f"Hash of the model that was just evaluated: '{evaluated_model_hash}'")
-                logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
-                             f"output file. Exiting.")
-                sys.exit(-1)
-            else:
-                logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")
-
-        # Add the hash of the model used for evaluation to the output.
-        evaluator.output.options.model.hash = evaluated_model_hash
+        # If the model Juneberry trained the model, a hash would have been calculated after training.
+        # Compare that hash (if it exists) to the hash of the model being evaluated.
+        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash, onnx=True)
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:
