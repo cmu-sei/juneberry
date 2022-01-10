@@ -49,7 +49,8 @@ install_requires = [
     "protobuf==3.16.0",
     "onnx",
     "onnxruntime",  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
-    "tf2onnx"
+    "tf2onnx",
+    "tqdm"
 ]
 
 bin_scripts = [
