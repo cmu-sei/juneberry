@@ -26,11 +26,12 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "name": { "type": "string" },
                     "filters": {
                         "type": "array",
                         "items": { "type": "string" }
                     },
+                    "name": { "type": "string" },
+                    "onnx": { "type": "boolean"},
                     "tests": {
                         "type": "array",
                         "items": {
