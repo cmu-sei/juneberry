@@ -25,6 +25,7 @@
 import logging
 import numpy as np
 from pathlib import Path
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
 
@@ -35,10 +36,13 @@ import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
+from juneberry.config.training_output import TrainingOutput
+from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 from juneberry.metrics.metrics import Metrics
+
 
 logger = logging.getLogger(__name__)
 
@@ -236,3 +240,85 @@ def populate_metrics(model_manager: ModelManager,
     else:
         logger.info(
             "There are no annotations; not using Metrics class to populate metrics output.")
+
+
+def prepare_classification_eval_output(evaluator: Evaluator):
+    """
+    This function is responsible for performing some of the common preparation tasks when working
+    to format the evaluation output from a classifier.
+    :param evaluator: A Juneberry Evaluator object.
+    :return: Nothing.
+    """
+
+    # Add the predicted labels for each image to the output.
+    labels = [item[1] for item in evaluator.eval_name_targets]
+    evaluator.output.results.labels = labels
+
+    # Diagnostic for accuracy
+    # TODO: Switch to configurable and standard accuracy
+    is_binary = evaluator.eval_dataset_config.num_model_classes == 2
+    predicted_classes = continuous_predictions_to_class(evaluator.raw_output, is_binary)
+
+    # Calculate the accuracy and add it to the output.
+    logger.info(f"Computing the accuracy.")
+    accuracy = accuracy_score(labels, predicted_classes)
+    evaluator.output.results.metrics.accuracy = accuracy
+
+    # Calculate the balanced accuracy and add it to the output.
+    logger.info(f"Computing the balanced accuracy.")
+    balanced_acc = balanced_accuracy_score(labels, predicted_classes)
+    evaluator.output.results.metrics.balanced_accuracy = balanced_acc
+
+    # Log the the accuracy values.
+    logger.info(f"******          Accuracy: {accuracy:.4f}")
+    logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
+
+    # Save these as two classes if binary so it's consistent with other outputs.
+    if is_binary:
+        evaluator.raw_output = binary_to_classes(evaluator.raw_output)
+
+    # Add the raw prediction data to the output.
+    evaluator.output.results.predictions = evaluator.raw_output
+
+    # Add the dataset mapping and the number of classes the model is aware of to the output.
+    evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names
+    evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
+
+
+def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
+    """
+    This function is responsible for checking the hash of the model being evaluated. When a model is
+    trained in Juneberry, the hash of the model is stored in the training output.json. This function
+    will compare the hash of the model being evaluated to the hash of the model that was trained, if
+    the hash of the trained model can be retrieved from the training output.
+    :param evaluator: A Juneberry Evaluator object.
+    :param evaluated_model_hash: The hash of the model being evaluated.
+    :param onnx: A boolean which controls whether to retrieve the hash of the ONNX model, or the
+    non-ONNX model hash.
+    returns: Nothing.
+    """
+    # If Juneberry was used to train the model, retrieve the hash from the training output file
+    # and verify the hash matches the hash of the model used to evaluate the data.
+    training_output_file_path = evaluator.model_manager.get_training_out_file()
+    if training_output_file_path.is_file():
+        training_output = TrainingOutput.load(training_output_file_path)
+
+        # Determine which hash to retrieve based on the ONNX boolean.
+        if onnx:
+            hash_from_output = training_output.results.onnx_model_hash
+        else:
+            hash_from_output = training_output.results.model_hash
+
+        logger.info(f"Model hash retrieved from training output: {hash_from_output}")
+
+        # Perform the hash comparison.
+        if hash_from_output != evaluated_model_hash:
+            logger.error(f"Hash of the model that was just evaluated: '{evaluated_model_hash}'")
+            logger.error(f"The hash of the model used for evaluation does NOT match the hash in the training "
+                         f"output file. Exiting.")
+            sys.exit(-1)
+        else:
+            logger.info(f"Hashes match! Hash of the evaluated model: {evaluated_model_hash}")
+
+    # Add the hash of the model used for evaluation to the Evaluator output.
+    evaluator.output.options.model.hash = evaluated_model_hash

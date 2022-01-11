@@ -21,7 +21,6 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
 import datetime
 import logging
 import math
@@ -68,6 +67,10 @@ class ClassifierTrainer(EpochTrainer):
         self.data_version = model_manager.model_version
         self.binary = dataset_config.is_binary
         self.pytorch_options: PytorchOptions = model_config.pytorch
+
+        # A single sample from the input data. The dimensions of the sample matter during
+        # construction of the ONNX model.
+        self.input_sample = None
 
         # Should we load all the data at one time.  Edge case optimization.
         self.no_paging = False
@@ -262,7 +265,8 @@ class ClassifierTrainer(EpochTrainer):
                 self.history['lr'].append(param_group['lr'])
 
         # Pass the model and value we want to check to the acceptance checker
-        self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.history[self.history_key][-1],
+        self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.input_sample,
+                                                           self.history[self.history_key][-1],
                                                            allow_save=(self.gpu is None or self.gpu == 0))
 
         # TODO: Check if loss when nan.
@@ -292,11 +296,15 @@ class ClassifierTrainer(EpochTrainer):
 
         logger.info(f"Training stopped because: >> {self.acceptance_checker.stop_message} <<")
 
-        # Add a hash of the model
-        self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
+        # Add a hash of the model.
+        if self.native:
+            self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
+
+        if self.onnx:
+            self.history['onnx_model_hash'] = jbfs.generate_file_hash(self.model_manager.get_onnx_model_path())
 
         logger.info("Generating and saving output...")
-        history_to_results(self.history, self.results)
+        history_to_results(self.history, self.results, self.native, self.onnx)
 
         logger.info("Generating summary plot...")
         juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
@@ -384,6 +392,17 @@ class ClassifierTrainer(EpochTrainer):
                                                     no_paging=self.no_paging,
                                                     sampler_args=sampler_args)
 
+            # Sample a single item from the input dataset.
+            dataset = self.training_iterable.dataset
+            self.input_sample, label = dataset[0]
+
+            # If the input sample is a numpy array, convert to a tensor.
+            if type(self.input_sample) == np.ndarray:
+                self.input_sample = torch.from_numpy(self.input_sample)
+
+            # Set the input sample as the data from the tensor and send it to a training device.
+            self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
+
     def setup_model(self):
         logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "
                     f"with args: {self.model_config.model_architecture['args']} ...")
@@ -429,6 +448,9 @@ class ClassifierTrainer(EpochTrainer):
                                                     threshold=stopping_options.get('threshold', None),
                                                     plateau_count=stopping_options.get('plateau_count', None))
 
+        self.acceptance_checker.native = self.native
+        self.acceptance_checker.onnx = self.onnx
+
     def show_memory_summary(self, model_loading):
         """Used to show a memory summary at appropriate times."""
         if not self.gpu or self.memory_summary_freq == 0:
@@ -468,16 +490,22 @@ def compute_preliminary_eta(num_batches, batch_mean, epoch_start, max_epochs, va
                 f"total ETA {eta.strftime('%H:%M:%S')} ")
 
 
-def history_to_results(history, results):
+def history_to_results(history, results, native, onnx):
     """
     Places our history into the results for final output. (Uses JSON style.)
     :param history: A history of the training
     :param results: Where to store the information so it can be retrieved when constructing the final output.
+    :param native: A Boolean controlling whether or not to include the hash of the native PyTorch model.
+    :param onnx: A Boolean controlling whether or not to include the hash of the ONNX model.
     """
     # The learning rate can change over time...
     results['options']['learning_rate'] = history['lr']
 
-    results['results']['model_hash'] = history['model_hash']
+    if native:
+        results['results']['model_hash'] = history['model_hash']
+    if onnx:
+        results['results']['onnx_model_hash'] = history['onnx_model_hash']
+
     results['results']['loss'] = history['loss']
     results['results']['accuracy'] = history['accuracy']
 

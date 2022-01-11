@@ -63,6 +63,7 @@ class Results(Prodict):
     num_fg_samples: list
     num_neg_anchors: list
     num_pos_anchors: list
+    onnx_model_hash: str
     test_error: list
     timetest: list
     train_error: list

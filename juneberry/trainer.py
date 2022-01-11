@@ -83,10 +83,10 @@ class Trainer:
         self.train_start_time = None
         self.train_end_time = None
 
-        # This is the gpu (if any) associated with this training process. None indicates CPU
+        # This is the GPU (if any) associated with this training process. None indicates CPU.
         self.gpu = None
 
-        # Flag indicating if we are to run in distributed mode and the number of gpus to use.
+        # Flag indicating if we are to run in distributed mode and the number of GPUs to use.
         self.distributed = False
         self.num_gpus = 0
 
@@ -101,6 +101,11 @@ class Trainer:
         self.results.times = juneberry.config.training_output.Times()
         self.results.times.epoch_duration_sec = []
         self.results.results = juneberry.config.training_output.Results()
+
+        # These booleans control which format(s) will be used when saving the trained model. All Trainers support
+        # some kind of native format, but not all trainers will support the ONNX format.
+        self.native = True
+        self.onnx = False
 
     # ==========================
 
@@ -188,7 +193,7 @@ class Trainer:
 
         # Add all the times.
         # TODO Switch to use the new training_output script
-        self.results['times']['start_ime'] = self.train_start_time.isoformat()
+        self.results['times']['start_time'] = self.train_start_time.isoformat()
         self.results['times']['end_time'] = end_time.isoformat()
         self.results['times']['duration'] = duration.total_seconds()
 

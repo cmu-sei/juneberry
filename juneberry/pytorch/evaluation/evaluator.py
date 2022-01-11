@@ -37,8 +37,8 @@ from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
-import juneberry.pytorch.utils as pyt_utils
 import juneberry.pytorch.processing as processing
+import juneberry.pytorch.utils as pyt_utils
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)

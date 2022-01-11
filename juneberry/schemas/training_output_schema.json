@@ -149,6 +149,9 @@
                         "type": "number"
                     }
                 },
+                "onnx_model_hash": {
+                    "type": "string"
+                },
                 "test_error": {
                     "type": "array",
                     "items": {

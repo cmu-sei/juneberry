@@ -44,8 +44,14 @@ def setup_args(parser) -> None:
                         help='Flag to initiate dry run mode. ')
     # parser.add_argument('--nopaging', default=False, action='store_true',
     #                     help='Set to true to disable data set paging and load all at once.')
-    parser.add_argument('-n', '--num-gpus', type=int, default=None, help='The number of gpus. By default use all.'
-                                                                         'Set to 0 for cpu.')
+    parser.add_argument('-n', '--num-gpus', type=int, default=None,
+                        help='The number of GPUs. By default use all. Set to 0 for CPU.')
+    parser.add_argument('--onnx', default=False, action='store_true',
+                        help='When possible, save the trained model in ONNX format.')
+    parser.add_argument('--skipNative', default=False, action='store_true',
+                        help='Tells the trainer not to save the trained model in its native format. This argument can '
+                             'potentially be ignored if no other format is chosen to take the place of the native '
+                             'format. Meaning when no format is specified, native will be chosen by default.')
 
 
 def main():
@@ -118,14 +124,14 @@ def main():
         # Dig through our map of tasks and platforms
         if model_config.task not in task_platform_map:
             logger.error(f"We do not support the task '{model_config.task}'. "
-                         f"Supported tasks: {list(task_platform_map.keys())}. EXITING.")
+                         f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
             sys.exit(-1)
         else:
             task_set = task_platform_map[model_config.task]
             if model_config.platform not in task_set:
                 logger.error(
                     f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
-                    f"Supported platforms: {list(task_set.keys())}. EXITING.")
+                    f"Supported platforms: {list(task_set.keys())}. Exiting.")
                 sys.exit(-1)
             fqcn = task_platform_map[model_config.task][model_config.platform]
         kw_args = {}
@@ -147,27 +153,37 @@ def main():
     trainer = jb_loader.construct_instance(fqcn, kw_args)
 
     if trainer is None:
-        logger.error("No Trainer instantiated for configuration.  EXITING.")
+        logger.error("No Trainer instantiated for configuration.  Exiting.")
         sys.exit(-1)
+
+    # Set the output format for the trainer.
+    trainer.onnx = args.onnx
+    trainer.native = not args.skipNative
+
+    # If no output format was set, choose the native format by default even if
+    # the user requested it to be skipped.
+    if not(trainer.onnx or trainer.native):
+        logger.warning(f"An output format was not set. Choosing the native format.")
+        trainer.native = True
 
     if args.dryrun:
         trainer.dry_run()
     else:
-        # Allocate the gpus the user asked for, getting the current number if None are required.
+        # Allocate the GPUs the user asked for, getting the current number if None are required.
         trainer.num_gpus = trainer.check_gpu_availability(args.num_gpus)
 
         if max_gpus is not None and trainer.num_gpus > max_gpus:
             trainer.num_gpus = max_gpus
-            logger.warning(f"Overriding number of gpus. Found max_gpus {max_gpus} in ModelConfig hints.")
+            logger.warning(f"Overriding number of GPUs. Found max_gpus {max_gpus} in ModelConfig hints.")
 
-        # No matter the number of gpus, setup the node for training
+        # No matter the number of GPUs, setup the node for training
         trainer.node_setup()
 
-        # Set the number of gpus and kick it off
+        # Set the number of GPUs and kick it off
         if trainer.num_gpus == 0:
             trainer.train_model()
         elif trainer.num_gpus == 1:
-            # With one gpu we just run on the gpu in this process
+            # With one GPU we just run on the GPU in this process
             trainer.train_model(0)
         else:
             trainer.train_distributed(trainer.num_gpus)

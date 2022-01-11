@@ -206,3 +206,5 @@ def test_json_cleaner():
     results = hjson.loads(str_results)
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
+
+

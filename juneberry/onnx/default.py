@@ -24,42 +24,25 @@
 
 import logging
 
+from juneberry.onnx.evaluator import Evaluator
 import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
-from juneberry.pytorch.evaluation.evaluator import Evaluator
-
 
 logger = logging.getLogger(__name__)
 
 
-class PyTorchEvaluationProcedure:
+class OnnxEvaluationOutput:
     """
-    This is the default PyTorch evaluation class used for evaluating data in Juneberry.
-    """
-
-    def __call__(self, evaluator: Evaluator):
-        """
-        When called, this method uses the attributes of the evaluator to conduct the evaluation. The result
-        of the process is raw evaluation data.
-        :param evaluator: The Evaluator object managing the evaluation.
-        :return: Nothing.
-        """
-
-        # Perform the evaluation; saving the raw data to the correct evaluator attribute.
-        evaluator.raw_output = jb_eval_utils.predict_classes(evaluator.eval_loader, evaluator.model, evaluator.device)
-
-
-class PyTorchEvaluationOutput:
-    """
-    This is the default PyTorch evaluation class used for formatting raw evaluation data in Juneberry.
+    This is the default ONNX evaluation class used for formatting raw classification evaluation data
+    in Juneberry.
     """
 
     def __call__(self, evaluator: Evaluator):
         """
-        When called, this method uses the attributes of the evaluator to format the raw evaluation data. At the
-        end of this call, the evaluator.output attribute will contain JSON-friendly data which will then be
-        written to a file.
+        When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
+        result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
+        then be written to a file.
         :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
@@ -68,20 +51,20 @@ class PyTorchEvaluationOutput:
         jb_eval_utils.prepare_classification_eval_output(evaluator)
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
+        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_onnx_model_path())
 
         # If the model Juneberry trained the model, a hash would have been calculated after training.
         # Compare that hash (if it exists) to the hash of the model being evaluated.
-        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
+        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash, onnx=True)
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:
             jb_pytorch_eval_utils.top_k_classifications(evaluator, evaluator.eval_dataset_config.label_names)
 
         # Save the predictions portion of the evaluation output to the appropriate file.
-        evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
         logger.info(f"Saving predictions to {evaluator.eval_dir_mgr.get_predictions_path()}")
+        evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
 
         # Save the metrics portion of the evaluation output to the appropriate file.
-        evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())
         logger.info(f"Saving metrics to {evaluator.eval_dir_mgr.get_metrics_path()}")
+        evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())

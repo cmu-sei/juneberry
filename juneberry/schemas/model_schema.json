@@ -25,8 +25,6 @@
             "required": [ ]
         },
         "epochs": { "type": "integer" },
-        "evaluation_output_fqcn": { "type": "string" },
-        "evaluation_procedure": { "type": "string" },
         "evaluation_transforms": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }

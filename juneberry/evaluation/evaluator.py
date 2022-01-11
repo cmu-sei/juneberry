@@ -53,7 +53,7 @@ class EvaluatorBase:
     """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, log_file: str = None):
+                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.
@@ -110,17 +110,20 @@ class EvaluatorBase:
         #  A list of pairs of some item name or id and truth label (target)
         self.eval_name_targets = []
 
-        # TODO: Should these be here? Not all backends use this...
-        # These attributes describe how the evaluation should be conducted, and how the output of the
-        # evaluation should be formatted. Each attribute is expected to reference a class that describes
-        # how to perform the desired operation.
+        # These attributes track whether any custom classes are required to load the eval data, conduct
+        # the evaluation, or format the evaluation. Not all evaluators require these classes to be
+        # specified in order for the evaluation to take place, but some, such as the ONNX evaluator, do.
+        self.eval_data_loader_method = None
         self.eval_method = None
         self.eval_output_method = None
 
-        # The output and procedure kwargs to evaluator are meant to provide users to use custom classes
-        # to conduct and format their evaluation. When not provided, the evaluator subclasses will set
-        # these to the correct default classes when required.
+        # The loader kwarg provides users the ability to specify a custom class for building the evaluation
+        # data loader. The output and procedure kwargs to evaluator allow for custom classes
+        # to conduct the evaluation and/or format the eval results. When not provided, the evaluator subclasses
+        # may set these to the default classes when required.
         if self.model_config.evaluator is not None and self.model_config.evaluator.kwargs is not None:
+            if 'loader' in self.model_config.evaluator.kwargs:
+                self.eval_data_loader_method = self.model_config.evaluator.kwargs['loader']
             if 'output' in self.model_config.evaluator.kwargs:
                 self.eval_output_method = self.model_config.evaluator.kwargs['output']
             if 'procedure' in self.model_config.evaluator.kwargs:
@@ -219,6 +222,12 @@ class EvaluatorBase:
         :return: Nothing
         """
         self.setup()
+
+        # Report what the methods are we are finally using
+        logger.info(f"Eval Data Loader FQCN: {self.eval_data_loader_method}")
+        logger.info(f"Eval Procedure FQCN: {self.eval_method}")
+        logger.info(f"Eval Output FQCN: {self.eval_output_method}")
+
         self.obtain_dataset()
         self.obtain_model()
 

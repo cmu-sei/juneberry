@@ -26,9 +26,9 @@ and the generation of some number of reports from aggregates of the test results
     "format_version": <linux style version string of the format of this file>,
     "models": [
          {
-            "name": <name of model in models directory>,
             "filters" : [ "tag1", "tag2" ] - OPTIONAL
-            "version": <OPTIONAL - which version of the model to use>,
+            "name": <name of model in models directory>,
+            "onnx": <boolean indicating if an ONNX version of the model should be saved>,
             "tests": [
                 {
                     "classify": <Integer that controls how many of the top predicted classes get recorded>
@@ -38,7 +38,8 @@ and the generation of some number of reports from aggregates of the test results
                     "use_train_split": false
                     "use_val_split": false
                 }
-            ]
+            ],
+            "version": <OPTIONAL - which version of the model to use>,
         }
     ],
     "reports": [
@@ -117,8 +118,10 @@ the trained model(s).
 ### name
 The name of the model to train if needed. (The directory in the "models" directory.)
 
-### version
-**Optional** string that indicates which version of the model to use.
+### onnx
+This boolean controls whether or not an ONNX version of the model will be saved after training. When 
+set to true, the "--onnx" option will be added to the jb_train command for the model during the 
+creation of the experiment rules file.
 
 ### tests
 An array of test sets to be run against the models. 
@@ -134,6 +137,9 @@ This is an integer value that will control how many of the top-K predicted class
 for each input in the predictions file. This value is used as the "--classify" argument when 
 jb_make_predictions is run. Since this field is not optional, set this property to zero if you do not 
 want the predictions script to perform classifications. 
+
+### version
+**Optional** string that indicates which version of the model to use.
 
 ## reports
 A list of reports to produce. (See [Report Specifications](#Report Specifications) for details on each.)

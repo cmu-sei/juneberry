@@ -300,6 +300,21 @@ The basic evaluators for the platforms are:
 * MMDetection - juneberry.mmdetection.evaluator.Evaluator
 * TensorFlow - juneberry.tensorflow.evaluation.evaluator.Evaluator
 
+The following Evaluators can be used to evaluate ONNX models:
+* An ONNX model trained in Juneberry using PyTorch - juneberry.onnx.pytorch.Evaluator
+* An ONNX model trained in Juneberry using Tensorflow - juneberry.onnx.tensorflow.Evaluator 
+* Custom Evaluator classes are also supported, e.g. juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator
+
+Every evaluator classes supports kwargs that allow you to specify custom classes for the various 
+evaluation components. The following kwargs are recognized by the base Evaluator class:
+"loader": <fully qualified name of class that describes how to construct a data loader for the evaluation>
+"output": <fully qualified name of class that describes how to format the evaluation output data>
+"procedure": <fully qualified name of class that describes how to conduct the evaluation>
+
+You can construct your own classes to act as a Juneberry evaluator by assembling classes for the data loader, 
+evaluation procedure, and evaluation output formatting. For an example of how to build a custom evaluator, 
+refer to juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator.
+
 ## format_version
 Linux style version of the **format** of the file. Not the version of 
 the data, but the version of the semantics of the fields of this file. 
@@ -458,7 +473,7 @@ This stanza contains all the arguments that are to be passed into the `__init__`
 the transform upon construction.
 
 ## platform
-**DEPRECATED**  Use the trainer and evaluator extension points instead.
+**DEPRECATED** Use the trainer and evaluator extension points instead.
 Describes the ML Platform the model is compatible with. 
 Supported platforms: ['pytorch'] 
 

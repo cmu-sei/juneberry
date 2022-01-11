@@ -41,10 +41,12 @@ from torchvision import transforms
 
 from juneberry.config.model import PytorchOptions
 import juneberry.data as jb_data
+from juneberry.filesystem import ModelManager
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
-import juneberry.utils as jb_utils
 import juneberry.transform_manager as jbtm
+from juneberry.pytorch.evaluation.utils import compute_accuracy
+import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
 
@@ -138,11 +140,16 @@ def construct_model(arch_config, num_model_classes):
                                       dry_run=False)
 
 
-def save_model(model_manager, model) -> None:
+def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -> None:
     """
     Saves the model to the specified directory using our naming scheme and format.
     :param model_manager: The model manager controlling the model being saved.
-    :param model: The model file.
+    :param model: The model to save.
+    :param input_sample: A single sample from the input data. The dimensions of this sample are used to
+    perform the tracing when exporting the ONNX model file.
+    :param native: A Boolean controlling whether or not to save the model in the native PyTorch format.
+    :param onnx: A Boolean controlling whether or not to save the model in ONNX format.
+    :return: Nothing.
     """
     # We only want to save the non DDP version of the model, so the model without wrappers.
     # We shouldn't be passed a wrapped model.
@@ -151,8 +158,18 @@ def save_model(model_manager, model) -> None:
         traceback.print_stack()
         sys.exit(-1)
 
-    model_path = model_manager.get_pytorch_model_path()
-    torch.save(model.state_dict(), model_path)
+    # Save the model in PyTorch format.
+    if native:
+        logging.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
+        model_path = model_manager.get_pytorch_model_path()
+        torch.save(model.state_dict(), model_path)
+
+    # Save the model in ONNX format.
+    # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
+    # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
+    if onnx:
+        logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
+        torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 
 def load_model(model_path, model) -> None:
@@ -177,34 +194,6 @@ def load_weights_from_model(model_manager, model) -> None:
     else:
         logger.error(f"Model path {model_path} does not exist! EXITING.")
         sys.exit(-1)
-
-
-def compute_accuracy(y_pred, y_true, accuracy_function, accuracy_args, binary):
-    """
-    Computes the accuracy from a set of predictions where the output is rows and the classes are the columns.
-    :param y_pred: The output predictions to process.
-    :param y_true: The correct labels.
-    :param accuracy_function: The actual function that does the computation
-    :param accuracy_args: Arguments that should be passed to the accuracy function
-    :param binary: True if this a binary function.
-    :return: Accuracy as a float.
-    """
-    with torch.set_grad_enabled(False):
-        # The with clause should turn off grad, but for some reason I still get the error:
-        # RuntimeError: Can't call numpy() on Variable that requires grad. Use var.detach().numpy() instead.
-        # So I am including detach. :(
-        if binary:
-            np_y_pred = y_pred.type(torch.DoubleTensor).cpu().detach().numpy()
-            np_y_true = y_true.type(torch.DoubleTensor).unsqueeze(1).cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().detach().numpy()
-            np_y_true = y_true.cpu().numpy()
-
-        # Convert the continuous predictions to single class predictions
-        singular_y_pred = continuous_predictions_to_class(np_y_pred, binary)
-
-        # Now call the function
-        return accuracy_function(y_pred=singular_y_pred, y_true=np_y_true, **accuracy_args)
 
 
 def binary_to_classes(binary_predictions):

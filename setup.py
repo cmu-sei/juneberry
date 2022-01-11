@@ -37,6 +37,7 @@ install_requires = [
     "tensorflow",
     "tensorflow-datasets",
     "tensorboard",
+    "tf2onnx",
     "torch",
     "torchvision",
     "torch-summary>=1.4.5",

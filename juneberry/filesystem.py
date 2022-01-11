@@ -585,6 +585,10 @@ class ModelManager:
         """ :return: The path to a pytorch-compatible model file. """
         return self.model_dir_path / 'model.pt'
 
+    def get_onnx_model_path(self):
+        """ :return: The path to an ONNX compatible model file. """
+        return self.model_dir_path / 'model.onnx'
+
     def get_tensorflow_model_path(self):
         """ :return: The path to a tensorflow-compatible model file. """
         return self.model_dir_path / 'model.h5'

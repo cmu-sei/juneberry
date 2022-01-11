@@ -75,6 +75,12 @@ class RuleMaker:
             outputs = model_mgr.get_training_output_list()
             command = [JB_TRAIN_COMMAND, model_mgr.model_name]
             doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name}"
+
+            # Add the "--onnx" option to jb_train if an ONNX model was requested.
+            if model.onnx:
+                command.append("--onnx")
+                doc += " --onnx"
+
             clean_extras = model_mgr.get_training_clean_extras_list()
             requirements = []
 

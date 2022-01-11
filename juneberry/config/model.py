@@ -144,8 +144,7 @@ class ModelConfig(Prodict):
     description: str
     detectron2: Detectron2
     epochs: int
-    evaluation_output: str
-    evaluation_procedure: str
+    evaluator: Plugin
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
     evaluator: Plugin
@@ -318,10 +317,3 @@ class ModelConfig(Prodict):
         used for training tasks.
         """
         return not (self.training_dataset_config_path is None or self.epochs is None)
-
-    def validate_for_evaluation(self):
-        """
-        If some minimum group of attributes is present in the ModelConfig, then the model can be
-        used for evaluation tasks.
-        """
-        return not (self.evaluation_procedure is None or self.evaluation_output is None)

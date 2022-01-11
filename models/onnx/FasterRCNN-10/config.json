@@ -1,0 +1,18 @@
+{
+    "batch_size": 20,
+    "description": "Minimum required model config for evaluating the Faster R-CNN ONNX model available from https://github.com/onnx/models/tree/master/vision/object_detection_segmentation/faster-rcnn",
+    "evaluator": {
+        "fqcn": "juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator"
+    },
+    "format_version": "0.2.0",
+    "model_architecture": {
+        "args": {},
+        "module": ""
+    },
+    "seed": 12345,
+    "task": "objectDetection",
+    "training_dataset_config_path": "data_sets/coco2017_val.json",
+    "validation": {
+        "algorithm": "none"
+    }
+}

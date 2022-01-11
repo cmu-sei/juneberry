@@ -24,6 +24,8 @@
 
 import logging
 
+import juneberry.evaluation.utils as jb_eval_utils
+import juneberry.filesystem as jbfs
 from juneberry.tensorflow.evaluation.evaluator import Evaluator
 
 logger = logging.getLogger(__name__)
@@ -61,9 +63,16 @@ class TFEvaluationOutput:
         When called, this method uses the attributes of the evaluator to format the raw evaluation data. The
         result of the process is the evaluator.output attribute will contain JSON-friendly data, which will
         then be written to a file.
-        :param evaluator: The OnnxEvaluator object managing the evaluation.
+        :param evaluator: The Evaluator object managing the evaluation.
         :return: Nothing.
         """
+
+        # Calculate the hash of the model that was used to conduct the evaluation.
+        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_tensorflow_model_path())
+
+        # If the model Juneberry trained the model, a hash would have been calculated after training.
+        # Compare that hash (if it exists) to the hash of the model being evaluated.
+        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
 
         # Add the dataset mapping and the number of classes the model is aware of to the output.
         evaluator.output.options.dataset.classes = evaluator.eval_dataset_config.label_names

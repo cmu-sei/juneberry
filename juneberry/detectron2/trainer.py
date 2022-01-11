@@ -60,7 +60,6 @@ from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
-import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +146,12 @@ class Detectron2Trainer(Trainer):
 
         logger.info("Setting up trainer")
         args = types.SimpleNamespace()
+
+        if self.onnx:
+            logger.warning(f"An ONNX model format was requested, but Detectron training does not support saving model "
+                           f"files in ONNX format. Switching to the DT2 native format.")
+            self.onnx = False
+            self.native = True
 
         # Register the datasets from our previously created manifests.
         dt2_data.register_train_manifest_files(self.lab, self.model_manager)

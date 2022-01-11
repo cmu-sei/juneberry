@@ -189,7 +189,7 @@ class EpochTrainerHarness(EpochTrainer):
 def test_epoch_trainer(tmp_path):
     """
     >> 0 setup
-    >> 1 start_epoch_training
+    >> 1 start_epoch_phase
     >> 2 process_batch
     >> 3 update_metrics
     >> 4 update_model
@@ -207,7 +207,7 @@ def test_epoch_trainer(tmp_path):
     >> 16 update_metrics
     >> 17 summarize_metrics
     >> 18 end_epoch
-    >> 19 start_epoch_training
+    >> 19 start_epoch_phase
     >> 20 process_batch
     >> 21 update_metrics
     >> 22 update_model
@@ -225,7 +225,7 @@ def test_epoch_trainer(tmp_path):
     >> 34 update_metrics
     >> 35 summarize_metrics
     >> 36 end_epoch
-    >> 37 start_epoch_training
+    >> 37 start_epoch_phase
     >> 38 process_batch
     >> 39 update_metrics
     >> 40 update_model
