@@ -101,6 +101,7 @@ class TensorFlowData(Prodict):
 class TorchvisionData(Prodict):
     fqcn: str
     root: str
+    task_type: str
     train_kwargs: Prodict
     val_kwargs: Prodict
     eval_kwargs: Prodict
@@ -247,10 +248,16 @@ class DatasetConfig(Prodict):
         """ :return: True if this configuration is for a tabular dataset."""
         return self.data_type == DataType.TABULAR
 
+    def is_torchvision_type(self):
+        """ :return: True if this configuration is for a torchvision dataset."""
+        return self.data_type == DataType.TORCHVISION
+
     def is_classification_task(self):
         """ :return: True if this configuration is for a classifications task."""
         if self.is_image_type():
             return self.image_data.task_type == TaskType.CLASSIFICATION
+        elif self.is_torchvision_type():
+            return self.torchvision_data.task_type == TaskType.CLASSIFICATION
         else:
             return False
 
