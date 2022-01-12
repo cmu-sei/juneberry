@@ -34,7 +34,9 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
     pandas brambox pyyaml natsort \
     opacus==0.14.0 \
     protobuf==3.16.0 onnx onnxruntime \
+    tf2onnx \
     opencv-python \
+    tqdm \
     pytest pylint
 
 # ============ DETECTRON2 ============
@@ -69,10 +71,10 @@ COPY juneberry.ini /root/juneberry.ini
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v8.1"
+ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v9"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CPU Development v8.1" >> /root/.bashrc; \
+    echo "figlet -w 120 CPU Development v9" >> /root/.bashrc; \
     echo "if [ -f /juneberry/container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING /juneberry/container_start.sh'"  >> /root/.bashrc; \
     echo "    source /juneberry/container_start.sh" >> /root/.bashrc; \
