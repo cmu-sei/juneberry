@@ -311,7 +311,7 @@ class Detectron2Trainer(Trainer):
         # Establish the interval for logging the training metrics to console.
         interval = self.model_config.detectron2.metric_interval
         interval_str = "single iteration" if interval == 1 else f"{interval} iterations"
-        logging.info(f"Common training metrics will be logged after every {interval_str}.")
+        logger.info(f"Common training metrics will be logged after every {interval_str}.")
 
         # NOTE: This is copied wholesale from plain_train_net.py
         # We can do our own optimizer building, etc.

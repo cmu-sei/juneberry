@@ -140,10 +140,10 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # Set up tensorboard
         if self.lab.tensorboard:
             log_dir = self.model_manager.create_tensorboard_directory_name(self.lab.tensorboard)
-            logging.info(f"Setting up TensorBoard for directory {log_dir}")
+            logger.info(f"Setting up TensorBoard for directory {log_dir}")
             self.callbacks.append(tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1))
         else:
-            logging.info(f"TensorBoard NOT configured.")
+            logger.info(f"TensorBoard NOT configured.")
 
         # Setup other instrumentation and callbacks - MUST happen after the model is constructed
         self.setup_callbacks()
@@ -318,7 +318,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
                 sys.exit(-1)
 
     def compile_model(self):
-        logging.info("Compiling the model")
+        logger.info("Compiling the model")
         if self.loss_fn is None or self.optimizer is None:
             logger.error("Cannot compile a model without an optimizer and loss function. EXITING.")
             sys.exit(-1)
