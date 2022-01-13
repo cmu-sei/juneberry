@@ -1,58 +1,43 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
 from pathlib import Path
+import numpy as np
 import unittest
+
+import torch.utils.data.dataloader
 
 from juneberry.config.dataset import DatasetConfigBuilder
 from juneberry.config.dataset import DatasetConfig, DataType, TaskType, SamplingAlgo
+from juneberry.config.model import ModelConfig
 from juneberry.lab import Lab
+import juneberry.pytorch.data as pyt_data
+
+import test_model_config
 
 
-def make_basic_config(image_data=True, classification=True):
+def make_basic_config(image_data=True, classification=True, torchvision=False):
     config = {
         "num_model_classes": 4,
         "description": "Unit test",
@@ -73,6 +58,25 @@ def make_basic_config(image_data=True, classification=True):
                 "task_type": "object_detection",
                 "sources": [{"directory": "some/path"}]
             }
+    elif torchvision:
+
+        kwargs = {
+            "size": 2,
+            "image_size": (1, 2, 2),
+            "num_classes": 4,
+        }
+
+        config['data_type'] = 'torchvision'
+        config['torchvision_data'] = {
+            "eval_kwargs": kwargs,
+            "fqcn": "torchvision.datasets.FakeData",    # A fake dataset that returns randomly generated PIL images.
+            "root": "",
+            "train_kwargs": kwargs,
+            "val_kwargs": kwargs
+        }
+
+        config['torchvision_data']['task_type'] = 'classification' if classification else 'object_detection'
+
     else:
         config['data_type'] = 'tabular'
         config['tabular_data'] = {
@@ -326,6 +330,47 @@ def test_csv_glob(tmp_path):
         assert Path(tmp_path) / data_dir / file_name in paths
 
     assert index == 42
+
+
+def test_torchvision():
+    # Make a basic torchvision dataset config.
+    config = make_basic_config(image_data=False, torchvision=True)
+    ds = DatasetConfig.construct(config, Path('.'))
+
+    # Confirm the DatasetConfig is the TORCHVISION type and for a CLASSIFICATION task.
+    assert ds.is_torchvision_type()
+    assert ds.is_classification_task()
+
+    # Build a Lab and basic ModelConfig (required for building the torchvision dataloader).
+    lab = Lab(workspace='ws', data_root='dr')
+    model_config_data = test_model_config.make_basic_config()
+    mc = ModelConfig.from_dict(model_config_data)
+
+    # Get the training and evaluation torchvision dataloaders.
+    training_iterable, evaluation_iterable = pyt_data.construct_torchvision_dataloaders(
+        lab, ds.torchvision_data, mc, ds.get_sampling_config(), sampler_args=None)
+
+    # Verify the loaders are the correct type.
+    assert type(training_iterable) == torch.utils.data.dataloader.DataLoader
+    assert type(evaluation_iterable) == torch.utils.data.dataloader.DataLoader
+
+    # Verify the correct number of images in each loader. Even though the DatasetConfig indicated
+    # that we wanted 2 images in the training set, that gets cut in half because the basic model
+    # config enforces a validation split (random fraction, 0.5).
+    assert len(training_iterable.dataset) == 1
+    assert len(evaluation_iterable.dataset) == 1
+
+    # Split the item in the dataset loader into its components (PIL image, label).
+    training_sample, training_label = training_iterable.dataset[0]
+    eval_sample, eval_label = evaluation_iterable.dataset[0]
+
+    # Verify that each images contains the expected values.
+    np.testing.assert_array_equal(np.array(training_sample), np.array([[136, 182], [213, 144]]))
+    np.testing.assert_array_equal(np.array(eval_sample), np.array([[168, 68], [15, 158]]))
+
+    # Verify that the image labels are equal to the expected values.
+    assert training_label.item() == 1
+    assert eval_label.item() == 3
 
 
 class TestFormatErrors(unittest.TestCase):
