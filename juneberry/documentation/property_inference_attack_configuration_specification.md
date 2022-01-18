@@ -1,12 +1,13 @@
-Attack Configuration Specification
+Property Inference Attack Configuration Specification
 ==========
 
 
 # Introduction
 
-This document describes the schema for the JSON formatted attack configuration file.
+This document describes the schema for the JSON formatted attack configuration file that was 
+designed to carry out a property inference attack.
 
-In Juneberry, an attack sequence consists of three phases and two universes. The universes 
+The property inference attack sequence consists of three phases and two universes. The universes 
 describe the full scope of dataset properties, with some properties belonging to the "superset" 
 universe and the remaining properties belonging to the "disjoint" universe. 
 
@@ -29,15 +30,15 @@ from the same universe that was used to train that particular shadow model. Once
 shadow models have been trained in both universes, the evaluation results are used 
 by the in-out builder to construct additional in-out datasets for the "meta" phase.
 
-The final phase of the attack is the "meta" phase, which involves the training and 
-evaluation of two final models, one in each universe. A meta-model gets trained 
-using each of the two in-out datasets created during the "private" phase, leading to a 
-"superset" meta-model and a "disjoint" meta-model. Once both models are trained, each 
-meta-model is evaluated four times, using each of the in-out test datasets. There 
+The final phase of the property inference attack is the "meta" phase, which involves the 
+training and evaluation of two final models, one in each universe. A meta-model gets 
+trained using each of the two in-out datasets created during the "private" phase, leading 
+to a "superset" meta-model and a "disjoint" meta-model. Once both models are trained, 
+each meta-model is evaluated four times, using each of the in-out test datasets. There 
 is a "superset" in-out test dataset from the private phase, a "superset" in-out 
 test dataset from the shadow phase, a "disjoint" in-out test dataset from the 
-private phase, and a "disjoint" in-out test dataset from the shadow phase. The 
-attack is finished once all meta-model evaluations are complete.
+private phase, and a "disjoint" in-out test dataset from the shadow phase. The property 
+inference attack is finished once all meta-model evaluations are complete.
 
 # Schema
 ```
@@ -85,7 +86,7 @@ the data but the version of the semantics of the fields of this file.
 
 ## models
 This section describes the Juneberry model config files required to 
-execute the various phases of the attack.
+execute the various phases of a property inference attack.
 
 ### private
 The name of a model in the model directory whose model config will serve as the 
@@ -102,19 +103,22 @@ will be combined with various selections from the "disjoint_args" and "superset_
 universes to produce model configs for the shadow models.
 
 ### shadow_disjoint_quantity
-Integer indicating the number of disjoint shadow models to generate for the attack.
+Integer indicating the number of disjoint shadow models to generate during the 
+property inference attack.
 
 ### shadow_superset_quantity
-Integer indicating the number of superset shadow models to generate for the attack.
+Integer indicating the number of superset shadow models to generate during the 
+property inference attack.
 
 ### meta
 The name of a model in the model directory whose model config will serve as the baseline 
-config for training the meta-models associated with the attack. There will be a meta-model 
-config for the "disjoint" universe and another for the "superset" universe.
+config for training the meta-models associated with the property inference attack. There 
+will be a meta-model config for the "disjoint" universe and another for the "superset" 
+universe.
 
 ## data_configs
 This section describes the dataset config files that will be required to train and evaluate 
-the models during the various phases of the attack.
+the models during the various phases of the property inference attack.
 
 ### training_data
 The name of a dataset config file that will serve as the baseline dataset config for all the 
@@ -130,16 +134,16 @@ with the query watermarks plus a property from either the disjoint or superset u
 seed value will also be chosen for each query dataset, so that query datasets with the same 
 disjoint or superset property selection still vary to some degree. The total number of query 
 datasets created will be equal to 2 (one for each private model) plus N, where N is the total 
-number of shadow models requested for the attack. Each query dataset is stored inside the model 
-directory of the model that will use that dataset for evaluation.
+number of shadow models requested for the property inference attack. Each query dataset is 
+stored inside the model directory of the model that will use that dataset for evaluation.
 
 ### in_out_builder
 The in-out builder uses model evaluation results to construct in-out datasets. The in-out 
 datasets are used to train and evaluate the meta-models. In-out datasets consist of three configs, 
-one for training data, one for validation data, and a third for test data. During the attack, in-out 
-datasets will be generated four times: once using the private superset eval results, once using the 
-private disjoint eval results, once using superset shadow model results, and once using the disjoint 
-shadow model results. 
+one for training data, one for validation data, and a third for test data. During the property 
+inference attack, in-out datasets will be generated four times: once using the private superset 
+eval results, once using the private disjoint eval results, once using superset shadow model results, 
+and once using the disjoint shadow model results. 
 
 #### fqcn
 This is the fully qualified name of the class that will generate the in-out datasets.
@@ -149,8 +153,8 @@ This stanza contains any arguments that need to be passed into the class generat
 in-out datasets.
 
 ## watermarks
-This section describes the "watermarks" to apply to the datasets involved in the attack. A 
-"watermark" is similar to the idea of a transform of the dataset. 
+This section describes the "watermarks" to apply to the datasets involved in the property 
+inference attack. A "watermark" is similar to the idea of a transform of the dataset. 
 
 ### training_watermarks
 The training "watermarks" describe the watermark(s) that should be applied to the training 
@@ -178,18 +182,18 @@ watermark(s) to the query datasets.
 
 ### disjoint_args
 This list of dictionaries contains all the properties that belong to the disjoint universe 
-of the attack. For each dictionary in this list, a new dataset config will be created which 
-combines the baseline training dataset config with a single dictionary from this list. 
-Therefore, if there are M elements in the disjoint args universe, then M training configs 
-will be created.
+of the property inference attack. For each dictionary in this list, a new dataset config 
+will be created which combines the baseline training dataset config with a single dictionary 
+from this list. Therefore, if there are M elements in the disjoint args universe, then M 
+training configs will be created.
 
 ### superset_args
 This list of dictionaries contains all the properties that belong to the superset universe 
-of the attack. For each dictionary in this list, a new dataset config will be created which 
-combines the baseline training dataset config with a single dictionary from this list. 
-Therefore, if there are N elements in the superset args universe, then N training configs 
-will be created. If there were M training configs created from the disjoint universe, then 
-the total number of training configs created will be M+N.
+of the property inference attack. For each dictionary in this list, a new dataset config will 
+be created which combines the baseline training dataset config with a single dictionary from 
+this list. Therefore, if there are N elements in the superset args universe, then N training 
+configs will be created. If there were M training configs created from the disjoint universe, 
+then the total number of training configs created will be M+N.
 
 ### private_disjoint_args
 This field contains a single element from the "disjoint_args" universe. This selection defines 

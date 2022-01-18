@@ -54,7 +54,7 @@ class AttackMaker:
     def __init__(self, args):
         self.experiment_name = args.experimentName
         self.attack_manager = jbfs.AttackManager(self.experiment_name)
-        self.attack_config = jb_attack.AttackConfig()
+        self.attack_config = jb_attack.PropertyInferenceAttackConfig()
         self.builder = RuleListBuilder("")
         self.dryrun = args.dryrun
 
