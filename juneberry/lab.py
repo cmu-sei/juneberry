@@ -145,5 +145,5 @@ class Lab:
                f'"data_root"="{self.data_root()}", ' \
                f'"tensorboard"="{self.tensorboard}", ' \
                f'"num_gpus"={self.num_gpus}, ' \
-               f'"num_workers"={self.num_workers}' \
+               f'"num_workers"={self.num_workers}, ' \
                f'"machine_class"={self.machine_class}}}'

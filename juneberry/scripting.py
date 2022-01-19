@@ -100,6 +100,7 @@ def setup_workspace(args, *, log_file, log_prefix="", add_data_root=True, model_
     overrides = {"WORKSPACE_ROOT": args.workspace, "DATA_ROOT": data_root, "TENSORBOARD_ROOT": args.tensorboard,
                  "MACHINE_CLASS": args.machineClass}
     lab, errors = juneberry.config_loader.setup_lab(overrides, model_name)
+    logger.info(f"Lab configuration: {lab}")
     if errors > 0:
         print("Failed to set up Juneberry environment.  See console for details. EXITING!!")
         sys.exit(-1)
