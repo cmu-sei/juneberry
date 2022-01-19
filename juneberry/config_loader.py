@@ -59,7 +59,8 @@ logger = logging.getLogger(__name__)
 KEYS_TYPES = {"WORKSPACE_ROOT": str,
               "DATA_ROOT": str,
               "NUM_WORKERS": int,
-              "TENSORBOARD_ROOT": str
+              "TENSORBOARD_ROOT": str,
+              "MACHINE_CLASS": str
               }
 
 
@@ -131,7 +132,8 @@ def setup_lab(overrides, section_name=None):
         "DATA_ROOT": 'data_root',
         "TENSORBOARD_ROOT": 'tensorboard',
         "NUM_WORKERS": 'num_workers',
-        "NUM_GPUS": 'num_gpus'
+        "NUM_GPUS": 'num_gpus',
+        "MACHINE_CLASS": 'machine_class'
     }
     lab_args = {}
 
@@ -172,6 +174,12 @@ def setup_lab(overrides, section_name=None):
             logger.error(f"Required value {required} not set from INI or override!")
             lab_args[required] = None
             errors += 1
+
+    # Check environment variable if machine_class not found in command line or ini
+    if 'machine_class' not in lab_args:
+        machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+        if machine_class is not None:
+            lab_args['machine_class'] = str(machine_class)
 
     # Now return a lab args object initialized to these values
     return Lab(**lab_args), errors

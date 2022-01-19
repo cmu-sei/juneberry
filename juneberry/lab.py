@@ -58,11 +58,13 @@ class Lab:
     specific values as paths to workspaces, data roots, output directories, and numbers of gpus.
     """
 
-    def __init__(self, *, workspace='.', data_root='.', tensorboard=None, num_gpus=0, num_workers=4):
+    def __init__(self, *, workspace='.', data_root='.', tensorboard=None, num_gpus=0, num_workers=4,
+                 machine_class=None):
         # We expose these as direct attributes
         self.tensorboard = Path(tensorboard) if tensorboard is not None else None
         self.num_gpus = num_gpus
         self.num_workers = num_workers
+        self.machine_class = machine_class
 
         # We store multiple workspaces and data_roots so we can search them.  The first one is
         # always the default.
@@ -71,7 +73,8 @@ class Lab:
 
     def create_copy_from_keys(self, ws_key, dr_key):
         return Lab(workspace=self.workspace(ws_key), data_root=self.data_root(dr_key),
-                   tensorboard=self.tensorboard, num_gpus=self.num_gpus, num_workers=self.num_workers)
+                   tensorboard=self.tensorboard, num_gpus=self.num_gpus, num_workers=self.num_workers,
+                   machine_class=self.machine_class)
 
     def workspace(self, ws_key='default') -> Path:
         """ :return: The path to the default workspace. """
@@ -142,4 +145,5 @@ class Lab:
                f'"data_root"="{self.data_root()}", ' \
                f'"tensorboard"="{self.tensorboard}", ' \
                f'"num_gpus"={self.num_gpus}, ' \
-               f'"num_workers"={self.num_workers}}}'
+               f'"num_workers"={self.num_workers}' \
+               f'"machine_class"={self.machine_class}}}'
