@@ -115,8 +115,8 @@ def test_experiment_manager():
     assert em.get_experiment_name() == "millikan_oil_drop"
     assert em._get_experiment_dir() == root
     assert em.get_experiment_config() == root / 'config.json'
-    assert em.get_experiment_log_path() == root / "log_experiment.txt"
-    assert em.get_experiment_dryrun_log_path() == root / "log_experiment_dryrun.txt"
+    assert em.get_experiment_log_path() == root / "logs" / "log_experiment.txt"
+    assert em.get_experiment_dryrun_log_path() == root / "logs" / "log_experiment_dryrun.txt"
 
 
 def test_experiment_manager_clean():

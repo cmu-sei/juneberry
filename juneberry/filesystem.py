@@ -199,6 +199,10 @@ class ExperimentManager:
         self.experiment_name = experiment_name
         self.experiment_dir_path = Path('experiments') / self.experiment_name
         self.experiment_model_dir_path = Path('models') / self.experiment_name
+        self.experiment_log_dir_path = self.experiment_dir_path / "logs"
+
+        if not self.experiment_log_dir_path.exists():
+            self.experiment_log_dir_path.mkdir(parents=True)
 
     def get_experiment_name(self):
         """ :return: The name of the experiment. """
@@ -212,16 +216,20 @@ class ExperimentManager:
         """ :return: The path to the directory containing all of the experiment model configs. """
         return self.experiment_model_dir_path
 
+    def get_experiment_log_dir(self):
+        """ :return: The path to the directory containing some of the logs generated during the experiment. """
+        return self.experiment_log_dir_path
+
     def get_experiment_config(self):
-        """ :return: The relative path to the experiment's config file """
+        """ :return: The relative path to the experiment's config file. """
         return self.experiment_dir_path / 'config.json'
 
     def get_experiment_rules(self):
-        """ :return: The relative path to the experiment's rules file """
+        """ :return: The relative path to the experiment's rules file. """
         return self.experiment_dir_path / 'rules.json'
 
     def get_experiment_dodo(self, workflow: str):
-        """ :return: The relative path to the experiment's dodo.py pydoit file for the specified workflow"""
+        """ :return: The relative path to the experiment's dodo.py pydoit file for the specified workflow. """
         file_name = workflow + "_dodo.py"
         return self.experiment_dir_path / file_name
 
@@ -233,12 +241,12 @@ class ExperimentManager:
         return self.experiment_dir_path / file_name
 
     def get_experiment_log_path(self):
-        """ :return: The path to the experiment log file """
-        return self.experiment_dir_path / "log_experiment.txt"
+        """ :return: The path to the experiment log file. """
+        return self.experiment_log_dir_path / "log_experiment.txt"
 
     def get_experiment_dryrun_log_path(self):
-        """ :return: The path to the experiment log file """
-        return self.experiment_dir_path / "log_experiment_dryrun.txt"
+        """ :return: The path to the experiment log file. """
+        return self.experiment_log_dir_path / "log_experiment_dryrun.txt"
 
     def get_output_list(self):
         """
@@ -311,11 +319,11 @@ class AttackManager(ExperimentManager):
 
     def get_attack_setup_log(self):
         """ :return: The path to the attack setup log. """
-        return self.experiment_dir_path / 'log_attack_setup.txt'
+        return self.experiment_log_dir_path / 'log_attack_setup.txt'
 
     def get_attack_setup_dryrun_log(self):
         """ :return: The path to the dry run of the attack setup log. """
-        return self.experiment_dir_path / 'log_attack_setup_dryrun.txt'
+        return self.experiment_log_dir_path / 'log_attack_setup_dryrun.txt'
 
     def get_experiment_attack_file(self):
         """ :return: The path to the experiment's attack config file. """

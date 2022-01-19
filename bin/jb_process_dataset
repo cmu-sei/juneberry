@@ -249,7 +249,7 @@ class TFDSProcessor(DatasetProcessor):
             np_image = image.numpy()
             label_num = int(label.numpy())
 
-            # PIL GRAYSCALE HACK does not like grayscale images as a dimenion of three it wants them as HxW only.
+            # PIL GRAYSCALE HACK does not like grayscale images as a dimension of three it wants them as HxW only.
             shape = np_image.shape
             if shape[2] == 1:
                 np_image = np_image.reshape(shape[0], shape[1])
@@ -354,8 +354,8 @@ def main():
             shutil.rmtree(str(out_dir_path))
         else:
             logger.error(f"{str(out_dir_path)} exists!")
-            logger.error(f"As a safety measure we will not overwrite an output directoy. Please delete the output "
-                         f"directory and try again. EXITING")
+            logger.error(f"As a safety measure we will not overwrite an output directory. Please delete the output "
+                         f"directory and try again. Exiting.")
             sys.exit(-1)
 
     logger.info(f"Making output directory {str(out_dir_path)}")
@@ -363,10 +363,10 @@ def main():
 
     # Follow the normal procedure for setting up logs and workspace
     log_prefix = ""
-    log_file = str(out_dir_path / "process_log.txt")
+    log_file = str(Path(args.logDir) / "process_log.txt")
     if args.dryrun:
         log_prefix = "<<DRY_RUN>> "
-        log_file = str(out_dir_path / "process_dryrun_log.txt")
+        log_file = str(Path(args.logDir) / "process_dryrun_log.txt")
     lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
                                       banner_msg=">>> Juneberry Dataset Preprocessor <<<")
 
@@ -379,6 +379,8 @@ def main():
     # Kick it off
     process_dataset(lab, ds_cfg, args.output_data_root, args.output_dir, args.output_config_path,
                     model_cfg=model_cfg, dryrun=args.dryrun)
+
+    logger.info(f"jb_process_dataset is done.")
 
 
 if __name__ == "__main__":

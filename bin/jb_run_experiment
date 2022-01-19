@@ -62,68 +62,49 @@ def remove_for_regen(file_path: Path, commit) -> None:
             logger.info(f"Would remove {file_path} so that it gets regenerated.")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Train a set of models, run a set of tests against them and "
-                    "produce a series of outputs into the experimentName directory. "
-                    "NOTE: By default this script reports what it WOULD do but does"
-                    "not perform any action. See --commit."
-                    "NOTE: This script executes other scripts in the same directory. "
-    )
-    parser.add_argument(
-        "experimentName", help="Name of the experiment in the experiments directory."
-    )
-    parser.add_argument(
-        "--commit", "-X",
-        default=False,
-        action="store_true",
-        help="Add this flag to execute the task. Otherwise the experiment will run in preview mode.",
-    )
-    parser.add_argument(
-        "--clean", "-C",
-        default=False,
-        action="store_true",
-        help="Clean the model, predictions and work files. Also requires --commit for results.",
-    )
-    parser.add_argument(
-        "--dryrun", "-D",
-        default=False,
-        action="store_true",
-        help="Apply --dryrun to to see a description of what execution would look like without actually"
-             "executing. Also requires --commit for results.",
-    )
-    parser.add_argument(
-        "--showcmd", "-S",
-        default=False,
-        action="store_true",
-        help="Set to true to show the command we execute or would execute.",
-    )
-    parser.add_argument(
-        "--rules", default=False, help="Path to custom rules.json file."
-    )
-    parser.add_argument(
-        "--processes", "-N",
-        type=int,
-        default=None,
-        help="This argument will override the default experiment behavior for jb_train, which uses all available "
-             "GPUs for a single jb_train. Instead, this argument launches an instance of jb_train that uses N GPUs, "
-             "so multiple models can be trained in parallel.")
-    parser.add_argument(
-        "--regen", "-R",
-        default=False,
-        action="store_true",
-        help="When this argument is provided, any existing experiment config or rules files will be deleted and "
-             "regenerated.")
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument("experimentName", help="Name of the experiment in the experiments directory.")
+    parser.add_argument("--commit", "-X", default=False, action="store_true",
+                        help="Add this flag to execute the task. Otherwise the experiment will run in preview mode.")
+    parser.add_argument("--clean", "-C", default=False, action="store_true",
+                        help="Clean the model, predictions and work files. Also requires --commit for results.")
+    parser.add_argument("--dryrun", "-D", default=False, action="store_true",
+                        help="Apply --dryrun to to see a description of what execution would look like without actually"
+                             "executing. Also requires --commit for results.")
+    parser.add_argument("--showcmd", "-S", default=False, action="store_true",
+                        help="Set to true to show the command we execute or would execute.")
+    parser.add_argument("--rules", default=False, help="Path to custom rules.json file.")
+    parser.add_argument("--processes", "-N", type=int, default=None,
+                        help="This argument will override the default experiment behavior for jb_train, which uses all "
+                             "available GPUs for a single jb_train. Instead, this argument launches an instance of "
+                             "jb_train that uses N GPUs, so multiple models can be trained in parallel.")
+    parser.add_argument("--regen", "-R", default=False, action="store_true",
+                        help="When this argument is provided, any existing experiment config or rules files will be "
+                             "deleted and regenerated.")
 
+
+def main():
+    parser = argparse.ArgumentParser(description="Train a set of models, run a set of tests against them and produce "
+                                                 "a series of outputs into the experimentName directory. NOTE: By "
+                                                 "default this script reports what it WOULD do but does not perform "
+                                                 "any action. See --commit. NOTE: This script executes other scripts "
+                                                 "in the same directory.")
+
+    setup_args(parser)
     jbscripting.setup_args(parser, add_data_root=True)
     args = parser.parse_args()
     show_command = args.showcmd
 
     # Set up logging
     experiment_manager = jbfs.ExperimentManager(args.experimentName)
-    log_prefix = "<<PREVIEW>> "
-    log_file = experiment_manager.get_experiment_dryrun_log_path()
-    if args.commit:
+    if args.dryrun:
+        log_prefix = "<<PREVIEW>> "
+        log_file = experiment_manager.get_experiment_dryrun_log_path()
+    else:
         log_prefix = "<<LIVE>> "
         log_file = experiment_manager.get_experiment_log_path()
     lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
@@ -133,10 +114,7 @@ def main():
     logger.info(f"Using bin directory: {bin_dir}")
 
     # Generate appropriate dodo.py file for the workflow
-    if args.dryrun:
-        workflow = "dryrun"
-    else:
-        workflow = "main"
+    workflow = "dryrun" if args.dryrun else "main"
 
     # Determine the location of the experiment outline file.
     exp_creator = jbfs.ExperimentCreator(args.experimentName)
@@ -210,12 +188,9 @@ def main():
     # Clean mode
     if args.clean:
         if args.commit:
-            if args.dryrun:
-                logger.info(f"Cleaning the DRYRUN workflow for {args.experimentName}")
-                cmd_args.append("clean")
-            else:
-                logger.info(f"Cleaning the MAIN workflow for {args.experimentName}")
-                cmd_args.append("clean")
+            logger.info(f"Cleaning the {workflow.upper()} workflow for {args.experimentName}")
+            cmd_args.append("clean")
+
         else:
             logger.info("The following tasks would be cleaned:")
             cmd_args.append("list")
@@ -224,10 +199,8 @@ def main():
     # Execution mode
     else:
         if args.commit:
-            if args.dryrun:
-                logger.info(f"Executing DRYRUN workflow for {args.experimentName}.")
-            else:
-                logger.info(f"Executing MAIN workflow for {args.experimentName}.")
+            logger.info(f"Executing {workflow.upper()} workflow for {args.experimentName}.")
+
         else:
             logger.info("The following tasks could be executed, check status:")
             logger.info("R: run, U: up-to-date, I: ignored")
@@ -248,7 +221,7 @@ def main():
             logger.info("Removing " + str(dodo_path))
             dodo_path.unlink()
 
-    logger.info("Done")
+    logger.info("jb_run_experiment is done.")
 
 
 if __name__ == "__main__":

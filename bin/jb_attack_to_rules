@@ -120,7 +120,7 @@ class AttackMaker:
         new_dataset_path = self.attack_manager.get_experiment_dataset_path(count)
 
         # Retrieve the desired training dataset transformations, substitute in the unique property from the
-        # universe of supserset | disjoint args, and add the transform to the dataset config.
+        # universe of superset | disjoint args, and add the transform to the dataset config.
         training_watermarks = self.attack_config.watermarks.training_watermarks
         training_watermarks.kwargs.update(selection)
         dataset.data_transforms = {'seed': randint(0, 2 ** 32 - 1), 'transforms': [training_watermarks]}
@@ -590,13 +590,16 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
+    # Set up logging.
+    jbscripting.setup_logging_for_script(args, "jb_attack_to_rules")
+
     # Setup an attack maker, construct the experiment datasets, and create the experiment rules.
     maker = AttackMaker(args)
     maker.build_attack_training_datasets()
     maker.create_rules(maker.attack_manager.get_experiment_rules())
 
     logger.info(f"Rules file has been created for experiment `{args.experimentName}`.")
-    logger.info(f"Done.")
+    logger.info(f"jb_attack_to_rules is done.")
 
 
 if __name__ == "__main__":
