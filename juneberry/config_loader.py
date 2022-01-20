@@ -115,6 +115,7 @@ def setup_lab(overrides: dict, section_name: str = None):
     }
     lab_args = {}
 
+
     # Walk each input value and create arguments for the lab object
     errors = 0
     for k in KEYS_TYPES.keys():
@@ -126,6 +127,13 @@ def setup_lab(overrides: dict, section_name: str = None):
             value = overrides_copy[k]
             del overrides_copy[k]
             source = 'overrides'
+
+        # Grab environment variable if machine_class not specified from command line
+        elif k == 'MACHINE_CLASS' and k not in overrides_copy and os.environ.get('JUNEBERRY_MACHINE_CLASS') is not None:
+            machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+            value = str(machine_class)
+            source = 'env var'
+
         elif config.has_option(section_name, k):
             # They always come through as strings and we don't want quotes.
             value = config[section_name][k].strip('"')
