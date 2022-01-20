@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -59,7 +37,8 @@ logger = logging.getLogger(__name__)
 KEYS_TYPES = {"WORKSPACE_ROOT": str,
               "DATA_ROOT": str,
               "NUM_WORKERS": int,
-              "TENSORBOARD_ROOT": str
+              "TENSORBOARD_ROOT": str,
+              "MACHINE_CLASS": str
               }
 
 
@@ -89,7 +68,7 @@ def get_configs(env_config='JUNEBERRY_CONFIG', ini_name='juneberry.ini'):
     return configs
 
 
-def setup_lab(overrides, section_name=None):
+def setup_lab(overrides: dict, section_name: str = None):
     """
     Finds the list of config files, loads the variables from those files, and sets in the lab object.
     :param overrides: A dictionary of values to be used as overrides. Usually from the command line.
@@ -131,7 +110,8 @@ def setup_lab(overrides, section_name=None):
         "DATA_ROOT": 'data_root',
         "TENSORBOARD_ROOT": 'tensorboard',
         "NUM_WORKERS": 'num_workers',
-        "NUM_GPUS": 'num_gpus'
+        "NUM_GPUS": 'num_gpus',
+        "MACHINE_CLASS": 'machine_class'
     }
     lab_args = {}
 
@@ -146,6 +126,13 @@ def setup_lab(overrides, section_name=None):
             value = overrides_copy[k]
             del overrides_copy[k]
             source = 'overrides'
+
+        # Grab environment variable if machine_class not specified from command line
+        elif k == 'MACHINE_CLASS' and k not in overrides_copy and os.environ.get('JUNEBERRY_MACHINE_CLASS') is not None:
+            machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+            value = str(machine_class)
+            source = 'env var'
+
         elif config.has_option(section_name, k):
             # They always come through as strings and we don't want quotes.
             value = config[section_name][k].strip('"')
@@ -172,6 +159,12 @@ def setup_lab(overrides, section_name=None):
             logger.error(f"Required value {required} not set from INI or override!")
             lab_args[required] = None
             errors += 1
+
+    # Check environment variable if machine_class not found in command line or ini
+    if 'machine_class' not in lab_args:
+        machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+        if machine_class is not None:
+            lab_args['machine_class'] = str(machine_class)
 
     # Now return a lab args object initialized to these values
     return Lab(**lab_args), errors
