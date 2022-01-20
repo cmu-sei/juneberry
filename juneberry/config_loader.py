@@ -115,7 +115,6 @@ def setup_lab(overrides: dict, section_name: str = None):
     }
     lab_args = {}
 
-
     # Walk each input value and create arguments for the lab object
     errors = 0
     for k in KEYS_TYPES.keys():
