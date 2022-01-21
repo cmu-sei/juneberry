@@ -27,6 +27,7 @@ from pathlib import Path
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
+from juneberry.config.machine_config import MachineConfig
 import juneberry.filesystem as jbfs
 
 
@@ -95,6 +96,27 @@ class Lab:
         """
         full_path = Path(self.workspace(ws_key)) / config_path
         return DatasetConfig.load(str(full_path), relative_path=full_path.parent)
+
+    def load_machine_config(self, config_path, ws_key='default') -> MachineConfig:
+        """
+        Loads the machine config object.
+        :param config_path: The config path within a workspace.
+        :param ws_key: The workspace to use to load.
+        :return: The machine config object.
+        """
+        # TODO eliminate machine config object and replace with generic loading
+        machine_config_path = self.workspace(ws_key) / config_path
+        return MachineConfig.load(machine_config_path)
+
+    def get_machine_specs(self, model_name: str, machine_config: MachineConfig) -> dict:
+        """
+        Finds the relevant execution specs based on machine and model class.
+        :param machine_config: The machine config object.
+        :param model_name: The model name.
+        :return: A dictionary of execution specifications.
+        """
+        machine_class = self.machine_class
+        pass
 
     def save_model_config(self, model_config, model_name, model_version=None, ws_key='default'):
         mm = self.model_manager(model_name, model_version)
