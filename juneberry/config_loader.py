@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 KEYS_TYPES = {"WORKSPACE_ROOT": str,
               "DATA_ROOT": str,
               "NUM_WORKERS": int,
-              "TENSORBOARD_ROOT": str
+              "TENSORBOARD_ROOT": str,
+              "MACHINE_CLASS": str
               }
 
 
@@ -67,7 +68,7 @@ def get_configs(env_config='JUNEBERRY_CONFIG', ini_name='juneberry.ini'):
     return configs
 
 
-def setup_lab(overrides, section_name=None):
+def setup_lab(overrides: dict, section_name: str = None):
     """
     Finds the list of config files, loads the variables from those files, and sets in the lab object.
     :param overrides: A dictionary of values to be used as overrides. Usually from the command line.
@@ -109,7 +110,8 @@ def setup_lab(overrides, section_name=None):
         "DATA_ROOT": 'data_root',
         "TENSORBOARD_ROOT": 'tensorboard',
         "NUM_WORKERS": 'num_workers',
-        "NUM_GPUS": 'num_gpus'
+        "NUM_GPUS": 'num_gpus',
+        "MACHINE_CLASS": 'machine_class'
     }
     lab_args = {}
 
@@ -124,6 +126,13 @@ def setup_lab(overrides, section_name=None):
             value = overrides_copy[k]
             del overrides_copy[k]
             source = 'overrides'
+
+        # Grab environment variable if machine_class not specified from command line
+        elif k == 'MACHINE_CLASS' and k not in overrides_copy and os.environ.get('JUNEBERRY_MACHINE_CLASS') is not None:
+            machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+            value = str(machine_class)
+            source = 'env var'
+
         elif config.has_option(section_name, k):
             # They always come through as strings and we don't want quotes.
             value = config[section_name][k].strip('"')
@@ -150,6 +159,12 @@ def setup_lab(overrides, section_name=None):
             logger.error(f"Required value {required} not set from INI or override!")
             lab_args[required] = None
             errors += 1
+
+    # Check environment variable if machine_class not found in command line or ini
+    if 'machine_class' not in lab_args:
+        machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
+        if machine_class is not None:
+            lab_args['machine_class'] = str(machine_class)
 
     # Now return a lab args object initialized to these values
     return Lab(**lab_args), errors

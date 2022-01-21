@@ -67,6 +67,8 @@ def setup_args(parser, add_data_root=True) -> None:
                         help='Silent flag to silence output to console. Default is to show to console.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Verbose flag that will log DEBUG messages. Default is off.')
+    parser.add_argument('-c', '--machineClass', type=str, default=None,
+                        help='The class of machine.')
     parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
                         help="Directory where the log file will be saved. Default is the current working directory.")
 
@@ -97,8 +99,10 @@ def setup_workspace(args, *, log_file, log_prefix="", add_data_root=True, model_
     data_root = None
     if add_data_root:
         data_root = args.dataRoot
-    overrides = {"WORKSPACE_ROOT": args.workspace, "DATA_ROOT": data_root, "TENSORBOARD_ROOT": args.tensorboard}
+    overrides = {"WORKSPACE_ROOT": args.workspace, "DATA_ROOT": data_root, "TENSORBOARD_ROOT": args.tensorboard,
+                 "MACHINE_CLASS": args.machineClass}
     lab, errors = juneberry.config_loader.setup_lab(overrides, model_name)
+    logger.info(f"Lab configuration: {lab}")
     if errors > 0:
         print("Failed to set up Juneberry environment.  See console for details. EXITING!!")
         sys.exit(-1)
