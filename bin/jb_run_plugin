@@ -74,7 +74,7 @@ def main():
     args = parser.parse_args()
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args, "jb_run_plugin")
+    jbscripting.setup_logging_for_script(args)
 
     # Run the plugin.
     run_plugin(args.pluginFile)

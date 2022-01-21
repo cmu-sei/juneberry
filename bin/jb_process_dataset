@@ -359,7 +359,15 @@ def main():
             sys.exit(-1)
 
     logger.info(f"Making output directory {str(out_dir_path)}")
-    out_dir_path.mkdir()
+    out_dir_path.mkdir(parents=True)
+
+    # When an arg for the log directory is not provided, the default behavior is to save the log in
+    # the current directory. For this script, the desired behavior is to save the log to the output directory.
+    # You can't really tell if the cwd was intentionally chosen as the log dir, so the warning is needed.
+    if args.logDir == Path.cwd():
+        logger.warning(f"The log directory was detected as the current working directory. Changing the log dir to "
+                       f"match the output directory.")
+        args.logDir = out_dir_path
 
     # Follow the normal procedure for setting up logs and workspace
     log_prefix = ""

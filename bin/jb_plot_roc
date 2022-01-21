@@ -350,7 +350,7 @@ def main():
     args = parser.parse_args()
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args, "jb_plot_roc")
+    jbscripting.setup_logging_for_script(args)
 
     # Some enforcement to make sure each file has a list of which classes to plot.
     if len(args.predictionFile) != len(args.plotClasses):

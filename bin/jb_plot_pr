@@ -72,7 +72,7 @@ def main():
         output_dir.mkdir(parents=True)
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args, "jb_plot_pr")
+    jbscripting.setup_logging_for_script(args)
 
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 

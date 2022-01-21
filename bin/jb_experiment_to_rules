@@ -74,13 +74,12 @@ class RuleMaker:
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
             outputs = model_mgr.get_training_output_list()
             command = [JB_TRAIN_COMMAND, model_mgr.model_name]
-            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name}"
 
             # Add the "--onnx" option to jb_train if an ONNX model was requested.
             if model.onnx:
                 command.append("--onnx")
-                doc += " --onnx"
 
+            doc = " ".join([str(x) for x in command])
             clean_extras = model_mgr.get_training_clean_extras_list()
             requirements = []
 
@@ -92,7 +91,7 @@ class RuleMaker:
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
             outputs = model_mgr.get_dry_run_output_list()
             command = [JB_TRAIN_COMMAND, model_mgr.model_name, '--dryrun']
-            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name} --dryrun"
+            doc = " ".join([str(x) for x in command])
             clean_extras = model_mgr.get_dry_run_clean_extras_list()
             requirements = []
 
@@ -128,7 +127,7 @@ class RuleMaker:
                         command.append('--useTrainSplit')
                     if test.use_val_split:
                         command.append('--useValSplit')
-                    doc = f"{JB_EVALUATE_COMMAND} {model_mgr.model_name}  {test.dataset_path}"
+                    doc = " ".join([str(x) for x in command])
                     clean_extras = model_mgr.get_predictions_clean_extras_list()
                     requirements = [model['train_rule_id']]
 
@@ -189,7 +188,7 @@ class RuleMaker:
         outputs = [Path(output_dir, "pr_curve.png"), Path(output_dir, "pc_curve.png"),
                    Path(output_dir, "rc_curve.png"), Path(output_dir, "eval_metrics.csv")]
 
-        doc = f"{JB_PLOT_PR_COMMAND} --outputDir {output_dir} --logDir {log_dir}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
         workflow = self.builder.get_workflow("main")
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
@@ -224,7 +223,7 @@ class RuleMaker:
 
         outputs = [output_path]
 
-        doc = f"{JB_PLOT_ROC_COMMAND} {output_path} --logDir {log_dir}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
         workflow = self.builder.get_workflow("main")
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
@@ -276,7 +275,7 @@ class RuleMaker:
             else:
                 continue
 
-        doc = f"{JB_SUMMARY_COMMAND} {output_path} --logDir {log_dir}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
 
         workflow = self.builder.get_workflow("main")

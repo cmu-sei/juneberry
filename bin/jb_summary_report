@@ -246,7 +246,7 @@ def main():
     args = parser.parse_args()
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args, "jb_summary_report")
+    jbscripting.setup_logging_for_script(args)
 
     generate_summary_report(args.predictionFile, args.plotFile, args.summaryFilename, args.csvFilename)
 
