@@ -31,7 +31,7 @@ import json
 import logging
 from pathlib import Path
 import tempfile
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import brambox as bb
 import matplotlib.pyplot as plt
@@ -181,6 +181,7 @@ class Metrics:
         return bb.stat.pr(self.det,
                           self.anno,
                           self.iou_threshold)
+
 
     @property
     def prc(self) -> ndarray[ndarray]:
@@ -399,6 +400,20 @@ class Metrics:
                 writer.writerow(row)
 
         logger.info(f"Metrics have been saved to {output_file}")
+
+    def pos_neg(self, tp_threshold: float) -> Dict[str, int]:
+        """
+        Find the number of TP, FP, and FN given this Metrics object's
+        annotations and detections.
+        :param tp_threshold: The TP threshold
+        :return: Dict containing TP, FP, and FN values
+        """
+        result = {}
+        match_det, match_anno = bb.stat.match_box(self.det, self.anno, tp_threshold)
+        result["tp"] = match_det["tp"].values.sum()
+        result["fp"] = match_det["fp"].values.sum()  # or could just be ~tp?
+        result["fn"] = match_anno["detection"].isna().sum()
+        return result
 
 
 class MetricsPlot:

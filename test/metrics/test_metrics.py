@@ -135,3 +135,18 @@ def test_as_dict():
         "mAP_m": m.mAP_medium,
         "mAP_l": m.mAP_large,
     }
+
+
+def _test_pos_neg(tp_threshold: float, tp: int, fp: int, fn: int):
+    assert m.pos_neg(tp_threshold)["tp"] == tp
+    assert m.pos_neg(tp_threshold)["fp"] == fp
+    assert m.pos_neg(tp_threshold)["fn"] == fn
+
+
+def test_pos_neg_high_threshold():
+    _test_pos_neg(0.8, 4, 15, 11)
+
+
+def test_pos_neg_low_threshold():
+    _test_pos_neg(0.1, 9, 10, 6)
+
