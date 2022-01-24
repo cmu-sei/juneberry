@@ -11,6 +11,9 @@
     },
     "epochs": 1,
     "evaluation_transforms": [],
+    "evaluator": {
+        "fqcn": "juneberry.detectron2.evaluator.Evaluator"
+    },
     "format_version": "0.2.0",
     "hints": {
         "num_workers": 1
@@ -28,6 +31,9 @@
     "seed": 4210592948,
     "task": "objectDetection",
     "timestamp": "2021-03-03T10:00:00",
+    "trainer": {
+        "fqcn": "juneberry.detectron2.trainer.Detectron2Trainer"
+    },
     "training_dataset_config_path": "data_sets/text_detect_val.json",
     "training_transforms": [],
     "validation": {

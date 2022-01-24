@@ -157,8 +157,9 @@ class Detectron2Trainer(Trainer):
         dt2_data.register_train_manifest_files(self.lab, self.model_manager)
 
         # =======
-
-        logger.warning("We do NOT support model transforms!!!")
+        if self.model_config.model_transforms is not None:
+            logger.warning(f"The model config contains model transforms, however the detectron2 trainer does not "
+                           f"currently support model transforms. Ignoring the requested model transforms.")
 
         # Get a basic config
         cfg = get_cfg()
@@ -311,7 +312,7 @@ class Detectron2Trainer(Trainer):
         # Establish the interval for logging the training metrics to console.
         interval = self.model_config.detectron2.metric_interval
         interval_str = "single iteration" if interval == 1 else f"{interval} iterations"
-        logging.info(f"Common training metrics will be logged after every {interval_str}.")
+        logger.info(f"Common training metrics will be logged after every {interval_str}.")
 
         # NOTE: This is copied wholesale from plain_train_net.py
         # We can do our own optimizer building, etc.
