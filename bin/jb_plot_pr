@@ -51,7 +51,7 @@ def setup_args(parser) -> None:
     parser.add_argument('--iou', type=float, default=0.5,
                         help="The IoU threshold to use when determining whether to count a detection as a true "
                              "positive.")
-    parser.add_argument('--outputDir', default=None,
+    parser.add_argument('--outputDir', default=Path.cwd(),
                         help="Directory where figures will be saved. If this field is left unspecified, the figures "
                              "will be saved to the current working directory.")
 
@@ -66,13 +66,13 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
-    # If an output directory was not provided, default to the current working directory.
-    output_dir = Path.cwd() if args.outputDir is None else Path(args.outputDir)
+    # Create the output directory if it does not already exist.
+    output_dir = Path(args.outputDir)
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
 
-    # Set up the workspace and logging.
-    jbscripting.setup_workspace(args, log_file=Path(output_dir, "log_plot_pr.txt"))
+    # Set up logging.
+    jbscripting.setup_logging_for_script(args)
 
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 
@@ -103,6 +103,8 @@ def main():
 
     # Export the metrics as a CSV
     Metrics.export(metrics, output_dir / "eval_metrics.csv")
+
+    logger.info(f"jb_plot_pr is done.")
 
 
 if __name__ == "__main__":

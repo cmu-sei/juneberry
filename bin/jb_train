@@ -188,6 +188,8 @@ def main():
         else:
             trainer.train_distributed(trainer.num_gpus)
 
+    logger.info(f"jb_train is done.")
+
 
 if __name__ == "__main__":
     jbscripting.run_main(main, logger)

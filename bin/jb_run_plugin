@@ -73,8 +73,13 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
+    # Set up logging.
+    jbscripting.setup_logging_for_script(args)
+
     # Run the plugin.
     run_plugin(args.pluginFile)
+
+    logger.info(f"jb_run_plugin is done.")
 
 
 if __name__ == "__main__":

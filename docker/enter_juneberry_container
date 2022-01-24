@@ -27,17 +27,20 @@
 # organized as subdirectories according to the following layout:
 # <project>/
 #   juneberry <- This is the Juneberry repo that was pulled
-#   datasets <- This is where the source data is located, i.e. the Juneberry "dataroot".
+#   dataroot <- This is where the source data is located, i.e. the Juneberry "dataroot".
 #   tensorboard <- This is where tensorboard outputs will be stored.
 #   cache <- This where the model downloads are cached.
 #   workspace <- This is an optional external workspace directory, see docker/README.md for details
 
-# Get the project root from the first argument.
-if [ ${#} -ne 1 ]; then
-  echo "This script requires one argument: a path to the 'project' root."
-fi
-# PROJ=${HOME}/proj
+
+# Show usage and exit if we don't get at least one command line argument.
+([ $# -eq 0 ] || [ $# -gt 2 ]) && { echo "Usage: $0 <project> [workspace]"; exit 1; }
+
+# Set PROJ and WS (project and workspace) to the first and second cmdline args.
 PROJ=${1}
+WS=${2}
+
+echo "Using project ${PROJ}..."
 
 # The -rm means the container is destroyed upon exit.  This is okay because the useful data persists
 # in the mounted locations.
@@ -51,8 +54,23 @@ CONTAINER="juneberry/cudadev:dev"
 # These are all the mount points into the container so the code, data, and outputs persist across container starts.
 # Feel free to change the paths to the left of the colon as needed. These sub-directories are not required to all be in
 # the same project directory.
-JB="-v ${PROJ}/juneberry:/juneberry -w /juneberry"
-DATA="-v ${PROJ}/datasets:/datasets:ro"
+JB="-v ${PROJ}/juneberry:/juneberry"
+
+# If the user didn't pass a workspace argument, make Juneberry
+# the working directory. Otherwise, setup the workspace and
+# if that's successful, make the workspace directory the working directory.
+if [ -z ${WS} ]; then
+  echo "Using default workspace..."
+  JB="${JB} -w /juneberry"
+else
+  echo "Using workspace ${WS}..."
+  ${PROJ}/juneberry/scripts/setup_workspace.py -p ${PROJ} -w ${WS}
+  if [ $? -eq 0 ]; then
+    WS="-v ${WS}:/workspace -w /workspace"
+  fi
+fi
+
+DATA="-v ${PROJ}/dataroot:/dataroot:ro"
 TB="-v ${PROJ}/tensorboard:/tensorboard"
 HUB_CACHE="-v ${PROJ}/cache/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${PROJ}/cache/torch:/root/.torch"
@@ -64,13 +82,6 @@ GPUS="--gpus all"
 # GPUS=""
 # GPUS="--gpus \"device=2,3\""
 # GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
-
-# ==== CUSTOM WORKSPACE ===
-# To use a different workspace, simply mount it into the container. After entering the container and installing
-# Juneberry, switch to /workspace.  Remember to set up a juneberry.ini that sets `workspace_root = /workspace` to use
-# /workspace instead of /juneberry.
-WS=""
-# WS="-v ${PROJ}/workspace:/workspace"
 
 # Assemble the command, show it, and run it.
 CMD="docker run ${BASE} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"

@@ -182,8 +182,8 @@ def main():
     args = parser.parse_args()
     lab, errors = setup_lab({}, args.section)
 
-    logging.info(f"Loaded the config with {errors} errors.  Values:")
-    logging.info(lab)
+    logger.info(f"Loaded the config with {errors} errors.  Values:")
+    logger.info(lab)
 
 
 if __name__ == "__main__":
