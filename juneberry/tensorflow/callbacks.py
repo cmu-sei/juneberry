@@ -102,16 +102,16 @@ class TimingCallback(tf.keras.callbacks.Callback):
 
         self.last_report_time = report_time
 
-        logging.info(f"{epoch + 1}/{self.total_epochs} "
-                     f"time: {train_elapsed:.2f}s "
-                     f"eta: {eta.strftime('%H:%M:%S')} "
-                     f"images/s: {self.num_images / train_elapsed:.2f} "
-                     f"-- "
-                     f"loss: {logs['loss']:.4f} "
-                     f"acc: {logs['accuracy']:.4f} "
-                     f"val_loss: {logs['val_loss']:.4f} "
-                     f"val_acc: {logs['val_accuracy']:.4f} "
-                     )
+        logger.info(f"{epoch + 1}/{self.total_epochs} "
+                    f"time: {train_elapsed:.2f}s "
+                    f"eta: {eta.strftime('%H:%M:%S')} "
+                    f"images/s: {self.num_images / train_elapsed:.2f} "
+                    f"-- "
+                    f"loss: {logs['loss']:.4f} "
+                    f"acc: {logs['accuracy']:.4f} "
+                    f"val_loss: {logs['val_loss']:.4f} "
+                    f"val_acc: {logs['val_accuracy']:.4f} "
+                    )
 
 
 class TrainingMetricsCallback(tf.keras.callbacks.Callback):

@@ -31,6 +31,7 @@ import sys
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.training_output import TrainingOutput
 from juneberry.filesystem import ModelManager
+import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_summary_report")
 
@@ -92,7 +93,7 @@ def determine_shared_metric(prediction_file_list: list) -> str:
         metric = "Accuracy"
 
     # If each prediction file contains the same type of metric, that metric must be the shared metric.
-    logging.info(f"Building a report to summarize {metric}.")
+    logger.info(f"Building a report to summarize {metric}.")
 
     return metric
 
@@ -164,7 +165,7 @@ def generate_summary_report(prediction_files: list, plot_files: list, summary_fi
         # Loop through the prediction files.
         for file in prediction_files:
 
-            logging.info(f"Adding the data from {file} to the summary report.")
+            logger.info(f"Adding the data from {file} to the summary report.")
 
             prediction_data = EvaluationOutput.load(file)
             model_name = prediction_data.options.model.name
@@ -223,11 +224,11 @@ def generate_summary_report(prediction_files: list, plot_files: list, summary_fi
             outFile.write("---\n".join([f"![Plot Image]({p.replace(' ', '%20')})\n" for p in plot_files]))
 
 
-def main():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-
-    parser = argparse.ArgumentParser(
-        description='This script will generate a markdown summary report of an experiment.')
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
     parser.add_argument('-f', '--predictionFile', action='append', required=True,
                         help="The name of a file containing the prediction data to use. The expected format is "
                              "described in the predictions_specification. You can specify this argument multiple "
@@ -237,8 +238,19 @@ def main():
     parser.add_argument('summaryFilename', help="Markdown report will be written to this file")
     parser.add_argument('--csvFilename', default=None, required=False, help="CSV file to write summary table data")
 
+
+def main():
+    parser = argparse.ArgumentParser(description='This script generates a markdown summary report of an experiment.')
+    setup_args(parser)
+    jbscripting.setup_args(parser)
     args = parser.parse_args()
+
+    # Set up logging.
+    jbscripting.setup_logging_for_script(args)
+
     generate_summary_report(args.predictionFile, args.plotFile, args.summaryFilename, args.csvFilename)
+
+    logger.info(f"jb_summary_report is done.")
 
 
 if __name__ == "__main__":

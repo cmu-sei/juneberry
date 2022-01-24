@@ -69,6 +69,8 @@ def setup_args(parser, add_data_root=True) -> None:
                         help='Verbose flag that will log DEBUG messages. Default is off.')
     parser.add_argument('-c', '--machineClass', type=str, default=None,
                         help='The class of machine.')
+    parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
+                        help="Directory where the log file will be saved. Default is the current working directory.")
 
 
 def setup_workspace(args, *, log_file, log_prefix="", add_data_root=True, model_name=None, name="juneberry",
@@ -132,6 +134,31 @@ def setup_workspace(args, *, log_file, log_prefix="", add_data_root=True, model_
         logger.info(f"Default data_root: {lab.data_root()}")
 
     return lab
+
+
+def setup_logging_for_script(args, script_name: str = None):
+    """
+    This function is responsible for setting up logging in a Juneberry script. This function is typically used when
+    the root juneberry logger cannot be set up by other means.
+    :param args: The args from parseargs.
+    :param script_name: A string indicating which script the log messages are from. Used to build
+    the name of the log file.
+    :return: Nothing.
+
+    """
+    # Build the location of the log using the desired log directory (from args) and the name of
+    # the script calling this function.
+    if script_name is None:
+        script_name = Path(sys.argv[0]).stem
+    log_file = Path(args.logDir) / f"log_{script_name}.txt"
+
+    # Set the logging level and setup the logger.
+    level = logging.DEBUG if args.verbose else logging.INFO
+    jblogging.setup_logger(log_file, log_prefix="", log_to_console=not args.silent, level=level)
+
+    # A simple test message indicating where the log messages are being saved to.
+    logger.info(f"Logging initialized for {Path(sys.argv[0]).absolute()}")
+    logger.info(f"Log messages are beings saved to {log_file}")
 
 
 def setup_for_single_model(args, *, log_file, model_name, log_prefix="", add_data_root=True, banner_msg=None) -> Lab:
