@@ -401,7 +401,7 @@ class Metrics:
 
         logger.info(f"Metrics have been saved to {output_file}")
 
-    def pos_neg(self, tp_threshold: float) -> Dict[str, int]:
+    def prediction_types(self, tp_threshold: float) -> Dict[str, int]:
         """
         Find the number of TP, FP, and FN given this Metrics object's
         annotations and detections.
@@ -412,6 +412,9 @@ class Metrics:
         match_det, match_anno = bb.stat.match_box(self.det, self.anno, tp_threshold)
         result["tp"] = match_det["tp"].values.sum()
         result["fp"] = match_det["fp"].values.sum()  # or could just be ~tp?
+        # False negatives are annotations with no detections;
+        # i.e. rows in the annotations DataFrame with NaN in the
+        # detections column.
         result["fn"] = match_anno["detection"].isna().sum()
         return result
 

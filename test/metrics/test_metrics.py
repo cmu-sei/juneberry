@@ -137,16 +137,15 @@ def test_as_dict():
     }
 
 
-def _test_pos_neg(tp_threshold: float, tp: int, fp: int, fn: int):
-    assert m.pos_neg(tp_threshold)["tp"] == tp
-    assert m.pos_neg(tp_threshold)["fp"] == fp
-    assert m.pos_neg(tp_threshold)["fn"] == fn
+def _test_prediction_types(tp_threshold: float, tp: int, fp: int, fn: int):
+    assert m.prediction_types(tp_threshold)["tp"] == tp
+    assert m.prediction_types(tp_threshold)["fp"] == fp
+    assert m.prediction_types(tp_threshold)["fn"] == fn
 
 
-def test_pos_neg_high_threshold():
-    _test_pos_neg(0.8, 4, 15, 11)
+def test_prediction_types_high_threshold():
+    _test_prediction_types(0.8, 4, 15, 11)
 
 
-def test_pos_neg_low_threshold():
-    _test_pos_neg(0.1, 9, 10, 6)
-
+def test_prediction_types_low_threshold():
+    _test_prediction_types(0.1, 9, 10, 6)
