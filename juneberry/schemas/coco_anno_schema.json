@@ -84,7 +84,7 @@
                         "type": "array",
                         "items": { "type": "number" }
                     },
-                    "iscrowd": { "type": "integer" },
+                    "is_crowd": { "type": "integer" },
                     "score": { "type": "number" }
                 },
                 "required": [
