@@ -85,6 +85,7 @@
                         "items": { "type": "number" }
                     },
                     "is_crowd": { "type": "integer" },
+                    "iscrowd": {"type": "integer"},
                     "score": { "type": "number" }
                 },
                 "required": [
