@@ -228,7 +228,7 @@ class Detectron2Trainer(Trainer):
         cfg.SOLVER.CHECKPOINT_PERIOD = self.iter_per_epoch
 
         # ===============================================
-        # Okay, we need to scale everything based on GPUs.  We use detectron2 to scale everything.
+        # Okay, we need to scale everything based on GPUs. We use detectron2 to scale everything.
         # TODO: Add Reference World Size concept
         # For now, hard code it to 1, given the learning rate of 0.0025
         cfg.SOLVER.REFERENCE_WORLD_SIZE = 1
@@ -538,7 +538,6 @@ class Detectron2Trainer(Trainer):
             cfg.merge_from_file(model_zoo.get_config_file(model_arch_name))
             cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model_arch_name)  # Let training initialize from model zoo
 
-
     def _overlay_supplements(self, cfg):
         # Looks through the supplements property and merge in those files
         if self.model_config.detectron2 is not None:
@@ -549,7 +548,7 @@ class Detectron2Trainer(Trainer):
                         logger.info(f"Loading config supplements from {path}")
                         cfg.merge_from_file(path)
                     else:
-                        logger.error(f"Failed to find supplement {path}. Exiting")
+                        logger.error(f"Failed to find supplement {path}. Exiting.")
                         sys.exit(-1)
 
 

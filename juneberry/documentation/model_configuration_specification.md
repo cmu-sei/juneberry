@@ -192,13 +192,12 @@ dotted name of path to the config variable, and the value is the desired value. 
 ```
 "overrides": [ "MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.05, "MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE", 256 ]
 ```
-These are applied **after** anything anything from the supplements or Juneberry customizations.
+Overrides are applied **after** any supplements (described below) or Juneberry customizations.
 
 ### supplements
-**Optional:** This field is a array of files within the **workspace** that should be added to the config
-using the `merge_from_file()` functioanlity from Detectron2. These are applied immediately after the
-model is loaded but before Juneberry makes any customizations for batch size, solver, etc. and before
-`overrides` are applied.
+**Optional:** This field is an array of files within the **workspace** that should be added to the config
+using Detectron2's `merge_from_file()` functionality. Supplements are applied immediately after the
+model is loaded, but before Juneberry adjusts for batch size, solver, etc. and before any `overrides` are applied.
 
 ## epochs
 The number of epochs to train.
@@ -435,8 +434,9 @@ The fully qualified path to the class/file that will construct the model.
 ** Detectron2 Note **
 For Detectron2 the module is a path to a file either in the workspace or the Detectron2 [ModelZoo]
 (https://detectron2.readthedocs.io/en/latest/modules/model_zoo.html).
-First, the file is checked for existence in the workspace, and if exists will be loaded using `merge_from_file()`.
-If the file does not exist it will be passed to the ModelZoo API `get_config_file()` call. 
+First, Juneberry checks the workspace for an existing file and if found, the file is loaded using 
+Detectron2's `merge_from_file()` functionality. If the file does not exist, the value is passed to the 
+ModelZoo API `get_config_file()` call. 
 
 ### args
 An optional set of args as a dictionary to be passed directly into the `__call__` method
