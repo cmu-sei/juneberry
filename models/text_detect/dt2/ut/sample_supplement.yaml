@@ -1,2 +1,4 @@
-SEED: 1234
+INPUT:
+  CROP:
+    ENABLED: true
 VERSION: 2

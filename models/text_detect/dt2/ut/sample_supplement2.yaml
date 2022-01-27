@@ -1,2 +1,6 @@
-SEED: 12345
+INPUT:
+  CROP:
+    SIZE:
+    - 0.92
+    - 0.92
 VERSION: 2
