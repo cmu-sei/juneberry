@@ -1,0 +1,45 @@
+{
+    "batch_size": 4,
+    "description": "Unit test for an object detector on the TextDetection data set.",
+    "detectron2": {
+        "overrides": [
+            "SOLVER.BASE_LR",
+            0.0025,
+            "SOLVER.REFERENCE_WORLD_SIZE",
+            1
+        ],
+        "supplements": [
+            "models/text_detect/dt2/ut/sample_supplement.yaml",
+            "models/text_detect/dt2/ut/sample_supplement2.yaml"
+        ]
+
+    },
+    "epochs": 1,
+    "evaluation_transforms": [],
+    "format_version": "0.2.0",
+    "hints": {
+        "num_workers": 1
+    },
+    "model_architecture": {
+        "args": {
+            "num_classes": 3
+        },
+        "module": "models/text_detect/dt2/ut/sample_platform_config.yaml"
+    },
+    "platform": "detectron2",
+    "pytorch": {
+        "deterministic": true
+    },
+    "seed": 4210592948,
+    "task": "objectDetection",
+    "timestamp": "2021-03-03T10:00:00",
+    "training_dataset_config_path": "data_sets/text_detect_val.json",
+    "training_transforms": [],
+    "validation": {
+        "algorithm": "random_fraction",
+        "arguments": {
+            "fraction": 0.2,
+            "seed": 3554237221
+        }
+    }
+}
