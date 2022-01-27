@@ -23,7 +23,8 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "detectron2": {
         "enable_val_loss": <OPTIONAL; bool; set to true to enable experimental validation loss computation>,
         "metric_interval": <OPTIONAL; integer; logs the training metrics to console every X iterations>,
-        "overrides": [ <array of values to add to the config using merge_from_list> ]
+        "overrides": [ <array of VALUES (alternating name and value) to add to the config using merge_from_list()> ]
+        "supplements": [ <array of FILES to add to the config using merge_from_file()> ]
     },
     "epochs": <The maximum number of epochs to train>,
     "evaluation_transforms": [ <array of transforms - see below> ],
@@ -191,6 +192,13 @@ dotted name of path to the config variable, and the value is the desired value. 
 ```
 "overrides": [ "MODEL.ROI_HEADS.SCORE_THRESH_TEST", 0.05, "MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE", 256 ]
 ```
+These are applied **after** anything anything from the supplements or Juneberry customizations.
+
+### supplements
+**Optional:** This field is a array of files within the **workspace** that should be added to the config
+using the `merge_from_file()` functioanlity from Detectron2. These are applied immediately after the
+model is loaded but before Juneberry makes any customizations for batch size, solver, etc. and before
+`overrides` are applied.
 
 ## epochs
 The number of epochs to train.
@@ -422,7 +430,13 @@ class <MyClass>
 ```
 
 ### module
-The fully qualified path to the class that will construct the model.
+The fully qualified path to the class/file that will construct the model.
+
+** Detectron2 Note **
+For Detectron2 the module is a path to a file either in the workspace or the Detectron2 [ModelZoo]
+(https://detectron2.readthedocs.io/en/latest/modules/model_zoo.html).
+First, the file is checked for existence in the workspace, and if exists will be loaded using `merge_from_file()`.
+If the file does not exist it will be passed to the ModelZoo API `get_config_file()` call. 
 
 ### args
 An optional set of args as a dictionary to be passed directly into the `__call__` method
