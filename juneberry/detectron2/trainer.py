@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 class Detectron2Trainer(Trainer):
     def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level):
+                 log_level, *, resume:bool=False):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.iter: int = 0
@@ -79,7 +79,7 @@ class Detectron2Trainer(Trainer):
         self.model = None
         self.save_model = None
 
-        self.resume = False
+        self.resume = resume
 
         # We shouldn't need to change these.
         self.train_len = 0
