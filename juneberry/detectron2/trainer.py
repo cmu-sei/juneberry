@@ -158,8 +158,9 @@ class Detectron2Trainer(Trainer):
         dt2_data.register_train_manifest_files(self.lab, self.model_manager)
 
         # =======
-
-        logger.warning("We do NOT support model transforms!!!")
+        if self.model_config.model_transforms is not None:
+            logger.warning(f"The model config contains model transforms, however the detectron2 trainer does not "
+                           f"currently support model transforms. Ignoring the requested model transforms.")
 
         # Get a basic config
         cfg = get_cfg()
