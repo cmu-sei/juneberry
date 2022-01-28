@@ -100,11 +100,32 @@ pip install -e .
 scripts/set_user.sh
 source scripts/juneberry_completion.sh
 ```
+### container_start.sh
+
+For convenience, the user may place the above commands (or any other commands) in a bash script named `container_start.sh` placed in the user's initial directory (`/juneberry` by default, or in a custom workspace, see below). This script will be executed when the container is started. A sample `container_start.sh` is provided in the `juneberry/docker` directory.
 
 ## Using a custom workspace
 
-TODO
+When the container is started, the user will be inside the `/juneberry` directory by default. However, the user can choose another directory called a "custom workspace" to be in when the container starts.
 
+A custom workspace is a directory that contains the following files and subdirectories:
+
+* A `data_sets` directory
+* An `experiments` directory
+* A `models` directory
+* A `src` directory
+* A `juneberry.ini` file
+* An optional `container_start.sh` file
+
+To start the Juneberry container in a custom workspace, use the following command:
+
+```shell script
+juneberry/docker/enter_juneberry_container <project_dir> [workspace_dir]
+```
+
+If `workspace_dir` does not exist, or is missing any of the above subdirectories or files, they will be created on container startup.
+
+The user's custom workspace will be mounted under `/workspace` in the container, and the user will start inside of this directory.
 
 # Juneberry using a virtual environment
 
