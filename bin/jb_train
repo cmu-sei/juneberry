@@ -57,8 +57,11 @@ def setup_args(parser) -> None:
                              'from the last checkpoint.')
 
 
-def setup_opt_args(args):
-    # Set up optional args from command line
+def setup_opt_args(args: argparse.Namespace):
+    """
+    Set up optional args from the command line.
+    :param args: A Namespace object built from the attributes parsed out of the command line.
+    """
     opt_args = {}
     opt_arg_keys = ['resume']
     for key in opt_arg_keys:
@@ -162,7 +165,7 @@ def main():
         if arg not in kw_args:
             kw_args[arg] = locals()[arg]
 
-    # Construct optional args that trainers may take
+    # Construct optional args that trainers may take.
     opt_args = setup_opt_args(args)
 
     # Construct the trainer

@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 class Detectron2Trainer(Trainer):
     def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level, *, resume:bool=False):
+                 log_level, *, resume: bool = False):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.iter: int = 0
@@ -413,8 +413,7 @@ class Detectron2Trainer(Trainer):
             # NOTE: This is a custom path for DT2.  We know that DT2 puts the model file in the final
             # OUTPUT directory, so we rename it out of there.
             final_model_path = Path(self.cfg.OUTPUT_DIR) / 'model_final.pth'
-            logger.info(f"Renaming {final_model_path} to "
-                        f"{self.model_manager.get_pytorch_model_path()}")
+            logger.info(f"Renaming {final_model_path} to {self.model_manager.get_pytorch_model_path()}")
             final_model_path.rename(self.model_manager.get_pytorch_model_path())
 
             # Retrieve the metrics from the dt2 metrics log.
