@@ -52,6 +52,23 @@ def setup_args(parser) -> None:
                         help='Tells the trainer not to save the trained model in its native format. This argument can '
                              'potentially be ignored if no other format is chosen to take the place of the native '
                              'format. Meaning when no format is specified, native will be chosen by default.')
+    parser.add_argument('--resume', default=False, action='store_true',
+                        help='If the trainer supports checkpointing, then this instructs the trainer to resume training'
+                             'from the last checkpoint.')
+
+
+def setup_opt_args(args: argparse.Namespace):
+    """
+    Set up optional args from the command line.
+    :param args: A Namespace object built from the attributes parsed out of the command line.
+    """
+    opt_args = {}
+    opt_arg_keys = ['resume']
+    for key in opt_arg_keys:
+        if key in vars(args):
+            opt_args[key] = vars(args)[key]
+
+    return opt_args
 
 
 def main():
@@ -148,9 +165,12 @@ def main():
         if arg not in kw_args:
             kw_args[arg] = locals()[arg]
 
+    # Construct optional args that trainers may take.
+    opt_args = setup_opt_args(args)
+
     # Construct the trainer
     logger.info(f"Instantiating trainer: {fqcn}")
-    trainer = jb_loader.construct_instance(fqcn, kw_args)
+    trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration.  Exiting.")
@@ -162,7 +182,7 @@ def main():
 
     # If no output format was set, choose the native format by default even if
     # the user requested it to be skipped.
-    if not(trainer.onnx or trainer.native):
+    if not (trainer.onnx or trainer.native):
         logger.warning(f"An output format was not set. Choosing the native format.")
         trainer.native = True
 
