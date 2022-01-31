@@ -73,10 +73,11 @@ Change _into_ the project directory and run the enter_juneberry_container script
 will attempt to use a locally built `juneberry/cudadev:dev` container. If you downloaded
 a different container, you can specify which container to use via the second argument to the script.
 
-For example, you can use the following command to start an instance of the downloaded CPU-only container:
+For example, you can use the following command to start an instance of the downloaded CPU-only container 
+from within the _project_ directory:
 
 ```shell script
-docker/enter_juneberry_container -c amellinger/juneberry:cpudev <project_directory>
+juneberry/docker/enter_juneberry_container -c amellinger/juneberry:cpudev `pwd`
 ```
 
 **NOTE:** Docker does not like the shorctuts provided by the `,` or `~` symbols and requires the use of expanded paths.
