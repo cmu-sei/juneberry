@@ -36,6 +36,8 @@ project-name/
 
 ## Starting the container
 
+**Apple Silicon Note:** Currently, there is no container for Apple Silicon.
+
 In order to use the Juneberry Docker Container, you will need to have a Docker environment installed
 on your system. Refer to the following installation steps
 [on the Docker website - (external link)](https://docs.docker.com/get-docker/).
@@ -55,13 +57,13 @@ For the CUDA-enabled Juneberry Docker image (quite large), you can use the follo
 docker pull amellinger/juneberry:cudadev
 ```
 
-These Docker images themselves do not contain any Juneberry code or data.  When either container
+The Docker images themselves do not contain any Juneberry code or data.  When either container
 starts, the Juneberry code and data get _mounted_ into the container. This means the directory in 
 the host environment is directly accessible from inside the container. Therefore, any edits made to 
 content via the host environment are available inside the container and are not working on copies
-of those files. One can use any editor in the host environment, and those modifications 
+of those files. One can use any editor available in the host environment, and those modifications 
 will be available in the container. Similarly, outputs created by the container such as models, 
-log files, and plots inside the models directory will be available outside the container will 
+log files, and plots inside the models directory will be available outside the container and will 
 persist after the container terminates.
 
 A sample script called `enter_juneberry_container` starts a **temporary** 'cudadev' container 
@@ -73,12 +75,13 @@ a different container, you can specify which container to use via the second arg
 
 For example, you can use the following command to start an instance of the downloaded CPU-only container:
 
-TODO: Fix seocnd/third script argument.
-
 ```shell script
-docker/enter_juneberry_container . amellinger/juneberry:cpudev
+docker/enter_juneberry_container -c amellinger/juneberry:cpudev <project_directory>
 ```
 
+**NOTE:** Docker does not like the shorctuts provided by the `,` or `~` symbols and requires the use of expanded paths.
+
+There are a variety of other configurations available in the script; see the contents for details. 
 Users are encouraged to create a copy of the `enter_juneberry_container` script and customize it to 
 suit their needs.
 
@@ -102,11 +105,15 @@ source scripts/juneberry_completion.sh
 ```
 ### container_start.sh
 
-For convenience, the user may place the above commands (or any other commands) in a bash script named `container_start.sh` placed in the user's initial directory (`/juneberry` by default, or in a custom workspace, see below). This script will be executed when the container is started. A sample `container_start.sh` is provided in the `juneberry/docker` directory.
+For convenience, the user may place the above commands (or any other commands) in a bash script named 
+`container_start.sh` placed in the user's initial directory (`/juneberry` by default, or in a 
+custom workspace, see below). This script will be executed when the container is started. 
+A sample `container_start.sh` is provided in the `juneberry/docker` directory.
 
 ## Using a custom workspace
 
-When the container is started, the user will be inside the `/juneberry` directory by default. However, the user can choose another directory called a "custom workspace" to be in when the container starts.
+When the container is started, the user will be inside the `/juneberry` directory by default. However, the 
+user can choose another directory called a "custom workspace" to be used when the container starts.
 
 A custom workspace is a directory that contains the following files and subdirectories:
 
@@ -117,20 +124,25 @@ A custom workspace is a directory that contains the following files and subdirec
 * A `juneberry.ini` file
 * An optional `container_start.sh` file
 
-To start the Juneberry container in a custom workspace, use the following command:
+To start the Juneberry container in a custom workspace, use '-w' switch providing the path to the custom 
+workspace:
 
 ```shell script
-juneberry/docker/enter_juneberry_container <project_dir> [workspace_dir]
+/juneberry/docker/enter_juneberry_container -w [workspace_dir] <project_dir>
 ```
 
-If `workspace_dir` does not exist, or is missing any of the above subdirectories or files, they will be created on container startup.
+If `workspace_dir` does not exist, or is missing any of the above subdirectories or files, they will be created 
+on container startup.
 
-The user's custom workspace will be mounted under `/workspace` in the container, and the user will start inside of this directory.
+The user's custom workspace will be mounted under `/workspace` in the container, and the user will start inside 
+of this directory.
 
 # Juneberry using a virtual environment
 
+**Apple Silicon Note:** Currently, there is no configuration for Apple Silicon.
+
 Juneberry can be installed in a virtual environment. However, a specific order of operations and a set of versions
-is required in order to get all the included platforms to install properly. 
+is required in order to get all the included platforms to install properly with the correct versions. 
 
 ## Project Layout
 

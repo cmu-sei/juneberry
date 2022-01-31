@@ -32,24 +32,62 @@
 #   cache <- This where the model downloads are cached.
 #   workspace <- This is an optional external workspace directory, see docker/README.md for details
 
+# Set our default arguments
+CONTAINER="juneberry/cudadev:dev"
+#CONTAINER="juneberry/cpudev:dev"
 
-# Show usage and exit if we don't get at least one command line argument.
-([ $# -eq 0 ] || [ $# -gt 2 ]) && { echo "Usage: $0 <project> [workspace]"; exit 1; }
+# This value determines which GPUs the container will be aware of.  "all" is default.
+# Set to "" for none. Specific GPUs can be set by listing the devices as one would
+# with CUDA_VISIBLE_DEVICES.
+GPUS="--gpus all"
+# GPUS=""
+# GPUS="--gpus \"device=2,3\""
+# GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
 
-# Set PROJ and WS (project and workspace) to the first and second cmdline args.
+function show_help() {
+  echo "Usage: [-w <workspace>] [-c <container>] [-g <gpus>] <project>"
+  echo "Optional arguments:"
+  echo "    -w <workspace> - Optional: The path to a custom workspace."
+  echo "    -c <container> - Optional: Name of the container. The defuult is ${CONTAINER}."
+  echo "    -g <gpus>      - Optional: The number of gpus.  The default is ${GPUS}."
+  echo "    -h <gpus>      - Show this message and exit."
+}
+
+# === Process the command line arguments.
+
+DOHELP=0
+while getopts w:c:g:h option; do
+  case $option in
+  w) WS=$OPTARG ;;
+  c) CONTAINER=$OPTARG ;;
+  g) GPUS=$OPTARG ;;
+  h) DOHELP=1 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# Show usage and exit if we don't get at least one command line argument or they ask for help
+if ([ ${DOHELP} -eq 1 ] || [ $# -ne 1 ]); then
+  show_help
+  exit 1
+fi
+
+# PROJ is the remaining argument
 PROJ=${1}
-WS=${2}
 
-echo "Using project ${PROJ}..."
+# === Generate all the derivative settings
+echo "Using project '${PROJ}'..."
+
+# Docker run specific commmands
 
 # The -rm means the container is destroyed upon exit.  This is okay because the useful data persists
 # in the mounted locations.
 BASE="-it --rm --network=host --ipc=host"
 ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy"
-ENVS_USER="-e USER_NAME=${USER} -e USER_ID=`id -u ${USER}` -e USER_GID=`id -g ${USER}`"
+ENVS_USER="-e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER})"
 NAME="--name ${USER}"
-CONTAINER="juneberry/cudadev:dev"
-#CONTAINER="juneberry/cpudev:dev"
+
+# Directory layout
 
 # These are all the mount points into the container so the code, data, and outputs persist across container starts.
 # Feel free to change the paths to the left of the colon as needed. These sub-directories are not required to all be in
@@ -74,14 +112,6 @@ DATA="-v ${PROJ}/dataroot:/dataroot:ro"
 TB="-v ${PROJ}/tensorboard:/tensorboard"
 HUB_CACHE="-v ${PROJ}/cache/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${PROJ}/cache/torch:/root/.torch"
-
-# === GPU SELECTION ===
-# This value determines which GPUs the container will be aware of.  "all" is default.  Set to "" for none.
-# Specific GPUs can be set by listing the devices as one would with CUDA_VISIBLE_DEVICES.
-GPUS="--gpus all"
-# GPUS=""
-# GPUS="--gpus \"device=2,3\""
-# GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
 
 # Assemble the command, show it, and run it.
 CMD="docker run ${BASE} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"
