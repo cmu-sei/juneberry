@@ -45,38 +45,62 @@ GPUS="--gpus all"
 # GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
 
 function show_help() {
-  echo "Usage: [-w <workspace>] [-c <container>] [-g <gpus>] <project>"
+  echo "Usage: [-w <workspace>] [-c <container>] [-g <gpus>] [-p <project_dir>]"
   echo "Optional arguments:"
-  echo "    -w <workspace> - Optional: The path to a custom workspace."
-  echo "    -c <container> - Optional: Name of the container. The default is ${CONTAINER}."
-  echo "    -g <gpus>      - Optional: The number of gpus.  The default is ${GPUS}."
-  echo "    -h <gpus>      - Show this message and exit."
+  echo "    -w <workspace>   - Optional: The path to a custom workspace."
+  echo "    -c <container>   - Optional: Name of the container. The default is ${CONTAINER}."
+  echo "    -g <gpus>        - Optional: The number of gpus.  The default is ${GPUS}."
+  echo "    -p <project_dir> - Optional: The path to the Juneberry project directory.\
+ This should be an absolute path. The default is the current working directory."
+  echo "    -h <gpus>        - Show this message and exit."
 }
 
 # === Process the command line arguments.
 
 DOHELP=0
-while getopts w:c:g:h option; do
+while getopts w:c:g:p:h option; do
   case $option in
   w) WS=$OPTARG ;;
   c) CONTAINER=$OPTARG ;;
   g) GPUS=$OPTARG ;;
+  p) PROJ=$OPTARG ;;
   h) DOHELP=1 ;;
   esac
 done
 shift $((OPTIND - 1))
 
-# Show usage and exit if we don't get at least one command line argument or they ask for help
-if ([ ${DOHELP} -eq 1 ] || [ $# -ne 1 ]); then
+# Show usage and exit if they ask for help
+if ([ ${DOHELP} -eq 1 ]); then
   show_help
   exit 1
 fi
 
-# PROJ is the remaining argument
-PROJ=${1}
+# If no project directory was passed in, use the current working directory.
+if [ -z ${PROJ} ]; then
+  PROJ=${PWD}
+fi
 
 # === Generate all the derivative settings
 echo "Using project '${PROJ}'..."
+
+# === Check to see that the project directory contains all necessary subdirectories. ==============
+project_subdirs=("cache" "cache/hub" "cache/torch" "dataroot" "juneberry" "tensorboard")
+
+all_project_subdirs_exist=1
+for subdir in ${project_subdirs[@]}; do
+  if [ ! -d ${PROJ}/${subdir} ]; then
+    echo "Project subdirectory ${subdir} does not exist."
+    all_project_subdirs_exist=0
+  fi
+done
+
+if [ ${all_project_subdirs_exist} -eq 0 ]; then
+  echo "${PROJ} is not a valid project directory."
+  echo "Please run scripts/setup_project.sh to create the project directory structure."
+  echo "Exiting."
+  exit 1
+fi
+# ================================================================================================
 
 # Docker run specific commmands
 
