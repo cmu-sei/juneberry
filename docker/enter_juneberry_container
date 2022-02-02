@@ -32,7 +32,7 @@
 #   cache <- This where the model downloads are cached.
 #   workspace <- This is an optional external workspace directory, see docker/README.md for details
 
-# Set our default arguments
+# Set our default arguments.
 CONTAINER="juneberry/cudadev:dev"
 #CONTAINER="juneberry/cpudev:dev"
 
@@ -52,7 +52,7 @@ function show_help() {
   echo "    -g <gpus>        - Optional: The number of gpus.  The default is ${GPUS}."
   echo "    -p <project_dir> - Optional: The path to the Juneberry project directory.\
  This should be an absolute path. The default is the current working directory."
-  echo "    -h <gpus>        - Show this message and exit."
+  echo "    -h <help>        - Show this message and exit."
 }
 
 # === Process the command line arguments.
@@ -69,7 +69,7 @@ while getopts w:c:g:p:h option; do
 done
 shift $((OPTIND - 1))
 
-# Show usage and exit if they ask for help
+# Show usage and exit if they ask for help.
 if ([ ${DOHELP} -eq 1 ]); then
   show_help
   exit 1
@@ -80,7 +80,7 @@ if [ -z ${PROJ} ]; then
   PROJ=${PWD}
 fi
 
-# === Generate all the derivative settings
+# === Generate all the derivative settings.
 echo "Using project '${PROJ}'..."
 
 # === Check to see that the project directory contains all necessary subdirectories. ==============
@@ -102,7 +102,7 @@ if [ ${all_project_subdirs_exist} -eq 0 ]; then
 fi
 # ================================================================================================
 
-# Docker run specific commmands
+# Docker run specific options.
 
 # The -rm means the container is destroyed upon exit.  This is okay because the useful data persists
 # in the mounted locations.
@@ -121,7 +121,7 @@ JB="-v ${PROJ}/juneberry:/juneberry"
 # If the user didn't pass a workspace argument, make Juneberry
 # the working directory. Otherwise, setup the workspace and
 # if that's successful, make the workspace directory the working directory.
-# NOTE: The '//' in the worksapce is for Git Bash support
+# NOTE: The '//' in the workspace is for Git Bash support.
 if [ -z ${WS} ]; then
   echo "Using default workspace..."
   JB="${JB} -w //juneberry"

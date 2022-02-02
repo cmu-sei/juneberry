@@ -51,7 +51,8 @@ From inside the container, the final step is to run `pip install -e .`.
 **NOTE:** Because `enter_juneberry_container` creates a temporary container, you must perform this step every time 
 you use `enter_juneberry_container`.
 
-You can reference the [Docker README file](docs/building_docker.md) for more information.
+You can reference the [Building Juneberry Docker Containers](docs/building_docker.md) documentation for more 
+information.
 
 ### Other environments
 
