@@ -1125,44 +1125,49 @@ def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = No
     if model_manager:
         # Check the training manifest
         training_manifest_path = model_manager.get_training_data_manifest_path()
-        train_manifest_data = jbfs.load_file(str(training_manifest_path))
-        category_list = train_manifest_data.get('categories', None)
-        if category_list:
-            return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
-                                       str(training_manifest_path))
+        if training_manifest_path.exists():
+            train_manifest_data = jbfs.load_file(str(training_manifest_path))
+            category_list = train_manifest_data.get('categories', None)
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
+                                           str(training_manifest_path))
 
         # Check the validation manifest
         validation_manifest_path = model_manager.get_validation_data_manifest_path()
-        val_manifest_data = jbfs.load_file(str(validation_manifest_path))
-        category_list = val_manifest_data.get('categories', None)
-        if category_list:
-            return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
-                                       str(validation_manifest_path))
+        if validation_manifest_path.exists():
+            val_manifest_data = jbfs.load_file(str(validation_manifest_path))
+            category_list = val_manifest_data.get('categories', None)
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
+                                           str(validation_manifest_path))
 
         # Check the model config
         model_config_path = model_manager.get_model_config()
-        category_list = categories_in_model_config(model_config_path)
-        if category_list:
-            return check_category_list(category_list, eval_manifest_path, show_source, "model config",
-                                       model_config_path)
+        if model_config_path.exists():
+            category_list = categories_in_model_config(model_config_path)
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "model config",
+                                           model_config_path)
 
     # Check the training config
     train_config_path = None
     if train_config:
         train_config_path = train_config.file_path
-        category_list = categories_in_dataset_config(train_config_path, data_root)
-        if category_list:
-            return check_category_list(category_list, eval_manifest_path, show_source, "train config",
-                                       str(train_config_path))
+        if train_config_path.exists():
+            category_list = categories_in_dataset_config(train_config_path, data_root)
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "train config",
+                                           str(train_config_path))
 
     # Check the evaluation config
     eval_config_path = None
     if eval_config:
         eval_config_path = eval_config.file_path
-        category_list = categories_in_dataset_config(eval_config_path, data_root)
-        if category_list:
-            return check_category_list(category_list, eval_manifest_path, show_source, "eval config",
-                                       str(eval_config_path))
+        if eval_config_path.exists():
+            category_list = categories_in_dataset_config(eval_config_path, data_root)
+            if category_list:
+                return check_category_list(category_list, eval_manifest_path, show_source, "eval config",
+                                           str(eval_config_path))
 
     # Log detailed error message and exit
     logger.error(f"Failed to retrieve a category list via the following args:\n"
