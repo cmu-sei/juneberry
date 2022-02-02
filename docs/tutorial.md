@@ -2,31 +2,31 @@ Juneberry Basic Tutorial
 ==========
 
 # Step 1 - Create a dataset config file
-Example dataset config file: [data_sets/imagenette_unit_train.json](./data_sets/imagenette_unit_train.json)
+Example dataset config file: [data_sets/imagenette_unit_train.json](../data_sets/imagenette_unit_train.json)
 
 For this example you will need the Imagenette data, which you can obtain by following the 
-steps [here](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18/README.md).
+steps [here](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18/README.md).
 
 Dataset configs follow the format described in 
-[dataset_configuration_specification.md](./juneberry/documentation/dataset_configuration_specification.md) in the
+[dataset_configuration_specification.md](../juneberry/documentation/dataset_configuration_specification.md) in the
 Juneberry documentation directory. These config files are used to describe a dataset 
 which is composed of image directories, labels, sampling criteria
-and **desired** image properties. Remember that the paths are relative
+and **desired** image properties. Remember, the paths in the config are relative
 to an externally specified `data_root`.
 
 # Step 2 - Create a model config file
 Example model config file: 
-[models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json)
+[models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json)
 
 Model configs follow the format described in 
-[model_configuration_specification.md](./juneberry/documentation/model_configuration_specification.md) in
+[model_configuration_specification.md](../juneberry/documentation/model_configuration_specification.md) in
 the Juneberry documentation directory. Model configs must be named "config.json" and placed in a model sub-directory 
 inside the "models" directory. These config files specify details such as model architecture, hyperparameters, datasets,
-transforms, etc. See the documentation for details on each property of the model config.
+transforms, etc. See the documentation for details describing supported model config properties.
 
 # Step 3 - Train
 This step demonstrates how to use the training script to train a model. The most commonly
-used training script is [jb_train](./bin/jb_train), which requires a
+used training script is [jb_train](../bin/jb_train), which requires a
 model name (i.e. the name of a sub-directory in the "models" directory containing a valid config.json 
 file) as input. The output of the training process is a trained model and training metrics in an 
 output JSON file.
@@ -51,7 +51,7 @@ as well as the model, log files, and visual summaries. Some output files you may
     * 📝**output.json:** The training data organized by type for all epochs in json format.
     * 🖼️**output.png:** An image showcasing the training and validation loss & accuracy of the most recent run. 
 
-dryrun mode offers an opportunity to observe what actions the training script would 
+"dryrun" mode offers an opportunity to observe what actions the training script would 
 perform without actually performing the training. You can initiate dryrun mode by 
 adding the `--dryrun` argument to the training command. In dryrun mode, Juneberry 
 logs messages about the actions it would have taken using a `<<DRY_RUN>>` prefix. 
@@ -71,7 +71,7 @@ The dataset construction process works as follows:
 If two or more stanzas have the same label, the sampling is per stanza file list not per the
 aggregate label. 
 Thus, if the two stanzas are for label 0 with a shuffling of "random_quantity" with size 10, then 20 
-   images with label 0 in total will be selected.
+images with label 0 in total will be selected.
 If the sampling involves random operations, then a seed may be specified for the sampling process.
 1) The file list in each data section is then split into training and validation sets 
 based on the validation split stanza in the model config.
@@ -80,14 +80,13 @@ for the process.
 1) The training and validation sets from each entry are then merged into one list for
 training and one for validation, respectively.
 1) The file lists are provided to other parts of the system for cache checks, shuffling, 
-   loading, and transformation.
+loading, and transformation.
 
-# Step 4 - Test
-At this point we want to evaluate a test set against the trained model and see
-how well the model performs. To perform a test, we need a trained
-model, like the one from step 3, and a dataset config describing the data to test 
-with. As with the other commands, the testing script requires workspace and data
-roots to be set either via `juneberry.ini` or the `-w`/`-d` switches.
+# Step 4 - Evaluation
+The next step is to evaluate a test set against the trained model and see
+how well the model performs. Evaluation require a trained model, like the one from step 3, 
+and a dataset config describing the evaluation dataset. As with the other commands, the evaluation 
+script requires workspace and data roots to be set either via `juneberry.ini` or the `-w`/`-d` switches.
 
 This example command demonstrates how to test the model trained in the previous step on a 
 new dataset it has not seen before. The workspace root and data root were defined in a 
@@ -98,13 +97,13 @@ new dataset it has not seen before. The workspace root and data root were define
 This script produces the following files in the `imagenette_160x160_rgb_unit_test_pyt_resnet18` model folder:
 
 * 📁`eval` A new folder containing eval data
-    * 📁`imagenette_unit_test` A sub-directory indicating which dataset performed the eval 
-        * 📝`log.txt` : A text file with the command line output which you saw during evaluation
+    * 📁`imagenette_unit_test` A sub-directory indicating whose name matches the dataset that was evaluated 
+        * 📝`log.txt` : A text file with the command line output generated during the evaluation
         * 📝`metrics.json` : The evaluation metrics in JSON format
         * 📝`predictions.json` : The evaluation predictions in JSON format
     
 Evaluation output files follow the format described in 
-[eval_output_specification.md](./juneberry/documentation/eval_output_specification.md) in
+[eval_output_specification.md](../juneberry/documentation/eval_output_specification.md) in
 the Juneberry documentation directory.
 
 # Step 5 - Format Report
@@ -131,25 +130,26 @@ on the same plot. To do so, simply add another `-f` switch and the desired file,
 # Step 6 - Building experiments
 
 ## Using jb_run_experiment:
-Example data config file: [experiments/classificationSmokeTest/config.json](experiments/smokeTests/classify/config.json)
+Example experiment config file: 
+[experiments/classificationSmokeTest/config.json](../experiments/smokeTests/classify/config.json)
 
-As described above, sub-directories in the "experiments" directory describe separate experiments to run. 
+Much like the "models" directory, sub-directories in the "experiments" directory describe separate experiments to run. 
 Each experiment directory contains a `config.json` defining the actions in the experiment, such as which models to 
 train, how those models should be evaluated, and which reports should be generated. The experiment config file follows 
 the format specified in 
-[experiment_configuration_specification.md](./juneberry/documentation/experiment_configuration_specification.md). 
+[experiment_configuration_specification.md](../juneberry/documentation/experiment_configuration_specification.md). 
 
 ## Experiment configs:
 An experiment config file consists of two primary sections:
 
-1. The  "models" section: lists each model to be trained and the set of datasets to be tested against each 
+1. The "models" section: lists each model to be trained and the set of datasets to be tested against each 
    model. Each evaluation receives a tag for identification purposes for reference in the reports section.
 
 2. The "reports" section: lists a series of reports to be generated where each report has a type (e.g. ROC
    curve), and a list of tags from the models section. Optionally, a set of classes can be specified for the report
    for when large datasets (e.g. imagenet) are used in the experiment.
 
-Once an experiment config is created, it can be executed with the [jb_run_experiment](./bin/jb_run_experiment) 
+Once an experiment config is created, it can be executed with the [jb_run_experiment](../bin/jb_run_experiment) 
 command. As with other scripts, the workspace root `-w` can be provided via `juneberry.ini` or via the command line.  
 However, the data root **is ignored** because each model may use a different data root. The experiment runner 
 switches to each model directory before training or testing the model, allowing for the train or test scripts

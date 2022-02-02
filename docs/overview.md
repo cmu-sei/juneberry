@@ -53,11 +53,11 @@ To work with your own model, you will need to create a <model-name> sub-director
 corresponding model config file. This sub-directory will be populated by model-specific outputs, such as the
 trained model, log files, and plots generated throughout the training and/or evaluation process. This sub-directory 
 can be more than one level deep under `models`. Whenever you see something refer to either "model name" or a model by
-"name", it means that sub-directory path under `models`.  For example, the config file for the "unit test" for Detectron2 is in 
-`models/text_detect/dt2/ut/config.json`, so the model "name" is `text_detect/dt2/ut`. 
+"name", it means that sub-directory path under `models`.  For example, the config file for the "unit test" for 
+Detectron2 is in `models/text_detect/dt2/ut/config.json`, so the model "name" is `text_detect/dt2/ut`. 
 
 For more details on the structure of model configs, refer to
-[model_configuration_specification.md](./juneberry/documentation/model_configuration_specification.md) in the Juneberry
+[model_configuration_specification.md](../juneberry/documentation/model_configuration_specification.md) in the Juneberry
 documentation directory.
 
 ## Datasets (`data_set` Directory)
@@ -71,7 +71,7 @@ All data paths in the JSON file should be relative to a single data root. This r
 `juneberry.ini` file or the `-d` command line switch.
 
 For more details on the structure of dataset configs, refer to
-[dataset_configuration_specification.md](juneberry/documentation/dataset_configuration_specification.md) 
+[dataset_configuration_specification.md](../juneberry/documentation/dataset_configuration_specification.md) 
 in the Juneberry documentation directory.
 
 ## Experiments (`experiments` Directory)
@@ -83,10 +83,10 @@ using those trained models.
 
 To work with your own experiment, you will need to create an <experiment-name> sub-directory within the `experiments` 
 directory and a corresponding experiment config file. This sub-directory will be populated by the experiment-specific
-outputs such as log files and plots that were generated throughout the experiment process.
+outputs, such as log files and plots, that were generated throughout the experiment process.
 
 For more details on the structure of experiment configs, refer to
-[experiment_configuration_specification.md](./juneberry/documentation/experiment_configuration_specification.md) in the
+[experiment_configuration_specification.md](../juneberry/documentation/experiment_configuration_specification.md) in the
 Juneberry documentation directory.
 
 # DATA_ROOT Directory
@@ -151,16 +151,17 @@ the ini files. The hierarchy:
 # Example
 
 Juneberry provides a sample model to use for a small system test. This classification model config file is located in
-[`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18)
+[`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18)
 and uses the dataset config files
-[`data_sets/imagenette_unit_train.json`](./data_sets/imagenette_unit_train.json) to 'train' the model and 
-[`data_sets/imagenette_unit_test.json`](./data_sets/imagenette_unit_test.json) to test the model.  The output is stored
-in [`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](./models/imagenette_160x160_rgb_unit_test_pyt_resnet18). 
-The experiment config file located in [`experiments/smokeTests/classify`](./experiments/smokeTests/classify) will use 
+[`data_sets/imagenette_unit_train.json`](../data_sets/imagenette_unit_train.json) to 'train' the model and 
+[`data_sets/imagenette_unit_test.json`](../data_sets/imagenette_unit_test.json) to evaluate the model.  The output is 
+stored in 
+[`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18). The 
+experiment config file located in [`experiments/smokeTests/classify`](../experiments/smokeTests/classify) will use 
 this model, along with the datasets, to generate several ROC curves.
 
 There are also sample object detection models that demonstrate the use of Detectron2 and MMDetection. They can 
-be found in the [`text_detect/dt2`](./models/text_detect/dt2) and [`text_detect/mmd`](./models/text_detect/mmd)
+be found in the [`text_detect/dt2`](../models/text_detect/dt2) and [`text_detect/mmd`](../models/text_detect/mmd)
 directories under the Juneberry models directory.  Each has a "unit test" (`ut`) version and a "full" (`all`) version.
 The "unit test" version has too few images and epochs to provide a useful model output but exercises the infrastructure
 quickly, so you can evaluate if things are working properly.

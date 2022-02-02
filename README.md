@@ -73,13 +73,13 @@ This should train a basic tabular dataset, and the final epoch should report a t
 
 # Experiment Overview
 
-For an overview of the structure of the Juneberry workspace and how experiments are organized see the 
-[Workspace and Experiment Overiew](./overview.md) documentation.
+The [Workspace and Experiment Overview](docs/overview.md) documentation contains information about 
+the structure of the Juneberry workspace and how to organize experiments.
 
 # Experiment Tutorial
 
-For a tutorial on how to create a create and train a model and run an experiment, see the 
-[Juneberry Basic Tutorial](./tutorial.md).
+The [Juneberry Basic Tutorial](docs/tutorial.md) describes how to create a model, train the model, 
+and run an experiment.
 
 # Special Configuration Variables
 
@@ -92,8 +92,9 @@ after model load and again after epochs 1, 11, 21, 31, etc.
 
 ## Known Warnings
 
-A veriety of known warnings are generated when using Juneberry. They are discussed here in 
-[Known Warnings in Juneberry](./known_warnings.md).
+During normal use of Juneberry, you may encounter warning messages. The
+[Known Warnings in Juneberry](docs/known_warnings.md) documentation contains information about known warning 
+messages and what (if anything) should be done about them.
 
 ## Further Reading
 
