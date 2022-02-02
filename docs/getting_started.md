@@ -15,8 +15,24 @@ Juneberry requires several directories to store its components, such as the sour
 Tensorboard logs, and caches.  To simplify all this, create a single directory for your project. 
 This directory will be referred to as the **project-root**.
 
-Inside the project-root, your goal is to create the sub-directories for the various components. Use 
-the following commands to obtain a copy of the Juneberry source code, and create the various 
+Inside the project-root, your goal is to create the sub-directories for the various components.
+You can use the script called "setup_project.py" in the script directory to automatically 
+create the structure or create manually.
+
+### Using setup_project.py
+
+From you project root we'll clone the juneberry repository, then use the script from within
+the cloned repository.
+
+```shell script
+git clone https://github.com/cmu-sei/juneberry.git
+juneberry/scripts/setup_project.py . 
+```
+
+### Manually creating the project structure
+
+If you don't want to create it automatically, or don't have a working version of python,
+use the following commands to obtain a copy of the Juneberry source code, and create the various 
 sub-directories the Juneberry Docker container will look for:
 
 ```shell script
@@ -26,8 +42,9 @@ mkdir cache/hub
 mkdir cache/torch
 mkdir dataroot
 mkdir tensorboard
-mkdir workspace
 ```
+
+### The project structure
 
 At this point, your project-root should resemble the following directory structure:
 
@@ -39,7 +56,7 @@ project-root/
     dataroot/
     juneberry/
     tensorboard/
-    workspace/
+    workspace/    (optional)
 ```
 
 ## Starting the Container
@@ -52,18 +69,18 @@ on your system. Refer to the following installation steps
 
 The Juneberry Docker containers can be built from scratch as described in 
 [Building Juneberry Docker Containers](building_docker.md), but they can also be downloaded from a repo, such as 
-the following repo on [Docker Hub - (external link)](https://hub.docker.com/repository/docker/amellinger/juneberry). 
+the following repo on [Docker Hub - (external link)](https://hub.docker.com/r/cmusei/juneberry). 
 Assuming you have configured your Docker instance to work with this repo, you could execute the following command 
 to pull the CPU-only Juneberry Docker image:
 
 ```shell script
-docker pull amellinger/juneberry:cpudev
+docker pull cmusei/juneberry:cpudev
 ```
 
 Alternatively, the following command would pull the CUDA-enabled Juneberry Docker image, which is much larger:
 
 ```shell script
-docker pull amellinger/juneberry:cudadev
+docker pull cmusei/juneberry:cudadev
 ```
 
 The Docker images themselves do not contain any Juneberry source code or data.  The code and data get
@@ -86,7 +103,7 @@ For example, the following command will start an instance of the downloaded CPU-
 from within the _project-root_ directory:
 
 ```shell script
-juneberry/docker/enter_juneberry_container -c amellinger/juneberry:cpudev `pwd`
+juneberry/docker/enter_juneberry_container -c cmusei/juneberry:cpudev `pwd`
 ```
 
 **NOTE:** Docker does not like the shortcuts provided by the `.` or `~` symbols and requires the use of expanded paths.
@@ -161,6 +178,8 @@ platform versions is required in order to get all the included platforms to inst
 
 Assuming the same project-root structure as before, the manual installation will introduce another 
 directory inside the project-root. Perform these installation steps **INSIDE** the project-root.
+Follow the instructions above in the docker section for setting up the project root and 
+acquiring a copy of Juneberry.
 
 ## Set up a virtual environment
 
@@ -177,14 +196,12 @@ python3 -m pip install --upgrade pip
 
 ## Clone MMDetection and Juneberry
 
-The following commands can be used to clone MMDetection and Juneberry into your current directory.
+The following commands can be used to clone MMDetection and Juneberry into the project directory
+as a sibling to the Juneberry repository directory.
 
 ```shell script
 # Get a copy of mmdetection
 git clone --depth 1 --branch v2.18.0 https://github.com/open-mmlab/mmdetection.git ./mmdetection
-
-# Get a copy of juneberry
-git clone https://github.com/cmu-sei/juneberry.git
 ```
 
 ## Install from Requirements
