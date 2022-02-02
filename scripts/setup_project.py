@@ -48,7 +48,7 @@ def create_missing_project_dirs(project_dir: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--project_dir", help="Directory containing the Juneberry project.")
+    parser.add_argument("project_dir", help="Directory containing the Juneberry project.")
     args = parser.parse_args()
     create_missing_project_dirs(args.project_dir)
 
