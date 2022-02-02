@@ -203,7 +203,7 @@ Use the following commands to install the packages in requirements.txt.
 
 ```shell script
 cd juneberry
-cat requirements.txt | xargs pip install
+cat requirements.txt | xargs pip install --no-cache-dir
 ```
 
 ## Install MMDetection
