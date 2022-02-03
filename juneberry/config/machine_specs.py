@@ -25,6 +25,7 @@
 import logging
 from prodict import List, Prodict
 import sys
+import re
 
 import juneberry.filesystem as jbfs
 
@@ -46,11 +47,7 @@ class MachineSpecs(Prodict):
         """
         error_count = 0
 
-        # Verify that defaults are specified
-        if self.num_workers is None:
-            error_count += 1
-        if self.num_gpus is None:
-            error_count += 1
+        # Check that "include" contains a valid machine:model pair?
 
         # If errors found, report and exit
         if error_count > 0:
@@ -58,7 +55,7 @@ class MachineSpecs(Prodict):
             sys.exit(-1)
 
     @staticmethod
-    def construct(data: dict):
+    def construct(data: dict, file_path: str = None):
         """
         Load, validate, and construct a machine specs object.
         :param data: The data to use to construct the object.
@@ -83,21 +80,22 @@ class MachineSpecs(Prodict):
         """
 
         if machine in config_data:
-            if model in config_data[machine]:
-                if "include" in config_data[machine][model]:
-                    machine = config_data[machine][model]["include"].split(':')[0]
-                    model = config_data[machine][model]["include"].split(':')[1]
-                    specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
+            for key in config_data[machine].keys():
+                if re.match(key, model):
+                    if "include" in config_data[machine][key]:
+                        machine = config_data[machine][key]["include"].split(':')[0]
+                        model = config_data[machine][key]["include"].split(':')[1]
+                        specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
 
-                else:
-                    for prop in MachineSpecs.properties:
-                        if prop in config_data[machine][model]:
-                            specs_data[prop] = config_data[machine][model][prop]
+                    else:
+                        for prop in MachineSpecs.properties:
+                            if prop in config_data[machine][key]:
+                                specs_data[prop] = config_data[machine][key][prop]
 
         return specs_data
 
     @staticmethod
-    def load(data_path: str, machine_class: str, model_name: str):
+    def load(data_path: str, machine_class: str = None, model_name: str = None):
         """
         Loads the machine config file from the provided path, validates, and constructs the MachineSpecs object.
         :param data_path: Path to the machine config annotations file.
@@ -115,16 +113,19 @@ class MachineSpecs(Prodict):
                                                     config_data=config_data, specs_data=specs_data)
 
         # Check machine:default
-        specs_data = MachineSpecs.update_properties(machine=machine_class, model="default",
-                                                    config_data=config_data, specs_data=specs_data)
+        if machine_class:
+            specs_data = MachineSpecs.update_properties(machine=machine_class, model="default",
+                                                        config_data=config_data, specs_data=specs_data)
 
         # Check default:model
-        specs_data = MachineSpecs.update_properties(machine="default", model=model_name,
-                                                    config_data=config_data, specs_data=specs_data)
+        if model_name:
+            specs_data = MachineSpecs.update_properties(machine="default", model=model_name,
+                                                        config_data=config_data, specs_data=specs_data)
 
         # Check machine:model
-        specs_data = MachineSpecs.update_properties(machine=machine_class, model=model_name,
-                                                    config_data=config_data, specs_data=specs_data)
+        if machine_class and model_name:
+            specs_data = MachineSpecs.update_properties(machine=machine_class, model=model_name,
+                                                        config_data=config_data, specs_data=specs_data)
 
         # Construct the specs object
-        return MachineSpecs.construct(specs_data)
+        return MachineSpecs.construct(specs_data, data_path)
