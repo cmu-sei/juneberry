@@ -3,7 +3,8 @@ BUILDING THE VIGNETTE IMAGE
 
 # Introduction
 
-This document describes the process for building the Vignette Docker Image.
+This document is intended for Juneberry developers and describes the process for building 
+the Vignette Docker image. To use a built image, pull it from docker hub as `cmusei/juneberry:vignette`.
 
 To properly build this image we need to prepare a context directory and must contain:
 

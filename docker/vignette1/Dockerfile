@@ -5,7 +5,7 @@ FROM python:3.8.5
 # For some reason the base image doesn't always have the right permissions on /tmp
 RUN chmod 1777 /tmp
 
-# These are needed for opencv - not by default on some platforms
+# Get the latest, install some OS packages, and clean up
 RUN apt-get update \
     && apt-get install -y libgl1-mesa-glx figlet sudo vim emacs nano \
     && apt-get clean \
