@@ -29,7 +29,6 @@ import os
 from pathlib import Path
 
 from juneberry.lab import Lab
-from juneberry.config.machine_specs import MachineConfig
 
 logger = logging.getLogger(__name__)
 

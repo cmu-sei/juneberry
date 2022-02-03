@@ -74,11 +74,11 @@ def test_machine_specs(tmp_path):
 
     # Test default:default case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="not_good")
-    assert specs_data == {"num_workers": 4}
+    assert specs_data == {"num_workers": 4, "num_gpus": None}
 
     # Test machine:default case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="not_great")
-    assert specs_data == {"num_workers": 8}
+    assert specs_data == {"num_workers": 8, "num_gpus": None}
 
     # Test default:model case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="cool4ever")
@@ -86,9 +86,9 @@ def test_machine_specs(tmp_path):
 
     # Test machine:model case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class="pme", model_name="tabular_2")
-    assert specs_data == {"num_workers": 20}
+    assert specs_data == {"num_workers": 20, "num_gpus": None}
 
     # Test include case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="object_det_vers3")
-    assert specs_data == {"num_workers": 16}
+    assert specs_data == {"num_workers": 16, "num_gpus": None}
 

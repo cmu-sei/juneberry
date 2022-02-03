@@ -83,8 +83,9 @@ class MachineSpecs(Prodict):
             for key in config_data[machine].keys():
                 if re.match(key, model):
                     if "include" in config_data[machine][key]:
-                        machine = config_data[machine][key]["include"].split(':')[0]
-                        model = config_data[machine][key]["include"].split(':')[1]
+                        lst = config_data[machine][key]["include"].split(':')
+                        machine = lst[0]
+                        model = lst[1]
                         specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
 
                     else:
