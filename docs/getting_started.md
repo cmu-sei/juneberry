@@ -1,39 +1,38 @@
 GETTING STARTED
 ==========
 
-This document describes the actions to take in order to get started with using Juneberry. There are two 
-courses of actions described here. The recommended approach, described first, involves making use of a 
-Juneberry Docker container. The second approach describes how to install Juneberry in a virtual Python 
-environment. The latter approach has not been tested on a variety of platforms, and therefore the Docker 
-container method is preferred.
+This document describes the actions to take in order to get started with using Juneberry. After performing 
+some preparation steps on your filesystem, there are two possible courses of actions described here. The 
+recommended approach, described first, involves making use of a Juneberry Docker container. The second 
+approach describes how to install Juneberry in a virtual Python environment. The latter approach has not 
+been tested on a variety of platforms, and therefore the Docker container method is preferred.
 
-# Juneberry with a Docker Container
+# Preparation Steps
 
 ## Project Layout
 
 Juneberry requires several directories to store its components, such as the source code, the data,
-Tensorboard logs, and caches.  To simplify all this, create a single directory for your project. 
-This directory will be referred to as the **project-root**.
+Tensorboard logs, and caches.  To organize these components, start by creating a single directory 
+for your project. This directory will be referred to as the **project-root**.
 
-Inside the project-root, your goal is to create the sub-directories for the various components.
-You can use the script called "setup_project.py" in the script directory to automatically 
-create the structure or create manually.
+Inside the project-root, your goal is to create sub-directories for the various Juneberry components.
+You can create these sub-directories manually, or use the "setup_project.py" script located in the 
+"scripts" directory to automatically create the required directories.
 
 ### Using setup_project.py
 
-From you project root we'll clone the juneberry repository, then use the script from within
-the cloned repository.
+Inside your project root, clone the Juneberry repository from GitHub, then use the "setup_project" script 
+from inside the newly cloned repository to create the remaining sub-directories in the project root.
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
 juneberry/scripts/setup_project.py . 
 ```
 
-### Manually creating the project structure
+### Manually Creating the Project Structure
 
-If you don't want to create it automatically, or don't have a working version of python,
-use the following commands to obtain a copy of the Juneberry source code, and create the various 
-sub-directories the Juneberry Docker container will look for:
+If you need to manually create the various sub-directories for the Juneberry Docker, you can 
+use the following commands to obtain the Juneberry source code and establish the expected directories:
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
@@ -44,9 +43,9 @@ mkdir dataroot
 mkdir tensorboard
 ```
 
-### The project structure
+### The Project Structure
 
-At this point, your project-root should resemble the following directory structure:
+At this point, your project root should resemble the following directory structure:
 
 ```
 project-root/
@@ -58,6 +57,12 @@ project-root/
     tensorboard/
     workspace/    (optional)
 ```
+
+# Juneberry with a Docker Container
+
+This section describes how run Juneberry using a Docker container. This is the recommended approach for 
+using Juneberry. If you choose to follow the steps in this section, you do not need to perform the actions 
+in the "Juneberry with a Virtual Environment" section of this document.
 
 ## Starting the Container
 
@@ -174,13 +179,6 @@ and the user will be placed inside this directory.
 Juneberry can be installed in a virtual environment. However, a specific order of operations and a set of 
 platform versions is required in order to get all the included platforms to install properly. 
 
-## Project Layout
-
-Assuming the same project-root structure as before, the manual installation will introduce another 
-directory inside the project-root. Perform these installation steps **INSIDE** the project-root.
-Follow the instructions above in the docker section for setting up the project root and 
-acquiring a copy of Juneberry.
-
 ## Set up a virtual environment
 
 Any virtual environment,such as venv or pyenv, can be used. The first step is to construct and enter 
@@ -196,8 +194,8 @@ python3 -m pip install --upgrade pip
 
 ## Clone MMDetection and Juneberry
 
-The following commands can be used to clone MMDetection and Juneberry into the project directory
-as a sibling to the Juneberry repository directory.
+The following commands can be used to clone MMDetection into the project directory as a sibling to the 
+Juneberry repository directory.
 
 ```shell script
 # Get a copy of mmdetection
