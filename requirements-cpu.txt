@@ -20,7 +20,7 @@ natsort==7.1.1
 opacus==0.14.0
 protobuf==3.16.0
 onnx==1.10.1
-onnxruntime-gpu==1.10.0
+onnxruntime==1.10.0
 tf2onnx==1.9.3
 opencv-python==4.5.5.62
 tqdm==4.62.3
