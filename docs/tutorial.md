@@ -8,7 +8,7 @@ For this example you will need the Imagenette data, which you can obtain by foll
 steps [here](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18/README.md).
 
 Dataset configs follow the format described in 
-[dataset_configuration_specification.md](./dataset_configuration_specification.md) in the
+[dataset_configuration_specification.md](specs/dataset_configuration_specification.md) in the
 Juneberry documentation directory. These config files are used to describe a dataset 
 which is composed of image directories, labels, sampling criteria
 and **desired** image properties. Remember, the paths in the config are relative
@@ -19,7 +19,7 @@ Example model config file:
 [models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18/config.json)
 
 Model configs follow the format described in 
-[model_configuration_specification.md](./model_configuration_specification.md) in
+[model_configuration_specification.md](specs/model_configuration_specification.md) in
 the Juneberry documentation directory. Model configs must be named "config.json" and placed in a model sub-directory 
 inside the "models" directory. These config files specify details such as model architecture, hyperparameters, datasets,
 transforms, etc. See the documentation for details describing supported model config properties.
@@ -103,7 +103,7 @@ This script produces the following files in the `imagenette_160x160_rgb_unit_tes
         * 📝`predictions.json` : The evaluation predictions in JSON format
     
 Evaluation output files follow the format described in 
-[eval_output_specification.md](./eval_output_specification.md) in
+[eval_output_specification.md](specs/eval_output_specification.md) in
 the Juneberry documentation directory.
 
 # Step 5 - Format Report
@@ -137,7 +137,7 @@ Much like the "models" directory, sub-directories in the "experiments" directory
 Each experiment directory contains a `config.json` defining the actions in the experiment, such as which models to 
 train, how those models should be evaluated, and which reports should be generated. The experiment config file follows 
 the format specified in 
-[experiment_configuration_specification.md](./experiment_configuration_specification.md). 
+[experiment_configuration_specification.md](specs/experiment_configuration_specification.md). 
 
 ## Experiment configs:
 An experiment config file consists of two primary sections:

@@ -57,7 +57,7 @@ can be more than one level deep under `models`. Whenever you see something refer
 Detectron2 is in `models/text_detect/dt2/ut/config.json`, so the model "name" is `text_detect/dt2/ut`. 
 
 For more details on the structure of model configs, refer to
-[model_configuration_specification.md](./model_configuration_specification.md) in the Juneberry
+[model_configuration_specification.md](specs/model_configuration_specification.md) in the Juneberry
 documentation directory.
 
 ## Datasets (`data_set` Directory)
@@ -71,7 +71,7 @@ All data paths in the JSON file should be relative to a single data root. This r
 `juneberry.ini` file or the `-d` command line switch.
 
 For more details on the structure of dataset configs, refer to
-[dataset_configuration_specification.md](./dataset_configuration_specification.md) 
+[dataset_configuration_specification.md](specs/dataset_configuration_specification.md) 
 in the Juneberry documentation directory.
 
 ## Experiments (`experiments` Directory)
@@ -86,7 +86,7 @@ directory and a corresponding experiment config file. This sub-directory will be
 outputs, such as log files and plots, that were generated throughout the experiment process.
 
 For more details on the structure of experiment configs, refer to
-[experiment_configuration_specification.md](./experiment_configuration_specification.md) in the
+[experiment_configuration_specification.md](specs/experiment_configuration_specification.md) in the
 Juneberry documentation directory.
 
 # DATA_ROOT Directory
