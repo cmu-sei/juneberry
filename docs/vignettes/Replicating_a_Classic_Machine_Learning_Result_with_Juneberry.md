@@ -838,7 +838,7 @@ and it should look something like the following block of code:
     },
     "seed": 31415,
     "task": "classification",
-    "timestamp": "2021-06-11T10:00:00",
+    "timestamp": "2022-02-03T08:30:00",
     "trainer": {
         "fqcn": "juneberry.pytorch.classifier_trainer.ClassifierTrainer"
     },
@@ -1047,36 +1047,36 @@ The code block below contains many of the common fields found in a Juneberry exp
 
 ```json
 {
-    "baseline_config": <The name of a model in the model directory.>,
-    "description": <A human-readable description (or purpose) of this experiment.>,
-    "filters": [<The list of experiment filters to include verbatim.>]
-    "format_version": <A Linux-style version string of the format of this file.>,
+    "baseline_config": "<The name of a model in the model directory.>",
+    "description": "<A human-readable description (or purpose) of this experiment.>",
+    "filters": ["<The list of experiment filters to include verbatim.>"],
+    "format_version": "<A Linux-style version string of the format of this file.>",
     "model" : {
-        "filters": [<A list of filters to add to each model.>]
-    }
+        "filters": ["<A list of filters to add to each model.>"]
+    },
     "reports": [
         {
-            "type": <The report type: [plot_roc | plot_pr | summary | all_roc | all_pr].>,
-            "description": <A brief description of this report.>,
-            "test_tag": <REQUIRED, type must be plot_roc - A tag from the tests stanza above.>,
-            "classes": <OPTIONAL, type must be plot_roc - The comma-separated classes to plot (e.g. 0,1,2,3,8,0+1,2+3).>,
-            "iou": <OPTIONAL, type must be plot_pr or all_pr - A float between 0.5 and 1.0.>,
-            "output_name": <REQUIRED, type must be summary - The filename for the output file.> 
+            "type": "<The report type: [plot_roc | plot_pr | summary | all_roc | all_pr].>",
+            "description": "<A brief description of this report.>",
+            "test_tag": "<REQUIRED, type must be plot_roc - A tag from the tests stanza above.>",
+            "classes": "<OPTIONAL, type must be plot_roc - The comma-separated classes to plot (e.g. 0,1,2,3,8,0+1,2+3).>",
+            "iou": "<OPTIONAL, type must be plot_pr or all_pr - A float between 0.5 and 1.0.>",
+            "output_name": "<REQUIRED, type must be summary - The filename for the output file.>" 
         }
     ],
     "tests": [
         {
-            "tag": <An internal tag that will reference this test.>,
-            "dataset_path": <A path to a dataset config file to evaluate.>,
-            "classify": <An integer that controls how many of the top predicted classes get recorded.>
+            "tag": "<An internal tag that will reference this test.>",
+            "dataset_path": "<A path to a dataset config file to evaluate.>",
+            "classify": "<An integer that controls how many of the top predicted classes get recorded.>"
         }
     ],
-    "timestamp": <An optional ISO time stamp for when the file was created.>,
+    "timestamp": "<An optional ISO time stamp for when the file was created.>",
     "variables": [
         {
-            "nickname": <A short string to describe the variable; used in the derived model name>, 
-            "config_field": <A string indicating which ModelConfig parameter to change>,
-            "vals": [<A list of desired options for this variable.>] | <"RANDOM" (if the config_field is a seed).>
+            "nickname": "<A short string to describe the variable; used in the derived model name>", 
+            "config_field": "<A string indicating which ModelConfig parameter to change>",
+            "vals": ["<A list of desired options for this variable OR 'RANDOM' if the config_field is a seed.>"]
         }
     ]
 }
@@ -1118,7 +1118,7 @@ The resulting experiment outline would look something like this:
             "tag": "CIFAR-10 Test"
         }
     ],
-    "timestamp": "2021-06-238T10::00",
+    "timestamp": "2022-02-03T08:30:00",
     "variables": [
         {
             "config_field": "model_architecture.args.layers",
