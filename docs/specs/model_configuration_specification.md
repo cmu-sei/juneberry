@@ -30,7 +30,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "evaluation_transforms": [ <array of transforms - see below> ],
     "evaluation_target_transforms": [ <array of transforms - see below> ],
     "evaluator": {
-        "fqcn": <fully qualified name of class that extends the juneberry.evaluator base class>,
+        "fqcn": <fully qualified name of class that extends the juneberry.evaluation.evaluator base class>,
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
     }
     "format_version": <Linux style version string of the format of this file>,

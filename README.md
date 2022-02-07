@@ -19,7 +19,7 @@ This README contains:
 
 As an alternative to this README, there are some vignettes located in the `juneberry/documentation/vignettes` directory 
 which offer more structured walkthroughs of some common Juneberry operations. A good start is 
-[Replicating a Classic Machine Learning Result with Juneberry](./juneberry/documentation/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md).
+[Replicating a Classic Machine Learning Result with Juneberry](docs/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md).
 
 # TL;DR
 
@@ -102,7 +102,7 @@ messages and what (if anything) should be done about them.
 As a reminder, the `juneberry/documentation/vignettes` directory contains more detailed walkthroughs of various 
 Juneberry tasks. The vignettes provide helpful examples of how to construct various Juneberry configuration files, 
 including datasets, models, and experiments. A good start is 
-[Replicating a Classic Machine Learning Result with Juneberry](./juneberry/documentation/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md).
+[Replicating a Classic Machine Learning Result with Juneberry](docs/vignettes/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md).
 
 
 # Copyright
