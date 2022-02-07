@@ -26,6 +26,7 @@ import logging
 from prodict import List, Prodict
 import sys
 import re
+import os
 
 import juneberry.filesystem as jbfs
 
@@ -47,7 +48,9 @@ class MachineSpecs(Prodict):
         """
         error_count = 0
 
-        # Check that "include" contains a valid machine:model pair?
+        # Check that the number of gpus doesn't exceed the number of cuda visible devices
+        if self.num_gpus > int(os.environ.get('CUDA_VISIBLE_DEVICES')):
+            error_count += 1
 
         # If errors found, report and exit
         if error_count > 0:
@@ -83,9 +86,9 @@ class MachineSpecs(Prodict):
             for key in config_data[machine].keys():
                 if re.match(key, model):
                     if "include" in config_data[machine][key]:
-                        lst = config_data[machine][key]["include"].split(':')
-                        machine = lst[0]
-                        model = lst[1]
+                        include_lst = config_data[machine][key]["include"].split(':')
+                        machine = include_lst[0]
+                        model = include_lst[1]
                         specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
 
                     else:
@@ -94,6 +97,48 @@ class MachineSpecs(Prodict):
                                 specs_data[prop] = config_data[machine][key][prop]
 
         return specs_data
+
+    @staticmethod
+    def check_workspace_config(config_data: dict):
+        # Check for default:default option
+        default_error_count = 0
+
+        if "default" not in config_data:
+            default_error_count += 1
+        else:
+            if "default" not in config_data["default"]:
+                default_error_count += 1
+
+        # Report missing default:default section
+        if default_error_count > 0:
+            logger.error(f"Config missing default:default section.")
+
+        # Check for valid include
+        include_error_count = 0
+
+        for machine_key in config_data.keys():
+            for model_key in config_data[machine_key]:
+                if "include" in config_data[machine_key][model_key]:
+                    include_lst = config_data[machine_key][model_key]["include"].split(":")
+                    # Check for invalid machine:model pair
+                    if include_lst[0] not in config_data:
+                        include_error_count += 1
+                    else:
+                        if include_lst[0] not in config_data[include_lst[0]]:
+                            include_error_count += 1
+                        else:
+                            # Check for chained includes
+                            if "include" in config_data[include_lst[0]][include_lst[1]]:
+                                include_error_count += 1
+
+        # Report invalid include(s)
+        if include_error_count > 0:
+            logger.error(f"Config contains invalid include(s).")
+
+        error_count = default_error_count + include_error_count
+        if error_count > 0:
+            logger.error(f"Found {error_count} errors in machine specs. EXITING.")
+            sys.exit(-1)
 
     @staticmethod
     def load(data_path: str, machine_class: str = None, model_name: str = None):
@@ -108,6 +153,9 @@ class MachineSpecs(Prodict):
         logger.info(f"Loading MACHINE CONFIG from {data_path}")
         config_data = jbfs.load_file(data_path)
         specs_data = {}
+
+        # Checks config
+        MachineSpecs.check_workspace_config(config_data)
 
         # Check default:default
         specs_data = MachineSpecs.update_properties(machine="default", model="default",

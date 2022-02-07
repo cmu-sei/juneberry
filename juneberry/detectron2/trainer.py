@@ -194,10 +194,6 @@ class Detectron2Trainer(Trainer):
         if self.num_gpus == 0:
             cfg.MODEL.DEVICE = "cpu"
 
-        # AOM: I have no idea of the impact of this
-        if hasattr(self.model_config, "hints"):
-            cfg.DATALOADER.NUM_WORKERS = self.model_config.hints.get('num_workers', 4)
-
         # =====================================================================
         # In JB the user specifies the number of epochs. An epoch is ONE complete pass through the data
         # in a set of batches. At the end we perform a validation at the end of each epoch.

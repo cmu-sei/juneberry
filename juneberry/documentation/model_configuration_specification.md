@@ -33,9 +33,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
     }
     "format_version": <Linux style version string of the format of this file>,
-    "hints": {
-        "num_workers": <Integer number of workers the system should prefer>
-    },
     "label_mapping": <OPTIONAL: A dictionary or filepath to a JSON file containing a dictionary which translates
                      the integer class numbers the model is aware of into human-readable strings.>,
     "mmdetection": {
@@ -319,10 +316,6 @@ refer to juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator.
 Linux style version of the **format** of the file. Not the version of 
 the data, but the version of the semantics of the fields of this file. 
 The current version: 0.2.0
-
-## hints
-**Optional:** A section for different values that may improve that performance or general computation. These should 
-not impact the output in any substantial way and may be ignored by the system based on other requirements.
 
 ### num_workers
 A hint indicating how many worker threads that is best for training this model.

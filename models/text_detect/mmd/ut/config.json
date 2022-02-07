@@ -4,9 +4,6 @@
     "epochs": 6,
     "evaluation_transforms": [],
     "format_version": "0.2.0",
-    "hints": {
-        "num_workers": 1
-    },
     "mmdetection": {
         "load_from": "https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco_20201028_233851-b33d21b9.pth",
         "overrides": {

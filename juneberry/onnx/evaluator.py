@@ -59,13 +59,6 @@ class Evaluator(EvaluatorBase):
         :return: Nothing.
         """
 
-        # TODO: Shouldn't this be done in the lab??
-
-        if self.model_config.hints is not None and 'num_workers' in self.model_config.hints.keys():
-            num_workers = self.model_config.hints.num_workers
-            logger.warning(f"Overriding number of workers. Found {num_workers} in ModelConfig")
-            self.lab.num_workers = num_workers
-
         # Set the seeds using the value from the ModelConfig.
         jb_utils.set_seeds(self.model_config.seed)
 

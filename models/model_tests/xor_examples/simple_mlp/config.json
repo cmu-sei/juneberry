@@ -43,9 +43,6 @@
         "arguments": {
             "file_path": "models/model_tests/xor_examples/xor.json"
         }
-    },    
-    "hints": {
-        "max_gpus": 1
     },
     "stopping_criteria": {
         "history_key": "val_accuracy",

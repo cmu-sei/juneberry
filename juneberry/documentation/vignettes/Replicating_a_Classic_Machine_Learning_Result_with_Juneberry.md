@@ -545,7 +545,6 @@ field's purpose. The next few sections describe how to fill out these fields to 
     "seed":  <A numerical value used for randomization.>,
     "batch_size": <The number of samples viewed between updates of the model's internal parameters.>,
     "task":  <The type of data processing task; could be classification or object detection.>,
-    "hints": {<Properties that relate to performance or general computation.>},
     "evaluation_procedure": <The path to a class defining the evaluation procedure.>,
     "evaluation_output": <The path to a class defining the format of the evaluation output.>, 
     "training_dataset_config_path": <The path to the dataset configuration file to use for training.>,
@@ -708,9 +707,6 @@ For example, if you have two GPUs available, you would specify the config as fol
 
 ```json
     "batch_size": 128,
-    "hints": {
-        "max_gpus": 2    
-    },
     "epochs": 182,
     "pytorch": {
         "loss_fn": "torch.nn.CrossEntropyLoss",
@@ -805,10 +801,6 @@ and it should look something like the following block of code:
     "seed": 31415,
     "batch_size": 128,
     "task": "classification",
-    "hints": {
-        "num_Workers": 0,
-        "max_gpus": 2
-    },
     "training_dataset_config_path": "data_sets/torchvision/cifar10.json",
     "validation": {
         "algorithm": "random_fraction",

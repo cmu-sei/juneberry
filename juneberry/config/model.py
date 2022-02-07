@@ -150,8 +150,6 @@ class ModelConfig(Prodict):
     evaluator: Plugin
     file_path: Path
     format_version: str
-    # TODO: Expand hints
-    hints: Prodict
     label_mapping: typing.Union[Prodict, str]
     # TODO: Define mmdetection
     mmdetection: Prodict
