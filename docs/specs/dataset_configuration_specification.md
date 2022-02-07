@@ -60,6 +60,7 @@ configuration file as part of the input.
     "torchvision_data": {
         "fqcn": <fully qualified class name e.g., torchvision.datasets.ImageNet>,
         "root": <branch within the data_root to be passed in as the root argument to the torchvision dataset class>,
+        "task_type": <Task to be performed [classification | objectDetection]>,
         "train_kwargs": { <args to pass into the training instance except 'root', 'transform' and 'target_transform'>},
         "val_kwargs": { <args to pass into the validation instance except 'root', 'transform' and 'target_transform'>}
         "eval_kwargs": { <args to pass into the evaluation instance except 'root', 'transform' and 'target_transform'>}
@@ -267,6 +268,10 @@ Fully qualified class name of the torchvision dataset, such as `torchvision.data
 
 ### root
 The branch within the data_root to be passed in as the root argument to the torchvision dataset class.
+
+### task_type
+This field describes what task the images in the dataset are intended for. Task types currently 
+supported: "classification" or "objectDetection".
 
 ### train_kwargs
 A set of kwargs to be passed into the **training** instance, except for 'root', 'transform', and 'target_transform'.
