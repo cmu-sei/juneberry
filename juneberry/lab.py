@@ -45,8 +45,6 @@ class Lab:
         self.num_workers = num_workers
         self.machine_class = machine_class
 
-        # TODO: Override num_gpus and num_workers with machine specs
-
         # We store multiple workspaces and data_roots so we can search them.  The first one is
         # always the default.
         self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
@@ -107,7 +105,7 @@ class Lab:
         :return: A MachineSpecs object containing execution specifications.
         """
         machine_class = self.machine_class
-        machine_config_path = Path(self.workspace(ws_key)) / 'ws_config.json'  # workspace_config.json
+        machine_config_path = Path(self.workspace(ws_key)) / 'config.json'
         return MachineSpecs.load(data_path=str(machine_config_path), machine_class=machine_class, model_name=model_name)
 
     def save_model_config(self, model_config, model_name, model_version=None, ws_key='default'):
