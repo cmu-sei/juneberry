@@ -22,12 +22,13 @@
 #
 # ======================================================================================================================
 
-import math
-import types
-import logging
-from pathlib import Path
-from typing import Optional
 from collections import OrderedDict
+import logging
+import math
+from pathlib import Path
+import sys
+import types
+from typing import Optional
 
 import hjson
 
@@ -66,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 class Detectron2Trainer(Trainer):
     def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level):
+                 log_level, *, resume: bool = False):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.iter: int = 0
@@ -78,7 +79,7 @@ class Detectron2Trainer(Trainer):
         self.model = None
         self.save_model = None
 
-        self.resume = False
+        self.resume = resume
 
         # We shouldn't need to change these.
         self.train_len = 0
@@ -157,25 +158,20 @@ class Detectron2Trainer(Trainer):
         dt2_data.register_train_manifest_files(self.lab, self.model_manager)
 
         # =======
-
-        logger.warning("We do NOT support model transforms!!!")
+        if self.model_config.model_transforms is not None:
+            logger.warning(f"The model config contains model transforms, however the detectron2 trainer does not "
+                           f"currently support model transforms. Ignoring the requested model transforms.")
 
         # Get a basic config
         cfg = get_cfg()
 
-        # Set some basic properties
+        # Build the basis from the model zoo, full config, etc.
+        self._load_config_from_module(cfg)
+        self._overlay_supplements(cfg)
+
+        # Set some basic properties from our model config.
         cfg.SEED = self.model_config.seed
 
-        # plain_train_net has loading of configs from a --config file and also from command line opts
-        # We would do that by tunneling things via self.
-        # cfg.merge_from_file(args.config_file)
-        # cfg.merge_from_list(args.opts)
-
-        model_arch_name = self.model_config.model_architecture['module']
-        logger.info(f"Initializing detectron 2 model from: {model_arch_name}")
-
-        cfg.merge_from_file(model_zoo.get_config_file(model_arch_name))
-        cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model_arch_name)  # Let training initialize from model zoo
         # We can do a local model file if we need.
         # cfg.MODEL.WEIGHTS = "model_final_280758.pkl"
 
@@ -229,10 +225,10 @@ class Detectron2Trainer(Trainer):
         cfg.SOLVER.CHECKPOINT_PERIOD = self.iter_per_epoch
 
         # ===============================================
-        # Okay, we need to scale everything based on GPUs.  We use detectron2 to scale everything.
+        # Okay, we need to scale everything based on GPUs. We use detectron2 to scale everything.
         # TODO: Add Reference World Size concept
         # For now, hard code it to 1, given the learning rate of 0.0025
-        cfg.REFERENCE_WORLD_SIZE = 1
+        cfg.SOLVER.REFERENCE_WORLD_SIZE = 1
 
         # IMS_PER_BATCH: 16
         # BASE_LR: 0.1
@@ -254,8 +250,8 @@ class Detectron2Trainer(Trainer):
         # set of workers IF current REFERENCE_WORLD_SIZE is NOT zero.
         # NOTE: If we are cpu we don't change anything.  We get what they provided.
         # TODO: Should this be pluggable?
-        if cfg.REFERENCE_WORLD_SIZE != 0 and self.num_gpus != 0:
-            logger.info(f"Scaling config. REFERENCE_WORLD_SIZE original={cfg.REFERENCE_WORLD_SIZE}, "
+        if cfg.SOLVER.REFERENCE_WORLD_SIZE != 0 and self.num_gpus != 0:
+            logger.info(f"Scaling config. REFERENCE_WORLD_SIZE original={cfg.SOLVER.REFERENCE_WORLD_SIZE}, "
                         f"new={self.num_gpus}")
             cfg = DefaultTrainer.auto_scale_workers(cfg, self.num_gpus)
 
@@ -307,7 +303,7 @@ class Detectron2Trainer(Trainer):
         # Establish the interval for logging the training metrics to console.
         interval = self.model_config.detectron2.metric_interval
         interval_str = "single iteration" if interval == 1 else f"{interval} iterations"
-        logging.info(f"Common training metrics will be logged after every {interval_str}.")
+        logger.info(f"Common training metrics will be logged after every {interval_str}.")
 
         # NOTE: This is copied wholesale from plain_train_net.py
         # We can do our own optimizer building, etc.
@@ -414,8 +410,7 @@ class Detectron2Trainer(Trainer):
             # NOTE: This is a custom path for DT2.  We know that DT2 puts the model file in the final
             # OUTPUT directory, so we rename it out of there.
             final_model_path = Path(self.cfg.OUTPUT_DIR) / 'model_final.pth'
-            logger.info(f"Renaming {final_model_path} to "
-                        f"{self.model_manager.get_pytorch_model_path()}")
+            logger.info(f"Renaming {final_model_path} to {self.model_manager.get_pytorch_model_path()}")
             final_model_path.rename(self.model_manager.get_pytorch_model_path())
 
             # Retrieve the metrics from the dt2 metrics log.
@@ -522,6 +517,35 @@ class Detectron2Trainer(Trainer):
                 self.append_metric(content, self.output.results.val_loss, 'validation_loss')
 
         file.unlink()
+
+    def _load_config_from_module(self, cfg):
+        # Loads whatever is in the 'module' property of the model architecture into the config
+        # First, see if the module is in the workspace
+        # Else, try the model zoo
+        model_arch_name = self.model_config.model_architecture['module']
+
+        ws_path = Path(self.lab.workspace())
+        cfg_ws_path = ws_path / model_arch_name
+        if cfg_ws_path.exists():
+            logger.info(f"Initializing detectron 2 model from local file: {model_arch_name}")
+            cfg.merge_from_file(str(cfg_ws_path))
+        else:
+            logger.info(f"Initializing detectron 2 model from model zoo: {model_arch_name}")
+            cfg.merge_from_file(model_zoo.get_config_file(model_arch_name))
+            cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(model_arch_name)  # Let training initialize from model zoo
+
+    def _overlay_supplements(self, cfg):
+        # Looks through the supplements property and merge in those files
+        if self.model_config.detectron2 is not None:
+            if self.model_config.detectron2.supplements is not None:
+                for path in self.model_config.detectron2.supplements:
+                    tmp_path = Path(path)
+                    if tmp_path.exists():
+                        logger.info(f"Loading config supplements from {path}")
+                        cfg.merge_from_file(path)
+                    else:
+                        logger.error(f"Failed to find supplement {path}. Exiting.")
+                        sys.exit(-1)
 
 
 def default_setup(model_manager: ModelManager, cfg, args):

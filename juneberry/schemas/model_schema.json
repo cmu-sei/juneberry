@@ -20,7 +20,11 @@
             "properties": {
                 "disable_val_loss": { "type": "boolean" },
                 "metric_interval": { "type": "integer" },
-                "overrides": { "type": "array" }
+                "overrides": { "type": "array" },
+                "supplements": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
             },
             "required": [ ]
         },

@@ -1,0 +1,6 @@
+INPUT:
+  CROP:
+    SIZE:
+    - 0.92
+    - 0.92
+VERSION: 2

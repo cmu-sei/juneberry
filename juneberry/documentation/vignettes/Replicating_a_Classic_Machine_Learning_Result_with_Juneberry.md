@@ -316,10 +316,10 @@ before returning the instantiated custom model:
 class Resnet32x32:
     def __call__(self, img_width, img_height, channels, num_classes, layers):
         if img_width != 32 or img_height != 32 or channels != 3:
-            logging.error("The model only works with 32x32 RGB images.")
+            logger.error("The model only works with 32x32 RGB images.")
             sys.exit(-1)
         elif(layers - 2) % 6 != 0:
-            logging.error("Layers argument missing or incorrect. (Layers - 2) % 6 must be zero for ResNet6n2.")
+            logger.error("Layers argument missing or incorrect. (Layers - 2) % 6 must be zero for ResNet6n2.")
             sys.exit(-1)
         else:
             model = ResNetCustom(block=BB, n=int((layers - 2)/6), num_classes=num_classes)
@@ -451,10 +451,10 @@ class ResNetCustom(nn.Module):
 class Resnet32x32:
     def __call__(self, img_width, img_height, channels, num_classes, layers):
         if img_width != 32 or img_height != 32 or channels != 3:
-            logging.error("The model only works with 32x32 RGB images.")
+            logger.error("The model only works with 32x32 RGB images.")
             sys.exit(-1)
         elif (layers - 2) % 6 != 0:
-            logging.error("Layers argument missing or incorrect. (Layers - 2) % 6 must be zero for ResNet6n2.")
+            logger.error("Layers argument missing or incorrect. (Layers - 2) % 6 must be zero for ResNet6n2.")
             sys.exit(-1)
         else:
             model = ResNetCustom(block=BB, n=int((layers - 2) / 6), num_classes=num_classes)

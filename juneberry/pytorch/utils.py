@@ -160,7 +160,7 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
 
     # Save the model in PyTorch format.
     if native:
-        logging.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
+        logger.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
         model_path = model_manager.get_pytorch_model_path()
         torch.save(model.state_dict(), model_path)
 
@@ -168,7 +168,7 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
     if onnx:
-        logging.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
+        logger.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
         torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 

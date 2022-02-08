@@ -22,23 +22,37 @@
 #
 # ======================================================================================================================
 
-import logging
-
-from opacus.utils import module_modification
-from opacus.dp_model_inspector import DPModelInspector
-
-logger = logging.getLogger(__name__)
+import argparse
+from pathlib import Path
 
 
-class ConvertBatchnormModules:
-    """
-    Transform used to convert bactchnorms for use in opacus
-    """
+def create_missing_dir(d: Path) -> None:
+    if not d.exists():
+        print(f"Creating project dir \"{d}\".")
+        d.mkdir(parents=True, exist_ok=True)
 
-    def __call__(self, model):
-        logger.info(f"Attempting conversion of batchnorm modules.")
-        model = module_modification.convert_batchnorm_modules(model)
-        inspector = DPModelInspector()
-        logger.info(f"... Is converted model valid for DPSGD?: {inspector.validate(model)}")
 
-        return model
+def create_missing_project_dirs(project_dir: str) -> None:
+    project_subdirs = [
+        "cache",
+        "cache/hub",
+        "cache/torch",
+        "dataroot",
+        "juneberry",
+        "tensorboard",
+    ]
+    create_missing_dir(Path(project_dir))
+    for subdir in project_subdirs:
+        create_missing_dir(Path(project_dir, subdir))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project_dir", help="Directory containing the Juneberry project.")
+    args = parser.parse_args()
+    create_missing_project_dirs(args.project_dir)
+
+
+if __name__ == "__main__":
+    main()
+

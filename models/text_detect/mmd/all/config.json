@@ -3,6 +3,9 @@
     "description": "Trains an object detector with MMDetection using the Sample TextDetection data set.",
     "epochs": 15,
     "evaluation_transforms": [],
+    "evaluator": {
+        "fqcn": "juneberry.mmdetection.evaluator.Evaluator"
+    },
     "format_version": "0.2.0",
     "mmdetection": {
         "load_from": "https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco/faster_rcnn_r50_caffe_dc5_mstrain_1x_coco_20201028_233851-b33d21b9.pth",
@@ -21,6 +24,9 @@
     "seed": 4210592948,
     "task": "objectDetection",
     "timestamp": "2021-03-03T10:00:00",
+    "trainer": {
+        "fqcn": "juneberry.mmdetection.trainer.MMDTrainer"
+    },
     "training_dataset_config_path": "data_sets/text_detect_train.json",
     "training_transforms": [],
     "validation": {

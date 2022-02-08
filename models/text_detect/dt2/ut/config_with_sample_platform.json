@@ -7,19 +7,24 @@
             0.0025,
             "SOLVER.REFERENCE_WORLD_SIZE",
             1
+        ],
+        "supplements": [
+            "models/text_detect/dt2/ut/sample_supplement.yaml",
+            "models/text_detect/dt2/ut/sample_supplement2.yaml"
         ]
+
     },
     "epochs": 1,
     "evaluation_transforms": [],
-    "evaluator": {
-        "fqcn": "juneberry.detectron2.evaluator.Evaluator"
-    },
     "format_version": "0.2.0",
+    "hints": {
+        "num_workers": 1
+    },
     "model_architecture": {
         "args": {
             "num_classes": 3
         },
-        "module": "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+        "module": "models/text_detect/dt2/ut/sample_platform_config.yaml"
     },
     "platform": "detectron2",
     "pytorch": {
@@ -28,9 +33,6 @@
     "seed": 4210592948,
     "task": "objectDetection",
     "timestamp": "2021-03-03T10:00:00",
-    "trainer": {
-        "fqcn": "juneberry.detectron2.trainer.Detectron2Trainer"
-    },
     "training_dataset_config_path": "data_sets/text_detect_val.json",
     "training_transforms": [],
     "validation": {

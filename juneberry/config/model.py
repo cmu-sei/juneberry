@@ -120,6 +120,7 @@ class Detectron2(Prodict):
     enable_val_loss: bool
     metric_interval: int
     overrides: Prodict
+    supplements: List[str]
 
     def init(self):
         self.enable_val_loss = False

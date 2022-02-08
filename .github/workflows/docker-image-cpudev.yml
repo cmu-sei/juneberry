@@ -1,0 +1,15 @@
+name: Docker Image CI CPUDev
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the CPUDev Docker image
+      run: docker build docker --file docker/cpudev.Dockerfile --tag amellinger/juneberry:cpudev-$(date +%s)

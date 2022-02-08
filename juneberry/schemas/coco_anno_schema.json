@@ -11,8 +11,7 @@
                 "contributor": { "type": "string"},
                 "url": { "type": "string"},
                 "date_created": { "type": "string"}
-            },
-            "additionalProperties": false
+            }
         },
         "licenses": {
             "type": "array",
@@ -27,8 +26,7 @@
                     "id",
                     "name",
                     "url"
-                ],
-                "additionalProperties": false
+                ]
             }
         },
         "categories": {
@@ -43,8 +41,7 @@
                 "required": [
                     "id",
                     "name"
-                ],
-                "additionalProperties": false
+                ]
             }
         },
         "images": {
@@ -66,8 +63,7 @@
                     "width",
                     "height",
                     "file_name"
-                ],
-                "additionalProperties": false
+                ]
             }
         },
         "annotations": {
@@ -84,21 +80,19 @@
                         "type": "array",
                         "items": { "type": "number" }
                     },
-                    "iscrowd": { "type": "integer" },
+                    "iscrowd": {"type": "integer"},
                     "score": { "type": "number" }
                 },
                 "required": [
                     "id",
                     "image_id",
                     "category_id"
-                ],
-                "additionalProperties": false
+                ]
             }
         }
     },
     "required": [
         "categories",
         "images"
-    ],
-    "additionalProperties": false
+    ]
 }

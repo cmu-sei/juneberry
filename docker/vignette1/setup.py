@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -22,23 +22,50 @@
 #
 # ======================================================================================================================
 
-import logging
+import setuptools
 
-from opacus.utils import module_modification
-from opacus.dp_model_inspector import DPModelInspector
+install_requires = [
+    "doit",
+    "numpy",
+    "matplotlib",
+    "pillow",
+    "prodict",
+    "hjson",
+    "jsonschema",
+    "sklearn",
+    "tensorboard",
+    "torch",
+    "torchvision",
+    "torch-summary>=1.4.5",
+    "pandas",
+    "brambox",
+    "pyyaml",
+    "hjson",
+    "natsort"
+]
 
-logger = logging.getLogger(__name__)
+bin_scripts = [
+    'bin/jb_attack_to_rules',
+    'bin/jb_clean_predictions',
+    'bin/jb_evaluate',
+    'bin/jb_experiment_to_rules',
+    'bin/jb_generate_experiments',
+    'bin/jb_gpu_runner',
+    'bin/jb_plot_pr',
+    'bin/jb_plot_roc',
+    'bin/jb_rules_to_pydoit',
+    'bin/jb_run_experiment',
+    'bin/jb_run_plugin',
+    'bin/jb_summary_report',
+    'bin/jb_train'
+]
 
-
-class ConvertBatchnormModules:
-    """
-    Transform used to convert bactchnorms for use in opacus
-    """
-
-    def __call__(self, model):
-        logger.info(f"Attempting conversion of batchnorm modules.")
-        model = module_modification.convert_batchnorm_modules(model)
-        inspector = DPModelInspector()
-        logger.info(f"... Is converted model valid for DPSGD?: {inspector.validate(model)}")
-
-        return model
+setuptools.setup(
+    name='Juneberry',
+    version='0.5',
+    description='Juneberry Machine Learning Experiment Manager',
+    packages=setuptools.find_packages(),
+    install_requires=install_requires,
+    scripts=bin_scripts,
+    python_requires='>=3.7',
+)

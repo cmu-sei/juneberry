@@ -74,13 +74,12 @@ class RuleMaker:
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
             outputs = model_mgr.get_training_output_list()
             command = [JB_TRAIN_COMMAND, model_mgr.model_name]
-            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name}"
 
             # Add the "--onnx" option to jb_train if an ONNX model was requested.
             if model.onnx:
                 command.append("--onnx")
-                doc += " --onnx"
 
+            doc = " ".join([str(x) for x in command])
             clean_extras = model_mgr.get_training_clean_extras_list()
             requirements = []
 
@@ -92,7 +91,7 @@ class RuleMaker:
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
             outputs = model_mgr.get_dry_run_output_list()
             command = [JB_TRAIN_COMMAND, model_mgr.model_name, '--dryrun']
-            doc = f"{JB_TRAIN_COMMAND} {model_mgr.model_name} --dryrun"
+            doc = " ".join([str(x) for x in command])
             clean_extras = model_mgr.get_dry_run_clean_extras_list()
             requirements = []
 
@@ -128,7 +127,7 @@ class RuleMaker:
                         command.append('--useTrainSplit')
                     if test.use_val_split:
                         command.append('--useValSplit')
-                    doc = f"{JB_EVALUATE_COMMAND} {model_mgr.model_name}  {test.dataset_path}"
+                    doc = " ".join([str(x) for x in command])
                     clean_extras = model_mgr.get_predictions_clean_extras_list()
                     requirements = [model['train_rule_id']]
 
@@ -158,11 +157,12 @@ class RuleMaker:
     def add_plot_pr(self, report: Report):
         # Obtain the output directory as a string.
         output_dir = str(self.experiment_manager.get_experiment_file(report.output_dir))
+        log_dir = str(self.experiment_manager.get_experiment_log_dir())
 
         # Accumulate all the tests into one report.
         inputs = []
         requirements = []
-        command = [JB_PLOT_PR_COMMAND, '--outputDir', output_dir]
+        command = [JB_PLOT_PR_COMMAND, '--outputDir', output_dir, '--logDir', log_dir]
 
         # Retrieve the desired IoU value for the command.
         if report.iou:
@@ -188,7 +188,7 @@ class RuleMaker:
         outputs = [Path(output_dir, "pr_curve.png"), Path(output_dir, "pc_curve.png"),
                    Path(output_dir, "rc_curve.png"), Path(output_dir, "eval_metrics.csv")]
 
-        doc = f"{JB_PLOT_PR_COMMAND} --outputDir {output_dir}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
         workflow = self.builder.get_workflow("main")
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
@@ -197,11 +197,12 @@ class RuleMaker:
 
         # Everything gets put into one output
         output_path = str(self.experiment_manager.get_experiment_file(report.output_name))
+        log_dir = str(self.experiment_manager.get_experiment_log_dir())
 
         # Accumulate all the tests (predictions) into one report
         inputs = []
         requirements = []
-        command = [JB_PLOT_ROC_COMMAND, output_path]
+        command = [JB_PLOT_ROC_COMMAND, output_path, "--logDir", log_dir]
         for test in report.tests:
             predictions_file = str(self.tag_map[test.tag]['filename'])
             inputs.append(predictions_file)
@@ -222,7 +223,7 @@ class RuleMaker:
 
         outputs = [output_path]
 
-        doc = f"{JB_PLOT_ROC_COMMAND} {output_path}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
         workflow = self.builder.get_workflow("main")
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
@@ -240,6 +241,9 @@ class RuleMaker:
             csv_path = self.experiment_manager.get_experiment_file(report.csv_name)
             command.extend(['--csvFilename', csv_path])
             outputs.append(str(csv_path))
+            log_dir = self.experiment_manager.get_experiment_log_dir()
+            command.extend(['--logDir', log_dir])
+            outputs.append(str(log_dir / "log_jb_summary_report.txt"))
 
         for entry in self.tag_map.values():
             command.append('-f')
@@ -271,7 +275,7 @@ class RuleMaker:
             else:
                 continue
 
-        doc = f"{JB_SUMMARY_COMMAND} {output_path}"
+        doc = " ".join([str(x) for x in command])
         clean_extras = []
 
         workflow = self.builder.get_workflow("main")
@@ -290,7 +294,7 @@ class RuleMaker:
             # Grab the filter from our map and fill in the entries.
             my_filter: Filter = self.filter_map.get(tag, None)
             if my_filter is None:
-                logger.error(f"Can't find filter {tag} in filter list. EXITING")
+                logger.error(f"Can't find filter {tag} in filter list. Exiting.")
                 sys.exit(-1)
 
             # Convert the replacement fields.
@@ -326,7 +330,7 @@ class RuleMaker:
         try:
             return arg.format(**replace_map)
         except KeyError:
-            logger.error(f"Failed to convert the arg '{arg}' in filter '{filter_tag}' during replacement. EXITING!")
+            logger.error(f"Failed to convert the arg '{arg}' in filter '{filter_tag}' during replacement. Exiting.")
             sys.exit(-1)
 
 
@@ -342,6 +346,8 @@ def main():
     maker = RuleMaker(args.experimentName)
     experiment_manager = jbfs.ExperimentManager(args.experimentName)
     maker.save(experiment_manager.get_experiment_rules())
+
+    logger.info(f"jb_experiment_to_rules is done.")
 
 
 if __name__ == "__main__":
