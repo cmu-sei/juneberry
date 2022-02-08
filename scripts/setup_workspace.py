@@ -45,7 +45,7 @@ def create_juneberry_ini(workspace_dir: Path) -> None:
     """
     config = configparser.ConfigParser()
     config["DEFAULT"] = {
-        "workspace": f"/workspace",
+        "workspace_root": f"/workspace",
         "data_root": f"/dataroot",
         "tensorboard": "/tensorboard",
         "num_workers": "1",
