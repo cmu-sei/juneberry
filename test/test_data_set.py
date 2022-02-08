@@ -368,9 +368,12 @@ def test_torchvision():
     np.testing.assert_array_equal(np.array(training_sample), np.array([[136, 182], [213, 144]]))
     np.testing.assert_array_equal(np.array(eval_sample), np.array([[168, 68], [15, 158]]))
 
-    # Verify that the image labels are equal to the expected values.
-    assert training_label.item() == 1
-    assert eval_label.item() == 3
+    # Verify that the image l
+    # abels are equal to the expected values.
+    assert training_label == 1
+    assert eval_label == 3
+    # assert training_label.item() == 1
+    # assert eval_label.item() == 3
 
 
 class TestFormatErrors(unittest.TestCase):

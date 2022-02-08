@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import setuptools
+import platform
 
 install_requires = [
     "doit",
@@ -37,7 +38,6 @@ install_requires = [
     "tensorflow",
     "tensorflow-datasets",
     "tensorboard",
-    "tf2onnx",
     "torch",
     "torchvision",
     "torch-summary>=1.4.5",
@@ -53,6 +53,26 @@ install_requires = [
     "tf2onnx",
     "tqdm"
 ]
+
+
+def customize_requires(requires):
+    if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+        darwin_packages = {
+            'tensorflow': 'tensorflow-macos'
+        }
+
+        # Rename stuff
+        requires = [darwin_packages.get(x, x) for x in requires]
+
+        # OSX doesn't have onnx runtime yet but tf2onnx will install!
+        # https://github.com/microsoft/onnxruntime/issues/6633
+        missing = ['onnxruntime']
+        for item in missing:
+            if item in requires
+                del requires[item]
+
+    return requires
+
 
 bin_scripts = [
     'bin/jb_attack_to_rules',
@@ -75,7 +95,7 @@ setuptools.setup(
     version='0.5',
     description='Juneberry Machine Learning Experiment Manager',
     packages=setuptools.find_packages(),
-    install_requires=install_requires,
+    install_requires=customize_requires(install_requires),
     scripts=bin_scripts,
     python_requires='>=3.7',
     include_package_data=True
