@@ -3,6 +3,9 @@
     "description": "Trains an object detector with MMDetection using the Sample TextDetection data set.",
     "epochs": 15,
     "evaluation_transforms": [],
+    "evaluator": {
+        "fqcn": "juneberry.mmdetection.evaluator.Evaluator"
+    },
     "format_version": "0.2.0",
     "hints": {
         "num_workers": 4
@@ -17,13 +20,15 @@
     "model_architecture": {
         "module": "faster_rcnn/faster_rcnn_r50_caffe_fpn_mstrain_1x_coco.py"
     },
-    "platform": "mmdetection",
     "pytorch": {
         "deterministic": true
     },
     "seed": 4210592948,
     "task": "objectDetection",
     "timestamp": "2021-03-03T10:00:00",
+    "trainer": {
+        "fqcn": "juneberry.mmdetection.trainer.MMDTrainer"
+    },
     "training_dataset_config_path": "data_sets/text_detect_train.json",
     "training_transforms": [],
     "validation": {

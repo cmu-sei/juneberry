@@ -255,7 +255,7 @@ class Detectron2Trainer(Trainer):
         # NOTE: If we are cpu we don't change anything.  We get what they provided.
         # TODO: Should this be pluggable?
         if cfg.SOLVER.REFERENCE_WORLD_SIZE != 0 and self.num_gpus != 0:
-            logger.info(f"Scaling config. REFERENCE_WORLD_SIZE original={cfg.REFERENCE_WORLD_SIZE}, "
+            logger.info(f"Scaling config. REFERENCE_WORLD_SIZE original={cfg.SOLVER.REFERENCE_WORLD_SIZE}, "
                         f"new={self.num_gpus}")
             cfg = DefaultTrainer.auto_scale_workers(cfg, self.num_gpus)
 
