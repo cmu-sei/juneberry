@@ -18,6 +18,9 @@
             }
         }
     ],
+    "evaluator": {
+        "fqcn": "juneberry.detectron2.evaluator.Evaluator"
+    },
     "format_version": "0.2.0",
     "hints": {
         "num_workers": 4
@@ -28,13 +31,15 @@
         },
         "module": "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
     },
-    "platform": "detectron2",
     "pytorch": {
         "deterministic": true
     },
     "seed": 4210592948,
     "task": "objectDetection",
-    "timestamp": "2021-03-03T10:00:00",
+    "timestamp": "2022-02-08T07:15:00",
+    "trainer": {
+        "fqcn": "juneberry.detectron2.trainer.Detectron2Trainer"
+    },
     "training_dataset_config_path": "data_sets/text_detect_train.json",
     "training_transforms": [
         {
