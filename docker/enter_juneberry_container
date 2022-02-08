@@ -96,7 +96,7 @@ done
 
 if [ ${all_project_subdirs_exist} -eq 0 ]; then
   echo "${PROJ} is not a valid project directory."
-  echo "Please run scripts/setup_project.sh to create the project directory structure."
+  echo "Please run scripts/setup_project.py to create the project directory structure."
   echo "Exiting."
   exit 1
 fi
