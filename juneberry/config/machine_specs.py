@@ -49,8 +49,9 @@ class MachineSpecs(Prodict):
         error_count = 0
 
         # Check that the number of gpus doesn't exceed the number of cuda visible devices
-        if self.num_gpus > int(os.environ.get('CUDA_VISIBLE_DEVICES')):
-            error_count += 1
+        if self.num_gpus and os.environ.get('CUDA_VISIBLE_DEVICES'):
+            if self.num_gpus > int(os.environ.get('CUDA_VISIBLE_DEVICES')):
+                error_count += 1
 
         # If errors found, report and exit
         if error_count > 0:
@@ -58,7 +59,7 @@ class MachineSpecs(Prodict):
             sys.exit(-1)
 
     @staticmethod
-    def construct(data: dict, file_path: str = None):
+    def construct(data: dict):
         """
         Load, validate, and construct a machine specs object.
         :param data: The data to use to construct the object.
@@ -124,7 +125,7 @@ class MachineSpecs(Prodict):
                     if include_lst[0] not in config_data:
                         include_error_count += 1
                     else:
-                        if include_lst[0] not in config_data[include_lst[0]]:
+                        if include_lst[1] not in config_data[include_lst[0]]:
                             include_error_count += 1
                         else:
                             # Check for chained includes
@@ -177,4 +178,4 @@ class MachineSpecs(Prodict):
                                                         config_data=config_data, specs_data=specs_data)
 
         # Construct the specs object
-        return MachineSpecs.construct(specs_data, data_path)
+        return MachineSpecs.construct(specs_data)
