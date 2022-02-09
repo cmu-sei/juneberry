@@ -1,28 +1,45 @@
 #! /usr/bin/env bash
 
-if [ $# -lt 1 ]; then
-  echo "This script requires one argument: a path to the context directory."
-  exit -1
-fi
+# This script makes a context directory BESIDE the setup_context directory and populates
+# it with all the necessary pieces.
 
+# Find out where the script is, if they ran it from somewhere ele
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Make all the necessary dirs
-[ ! -d ${1} ] && mkdir -p "${1}"
-[ ! -d ${1}/dataroot ] && mkdir -p "${1}/dataroot"
+cd ${SCRIPT_DIR}
 
-# Copy all the files we need, if not there
-cp ${SCRIPT_DIR}/juneberry.ini ${1}/.
-
-# If the cifar data isn't in the context directory
-# and has already been downloaded into the dataroot directory
-DOWNLOADED_CIFAR_DIR=${SCRIPT_DIR}/dataroot/cifar-10-batches-py
-if [ -d ${DOWNLOADED_CIFAR_DIR} ]; then
-  rsync -hvrPt ${DOWNLOADED_CIFAR_DIR} ${1}
+if [ ! -f cifar-10-python.tar.gz ]; then
+    echo "This script requires a copy of cifar-10-python.tar.gz to be beside this script."
+    echo "Try 'curl -o cifar-10-python.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'"
+    echo "Exiting."
+    exit -1
 fi
+
+
+# If a context directory already exists, bail
+if [ -d ./context ]; then
+    echo "A context directory already exists BESIDE the setup_context.py script.  Exiting."
+    exit -1
+fi
+
+# Make the context dir
+mkdir context
+
+# Set up data root
+echo "Extracting cifar-10 data..."
+mkdir context/dataroot
+pushd context/dataroot
+tar -xzf ${SCRIPT_DIR}/cifar-10-python.tar.gz
+popd
+
+# Copy in the juneberry ini
+echo "Copying juneberry.ini..."
+cp ${SCRIPT_DIR}/juneberry.ini context/.
 
 # Clone Juneberry
-if [ ! -d ${1}/juneberry ]; then
-  git clone --depth 1 https://github.com/cmu-sei/juneberry.git ${1}/juneberry
-fi
+echo "Cloning Juneberry repo..."
+git clone --depth 1 https://github.com/cmu-sei/juneberry.git context/juneberry
 
+# Fix the setup.py
+echo "Copying in simplified setup.py"
+cp ${SCRIPT_DIR}/setup.py context/juneberry/setup.py
