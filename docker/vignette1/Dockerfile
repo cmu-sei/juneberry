@@ -28,7 +28,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 #    opencv-python \
     pytest pylint
 
-# ============ JUNEBERRY INIT ============
+# ============ JUNEBERRY  ============
 
 # Now, copy the ENTIRE state of juneberry into the container and install it
 COPY juneberry /juneberry
