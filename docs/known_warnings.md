@@ -9,7 +9,9 @@ for what's causing the issue. Not all warnings necessarily represent something t
 
 ## The System Test
 
-### Detectron2
+### General Warnings
+
+These warning may apply to multiple sections of the system test.
 
 #### Number of workers in ModelConfig
 
@@ -19,10 +21,27 @@ WARNING Overriding number of workers. Found 1 in ModelConfig
 ```
 
 ##### Response
-This warning is due to the presence of the `num_workers` key in the "hints" stanza of the 
-text_detect/dt2/ut model config.json. The warning exists to indicate when the number of worker
-processes is set to a value. Since the stanza in the model config requests one worker process, 
-the warning message is triggered when the number of workers gets set to 1.
+This warning is due to the presence of the `num_workers` key in the "hints" stanza of a model 
+config.json. The warning exists to indicate when the number of worker processes is set to a value. 
+Since the stanza in the model config requests one worker process, the warning message is triggered 
+when the number of workers gets set to 1.
+
+#### Validation dataset is Length 0
+
+##### Message
+
+```
+WARNING Validation dataset is length 0.
+```
+
+##### Response
+
+This warning occurs after a dataset is loaded, but there is no data in the portion of the dataset 
+that was split from the main portion. This situation is commonly encountered when a dataset config 
+without any sampling is chosen for evaluation. This is not a concern, because this means that every 
+element of the dataset would be used during the evaluation.
+
+### Detectron2
 
 #### Category IDs in annotations
 
@@ -99,3 +118,34 @@ used by the model:
 https://github.com/facebookresearch/detectron2/issues/803 suggests this warning occurs because 
 the ImageNet pre-trained model being used to conduct the system test does not have model parameters 
 for this detection model. Therefore, this warning message is expected, and probably safe to ignore.
+
+### MMDetection
+
+#### Model and State Dict Mismatch
+
+##### Message
+
+```
+2022-02-07 19:00:07,287 WARNING (mmdet:104): The model and loaded state dict do not match exactly
+```
+
+##### Response
+
+https://github.com/open-mmlab/mmdetection/issues/1151 suggests this warning occurs when the layers 
+of the pre-trained model being used to conduct the system test has fully connected layers that go 
+unused during the run of the system test. This should not affect training and can be ignored.
+
+#### Testing Results of the Whole Dataset is Empty
+
+##### Message
+
+```
+ERROR (mmdet:101): The testing results of the whole dataset is empty.
+```
+
+##### Response
+
+https://mmdetection.readthedocs.io/en/latest/_modules/mmdet/datasets/coco.html indicates this error 
+message can appear during the evaluation of a COCO dataset, which does occur during the system test. 
+This error message appears to trigger if an IndexError happens while loading the predictions or 
+cocoDt (detections?) when metrics are being calculated.
