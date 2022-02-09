@@ -26,5 +26,5 @@ There is a convenience script `setup_context.sh` to this
 
 # Make the image
 
-With the context directory set up, then run `build.sh context` to bulld the image.
+With the context directory set up, then run `build.sh` to bulld the image.
 
