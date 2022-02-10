@@ -1,0 +1,32 @@
+{
+    "data_type": "torchvision",
+    "description": "CIFAR-10 dataset using torchvision.datasets",
+    "format_version": "0.3.0",
+    "timestamp": "2022-02-03T08:30:00",
+    "label_names": {
+        "0": "airplane",
+        "1": "automobile",
+        "2": "bird",
+        "3": "cat",
+        "4": "deer",
+        "5": "dog",
+        "6": "frog",
+        "7": "horse",
+        "8": "ship",
+        "9": "truck"
+    },
+    "num_model_classes": 10,
+    "task_type": "classification",
+    "torchvision_data": {
+        "fqcn": "torchvision.datasets.CIFAR10",
+        "root": "/dataroot",
+        "train_kwargs": {
+            "train": true,
+            "download": false
+        },
+        "eval_kwargs": {
+            "train": false,
+            "download": false
+        }
+    }
+}

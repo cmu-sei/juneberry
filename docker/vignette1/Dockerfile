@@ -46,7 +46,7 @@ RUN mkdir /tensorboard
 
 # Copy in the files to the dataroot
 RUN mkdir /dataroot
-COPY dataroot/cifar-10-batches-py /dataroot/cifar10/.
+COPY dataroot/cifar-10-batches-py /dataroot/cifar-10-batches-py/.
 
 # ============ CONVENIENCE ============
 
