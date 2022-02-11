@@ -1,0 +1,27 @@
+{
+    "baseline_config": "cifar_R20",
+    "description": "Layer depth experiment for CIFAR style He et al. (2015) ResNets",
+    "format_version": "0.2.0",
+    "reports": [
+        {
+            "description": "Experiment Summary",
+            "output_name": "Experiment Summary.md",
+            "type": "summary"
+        }
+    ],
+    "tests": [
+        {
+            "classify": 0,
+            "dataset_path": "data_sets/torchvision/cifar10.json",
+            "tag": "CIFAR-10 Test"
+        }
+    ],
+    "timestamp": "2022-02-03T08:30:00",
+    "variables": [
+        {
+            "config_field": "model_architecture.args.layers",
+            "nickname": "layers",
+            "vals": [ 20, 32, 44, 56 ]
+        }
+    ]
+}

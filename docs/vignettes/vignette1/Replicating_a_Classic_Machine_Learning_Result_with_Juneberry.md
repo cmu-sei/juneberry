@@ -5,7 +5,8 @@ Version: Juneberry 0.4 \
 Date: February 2022
 
 This vignette demonstrates how to replicate a classic machine learning result in Juneberry. The vignette focuses on 
-reproducing the CIFAR-10 results reported in the He et al. (2015) paper that introduced ResNets for two reasons:
+reproducing the results reported in the He et al. (2015) paper for a ResNet trained using CIFAR-10. This combination 
+was chosen for two reasons:
 
 1. CIFAR-10 is both widely available and small enough to experiment on quickly. 
 2. The He et al. (2015) neural network architecture for CIFAR-10 is simple to implement. It provides an instructive 
@@ -13,8 +14,8 @@ case for how to implement a new architecture in Juneberry.
 
 Over the course of replicating the He et al. (2015) results, you will learn how to:
 
-* [Get started with Juneberry](#get-started-with-juneberry).
-* [Load a new dataset into Juneberry with a dataset specification](#load-a-new-dataset-into-juneberry-with-a-dataset-specification).
+* [Work with Juneberry Docker Containers](#work-with-juneberry-docker-containers).
+* [Define a Dataset for Juneberry](#define-a-dataset-for-juneberry).
 * [Wrap a new PyTorch model for use by Juneberry](#wrap-a-new-pytorch-model-for-use-by-juneberry). 
 * [Implement the training strategy outlined in a paper with a Juneberry model config](#implement-the-training-strategy-outlined-in-a-paper-with-a-juneberry-model-config).
 * [Train a model with Juneberry](#train-a-model-with-juneberry) 
@@ -23,29 +24,55 @@ Over the course of replicating the He et al. (2015) results, you will learn how 
 * [Execute an experiment with Juneberry](#execute-an-experiment-with-juneberry).
 * [Compare the results of the Juneberry experiment with the published results](#compare-the-results-of-the-juneberry-experiment-with-the-published-results). 
 
-## Get started with Juneberry
+## Work with Juneberry Docker Containers
 
 Juneberry improves the experience of machine learning experimentation by providing a framework for automating the 
 training, evaluation, and comparison of multiple models against multiple datasets, reducing errors and improving 
-reproducibility.
+reproducibility. Docker images for Juneberry have been created to simplify the Juneberry installation process. If 
+you would like to read more detailed information about how to use the Juneberry docker containers, refer to 
+[getting_started.md](../../getting_started.md). The instructions in this section will walk you through the 
+steps required to obtain and use a Juneberry container designed specifically for this vignette.
 
-### Installation
+### Obtain the Vignette Container Image
 
-This vignette assumes you have already established a working Juneberry Docker container according to the instructions 
-found in [getting_started.md](../getting_started.md)
+Beyond this section, the vignette assumes you are working inside the Juneberry Docker container that was designed 
+specifically for this vignette. You can obtain the container image by using the following command:
 
-### Establishing your Workspace and Data Root
+```shell script
+docker pull cmusei/juneberry:vignette1
+```
 
-Juneberry relies on two special directories to organize input and output. The "workspace_root" refers to a storage 
-location for model configs, experiment configs, trained models, and logging output. The "data root" directory 
-identifies the location of input data for your models. Refer to the [overview documentation](../overview.md) for 
-more information about how to properly configure your "workspace_root" and "data root".
+The vignette container is a pared down version of the juneberry:cpudev container. Many of the bulkier software packages 
+have been omitted from the vignette container in order to reduce its size. Additionally, the workspace and dataroot 
+are pre-configured, so you can concentrate on learning how to use Juneberry without having to worry about how to 
+properly set up your filesystem.
 
-## Load a new dataset into Juneberry with a dataset specification 
+### Enter the Vignette Container
 
-This section describes one way to add CIFAR-10 into your "data root". 
+After you have obtained the Docker image for this vignette, you can use the following command to run a container:
 
-### What is CIFAR-10?
+```shell script
+docker run -it --rm cmusei/juneberry:vignette1 bash
+```
+
+Note: The `--rm` flag cleans up the container and removes the file system when the container exits, so any 
+changes you make inside the container will not persist.
+
+Once inside the container, you need to perform one final step before Juneberry is operational. Enter the following 
+command to install Juneberry in the container:
+
+```shell script
+pip install -e .
+```
+
+Once Juneberry is installed, you can begin creating configs and running Juneberry commands.
+
+## Define a Dataset for Juneberry 
+
+This section describes how write a dataset configuration file that tells Juneberry how to work 
+with data files located in your dataroot. 
+
+### An Overview of the CIFAR-10 Data
 
 CIFAR-10 is one of the most commonly used training datasets in the field of machine learning. The dataset comes from 
 the Canadian Institute for Advanced Research and contains 60,000 32x32 color images. The images represent 10 classes 
@@ -63,38 +90,44 @@ data and associate it with human-readable labels.
 Juneberry supports importing `torchvision.datasets` data into your data store. This can be accomplished by creating a 
 dataset config in your workspace that defines the relationships between the labels, the training set, and the test set. 
 When the dataset config is used for the first time, the `download` argument can be used to place a copy of the 
-torchvision dataset into your "data root".
+torchvision dataset into your dataroot. 
 
 ![JB_FS](references/jb_cifar_torchvision_FS.PNG)
 
+Fortunately, the Docker container for this vignette already has a copy of the CIFAR-10 data stored in your dataroot, 
+so you will not need to spend time obtaining these files if you are using the vignette container. All that's left is 
+for you to create a dataset config file that defines this dataset for Juneberry.
+
 ### Building the Dataset Config
 
-In this example, you will create a config at 📝`data_sets/torchvision/cifar10.json` to establish the CIFAR-10 
-dataset from `torchvision.datasets`. 
+The objective of this section is to create a configuration file at 📝`data_sets/torchvision/cifar10.json` to establish 
+the CIFAR-10 dataset from `torchvision.datasets`. 
 
- 1) Navigate to your 📁`data_sets` directory and create a 📁`torchvision` sub-directory within 📁`data_sets` 
-if it does not exist. 
- 1) Inside the 📁`torchvision` sub-directory, create a file named 📝`cifar10.json`.
+ 1) Navigate to your 📁`data_sets` directory and create a 📁`torchvision` sub-directory within 📁`data_sets`. 
+ 1) Create a file named 📝`cifar10.json` inside your newly created 📁`torchvision` sub-directory.
 
-The dataset specification file contains detailed information about dataset config fields.
+The dataset specification file contains detailed information about the supported fields inside a dataset 
+configuration file. When constructing the dataset for this vignette, you will not need to define every possible field. 
+A link is provided to the specification file for you to reference if you wish to learn more about the properties in 
+a dataset config.
 
 | Dataset config path | Specification file |
 | --------------- | --------------- |
-| 📝data_sets/torchvision/cifar10.json | 📝juneberry/documentation/dataset_specification.md |
+| 📝data_sets/torchvision/cifar10.json | 📝[dataset_specification.md](../../specs/dataset_configuration_specification.md) |
 
-Here are the relevant specification fields for establishing a CIFAR-10 dataset via `torchvision.datasets` in your
+Here are the relevant fields for defining the CIFAR-10 dataset via `torchvision.datasets` in your
 📝`cifar10.json` dataset config:
 
 ```json
 {
-    "num_model_classes": 10 ,                                 💬[indicates 10 classes in this dataset]
-    "label_names": {"0": "airplane", ...},                    💬[establishes string label names for the integer class labels]
-    "data_type": "torchvision",                               💬[Juneberry recognizes "torchvision", "tabular" and "image" as valid data types]
-    "torchvision_dataset": {                                  💬[describes how to load torchvision data]
-        "fqcn": "torchvision.datasets.CIFAR10",               💬[indicates which torchvision dataset to load]
-        "task_type": "classification",                        💬[Juneberry recognizes "classification" and "objectDetection" as valid task types]
-        "train_kwargs": { "train": true, "download": true },  💬[kwargs to pass to the torchvision.datasets function for training]
-        "eval_kwargs": { "train": false, "download": true },  💬[kwargs to pass to the torchvision.datasets function for evaluation]
+    "num_model_classes": 10 ,                                  💬[indicates there are 10 classes in this dataset]
+    "label_names": {"0": "airplane", ...},                     💬[establishes string label names for the integer class labels]
+    "data_type": "torchvision",                                💬[Juneberry recognizes "torchvision", "tabular" and "image" as valid data types]
+    "torchvision_dataset": {                                   💬[describes how to load torchvision data]
+        "fqcn": "torchvision.datasets.CIFAR10",                💬[indicates which torchvision dataset to load]
+        "task_type": "classification",                         💬[Juneberry recognizes "classification" and "objectDetection" as valid task types]
+        "train_kwargs": { "train": true, "download": false },  💬[kwargs to pass to the torchvision.datasets function for training]
+        "eval_kwargs": { "train": false, "download": false },  💬[kwargs to pass to the torchvision.datasets function for evaluation]
     }
 }
 ```
@@ -108,7 +141,7 @@ the training and evaluation phases of the model. While not applicable in this ex
 one dataset config file for training a model and a different dataset config for evaluating the trained model.
 
 1) Create your CIFAR-10 dataset config by following the outline above and referencing the dataset specifications file. 
-When you are finished, the resulting config should look something like this: 
+When your dataset config is complete, it should have the following content: 
 
 <details>
   <summary>👾Expected contents of data_sets/torchvision/cifar10.json</summary>
@@ -148,6 +181,15 @@ When you are finished, the resulting config should look something like this:
 }
 ```
 </details>
+
+#### Location of Pre-built Dataset Config File
+
+As a time-saving convenience, a pre-built dataset configuration file is available at the following location:
+
+`docs/vignettes/vignette1/configs/cifar10.json`
+
+If you do not wish to create your own dataset config file from scratch, you can simply move or copy the 
+pre-built file to the target location (data_sets/torchvision/cifar10.json).
 
 ## Wrap a new PyTorch model for use by Juneberry
 
@@ -295,6 +337,7 @@ from typing import Type, Union
 
 logger = logging.getLogger(__name__)
 
+
 class PoolPadSkip(nn.Module):
 
     # Implements "Option A" from He et al. (2015):
@@ -419,6 +462,15 @@ class Resnet32x32:
 Once you've added the content to your `resnet_simple.py` file, you can then reference the architecture inside a 
 Juneberry model config file.
 
+### Location of Pre-built Model Architecture File
+
+As a time-saving convenience, a pre-built model architecture file is available at the following location:
+
+`docs/vignettes/vignette1/configs/resnet_simple.py`
+
+If you do not wish to create your own model architecture file from scratch, you can simply move or copy the 
+pre-built file to the target location (juneberry/architectures/pytorch/resnet_simple.py).
+
 ## Implement the training strategy outlined in a paper with a Juneberry model config.
 
 To replicate the results from the He et al. paper, you must fully specify how the model was trained. 
@@ -499,7 +551,6 @@ field's purpose. The next few sections describe how to fill out these fields to 
         "kwargs": {"<OPTIONAL kwargs to be passed (expanded) to evaluator __init__ on construction>"}
     },
     "format_version": "<A Juneberry specific variable identifying the format version of this file.>",
-    "hints": {"<Properties that relate to performance or general computation.>"},
     "model_architecture": {"<The model architecture and associated args.>"},
     "pytorch": {"<These fields are specific to PyTorch.>"
         "loss_fn": "<The loss function used in training.>",
@@ -680,18 +731,14 @@ One thing that isn't clear is if each GPU receives 128 images, or if that batch 
 GPUs so that each GPU receives 64 images. Digging into the 
 [code released by He et al. (2015)](https://github.com/KaimingHe/deep-residual-networks), we found the latter 
 interpretation to be true. The computation of the mini-batches is parallelized across GPUs so each GPU receives 64 
-images at a time.
+images at a time. Juneberry defines its batch size the same way; it refers to the size of the mini-batches that are 
+parallelized across the available GPUs. Therefore, using a batch_size of 128 in your model config is consistent with 
+how batch size was defined in the He et al. (2015) paper.
 
-Juneberry defines its batch size the same way; it refers to the size of the mini-batches that are parallelized
-across the available GPUs.
-
-For example, if you have two GPUs available, you would specify the config as follows:
+The portion of your model config that implements these model training properties would look like this:
 
 ```json
     "batch_size": 128,
-    "hints": {
-        "max_gpus": 2    
-    },
     "epochs": 182,
     "pytorch": {
         "loss_fn": "torch.nn.CrossEntropyLoss",
@@ -759,7 +806,7 @@ model config file to add a summary of the constructed model architecture to the 
 
 ----------
 
-#### Complete Implementation of CIFAR-10 Model Configuration
+### Complete Implementation of CIFAR-10 Model Configuration
 
 Assuming 2 GPUs are available, you can assemble the previously described sections into the contents of a single JSON, 
 and it should look something like the following block of code:
@@ -893,6 +940,15 @@ and it should look something like the following block of code:
 
 After adding this content into your `models/cifar_R20/config.json` file, you will finally have all the pieces you need 
 to begin training a model in Juneberry.
+
+#### Location of Pre-built Model Config File
+
+As a time-saving convenience, a pre-built model configuration file is available at the following location:
+
+`docs/vignettes/vignette1/configs/config.json`
+
+If you do not wish to create your own model config file from scratch, you can simply move or copy the 
+pre-built file to the target location (models/cifar_R20/config.json).
 
 ## Train a model with Juneberry. 
 
@@ -1132,6 +1188,15 @@ Save this file content to `experiments/cifar_layer/experiment_outline.json`.
 
 It is also possible to specify multiple variables for a full factorial experiment, as well as various other 
 experimental designs. Please see the examples in `experiments/*/README.md` for more experiment configurations.
+
+### Location of Pre-built Experiment Outline File
+
+As a time-saving convenience, a pre-built experiment outline file is available at the following location:
+
+`docs/vignettes/vignette1/configs/experiment_outline.json`
+
+If you do not wish to create your own experiment outline file from scratch, you can simply move or copy the 
+pre-built file to the target location (experiments/cifar_layer/experiment_outline.json).
 
 ## Execute an experiment with Juneberry.
 

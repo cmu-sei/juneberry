@@ -26,10 +26,6 @@
         "fqcn": "juneberry.pytorch.evaluation.evaluator.Evaluator"
     },
     "format_version": "0.2.0",
-    "hints": {
-        "num_Workers": 0,
-        "max_gpus": 2
-    },
     "model_architecture": {
         "module": "juneberry.architectures.pytorch.resnet_simple.Resnet32x32",
         "args": {
