@@ -58,15 +58,6 @@ docker run -it --rm cmusei/juneberry:vignette1 bash
 Note: The `--rm` flag cleans up the container and removes the file system when the container exits, so any 
 changes you make inside the container will not persist.
 
-Once inside the container, you need to perform one final step before Juneberry is operational. Enter the following 
-command to install Juneberry in the container:
-
-```shell script
-pip install -e .
-```
-
-Once Juneberry is installed, you can begin creating configs and running Juneberry commands.
-
 ## Define a Dataset for Juneberry 
 
 This section describes how write a dataset configuration file that tells Juneberry how to work 
