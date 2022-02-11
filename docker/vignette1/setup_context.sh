@@ -3,7 +3,7 @@
 # This script makes a context directory BESIDE the setup_context directory and populates
 # it with all the necessary pieces.
 
-# Find out where the script is, if they ran it from somewhere ele
+# Find out where the script is, if they ran it from somewhere else
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 cd ${SCRIPT_DIR}
@@ -18,21 +18,21 @@ fi
 
 # If a context directory already exists, bail
 if [ -d ./context ]; then
-    echo "A context directory already exists BESIDE the setup_context.py script.  Exiting."
+    echo "A context directory already exists BESIDE the setup_context.py script. Exiting."
     exit -1
 fi
 
 # Make the context dir
 mkdir context
 
-# Set up data root
+# Set up dataroot
 echo "Extracting cifar-10 data..."
 mkdir context/dataroot
 pushd context/dataroot
 tar -xzf ${SCRIPT_DIR}/cifar-10-python.tar.gz
 popd
 
-# Copy in the juneberry ini
+# Copy in the juneberry.ini
 echo "Copying juneberry.ini..."
 cp ${SCRIPT_DIR}/juneberry.ini context/.
 

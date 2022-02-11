@@ -4,8 +4,8 @@ Authors: Michael Vicente, Nick Winski, Violet Turri, and Nathan VanHoudnos \
 Version: Juneberry 0.4 \
 Date: February 2022
 
-This vignette demonstrates how to replicate a classic machine learning result in Juneberry. The vignette focuses on 
-reproducing the results reported in the He et al. (2015) paper for a ResNet trained using CIFAR-10. This combination 
+This vignette demonstrates how to replicate a classic machine learning result in Juneberry. The objective is to 
+reproduce the results reported in the He et al. (2015) paper for a ResNet trained using CIFAR-10. This combination 
 was chosen for two reasons:
 
 1. CIFAR-10 is both widely available and small enough to experiment on quickly. 
@@ -95,8 +95,8 @@ torchvision dataset into your dataroot.
 ![JB_FS](references/jb_cifar_torchvision_FS.PNG)
 
 Fortunately, the Docker container for this vignette already has a copy of the CIFAR-10 data stored in your dataroot, 
-so you will not need to spend time obtaining these files if you are using the vignette container. All that's left is 
-for you to create a dataset config file that defines this dataset for Juneberry.
+so you will not need to spend time obtaining these files if you are using the vignette container. You will however 
+need to create a dataset configuration file that defines this dataset for Juneberry.
 
 ### Building the Dataset Config
 
@@ -108,8 +108,7 @@ the CIFAR-10 dataset from `torchvision.datasets`.
 
 The dataset specification file contains detailed information about the supported fields inside a dataset 
 configuration file. When constructing the dataset for this vignette, you will not need to define every possible field. 
-A link is provided to the specification file for you to reference if you wish to learn more about the properties in 
-a dataset config.
+A link to the specification file is provided if you wish to learn more about the properties in a dataset config.
 
 | Dataset config path | Specification file |
 | --------------- | --------------- |
@@ -136,7 +135,7 @@ The kwargs in `torchvision_dataset` define which portions of CIFAR-10 to use dur
 phases. When `train` is true, the training portion of CIFAR-10 is used. When `train` is false, the test set portion 
 is used.
 
-Since both the training and evaluation datasets are both defined here, this same dataset config can be used during both 
+Since both the training and evaluation datasets are defined here, this same dataset config can be used during both 
 the training and evaluation phases of the model. While not applicable in this example, Juneberry also supports using 
 one dataset config file for training a model and a different dataset config for evaluating the trained model.
 
@@ -808,7 +807,7 @@ model config file to add a summary of the constructed model architecture to the 
 
 ### Complete Implementation of CIFAR-10 Model Configuration
 
-Assuming 2 GPUs are available, you can assemble the previously described sections into the contents of a single JSON, 
+You can assemble the previously described sections into the contents of a single JSON, 
 and it should look something like the following block of code:
 
 <details>
@@ -843,10 +842,6 @@ and it should look something like the following block of code:
         "fqcn": "juneberry.pytorch.evaluation.evaluator.Evaluator"
     },
     "format_version": "0.2.0",
-    "hints": {
-        "num_Workers": 0,
-        "max_gpus": 2
-    },
     "model_architecture": {
         "module": "juneberry.architectures.pytorch.resnet_simple.Resnet32x32",
         "args": {
