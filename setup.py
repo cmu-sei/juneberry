@@ -68,8 +68,8 @@ def customize_requires(requires):
         # https://github.com/microsoft/onnxruntime/issues/6633
         missing = ['onnxruntime']
         for item in missing:
-            if item in requires
-                del requires[item]
+            if item in requires:
+                requires.remove(item)
 
     return requires
 
