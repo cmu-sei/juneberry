@@ -679,6 +679,15 @@ class ModelManager:
         dataset_arg = Path(dataset_path).stem if dataset_path else None
         return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
 
+    def iter_eval_dirs(self):
+        """
+        :return: A generator over the eval directory return eval dir managers.
+        """
+        eval_dir = Path(self.get_eval_root_dir())
+        for item in eval_dir.iterdir():
+            if item.is_dir():
+                yield EvalDirMgr(self.model_dir_path, self.model_platform, item.name)
+
     # ============ Misc ============
 
     def set_model_platform(self):
