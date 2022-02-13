@@ -44,16 +44,80 @@ with open(ground_truth_filename, 'r') as f:
 with open(detections_filename, 'r') as f:
     det_data = json.load(f)
 
-tide_metrics = metrics.Metrics(ground_truth_filename,
-                               detections_filename,
-                               "test_metrics_model_name",
-                               "test_metrics_det_name",
-                               metrics.MetricsToolkit.TIDE)
+tide_metrics = metrics.Metrics.create_with_data(gt_data,
+                                                det_data,
+                                                "test_metrics_model_name",
+                                                "test_metrics_det_name",
+                                                toolkit=metrics.MetricsToolkit.TIDE)
 
 
-def _pytest_assert_frame_equal(frame1, frame2):
-    try:
-        assert_frame_equal(frame1, frame2)
-        assert True
-    except AssertionError:
-        assert False
+def test_AP():
+    assert tide_metrics.AP is None
+
+
+def test_mAP():
+    assert tide_metrics.mAP == 0.372937293729373
+
+
+def test_dAP_localisation():
+    assert tide_metrics.dAP_localisation is None
+
+
+def test_mdAP_localization():
+    assert tide_metrics.mdAP_localization is None
+
+
+def test_dAP_classification():
+    assert tide_metrics.dAP_classification is None
+
+
+def test_mdAP_classification():
+    assert tide_metrics.mdAP_classification is None
+
+
+def test_dAP_both():
+    assert tide_metrics.dAP_both is None
+
+
+def test_mdAP_both():
+    assert tide_metrics.mdAP_both is None
+
+
+def test_dAP_duplicate():
+    assert tide_metrics.dAP_duplicate is None
+
+
+def test_mdAP_duplicate():
+    assert tide_metrics.mdAP_duplicate is None
+
+
+def test_dAP_background():
+    assert tide_metrics.dAP_background is None
+
+
+def test_mdAP_background():
+    assert tide_metrics.mdAP_background is None
+
+
+def test_dAP_missed():
+    assert tide_metrics.dAP_missed is None
+
+
+def test_mdAP_missed():
+    assert tide_metrics.mdAP_missed is None
+
+
+def test_dAP_fp():
+    assert tide_metrics.dAP_fp is None
+
+
+def test_mdAP_fp():
+    assert tide_metrics.mdAP_fp is None
+
+
+def test_dAP_fn():
+    assert tide_metrics.dAP_fn is None
+
+
+def test_mdAP_fn():
+    assert tide_metrics.mdAP_fn is None

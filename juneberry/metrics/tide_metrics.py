@@ -31,17 +31,17 @@ from enum import Enum
 import juneberry.metrics.metrics as metrics
 import logging
 from pathlib import Path
-from typing import Dict, List 
+from typing import Dict, List
 
 import brambox as bb
 from numpy import ndarray
 from pandas.core.frame import DataFrame
-import pandas.Series as Series
+from pandas.core.series import Series
 
 from juneberry.filesystem import EvalDirMgr, ModelManager
 
 
-logger = logging.getLogger("juneberry.metrics")
+logger = logging.getLogger("juneberry.metrics.tide_metrics")
 
 
 class CocoSizeRanges(Enum):
@@ -79,7 +79,7 @@ class TideMetrics(metrics.Metrics):
                                   self.anno,
                                   area_range=self.area_range,
                                   pos_thresh=self.iou_threshold,
-                                  bg_thresh=self.backgound_iou_threshold,
+                                  bg_thresh=self.background_iou_threshold,
                                   tqdm=self.show_tqdm)
 
     def set_area_range(self, min: int, max: int) -> None:
@@ -109,21 +109,73 @@ class TideMetrics(metrics.Metrics):
         self.reset_eval()
 
     @property
+    def AP(self):
+        return self._eval.AP
+
+    @property
     def mAP(self) -> float:
         return self._eval.mAP
 
     @property
-    def mdAP_localization(self) -> float:
-        return self._eval.mdAP_localization
+    def dAP_localisation(self):
+        return self._eval.dAP_localisation
+
+    @property
+    def mdAP_localisation(self) -> float:
+        return self._eval.mdAP_localisation
+
+    @property
+    def dAP_classification(self):
+        return self._eval.dAP_classification
 
     @property
     def mdAP_classification(self) -> float:
         return self._eval.mdAP_classification
 
     @property
+    def dAP_both(self):
+        return self._eval.dAP_both
+
+    @property
     def mdAP_both(self) -> float:
         return self._eval.mdAP_both
 
     @property
+    def dAP_duplicate(self):
+        return self._eval.dAP_duplicate
+
+    @property
     def mdAP_duplicate(self) -> float:
         return self._eval.mdAP_duplicate
+
+    @property
+    def dAP_background(self):
+        return self._eval.dAP_background
+
+    @property
+    def mdAP_background(self):
+        return self._eval.mdAP_background
+
+    @property
+    def dAP_missed(self):
+        return self._eval.dAP_missed
+
+    @property
+    def mdAP_missed(self):
+        return self._eval.mdAP_missed
+
+    @property
+    def dAP_fp(self):
+        return self._eval.dAP_fp
+
+    @property
+    def mdAP_fp(self):
+        return self._eval.mdAP_fp
+
+    @property
+    def dAP_fn(self):
+        return self._eval.dAP_fn
+
+    @property
+    def mdAP_fn(self):
+        return self._eval.mdAP_fn
