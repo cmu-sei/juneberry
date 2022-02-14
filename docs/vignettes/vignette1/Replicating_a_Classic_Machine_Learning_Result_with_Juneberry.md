@@ -158,14 +158,14 @@ When your dataset config is complete, it should have the following content:
     "task_type": "classification",
     "torchvision_data": {
         "fqcn": "torchvision.datasets.CIFAR10",
-        "root": "",
+        "root": "/dataroot",
         "train_kwargs": {
             "train": true,
-            "download": true            
+            "download": false            
         },
         "eval_kwargs": {
             "train": false,
-            "download": true     
+            "download": false     
         }
     }
 }
@@ -627,7 +627,7 @@ published CIFAR-10 means and standard deviations.
             "kwargs": {
                 "width_pixels": 4,
                 "height_pixels": 4,
-                "mirror": 1
+                "mirror": true
             }
         },
         {

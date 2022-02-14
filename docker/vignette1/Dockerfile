@@ -32,7 +32,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 
 # Now, copy the ENTIRE state of juneberry into the container and install it
 COPY juneberry /juneberry
-RUN pip install /juneberry
+RUN pip install -e /juneberry
 
 # ============ JUNEBERRY INIT ============
 # Since everything is mounted in the same place we can specify a 'default'

@@ -1,9 +1,9 @@
 #! /usr/bin/env bash
 
-# This script makes a context directory BESIDE the setup_context directory and populates
+# This script makes a context directory BESIDE the setup_context script and populates
 # it with all the necessary pieces.
 
-# Find out where the script is, if they ran it from somewhere else
+# Find out where this script is, if they ran it from somewhere else
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 cd ${SCRIPT_DIR}
