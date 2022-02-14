@@ -324,9 +324,6 @@ Linux style version of the **format** of the file. Not the version of
 the data, but the version of the semantics of the fields of this file. 
 The current version: 0.2.0
 
-### num_workers
-A hint indicating how many worker threads that is best for training this model.
-
 ## label_mapping
 **Optional:** This field contains the integer class labels that the model is aware of and how those integers 
 can be interpreted using human-readable strings. There are two ways to provide this information.

@@ -23,7 +23,7 @@
 # ======================================================================================================================
 
 import logging
-from prodict import List, Prodict
+from prodict import Prodict
 import sys
 import re
 import os
@@ -49,9 +49,12 @@ class MachineSpecs(Prodict):
         error_count = 0
 
         # Check that the number of gpus doesn't exceed the number of cuda visible devices
-        if self.num_gpus and os.environ.get('CUDA_VISIBLE_DEVICES'):
-            if self.num_gpus > int(os.environ.get('CUDA_VISIBLE_DEVICES')):
-                error_count += 1
+        visible_gpus = os.environ.get('CUDA_VISIBLE_DEVICES')
+        if visible_gpus:
+            visible_gpus = visible_gpus.count(",") + 1
+            if self.num_gpus:
+                if self.num_gpus > visible_gpus:
+                    error_count += 1
 
         # If errors found, report and exit
         if error_count > 0:
@@ -63,7 +66,6 @@ class MachineSpecs(Prodict):
         """
         Load, validate, and construct a machine specs object.
         :param data: The data to use to construct the object.
-        :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: The constructed object.
         """
 
@@ -100,7 +102,7 @@ class MachineSpecs(Prodict):
         return specs_data
 
     @staticmethod
-    def check_workspace_config(config_data: dict):
+    def validate_workspace_config(config_data: dict):
         # Check for default:default option
         default_error_count = 0
 
@@ -155,24 +157,24 @@ class MachineSpecs(Prodict):
         config_data = jbfs.load_file(data_path)
         specs_data = {}
 
-        # Checks config
-        MachineSpecs.check_workspace_config(config_data)
+        # Validate config
+        MachineSpecs.validate_workspace_config(config_data)
 
-        # Check default:default
+        # Load from default:default
         specs_data = MachineSpecs.update_properties(machine="default", model="default",
                                                     config_data=config_data, specs_data=specs_data)
 
-        # Check machine:default
+        # Load from machine:default
         if machine_class:
             specs_data = MachineSpecs.update_properties(machine=machine_class, model="default",
                                                         config_data=config_data, specs_data=specs_data)
 
-        # Check default:model
+        # Load from default:model
         if model_name:
             specs_data = MachineSpecs.update_properties(machine="default", model=model_name,
                                                         config_data=config_data, specs_data=specs_data)
 
-        # Check machine:model
+        # Load from machine:model
         if machine_class and model_name:
             specs_data = MachineSpecs.update_properties(machine=machine_class, model=model_name,
                                                         config_data=config_data, specs_data=specs_data)
