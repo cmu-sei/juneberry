@@ -17,9 +17,6 @@
     "epochs": 1,
     "evaluation_transforms": [],
     "format_version": "0.2.0",
-    "hints": {
-        "num_workers": 1
-    },
     "model_architecture": {
         "args": {
             "num_classes": 3
