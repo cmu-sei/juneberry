@@ -42,11 +42,6 @@ specifically for this vignette. You can obtain the container image by using the 
 docker pull cmusei/juneberry:vignette1
 ```
 
-The vignette container is a pared down version of the juneberry:cpudev container. Many of the bulkier software packages 
-have been omitted from the vignette container in order to reduce its size. Additionally, the workspace and dataroot 
-are pre-configured, so you can concentrate on learning how to use Juneberry without having to worry about how to 
-properly set up your filesystem.
-
 ### Enter the Vignette Container
 
 After you have obtained the Docker image for this vignette, you can use the following command to run a container:
@@ -73,6 +68,7 @@ training images and 1,000 testing images, for a total of 60,000 images.
 > 📚 [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html "Source") | 
 > [Benchmarks](https://paperswithcode.com/sota/image-classification-on-cifar-10 "Papers with Code") | 
 > [Visualize CIFAR-10](https://knowyourdata-tfds.withgoogle.com/#tab=STATS&dataset=cifar10 "Know your data")
+> (External Links)
 
 One way to obtain CIFAR-10 is to download it from the University of Toronto, unpickle it, and create human-readable 
 labels for the 10 classes. A simpler way is to use the functions provided in `torchvision.datasets` to download the 
@@ -205,10 +201,10 @@ Specifically, He et al. (2015) outlined the following structure for their CIFAR-
 
 One way to implement this CIFAR style ResNet is to follow the `torchvision.models` implementation of the He et al. 
 (2015) ImageNet style ResNets in the 
-[resnet class](https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html "ResNet"). Note that the 
-ImageNet style ResNet accepts images of arbitrary size and does not normalize inputs or outputs. Therefore, using this 
-pattern will require the use of other Juneberry components to handle the restriction to 32 x 32 images, the per-pixel 
-mean subtraction, and the softmax normalization.
+[resnet class](https://pytorch.org/vision/stable/_modules/torchvision/models/resnet.html "ResNet") (external link). 
+Note that the ImageNet style ResNet accepts images of arbitrary size and does not normalize inputs or outputs. 
+Therefore, using this pattern will require the use of other Juneberry components to handle the restriction to 
+32 x 32 images, the per-pixel mean subtraction, and the softmax normalization.
 
 The first difference between CIFAR-10 style ResNets and the `torchvision.models` implementation is that `torchvision`
 uses a projection style skip connection between the stacks of layers, while the CIFAR-10 style ResNets use the 
@@ -662,7 +658,7 @@ published CIFAR-10 means and standard deviations.
 The `fqcn` field, short for Fully Qualified Class Name, indicates the desired transform class. The example above 
 demonstrates the use of two custom Juneberry transforms located in `juneberry.transforms`, as well as two transforms
 directly from `torchvision.transforms`. More Torchvision transformations are available
-[here](https://pytorch.org/vision/stable/transforms.html  "View Transforms").
+[here](https://pytorch.org/vision/stable/transforms.html  "View Transforms") (external link).
 
 The evaluation images are converted to tensors and normalized for compatibility with the model.
 
@@ -719,11 +715,11 @@ focuses primarily on the following lines from He et al. (2015):
 
 One thing that isn't clear is if each GPU receives 128 images, or if that batch size should be split across the two 
 GPUs so that each GPU receives 64 images. Digging into the 
-[code released by He et al. (2015)](https://github.com/KaimingHe/deep-residual-networks), we found the latter 
-interpretation to be true. The computation of the mini-batches is parallelized across GPUs so each GPU receives 64 
-images at a time. Juneberry defines its batch size the same way; it refers to the size of the mini-batches that are 
-parallelized across the available GPUs. Therefore, using a batch_size of 128 in your model config is consistent with 
-how batch size was defined in the He et al. (2015) paper.
+[code released by He et al. (2015)](https://github.com/KaimingHe/deep-residual-networks) (external link), we found 
+the latter interpretation to be true. The computation of the mini-batches is parallelized across GPUs so each GPU 
+receives 64 images at a time. Juneberry defines its batch size the same way; it refers to the size of the mini-batches 
+that are parallelized across the available GPUs. Therefore, using a batch_size of 128 in your model config is 
+consistent with how batch size was defined in the He et al. (2015) paper.
 
 The portion of your model config that implements these model training properties would look like this:
 
@@ -971,7 +967,7 @@ While the model trains, Juneberry will log training metrics at the end of every 
 depicts the metrics output shown for a typical PyTorch classifier.
 
 ```
-INFO 1/182, time_sec: 15.489, eta: 13:40:37, remaining: 0:42:04, lr: 1.00E-01, loss: 1.7700, accuracy: 0.3359, val_loss: 1.5658, val_accuracy: 0.4127
+INFO 1/182, time_sec: 15.489, eta: 13:40:37, remaining: 0:42:04, loss: 1.7700, accuracy: 0.3359, val_loss: 1.5658, val_accuracy: 0.4127, lr: 1.00E-01, 
 ```
 
 * **1/182:** The current epoch number out of the total number of epochs.
@@ -986,7 +982,7 @@ INFO 1/182, time_sec: 15.489, eta: 13:40:37, remaining: 0:42:04, lr: 1.00E-01, l
 
 The final epoch of training the 20-layer ResNet using CIFAR-10 data should look something like this:
 ```
-INFO 182/182, time_sec: 12.918, eta: 13:34:32, remaining: 0:00:00, lr: 1.00E-03, loss: 0.0064, accuracy: 0.9989, val_loss: 0.3518, val_accuracy: 0.9244
+INFO 182/182, time_sec: 12.918, eta: 13:34:32, remaining: 0:00:00, loss: 0.0064, accuracy: 0.9989, val_loss: 0.3518, val_accuracy: 0.9244, lr: 1.00E-03,
 ```
 
 ### Post-Training Files:
@@ -1275,7 +1271,7 @@ def task_0():
 Each task lists a `targets` field which identifies the files generated during the execution of the task. By the end of 
 the experiment, your Juneberry workspace should contain the targets listed throughout the `main_dodo.py` file.
 
-Documentation for doit is available [here](https://pydoit.org/contents.html).
+Documentation for doit is available [here](https://pydoit.org/contents.html) (external link).
 
 ## Compare the results of the Juneberry experiment with the published results.
 
@@ -1292,7 +1288,7 @@ percentage from 100%.
 |   56   |  92.47%  |   7.53   |   6.93   |
 
 As an additional test of your understanding, you could produce dataset and model config files to train a ResNet using 
-the [CIFAR-100](https://www.tensorflow.org/datasets/catalog/cifar100 "View Dataset") dataset.
+the [CIFAR-100](https://www.tensorflow.org/datasets/catalog/cifar100 "View Dataset") (external link) dataset.
 
 At this point you should have a general understanding of Juneberry and how it can help you to reproduce, verify, and 
 validate machine learning models. You can find additional documentation and vignettes inside the 
@@ -1301,7 +1297,7 @@ validate machine learning models. You can find additional documentation and vign
 # References 
 
 [1] K. He, X. Zhang, S. Ren, and J. Sun, “Deep Residual Learning for Image Recognition,” arXiv:1512.03385 [cs], Dec. 
-2015, Accessed: May 01, 2020. [Online]. Available: http://arxiv.org/abs/1512.03385
+2015, Accessed: May 01, 2020. [Online]. Available: http://arxiv.org/abs/1512.03385 (external link)
 
 [2] K. He, X. Zhang, S. Ren, and J. Sun. Delving deep into rectifiers: Surpassing human-level performance on imagenet 
 classification. In ICCV, 2015.
