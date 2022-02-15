@@ -46,12 +46,19 @@ docker pull cmusei/juneberry:vignette1
 
 After you have obtained the Docker image for this vignette, you can use the following command to run a container:
 
+Note: You should replace the `"directory on host"` in the following command with the path to a directory 
+on your host filesystem. This will create a mount point inside the container that will allow you to transfer 
+files between the container and your host OS.
 ```shell script
-docker run -it --rm cmusei/juneberry:vignette1 bash
+docker run -it --rm -v "directory on host":/shared cmusei/juneberry:vignette1 bash
 ```
 
 Note: The `--rm` flag cleans up the container and removes the file system when the container exits, so any 
 changes you make inside the container will not persist.
+
+Note: Whenever you want to make a file inside the container available to your host filesystem, simply transfer 
+the file to `/shared` inside the vignette container. The file(s) should appear inside the directory you specified 
+in the "directory on host" portion of the `docker run` command.
 
 ## Define a Dataset for Juneberry 
 
