@@ -28,11 +28,11 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 #    opencv-python \
     pytest pylint
 
-# ============ JUNEBERRY INIT ============
+# ============ JUNEBERRY  ============
 
 # Now, copy the ENTIRE state of juneberry into the container and install it
 COPY juneberry /juneberry
-RUN pip install /juneberry
+RUN pip install -e /juneberry
 
 # ============ JUNEBERRY INIT ============
 # Since everything is mounted in the same place we can specify a 'default'
@@ -46,7 +46,7 @@ RUN mkdir /tensorboard
 
 # Copy in the files to the dataroot
 RUN mkdir /dataroot
-COPY cifar-10-batches-py /dataroot/cifar10/.
+COPY dataroot/cifar-10-batches-py /dataroot/cifar-10-batches-py/.
 
 # ============ CONVENIENCE ============
 
