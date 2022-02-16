@@ -95,7 +95,9 @@ class MachineSpecs(Prodict):
                         specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
 
                     else:
-                        specs_data = config_data
+                        for prop in config_data[machine][key].keys():
+                            if config_data[machine][key][prop]:
+                                specs_data[prop] = config_data[machine][key][prop]
 
         return specs_data
 
