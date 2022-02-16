@@ -1,11 +1,11 @@
 GETTING STARTED
 ==========
 
-This document describes the actions to take in order to get started with using Juneberry. After performing 
-some preparation steps on your filesystem, there are two possible courses of actions described here. The 
-recommended approach, described first, involves making use of a Juneberry Docker container. The second 
-approach describes how to install Juneberry in a virtual Python environment. The latter approach has not 
-been tested on a variety of platforms, and therefore the Docker container method is preferred.
+This document describes how to get started with using Juneberry. Two methods for installing Juneberry are 
+covered, as well as some steps to test your installation. The recommended installation method, described first, 
+relies on a Juneberry Docker container. The second approach describes how to install Juneberry in a virtual Python 
+environment. The latter approach has not been tested on a variety of platforms, so the Docker containers are 
+the preferred choice. Both installation methods are tested using the same steps. 
 
 # Preparation Steps
 
@@ -303,6 +303,15 @@ To activate this enhancement, use the following command to `source` the completi
 source scripts/juneberry_completion.sh
 ```
 
+# Testing Your Installation
+
+After installing Juneberry, you can run the following training command to test your installation:
+```shell
+jb_train -w . tabular_multiclass_sample
+```
+
+This command will quickly train a small, basic tabular dataset. The test is successful if the final epoch 
+reports a training accuracy of 97.58%.
 
 
 
