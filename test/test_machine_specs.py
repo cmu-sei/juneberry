@@ -67,7 +67,28 @@ def make_sample_machine_specs(specs_path):
         json.dump(specs_data, json_file)
 
 
+def make_invalid_specs(specs_path):
+    specs_data = {
+        "pme": {
+            "default": {
+                "include": "1984"
+            }
+        }
+    }
+
+    with open(specs_path, 'w') as json_file:
+        json.dump(specs_data, json_file)
+
+
 def test_machine_specs(tmp_path):
+    # Make invalid machine specs file
+    specs_path = str(Path(tmp_path, "invalid_specs.json"))
+    make_invalid_specs(specs_path)
+
+    # Test invalid machine specs file case
+    specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="not_good", test=True)
+    assert specs_data is False
+
     # Make sample machine specs file
     specs_path = str(Path(tmp_path, "machine_specs.json"))
     make_sample_machine_specs(specs_path)
@@ -91,4 +112,3 @@ def test_machine_specs(tmp_path):
     # Test include case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="object_det_vers3")
     assert specs_data == {"num_workers": 16, "num_gpus": None}
-

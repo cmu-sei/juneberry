@@ -37,7 +37,6 @@ class MachineSpecs(Prodict):
     """
     A class to validate and manage the machine specifications pulled from the machine config file.
     """
-    properties = ["num_workers", "num_gpus"]
     num_workers: int
     num_gpus: int
 
@@ -89,67 +88,56 @@ class MachineSpecs(Prodict):
             for key in config_data[machine].keys():
                 if re.match(key, model):
                     if "include" in config_data[machine][key]:
-                        include_lst = config_data[machine][key]["include"].split(':')
-                        machine = include_lst[0]
-                        model = include_lst[1]
+                        machine, model = config_data[machine][key]["include"].split(':')
                         specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
-
                     else:
-                        for prop in config_data[machine][key].keys():
-                            if config_data[machine][key][prop]:
-                                specs_data[prop] = config_data[machine][key][prop]
+                        specs_data.update(config_data[machine][key])
 
         return specs_data
 
     @staticmethod
-    def validate_workspace_config(config_data: dict):
-        # Check for default:default option
-        default_error_count = 0
-
-        if "default" not in config_data:
-            default_error_count += 1
-        else:
-            if "default" not in config_data["default"]:
-                default_error_count += 1
-
-        # Report missing default:default section
-        if default_error_count > 0:
-            logger.error(f"Config missing default:default section.")
-
-        # Check for valid include
-        include_error_count = 0
-
-        for machine_key in config_data.keys():
+    def validate_workspace_config(config_data: dict, test: bool = False):
+        error_count = 0
+        for machine_key in config_data:
             for model_key in config_data[machine_key]:
+                # Validate include format
                 if "include" in config_data[machine_key][model_key]:
-                    include_lst = config_data[machine_key][model_key]["include"].split(":")
-                    # Check for invalid machine:model pair
-                    if include_lst[0] not in config_data:
-                        include_error_count += 1
-                    else:
-                        if include_lst[1] not in config_data[include_lst[0]]:
-                            include_error_count += 1
+                    include_lst = config_data[machine_key][model_key]["include"].split(':')
+                    if len(include_lst) == 2:
+                        machine = include_lst[0]
+                        model = include_lst[1]
+                        # Check for invalid machine:model pair
+                        if machine not in config_data:
+                            error_count += 1
                         else:
-                            # Check for chained includes
-                            if "include" in config_data[include_lst[0]][include_lst[1]]:
-                                include_error_count += 1
+                            if model not in config_data[machine]:
+                                error_count += 1
+                            else:
+                                # Check for chained includes
+                                if "include" in config_data[machine][model]:
+                                    error_count += 1
+                    else:
+                        # Invalid include format
+                        error_count += 1
 
-        # Report invalid include(s)
-        if include_error_count > 0:
-            logger.error(f"Config contains invalid include(s).")
-
-        error_count = default_error_count + include_error_count
         if error_count > 0:
             logger.error(f"Found {error_count} errors in machine specs. EXITING.")
-            sys.exit(-1)
+            if test:
+                return False
+            else:
+                sys.exit(-1)
+
+        elif test:
+            return True
 
     @staticmethod
-    def load(data_path: str, machine_class: str = None, model_name: str = None):
+    def load(data_path: str, machine_class: str = None, model_name: str = None, test: bool = False):
         """
         Loads the machine config file from the provided path, validates, and constructs the MachineSpecs object.
         :param data_path: Path to the machine config annotations file.
         :param machine_class: The name of the class of machine.
         :param model_name: The name of the model.
+        :param test:
         :return: Loaded, validated, and constructed object.
         """
         # Load the raw file.
@@ -158,7 +146,9 @@ class MachineSpecs(Prodict):
         specs_data = {}
 
         # Validate config
-        MachineSpecs.validate_workspace_config(config_data)
+        result = MachineSpecs.validate_workspace_config(config_data, test=test)
+        if test:
+            return result
 
         # Load from default:default
         specs_data = MachineSpecs.update_properties(machine="default", model="default",
