@@ -141,7 +141,7 @@ class MachineSpecs(Prodict):
         :return: Loaded, validated, and constructed object.
         """
         # Load the raw file.
-        logger.info(f"Loading MACHINE CONFIG from {data_path}")
+        logger.info(f"Loading WORKSPACE CONFIG from {data_path}")
         config_data = jbfs.load_file(data_path)
         specs_data = {}
 
