@@ -88,8 +88,8 @@ class MachineSpecs(Prodict):
             for key in config_data[machine].keys():
                 if re.match(key, model):
                     if "include" in config_data[machine][key]:
-                        machine, model = config_data[machine][key]["include"].split(':')
-                        specs_data = MachineSpecs.update_properties(machine, model, config_data, specs_data)
+                        temp_machine, temp_model = config_data[machine][key]["include"].split(':')
+                        specs_data = MachineSpecs.update_properties(temp_machine, temp_model, config_data, specs_data)
                     else:
                         specs_data.update(config_data[machine][key])
 
@@ -137,7 +137,7 @@ class MachineSpecs(Prodict):
         :param data_path: Path to the machine config annotations file.
         :param machine_class: The name of the class of machine.
         :param model_name: The name of the model.
-        :param test:
+        :param test: Flag for unit testing.
         :return: Loaded, validated, and constructed object.
         """
         # Load the raw file.

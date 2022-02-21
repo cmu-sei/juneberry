@@ -59,6 +59,9 @@ def make_sample_machine_specs(specs_path):
             },
             "object_det_.*": {
                 "include": "gpu9:od"
+            },
+            "object_det_vers.*": {
+                "include": "default:cool"
             }
         }
     }
@@ -111,4 +114,4 @@ def test_machine_specs(tmp_path):
 
     # Test include case
     specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="object_det_vers3")
-    assert specs_data == {"num_workers": 16, "num_gpus": None}
+    assert specs_data == {"num_workers": 16, "num_gpus": 12}
