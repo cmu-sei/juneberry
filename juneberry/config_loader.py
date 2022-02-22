@@ -160,12 +160,6 @@ def setup_lab(overrides: dict, section_name: str = None):
             lab_args[required] = None
             errors += 1
 
-    # Check environment variable if machine_class not found in command line or ini
-    if 'machine_class' not in lab_args:
-        machine_class = os.environ.get('JUNEBERRY_MACHINE_CLASS')
-        if machine_class is not None:
-            lab_args['machine_class'] = str(machine_class)
-
     # Now return a lab args object initialized to these values
     return Lab(**lab_args), errors
 

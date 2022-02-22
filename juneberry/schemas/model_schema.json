@@ -39,15 +39,6 @@
         },
         "evaluator": { "$ref": "#/definitions/plugin_item" },
         "format_version": { "type": "string" },
-        "hints": {
-            "type": "object",
-            "properties": {
-                "num_workers": {
-                    "type": "integer"
-                }
-            },
-            "required": [ ]
-        },
         "label_mapping": { "type": [ "string", "object" ] },
         "mmdetection": {
             "type": "object",

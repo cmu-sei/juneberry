@@ -42,9 +42,6 @@
         }
     ],
     "format_version": "0.2.0",
-    "hints": {
-        "num_workers": 30
-    },
     "label_mapping": "data_sets/label_mappings/imagenet.json",
     "model_architecture": {
         "args": {

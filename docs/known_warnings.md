@@ -13,19 +13,6 @@ for what's causing the issue. Not all warnings necessarily represent something t
 
 These warning may apply to multiple sections of the system test.
 
-#### Number of workers in ModelConfig
-
-##### Message
-```
-WARNING Overriding number of workers. Found 1 in ModelConfig
-```
-
-##### Response
-This warning is due to the presence of the `num_workers` key in the "hints" stanza of a model 
-config.json. The warning exists to indicate when the number of worker processes is set to a value. 
-Since the stanza in the model config requests one worker process, the warning message is triggered 
-when the number of workers gets set to 1.
-
 #### Validation dataset is Length 0
 
 ##### Message

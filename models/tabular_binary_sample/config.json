@@ -14,10 +14,6 @@
         }
     ],
     "format_version": "0.2.0",
-    "hints": {
-        "max_gpus": 1,
-        "num_workers": 0
-    },
     "model_architecture": {
         "args": {
             "num_classes": 2

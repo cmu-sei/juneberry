@@ -22,9 +22,6 @@
         "fqcn": "juneberry.detectron2.evaluator.Evaluator"
     },
     "format_version": "0.2.0",
-    "hints": {
-        "num_workers": 4
-    },
     "model_architecture": {
         "args": {
             "num_classes": 3
