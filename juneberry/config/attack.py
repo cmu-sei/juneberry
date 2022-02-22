@@ -60,9 +60,9 @@ class Watermarks(Prodict):
     training_watermarks: Plugin
 
 
-class AttackConfig(Prodict):
+class PropertyInferenceAttackConfig(Prodict):
     FORMAT_VERSION = '0.1.0'
-    SCHEMA_NAME = 'attack_schema.json'
+    SCHEMA_NAME = 'property_inference_attack_schema.json'
 
     data_configs: DataConfigs
     models: Models
@@ -83,13 +83,13 @@ class AttackConfig(Prodict):
         :return: A constructed and validated object.
         """
 
-        conf_utils.require_version(data, AttackConfig.FORMAT_VERSION, file_path, 'AttackConfig')
-        if not conf_utils.validate_schema(data, AttackConfig.SCHEMA_NAME):
+        conf_utils.require_version(data, PropertyInferenceAttackConfig.FORMAT_VERSION, file_path, 'AttackConfig')
+        if not conf_utils.validate_schema(data, PropertyInferenceAttackConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in AttackConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
 
         # Finally, construct the object and do a final value cleanup.
-        attack_config = AttackConfig.from_dict(data)
+        attack_config = PropertyInferenceAttackConfig.from_dict(data)
         attack_config._finish_init()
         return attack_config
 
@@ -105,4 +105,4 @@ class AttackConfig(Prodict):
         data = jbfs.load_file(data_path)
 
         # Validate and construct the attack config.
-        return AttackConfig.construct(data, data_path)
+        return PropertyInferenceAttackConfig.construct(data, data_path)
