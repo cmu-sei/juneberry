@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy as np
 import unittest
 
+import torch
 import torch.utils.data.dataloader
 
 from juneberry.config.dataset import DatasetConfigBuilder
@@ -369,8 +370,16 @@ def test_torchvision():
     np.testing.assert_array_equal(np.array(eval_sample), np.array([[168, 68], [15, 158]]))
 
     # Verify that the image labels are equal to the expected values.
-    assert training_label.item() == 1
-    assert eval_label.item() == 3
+    # In torch 1.8 this seems to return a 1 element tensor, in 1.9 the actual value
+    # TODO: WHY DOES IT DO THIS??
+    if type(training_label) == torch.Tensor:
+        assert training_label.item() == 1
+    else:
+        assert training_label == 1
+    if type(eval_label) == torch.Tensor:
+        assert eval_label.item() == 3
+    else:
+        assert eval_label == 3
 
 
 class TestFormatErrors(unittest.TestCase):
