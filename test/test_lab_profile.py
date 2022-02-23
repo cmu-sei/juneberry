@@ -22,18 +22,13 @@
 #
 # ======================================================================================================================
 
-import csv
 import json
-import unittest
 from pathlib import Path
-
-import juneberry
-from juneberry.lab import Lab
-from juneberry.config.machine_specs import MachineSpecs
+from juneberry.config.lab_profile import LabProfile
 
 
-def make_sample_machine_specs(specs_path):
-    specs_data = {
+def make_sample_workspace_config(config_path):
+    config_data = {
         "default": {
             "default": {
                 "num_workers": 4
@@ -66,12 +61,12 @@ def make_sample_machine_specs(specs_path):
         }
     }
 
-    with open(specs_path, 'w') as json_file:
-        json.dump(specs_data, json_file)
+    with open(config_path, 'w') as json_file:
+        json.dump(config_data, json_file)
 
 
-def make_invalid_specs(specs_path):
-    specs_data = {
+def make_invalid_workspace_config(config_path):
+    config_data = {
         "pme": {
             "default": {
                 "include": "1984"
@@ -79,39 +74,45 @@ def make_invalid_specs(specs_path):
         }
     }
 
-    with open(specs_path, 'w') as json_file:
-        json.dump(specs_data, json_file)
+    with open(config_path, 'w') as json_file:
+        json.dump(config_data, json_file)
 
 
-def test_machine_specs(tmp_path):
-    # Make invalid machine specs file
-    specs_path = str(Path(tmp_path, "invalid_specs.json"))
-    make_invalid_specs(specs_path)
+def test_lab_profile_load(tmp_path):
+    # Make invalid workspace config file
+    config_path = str(Path(tmp_path, "inv_ws_config.json"))
+    make_invalid_workspace_config(config_path)
 
-    # Test invalid machine specs file case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="not_good", test=True)
-    assert specs_data is False
+    # Test invalid workspace config case
+    ws_specs = LabProfile.load(data_path=config_path, profile_name=None, model_name="not_good", test=True)
+    assert ws_specs is False
 
-    # Make sample machine specs file
-    specs_path = str(Path(tmp_path, "machine_specs.json"))
-    make_sample_machine_specs(specs_path)
+    # Make sample workspace config
+    config_path = str(Path(tmp_path, "ws_config.json"))
+    make_sample_workspace_config(config_path)
 
     # Test default:default case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="not_good")
-    assert specs_data == {"num_workers": 4, "num_gpus": None}
+    ws_specs = LabProfile.load(data_path=config_path, profile_name=None, model_name="not_good")
+    assert ws_specs['num_workers'] == 4
+    assert ws_specs['num_gpus'] is None
 
     # Test machine:default case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="not_great")
-    assert specs_data == {"num_workers": 8, "num_gpus": None}
+    ws_specs = LabProfile.load(data_path=config_path, profile_name="gpu10", model_name="not_great")
+    assert ws_specs['num_workers'] == 8
+    assert ws_specs['num_gpus'] is None
 
     # Test default:model case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class=None, model_name="cool4ever")
-    assert specs_data == {"num_workers": 4, "num_gpus": 12}
+    ws_specs = LabProfile.load(data_path=config_path, profile_name=None, model_name="cool4ever")
+    assert ws_specs['num_workers'] == 4
+    assert ws_specs['num_gpus'] == 12
 
     # Test machine:model case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class="pme", model_name="tabular_2")
-    assert specs_data == {"num_workers": 20, "num_gpus": None}
+    ws_specs = LabProfile.load(data_path=config_path, profile_name="pme", model_name="tabular_2")
+    assert ws_specs['num_workers'] == 20
+    assert ws_specs['num_gpus'] is None
 
     # Test include case
-    specs_data = MachineSpecs.load(data_path=specs_path, machine_class="gpu10", model_name="object_det_vers3")
-    assert specs_data == {"num_workers": 16, "num_gpus": 12}
+    ws_specs = LabProfile.load(data_path=config_path, profile_name="gpu10", model_name="object_det_vers3")
+    assert ws_specs['num_workers'] == 16
+    assert ws_specs['num_gpus'] == 12
+

@@ -69,7 +69,6 @@ class Trainer:
         """
         # This is the model we are associated with
         self.lab = lab
-
         self.model_manager = model_manager
 
         # The model and dataset configurations.

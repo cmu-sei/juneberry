@@ -31,6 +31,7 @@ from torch.utils import data
 
 from juneberry.config.dataset import DataType, DatasetConfig, TaskType
 from juneberry.lab import Lab
+from juneberry.config.lab_profile import LabProfile
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 import juneberry.pytorch.utils as pyt_utils
@@ -84,14 +85,14 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     """
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing TRAINING data loader.")
-    data_loader = make_data_loader(lab, ds_cfg, data_lst,
+    data_loader = make_data_loader(lab.profile, ds_cfg, data_lst,
                                    make_transform_manager(model_cfg, ds_cfg, len(data_lst), opt_args, False),
                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn,
                                    sampler_args=sampler_args)
 
     logger.info("Constructing VALIDATION data loader.")
     opt_args = {'path_label_list': list(split_lst)}
-    split_loader = make_data_loader(lab, ds_cfg, split_lst,
+    split_loader = make_data_loader(lab.profile, ds_cfg, split_lst,
                                     make_transform_manager(model_cfg, ds_cfg, len(split_lst), opt_args, True),
                                     model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn)
 
@@ -114,7 +115,7 @@ def make_eval_data_loader(lab, dataset_config, model_config, data_lst, *,
     # TODO: Should we use collate and sampler?
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing data loader from EVALUATION data set using prediction transforms.")
-    return make_data_loader(lab, dataset_config, data_lst,
+    return make_data_loader(lab.profile, dataset_config, data_lst,
                             make_transform_manager(model_config, dataset_config, len(data_lst), opt_args, True),
                             model_config.batch_size, no_paging=no_paging)
 
@@ -140,7 +141,8 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
     # Convenience function to wrap these
     dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=no_paging)
     # NOTE: We do not shuffle since the dataset conversion above already did
-    return wrap_dataset_in_dataloader(lab, dataset, batch_size, collate_fn=collate_fn, sampler_args=sampler_args)
+    return wrap_dataset_in_dataloader(lab.profile, dataset, batch_size, collate_fn=collate_fn,
+                                      sampler_args=sampler_args)
 
 
 def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transform_manager, *, no_paging=False):
@@ -205,7 +207,7 @@ def wrap_dataset_in_dataloader(lab: Lab, dataset, batch_size, *,
     # Parameters
     params = {'batch_size': batch_size,
               'shuffle': shuffle,
-              'num_workers': lab.num_workers,
+              'num_workers': lab.profile.num_workers,
               'collate_fn': collate_fn,
               'sampler': sampler,
               'worker_init_fn': pyt_utils.worker_init_fn}
@@ -304,7 +306,7 @@ def sample_and_split(count, *, sampling_config: SamplingConfig = None, splitting
     return training_indices, validation_indices
 
 
-def construct_torchvision_dataloaders(lab, tv_data: TorchvisionData, model_config: ModelConfig,
+def construct_torchvision_dataloaders(lab: Lab, tv_data: TorchvisionData, model_config: ModelConfig,
                                       sampling_config: SamplingConfig = None,
                                       *, collate_fn=None, sampler_args=None):
     """

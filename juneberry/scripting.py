@@ -63,7 +63,7 @@ def make_default_values(workspace: str):
         "workspace": str(ws),
         "data_root": str((ws.parent / "dataroot").absolute()),
         "tensorboard": str((ws.parent / "tensorboard").absolute()),
-        "machine_class": "default"
+        "profile_name": "default"
     }
 
 
@@ -100,7 +100,7 @@ def resolve_lab_args(args):
     # STEP 3: Overlay the *remaining* (not ws) values from environment vars.
     vals['data_root'] = resolve_arg(args.dataRoot, 'JUNEBERRY_DATA_ROOT', vals['data_root'], is_path=True)
     vals['tensorboard'] = resolve_arg(args.tensorboard, 'JUNEBERRY_TENSORBOARD', vals['tensorboard'], is_path=True)
-    vals['machine_class'] = resolve_arg(args.machineClass, 'JUNEBERRY_MACHINE_CLASS', vals['machine_class'])
+    vals['profile_name'] = resolve_arg(args.profileName, 'JUNEBERRY_PROFILE_NAME', vals['profile_name'])
 
     # Now we have the basics, let's return those.
     return vals
@@ -117,8 +117,8 @@ def setup_args(parser) -> None:
                         help='Silent flag to silence output to console. Default is to show to console.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Verbose flag that will log DEBUG messages. Default is off.')
-    parser.add_argument('-c', '--machineClass', type=str, default=None,
-                        help='The class of machine.')
+    parser.add_argument('-p', '--profileName', type=str, default=None,
+                        help='The name of the host profile.')
     parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
                         help="Directory where the log file will be saved. Default is the current working directory.")
 
@@ -176,10 +176,10 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
     # Indicates when DEBUG level messages have been enabled.
     logger.debug(f"DEBUG messages enabled.")
 
-    logger.info(f"Using workspace:     {lab.workspace()}")
-    logger.info(f"Using data root:     {lab.data_root()}")
-    logger.info(f"Using tensorboard:   {lab.tensorboard}")
-    logger.info(f"Using machine class: {lab.machine_class}")
+    logger.info(f"Using workspace:    {lab.workspace()}")
+    logger.info(f"Using data root:    {lab.data_root()}")
+    logger.info(f"Using tensorboard:  {lab.tensorboard}")
+    logger.info(f"Using profile name: {lab.profile_name}")
 
     return lab
 
@@ -209,16 +209,14 @@ def setup_logging_for_script(args, script_name: str = None):
     logger.info(f"Log messages are beings saved to {log_file}")
 
 
-def setup_for_single_model(args, *, log_file, model_name, log_prefix="", banner_msg=None) -> Lab:
+def setup_for_single_model(args, *, log_file, model_name, log_prefix="", banner_msg=None):
     # TODO: Come up with a better name for this call
     # Check that the model directory is there. We need to do this before setting up logging
     # because the logger wants to write to the directory.
-
     lab = setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
                           model_name=model_name, banner_msg=banner_msg)
     mm = lab.model_manager(model_name)
     mm.ensure_model_directory()
-
     return lab
 
 

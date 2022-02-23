@@ -32,6 +32,7 @@ import torch.utils.data.dataloader
 from juneberry.config.dataset import DatasetConfigBuilder
 from juneberry.config.dataset import DatasetConfig, DataType, TaskType, SamplingAlgo
 from juneberry.config.model import ModelConfig
+from juneberry.config.lab_profile import LabProfile
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 
@@ -70,7 +71,7 @@ def make_basic_config(image_data=True, classification=True, torchvision=False):
         config['data_type'] = 'torchvision'
         config['torchvision_data'] = {
             "eval_kwargs": kwargs,
-            "fqcn": "torchvision.datasets.FakeData",    # A fake dataset that returns randomly generated PIL images.
+            "fqcn": "torchvision.datasets.FakeData",  # A fake dataset that returns randomly generated PIL images.
             "root": "",
             "train_kwargs": kwargs,
             "val_kwargs": kwargs
@@ -344,6 +345,7 @@ def test_torchvision():
 
     # Build a Lab and basic ModelConfig (required for building the torchvision dataloader).
     lab = Lab(workspace='ws', data_root='dr')
+    lab_profile = LabProfile.construct({'num_gpus': 0, 'num_workers': 4})
     model_config_data = test_model_config.make_basic_config()
     mc = ModelConfig.from_dict(model_config_data)
 

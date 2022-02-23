@@ -136,9 +136,8 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
             kw_args = {}
         fqcn = model_config.evaluator.fqcn
 
-    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
-
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
     for arg in reqd_args:
         if arg not in kw_args:
             kw_args[arg] = locals()[arg]

@@ -103,10 +103,17 @@ def main():
     logger.info(f"Loading model config for model {model_name} files...")
     model_config = lab.load_model_config(model_name)
 
+    # Set up the lab profile
+    lab.setup_lab_profile(model_name=model_name, model_config=model_config)
+    if args.num_gpus is not None:
+        lab.profile.num_gpus = args.num_gpus
+    logger.info(f"Using lab profile: {lab.profile}")
+
+    # Now load the dataset
     logger.info(f"Loading dataset for {model_config.training_dataset_config_path} files...")
     dataset_config = lab.load_dataset_config(model_config.training_dataset_config_path)
 
-    # TODO: Reimplement no_paging via lab
+    # TODO: Reimplement no_paging via lab profile
 
     # Backward compatible map of task and platform name to class to load
     task_platform_map = {
@@ -148,9 +155,8 @@ def main():
         logger.warning(f'    "fqcn": "{fqcn}"')
         logger.warning('}')
 
-    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
-
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
+    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
     for arg in reqd_args:
         if arg not in kw_args:
             kw_args[arg] = locals()[arg]
@@ -180,7 +186,13 @@ def main():
         trainer.dry_run()
     else:
         # Allocate the GPUs the user asked for, getting the current number if None are required.
-        trainer.num_gpus = trainer.check_gpu_availability(args.num_gpus)
+        trainer.num_gpus = trainer.check_gpu_availability(lab.profile.num_gpus)
+
+        if lab.profile.max_gpus is not None:
+            if trainer.num_gpus > lab.profile.max_gpus:
+                logger.info(f"Maximum numbers of gpus {trainer.num_gpus} being capped to {lab.profile.max_gpus} "
+                            f"because of lab profile.")
+                trainer.num_gpus = lab.profile.max_gpus
 
         # No matter the number of GPUs, setup the node for training
         trainer.node_setup()

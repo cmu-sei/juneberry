@@ -45,6 +45,13 @@ def test_defaults():
 
 
 def test_resolve_lab_args_ws():
+    orig = os.environ.copy()
+
+    os.environ.pop('JUNEBERRY_WORKSPACE', None)
+    os.environ.pop('JUNEBERRY_DATA_ROOT', None)
+    os.environ.pop('JUNEBERRY_TENSORBOARD', None)
+    os.environ.pop('JUNEBERRY_PROFILE_NAME', None)
+
     args = MockArgs()
     args.workspace = "/fakeroot/ws"
 
@@ -55,13 +62,16 @@ def test_resolve_lab_args_ws():
     assert vals['tensorboard'] == "/fakeroot/tensorboard"
     assert vals['machine_class'] == "default"
 
+    # Reset the environ so we don't impact other tests
+    os.environ = orig.copy()
+
 
 def test_env_variables():
     orig = os.environ.copy()
     os.environ['JUNEBERRY_WORKSPACE'] = "js_ws"
     os.environ['JUNEBERRY_DATA_ROOT'] = "js_dr"
     os.environ['JUNEBERRY_TENSORBOARD'] = "js_tb"
-    os.environ['JUNEBERRY_MACHINE_CLASS'] = "mach_class"
+    os.environ['JUNEBERRY_PROFILE_NAME'] = "prof_name"
 
     args = MockArgs()
     vals = jbscripting.resolve_lab_args(args)
@@ -69,13 +79,17 @@ def test_env_variables():
     assert vals['workspace'] == str((Path.cwd() / "js_ws").absolute())
     assert vals['data_root'] == str((Path.cwd() / "js_dr").absolute())
     assert vals['tensorboard'] == str((Path.cwd() / "js_tb").absolute())
-    assert vals['machine_class'] == "mach_class"
+    assert vals['machine_class'] == "prof_name"
 
     # Reset the environ so we don't impact other tests
     os.environ = orig.copy()
 
 
 def test_overrides():
+    orig = os.environ.copy()
+
+    os.environ.pop('JUNEBERRY_TENSORBOARD', None)
+
     args = MockArgs()
     args.workspace = "/fakeroot/ws"
     args.dataRoot = "/some/hardcoded/path"
@@ -86,3 +100,6 @@ def test_overrides():
     assert vals['data_root'] == "/some/hardcoded/path"
     assert vals['tensorboard'] == "/fakeroot/tensorboard"
     assert vals['machine_class'] == "default"
+
+    # Reset the environ so we don't impact other tests
+    os.environ = orig.copy()

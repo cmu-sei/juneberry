@@ -50,7 +50,9 @@ from juneberry.pytorch.classifier_trainer import ClassifierTrainer
 from opacus import PrivacyEngine
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class PrivacyTrainer(ClassifierTrainer):
     def setup(self):
@@ -62,13 +64,15 @@ class PrivacyTrainer(ClassifierTrainer):
 
                 default_sample_rate = 1.0 / self.num_batches
                 if 'sample_rate' in engine_args:
-                    logger.warning(f"Overriding sample rate to: {engine_args['sample_rate']} Default sample rate was 1 / Number of batches = 1 / {self.num_batches} = {default_sample_rate} ")
+                    logger.warning(
+                        f"Overriding sample rate to: {engine_args['sample_rate']} Default sample rate was 1 / Number of batches = 1 / {self.num_batches} = {default_sample_rate} ")
                 else:
                     engine_args['sample_rate'] = default_sample_rate
 
                 if 'epochs' in engine_args:
                     if engine_args['epochs'] == self.max_epochs:
-                        logger.warning(f"Max epochs from juneberry config: {self.max_epochs} vs Epochs from privacy engine: {engine_args['epochs']}")
+                        logger.warning(
+                            f"Max epochs from juneberry config: {self.max_epochs} vs Epochs from privacy engine: {engine_args['epochs']}")
                 else:
                     engine_args['epochs'] = self.max_epochs
 
@@ -76,24 +80,22 @@ class PrivacyTrainer(ClassifierTrainer):
                 privacy_engine = PrivacyEngine(self.model, **engine_args)
                 privacy_engine.attach(self.optimizer)
 
-                self.history.update({ "sigma": [], "C": [], "epsilon": [], "target_delta": [], "alpha": [] })
+                self.history.update({"sigma": [], "C": [], "epsilon": [], "target_delta": [], "alpha": []})
             else:
                 logger.error("pytorch.privacy_engine.target_delta required for opacus. EXITING.")
                 sys.exit(-1)
         else:
             logger.error("pytorch.privacy_engine stanza required for opacus. EXITING.")
             sys.exit(-1)
-      
+
     def summarize_metrics(self, train, metrics) -> None:
         super().summarize_metrics(train, metrics)
 
-        if train: 
+        if train:
             epsilon, alpha = self.optimizer.privacy_engine.get_privacy_spent(self.optimizer.privacy_engine.target_delta)
 
-            self.history['sigma'].append( self.optimizer.privacy_engine.noise_multiplier )
-            self.history['C'].append( self.optimizer.privacy_engine.max_grad_norm )
+            self.history['sigma'].append(self.optimizer.privacy_engine.noise_multiplier)
+            self.history['C'].append(self.optimizer.privacy_engine.max_grad_norm)
             self.history['epsilon'].append(epsilon)
             self.history['target_delta'].append(self.optimizer.privacy_engine.target_delta)
             self.history['alpha'].append(alpha)
-
-
