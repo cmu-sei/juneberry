@@ -43,7 +43,7 @@ docker pull cmusei/juneberry:vignette1
 
 ### Enter the Vignette Container
 
-After you obtaining the Docker image for this vignette, you can use the following command to run a container:
+After obtaining the Docker image for this vignette, you can use the following command to run a container:
 
 **Note:** You should replace the `"directory on host"` in the following command with the path to a directory 
 on your host filesystem. This will create a mount point inside the container that will allow you to transfer 
