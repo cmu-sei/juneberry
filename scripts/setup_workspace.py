@@ -23,50 +23,27 @@
 # ======================================================================================================================
 
 import argparse
-import configparser
 import logging
-import os
 from pathlib import Path
 import platform
 import re
 import shutil
-import subprocess
 import sys
-
 
 logging.basicConfig(level=logging.INFO, format="%(filename)s:%(levelname)s - %(message)s")
 
 
-def create_juneberry_ini(workspace_dir: Path) -> None:
-    """
-    Create a juneberry.ini file for this workspace.
-    :param workspace_dir: The Juneberry workspace directory.
-    :return: None
-    """
-    config = configparser.ConfigParser()
-    config["DEFAULT"] = {
-        "workspace_root": f"/workspace",
-        "data_root": f"/dataroot",
-        "tensorboard": "/tensorboard",
-        "num_workers": "1",
-    }
-    juneberry_ini_file = Path(workspace_dir / "juneberry.ini")
-    logging.info(f"Creating {juneberry_ini_file}...")
-    with open(juneberry_ini_file, "w") as f:
-        config.write(f)
-
-
-def create_dir(dir: Path) -> None:
+def create_dir(some_dir: Path) -> None:
     """
     Create a directory if it doesn't already exist.
-    :param dir: The directory to create.
+    :param some_dir: The directory to create.
     :return: None
     """
     # Doing it this way instead of using the flags on mkdir
     # so we can print the status message.
-    if not dir.exists():
-        logging.info(f"Creating {dir.name} directory...")
-        dir.mkdir()
+    if not some_dir.exists():
+        logging.info(f"Creating {some_dir.name} directory...")
+        some_dir.mkdir()
 
 
 def copy_container_start(workspace_dir: Path, project_dir: Path) -> None:
@@ -98,7 +75,7 @@ def add_host_os_to_container_start(workspace_dir: Path) -> None:
 
         for l in inlines:
             outlines.append(re.sub(r"^HOST_OS=\"\"$",
-                f"HOST_OS=\"{platform.system()}\"", l))
+                                   f"HOST_OS=\"{platform.system()}\"", l))
 
     with open(container_start, "w") as f:
         f.writelines(outlines)
@@ -111,13 +88,11 @@ def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
     :param project_dir: The Juneberry project directory.
     :return: None
     """
-    if not (workspace_dir / "juneberry.ini").exists():
-        create_juneberry_ini(workspace_dir)
     if not (workspace_dir / "container_start.sh").exists():
         copy_container_start(workspace_dir, project_dir)
         add_host_os_to_container_start(workspace_dir)
 
-    
+
 def create_workspace_dirs(workspace_dir: Path) -> None:
     """
     Create the Juneberry workspace directory and subdirectories, if necessary.
@@ -139,7 +114,7 @@ def main():
 
     project_dir = Path(args.project_dir)
     workspace_dir = Path(args.workspace)
-    
+
     logging.info(f"Setting up workspace in {workspace_dir}...")
 
     # Create the Juneberry workspace directories and files.

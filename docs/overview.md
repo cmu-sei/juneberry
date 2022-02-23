@@ -1,6 +1,30 @@
 Workspace and Experiment Overview
 ==========
 
+# Lab Structure (Common)
+
+One of the core purposes of Juneberry is to manage all the inputs and output files associated
+with a set of machine learning experiments. Similar to other experimental labs, we organizes
+files into a "lab structure" that has data and workspaces. A common lab structure looks 
+like this:
+
+```
+<project>
+    juneberry/ - The cloned repo for sample projects
+    dataroot/ - Where all the data assets are stored.
+    tensorboad/ - OPTIONAL - Where tensorboard outputs are stores
+    cache/ - A place where we store platform cached data
+        hub/ 
+        torch/
+    *workspace-directories*
+```
+
+While this structure it is preferred but not required. Sometimes, for larger deployments it is important
+to store files in paths that could be different storgae devices. Later, we'll discuss how to create your own.
+
+# Workspaces (Required)
+
+While the lab structure is a convention, Juneberry requires a particular worksa
 Juneberry uses a workspace directory structure to hold models and experiments. Most
 of the configuration is done via files.
 
@@ -22,24 +46,48 @@ of the configuration is done via files.
         
 <DATA_ROOT>/
     ... store your data in this directory ...
-
-<TENSORBOARD_ROOT>/ - [OPTIONAL]
-    <time-stamp>
-    ... a timestamped directory will (optionally) be generated during each execution and filled with summary data ... 
 ``` 
 
-Juneberry scripts need to know the path to the workspace, data, and (optional) tensorboard directories described above.
-These paths can be provided on a per-script basis using the `-w`, `-d`, and `-t` switches respectively.
 
-Normally, it is much more convenient to specify these (and other settings) once via a `juneberry.ini` file, described
-below in "Configuration via juneberry.ini". If you wish to use a `juneberry.ini` file instead of providing directories
-via command line switches, you are expected to create your own `juneberry.ini` file in an appropriate location. Refer to
-the "Search Order" section of "Configuration via juneberry.ini" for the relevant details.
 
-# WORKSPACE_ROOT Directory
 
-The workspace path can be set via the `-w` command line switch or more generally via the `workspace_root` field in your
-`juneberry.ini` file.
+
+
+# Workspace Directory
+
+The workspace is where one keeps model configurations, experiment configurations, and all outputs such as 
+trained models, log files, charts and reports. While the lab layout is a common convention, Juneberry 
+requires a particular structure to manage all these files. The Juneberry repository not only has the Juneberry
+source code, but also functions as a sample workspace with sample models and experiments. While you can use
+it for testing your installation, you'll want to create your own to manage your own experiments. See
+the [Getting Started](getting_started.md) guide for directions on how to create your own workspace.
+
+While the workspace directory can be called anything it needs to have the following layout:
+```
+<workspace-directory>/
+    config.json - A file that describes various machine-specific configurations used by the workspace
+    data_sets/ - datasets pair data with labeling schemes
+        <data-set-name>.json
+    models/ - models combine architectures and hyperparameters
+        <model-name>
+            config.json
+            eval/ - created by Juneberry to hold evaluation outputs
+            train/ - created by Juneberry to hold training output
+    experiments/ - experiments specify models and tests to evaluate and compare
+        <experiment-name>
+            config.json
+            outline.json - Optional outline file for generating more complex experiments
+            ... generated Doit files and outputs such as logs or trained models ARE PLACED here ...
+    <workspace package> - [OPTIONAL] Python code goes here and should be available for import
+        <subpackage>
+```
+
+In most cases Juneberry commands, when issues assume the current working directory is the workspace. 
+The workspace directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
+variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+details.
+
+The [Getting Started](getting_started.md) explains how to specify the workspace.
 
 ## Models (`models` Directory)
 
@@ -60,15 +108,13 @@ For more details on the structure of model configs, refer to
 [model_configuration_specification.md](specs/model_configuration_specification.md) in the Juneberry
 documentation directory.
 
-## Datasets (`data_set` Directory)
+## Data specs (`data_sets` Directory)
 
-"Datasets" describe where data elements come from and how the data should be labeled. Each dataset configuration is
-defined by a JSON file. These configuration files allow you to specify subsets of source directories,
-how they are ordered, and how the data should be split or transformed (such as image resizing). Together, these options
-construct a unique and traceable data input set which can be referenced by your model and experiment configs.
-
-All data paths in the JSON file should be relative to a single data root. This root is provided to Juneberry via the
-`juneberry.ini` file or the `-d` command line switch.
+"Datasets" describe where data elements come from within the data root and how the data should be labeled.
+Each dataset configuration is defined by a JSON file. These configuration files allow you to specify subsets 
+of source directories, how they are ordered, and how the data should be split or transformed 
+(such as image resizing). Together, these options construct a unique and traceable data input set 
+which can be referenced by your model and experiment configs.
 
 For more details on the structure of dataset configs, refer to
 [dataset_configuration_specification.md](specs/dataset_configuration_specification.md) 
@@ -89,64 +135,24 @@ For more details on the structure of experiment configs, refer to
 [experiment_configuration_specification.md](specs/experiment_configuration_specification.md) in the
 Juneberry documentation directory.
 
-# DATA_ROOT Directory
+# Data Root (`dataroot`) Directory
 
-The data root directory path can be set via the `-d` command line switch or via the `data_root` field in your
-`juneberry.ini` file.
+The data root directory is where all the data is stored. All the paths in the data specs are relative to the 
+data in the data root.
+
+By default, the dataroot directory is assumed to be a peer of the workspace.
+The data root directory path can be set via the `-d` command line switch or `JUNEBERRY_DATAROOT` environment
+variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+details.
 
 # TENSORBOARD_ROOT Directory (optional)
 
-The tensorboard directory path can be set via the `-t` command line switch or more generally via the `tensorboard_root`
-field in your `juneberry.ini` file.
+The tensorboard directory (if specified and exisst) will be used to store outputs to be used by tensorboard.
 
-# Configuration via juneberry.ini
-
-## Content
-
-The `juneberry.ini` file can contain the following fields:
-
-```
-[DEFAULT]
-workspace_root = /path/to/workspace
-data_root = /path/to/data
-tensorboard_root = /path/to/tensorboard/data
-```
-
-The Juneberry framework is designed to work with a "workspace root", "data root", and/or "tensorboard root"
-that is external to the Juneberry code itself. This allows the various directories (which may be small and versioned) to
-be independent. 
-
-## workspace_root
-The workspace root directory (specified by `workspace_root`) is the root-level directory storing your data_sets,
-models, and experiments directories. It contains references to datasets, transforms for the input data, python files for
-constructing models, hyperparameters to those models, references to loss functions or optimizers, and references to 
-visualizations or other reporting analytics.
-
-## data_root
-The data root directory (specified by `data_root`) is the root-level directory containing your input data. Paths in 
-your dataset config files will be treated as relative to this "data root" directory.
-
-## tensorboard_root
-The tensorboard root directory (specified by `tensorboard_root`) is where your tensorboard summary data will be 
-written during training. If a tensorboard root is not provided, then the training data will not be 
-logged for tensorboard.
-
-## Root switches
-When an ini file is not found, the path to the "workspace root", "data root", or "tensorboard root" can be passed to
-Juneberry scripts via the `-w`, `-d`, and `-t` switches respectively.
-
-## Search Order
-
-Juneberry will inspect several locations for a workspace and data root location until a value is found.  Only the 
-first value found will be used; others will be ignored on a per-value basis.  For example, one could specify 
-the data root in a `juneberry.ini` file in the current working directory, with a workspace root in the `juneberry.ini`
-file in the home directory.  The command line switches `-w` and `-d` would override either of these values taken from 
-the ini files. The hierarchy:
-
-1) Command line switches `-w` or `-d`.
-1) `./juneberry.ini` - The _current_ working directory.
-1) `~/juneberry.ini` - The home directory.
-1) File path (not a directory) specified in $JUNEBERRY_CONFIG environment variable
+By default, the tensorboard directory is assumed to be a peer of the workspace.
+The data root directory path can be set via the `-t` command line switch or `JUNEBERRY_TENSORBOARD` environment
+variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+details.
 
 # Example
 

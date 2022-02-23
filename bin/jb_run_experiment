@@ -95,7 +95,7 @@ def main():
                                                  "in the same directory.")
 
     setup_args(parser)
-    jbscripting.setup_args(parser, add_data_root=True)
+    jbscripting.setup_args(parser)
     args = parser.parse_args()
     show_command = args.showcmd
 

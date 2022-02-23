@@ -34,24 +34,13 @@ install_requires = [
     "hjson",
     "jsonschema",
     "sklearn",
-    "tensorflow",
-    "tensorflow-datasets",
+    "tqdm",
     "tensorboard",
-    "tf2onnx",
-    "torch",
-    "torchvision",
-    "torch-summary>=1.4.5",
     "pandas",
     "brambox",
     "pyyaml",
     "hjson",
-    "natsort",
-    "opacus",
-    "protobuf==3.16.0",
-    "onnx",
-    "onnxruntime",  # pip install onnxruntime-gpu if on cuda, otherwise onnxruntime is sufficient
-    "tf2onnx",
-    "tqdm"
+    "natsort"
 ]
 
 bin_scripts = [
@@ -78,5 +67,12 @@ setuptools.setup(
     install_requires=install_requires,
     scripts=bin_scripts,
     python_requires='>=3.7',
-    include_package_data=True
+    include_package_data=True,
+    extras_require={
+        'tf': ['tensorflow', 'tensorflow-datasets'],
+        'torch': ['torch', 'torchvision', "torch-summary>=1.4.5"],
+        'onnx': ['protobuf==3.16.0', 'onnx', 'onnxruntime', 'tf2onnx'],
+        'onnx-gpu': ['protobuf==3.16.0', 'onnx', 'onnxruntime-gpu', 'tf2onnx'],
+        'opacus': ['opacus']
+    },
 )

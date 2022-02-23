@@ -1,32 +1,36 @@
-GETTING STARTED
+Getting Started
 ==========
 
-This document describes how to get started with using Juneberry. Two methods for installing Juneberry are 
-covered, as well as some steps to test your installation. The recommended installation method, described first, 
-relies on a Juneberry Docker container. The second approach describes how to install Juneberry in a virtual Python 
+This document describes how to get started with using Juneberry. The recommended installation method, 
+relies on a Juneberry Docker container. Juneberry can also be used from a virtual environment.
+
+The second approach describes how to install Juneberry in a virtual Python 
 environment. The latter approach has not been tested on a variety of platforms, so the Docker containers are 
 the preferred choice. Both installation methods are tested using the same steps. 
 
 # Preparation Steps
 
-## Project Layout
+## Lab Layout
 
-Juneberry requires several directories to store its components, such as the source code, the data,
-Tensorboard logs, and caches.  To organize these components, start by creating a single directory 
-for your project. This directory will be referred to as the **project-root**.
+Juneberry requires several directories to store its components, such as the source code, data,
+Tensorboard logs, and caches.  
+These purposes of these directories is described in the [Workspace and Experiment Overview](overview.md).
+While this structure isn't required in the long term, for the purposes of getting started,
+we'll go ahead and use it as is.
+Let's start by creating a single directory for your project which we'll refer to as the **lab-root**.
 
-Inside the project-root, your goal is to create sub-directories for the various Juneberry components.
-You can create these sub-directories manually, or use the "setup_project.py" script located in the 
-"scripts" directory to automatically create the required directories.
+Inside the lab-root, your goal is to create sub-directories for the various Juneberry components.
+You can create these sub-directories manually, or use the `setup_lab.py` script located in the 
+`scripts` directory to automatically create the required directories.
 
-### Using setup_project.py
+### Using setup_lab.py
 
-Inside your project root, clone the Juneberry repository from GitHub, then use the "setup_project" script 
+Inside your lab root, clone the Juneberry repository from GitHub, then use the `setup_lab.py` script 
 from inside the newly cloned repository to create the remaining sub-directories in the project root.
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
-juneberry/scripts/setup_project.py . 
+juneberry/scripts/setup_lab.py . 
 ```
 
 ### Manually Creating the Project Structure
@@ -36,45 +40,41 @@ use the following commands to obtain the Juneberry source code and establish the
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
-mkdir cache
-mkdir cache/hub
-mkdir cache/torch
+mkdir cache cache/hub cache/torch
 mkdir dataroot
 mkdir tensorboard
 ```
 
+NOTE: The cache directories are only needed for containers (recommended). If you use a virtual environment
+(not recommended) then you don't need the cache directory.
+
 ### The Project Structure
 
-At this point, your project root should resemble the following directory structure:
+At this point, your lab root should resemble the following directory structure:
 
 ```
-project-root/
+lab-root/
     cache/
         hub/
         torch/
     dataroot/
     juneberry/
     tensorboard/
-    workspace/    (optional)
 ```
-
 # Juneberry with a Docker Container
 
-This section describes how run Juneberry using a Docker container. This is the recommended approach for 
-using Juneberry. If you choose to follow the steps in this section, you do not need to perform the actions 
-in the "Juneberry with a Virtual Environment" section of this document.
+This section describes how run Juneberry using a Docker container.
 
-## Starting the Container
+## Acquiring the Container
 
 **Apple Silicon Note:** Currently, there is no container for Apple Silicon.
+
+Prebuilt Juneberry containers are provided on [Docker Hub - (external link)](https://hub.docker.com/r/cmusei/juneberry). 
 
 In order to use the Juneberry Docker Container, you will need to have a Docker environment installed
 on your system. Refer to the following installation steps
 [on the Docker website - (external link)](https://docs.docker.com/get-docker/).
 
-The Juneberry Docker containers can be built from scratch as described in 
-[Building Juneberry Docker Containers](building_docker.md), but they can also be downloaded from a repo, such as 
-the following repo on [Docker Hub - (external link)](https://hub.docker.com/r/cmusei/juneberry). 
 Assuming you have configured your Docker instance to work with this repo, you could execute the following command 
 to pull the CPU-only Juneberry Docker image:
 
@@ -87,6 +87,13 @@ Alternatively, the following command would pull the CUDA-enabled Juneberry Docke
 ```shell script
 docker pull cmusei/juneberry:cudadev
 ```
+
+### Building a container
+
+If you aren't able to acquire a Juneberry container it can be built from scratch as described in 
+[Building Juneberry Docker Containers](building_docker.md). 
+
+## Starting the Container
 
 The Docker images themselves do not contain any Juneberry source code or data.  The code and data get
 _mounted_ into the container whenever either container starts. This means the directories containing the 
@@ -137,27 +144,46 @@ source scripts/juneberry_completion.sh
 **NOTE:** These steps are required _every_ time the container is initialized because the files and scripts
 involved come from Juneberry source code and thus do not persist inside the container.
 
-### container_start.sh
+## Bash Completion
+
+As an added convenience, there is a completion support script which provides tab completion for dataset and model names. 
+
+To activate this enhancement, use the following command to `source` the completion script:
+
+```shell script
+source scripts/juneberry_completion.sh
+```
+
+NOTE: If you use a temporary container (by default `enter_juneberry_container` creates temporary containers)
+you'll need to source the juneberry completion script every time you start the container.
+
+## Testing Your Installation
+
+After installing Juneberry, you can run the following training command to test your installation:
+```shell
+jb_train -w . tabular_multiclass_sample
+```
+
+This command will quickly train a small, basic tabular dataset. The test is successful if the final epoch 
+reports a training accuracy of 97.58%.
+
+## container_start.sh
 
 For convenience, users can create a bash script containing the previous commands and name the file 
 `container_start.sh`. If a script with that name is found inside the juneberry directory of the project-root, 
 or inside a custom workspace (see below), it will be executed during the container's initialization. The 
 `juneberry/docker` directory contains a sample `container_start.sh` script.
 
-## Using a Custom Workspace
+# Custom Workspaces
+
+Juneberry uses "workspaces" to house the user model configurations, experiments, and all outputs such as 
+trained models, log files, charts and reports. The structure is described in the 
+[Workspace and Experiment Overview](overview.md). The Juneberry repository comes with some sample models
+for testing the installation which will be sufficient for now.
 
 When a user first enters a Juneberry container, they should find themselves inside the `/juneberry` directory 
 by default. However, the user can also choose another directory, known as a "custom workspace", to be the 
 default directory.
-
-A custom workspace can be any directory, but it MUST contain the following files and subdirectories:
-
-* A `data_sets` directory
-* An `experiments` directory
-* A `models` directory
-* A `src` directory
-* A `juneberry.ini` file
-* An optional `container_start.sh` file
 
 To start the Juneberry container in a custom workspace, use the '-w' switch and provide the path to the 
 custom workspace:
@@ -172,146 +198,49 @@ above subdirectories or files, the missing content will be created during contai
 Once the container is initialized, the custom workspace will be mounted under `/workspace` in the container, 
 and the user will be placed inside this directory.
 
-# Juneberry with a Virtual Environment
+## Creating a workspace
 
-**Apple Silicon Note:** Currently, there is no configuration for Apple Silicon.
+TBD
 
-Juneberry can be installed in a virtual environment. However, a specific order of operations and a set of 
-platform versions is required in order to get all the included platforms to install properly. 
+# Configuring Juneberry paths
 
-## Set up a virtual environment
+**TODO:** Not really sure this goes here
 
-Any virtual environment,such as venv or pyenv, can be used. The first step is to construct and enter 
-the virtual environment. The following example demonstrates pyenv. Instructions for how to 
-install pyenv-virtualenv can be found [here - external link](https://github.com/pyenv/pyenv-virtualenv).
+By default, when Juneberry tools are executed (e.g. jb_train), the **current working directory** will be used for the 
+workspace. The default locations for the data_root and the tensorboard directories that Juneberry
+will use are peers to the workspace directory.  Thus, if one has multiple workspaces then executing
+commands from that workspace directory will result in using that workspace.
 
-```shell script
-pyenv install 3.8.5
-pyenv virtualenv 3.8.5 jb
-pyenv activate jb
-python3 -m pip install --upgrade pip
-```
-
-## Clone MMDetection and Juneberry
-
-The following commands can be used to clone MMDetection into the project directory as a sibling to the 
-Juneberry repository directory.
+The workspace can be specified to a Juneberry tool using the `-w` switch or the by setting the
+`JUNEBERRY_WORKSPACE` environment variable.  For example, if one was in the project root, and they
+had a workspace called `test-workspace` and wanted to to train a model `test-model` contained
+in the `test-workspace` models directory, then these commands would work similarly.
 
 ```shell script
-# Get a copy of mmdetection
-git clone --depth 1 --branch v2.18.0 https://github.com/open-mmlab/mmdetection.git ./mmdetection
+jb_train -w test-workspace test-model
 ```
-
-## Install from Requirements
-
-There are two versions of the requirements.txt file for Juneberry. The file named "requirements.txt" 
-contains the packages and version numbers for a Juneberry installation on a system with an available 
-GPU. The version named "requirements-cpu.txt" contains the CPU-only version of those packages.
-
-By default, pip does NOT honor the ordering of packages in the requirements file, so the requirements 
-are provided one at a time.
-
-Use the following commands to install the packages in requirements.txt.
-
-**NOTE:** If you are performing a CPU-only installation of Juneberry, you replace "requirements.txt" with 
-"requirements-cpu.txt" in the second command.
 
 ```shell script
-cd juneberry
-cat requirements.txt | xargs pip install --no-cache-dir
+JUNEBERRY_WORKSPACE=test-workspace jb_train test-model
 ```
 
-## Install MMDetection
+## Specifying the structure
 
-The initial MMDetection installation step vary depending on whether a GPU is available 
-for use on your system. In this section, perform one of the "Step 1" commands, followed 
-by the "Step 2" code block.
+If the default structure won't work (e.g. the dataroot or tensorboard are stored elsewhere) then they can
+be specified directly using command line switches or environment variables.  Command line switches take precedence
+over environment variables which take precedence over default locations. The following table summarizes
+the switches, environment variables, and default values.
 
-1. For OSX or CPU-only systems:
-```shell script
-pip3 install mmcv-full==1.3.17
-```
+| Configuraton | switch | environment variable | default value |
+| --- | --- | --- | --- |
+| workspace | -w | JUNEBERRY_WORKSPACE | cwd() |
+| data_root | -d | JUNEBERRY_DATAROOT | -workspace-/../dataroot |
+| tensorboard | -t | JUNEBERRY_TENSORBOARD | -workspace/../tensorboard |
 
-#### _OR_
-
-1. For systems with GPU support:
-```shell script
-# Install the base MMCV package.  The FORCE_CUDA isn't always needed, but doesn't hurt. 
-# This may take a while to compile everything.
-MMCV_WITH_OPS=1 FORCE_CUDA="1" pip3 install mmcv-full==1.3.17
- ```
-
-2. After performing one of the previous blocks, execute the following commands:
-
-```shell script
-# Install the actual MMDetection part.
-pip3 install -r ../mmdetection/requirements/build.txt
-pip3 install -v -e ../mmdetection/.
-   
-# Verify the installation was successful.
-python ../mmdetection/mmdet/utils/collect_env.py
-```
-
-## Install Detectron2
-
-To install Detectron2 on OSX, use the first code block. All other systems should follow the second 
-code block.
-
-### Detectron2 OSX Installation
-```shell script
-# For OSX
-CC=clang CXX=clang++ ARCHFLAGS="-arch x86_64" pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
-```
-
-#### _OR_
-
-### Detectron2 Typical Installation
-```shell script
-pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
-```
-   
-## Install Juneberry
-
-After the previous packages have been installed successfully, you can install Juneberry.
-
-```shell script
-# From the juneberry directory.
-pip install -e .
-```
-
-## Add a juneberry.ini
-
-The overview contains a deeper discussion of the Juneberry ini.  For now, create a file called 
-`juneberry.ini` _inside_ your newly cloned juneberry directory and add the following contents
-to the file:
-
-```shell script
-[DEFAULT]
-workspace_root = /path-to-project-root/juneberry
-data_root = /path-to-project-root/dataroot
-tensorboard_root = /path-to-project-root/tensorboard
-```
-
-## Bash Completion
-
-At this point, Juneberry should be fully operational.  As an added convenience, there is a 
-completion support script which provides tab completion for dataset and model names. 
-
-To activate this enhancement, use the following command to `source` the completion script:
-
-```shell script
-source scripts/juneberry_completion.sh
-```
-
-# Testing Your Installation
-
-After installing Juneberry, you can run the following training command to test your installation:
-```shell
-jb_train -w . tabular_multiclass_sample
-```
-
-This command will quickly train a small, basic tabular dataset. The test is successful if the final epoch 
-reports a training accuracy of 97.58%.
+It is important to note that the default locations for dataroot and tensorboard are workspace relative,
+not cwd() relative. Meaning, if the workspace is specific and the dataroot or tensorboard are not, 
+then they default to peers of the specified workspace.  Of course, if the data root or tensorboard directories
+are specified in any way (switch or environment variable), those values are used directly.
 
 
 

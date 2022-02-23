@@ -38,7 +38,6 @@ def create_missing_project_dirs(project_dir: str) -> None:
         "cache/hub",
         "cache/torch",
         "dataroot",
-        "juneberry",
         "tensorboard",
     ]
     create_missing_dir(Path(project_dir))

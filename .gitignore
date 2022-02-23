@@ -37,4 +37,4 @@ scripts/resnet-summaries/latest
 nothingtoseehere
 
 # We don't want doit stuff
-**/.doit.db
+**/.doit.db*
