@@ -12,31 +12,30 @@ was chosen for two reasons:
 2. The He et al. (2015) neural network architecture for CIFAR-10 is simple to implement. It provides an instructive 
 case for how to implement a new architecture in Juneberry. 
 
-Over the course of replicating the He et al. (2015) results, you will learn how to:
+Over the course of this vignette, you will learn about the following topics:
 
-* [Work with Juneberry Docker Containers](#work-with-juneberry-docker-containers).
-* [Define a Dataset for Juneberry](#define-a-dataset-for-juneberry).
-* [Wrap a new PyTorch model for use by Juneberry](#wrap-a-new-pytorch-model-for-use-by-juneberry). 
-* [Implement the training strategy outlined in a paper with a Juneberry model config](#implement-the-training-strategy-outlined-in-a-paper-with-a-juneberry-model-config).
-* [Train a model with Juneberry](#train-a-model-with-juneberry) 
-* [Evaluate a model with Juneberry](#evaluate-a-model-with-juneberry) 
-* [Write an experiment outline to implement the various conditions within a results table in a paper](#write-an-experiment-outline-to-implement-the-various-conditions-within-a-results-table-in-a-paper) 
-* [Execute an experiment with Juneberry](#execute-an-experiment-with-juneberry).
-* [Compare the results of the Juneberry experiment with the published results](#compare-the-results-of-the-juneberry-experiment-with-the-published-results). 
+* [Working with Juneberry Docker Containers](#working-with-juneberry-docker-containers).
+* [Defining a Dataset for Juneberry](#defining-a-dataset-for-juneberry).
+* [Wrapping a new PyTorch model for use by Juneberry](#wrapping-a-new-pytorch-model-for-use-by-juneberry). 
+* [Implementing the training strategy outlined in a paper with a Juneberry model config](#implementing-the-training-strategy-outlined-in-a-paper-with-a-juneberry-model-config).
+* [Training a model with Juneberry](#training-a-model-with-juneberry) 
+* [Evaluating a model with Juneberry](#evaluating-a-model-with-juneberry) 
+* [Writing an experiment outline to implement the various conditions within a results table in a paper](#writing-an-experiment-outline-to-implement-the-various-conditions-within-a-results-table-in-a-paper) 
+* [Executing an experiment with Juneberry](#executing-an-experiment-with-juneberry).
+* [Comparing the results of the Juneberry experiment with the published results](#comparing-the-results-of-the-juneberry-experiment-with-the-published-results). 
 
-## Work with Juneberry Docker Containers
+## Working with Juneberry Docker Containers
 
 Juneberry improves the experience of machine learning experimentation by providing a framework for automating the 
 training, evaluation, and comparison of multiple models against multiple datasets, reducing errors and improving 
-reproducibility. Docker images for Juneberry have been created to simplify the Juneberry installation process. If 
-you would like to read more detailed information about how to use the Juneberry docker containers, refer to 
-[getting_started.md](../../getting_started.md). The instructions in this section will walk you through the 
-steps required to obtain and use a Juneberry container designed specifically for this vignette.
+reproducibility. Docker images for Juneberry have been created to simplify the Juneberry installation process. The 
+instructions in this section will walk you through the steps required to obtain and use a Juneberry container 
+designed specifically for this vignette.
 
 ### Obtain the Vignette Container Image
 
 Beyond this section, the vignette assumes you are working inside the Juneberry Docker container that was designed 
-specifically for this vignette. You can obtain the container image by using the following command:
+specifically for this vignette. You can obtain the container image from Docker Hub by using the following command:
 
 ```shell script
 docker pull cmusei/juneberry:vignette1
@@ -44,23 +43,23 @@ docker pull cmusei/juneberry:vignette1
 
 ### Enter the Vignette Container
 
-After you have obtained the Docker image for this vignette, you can use the following command to run a container:
+After obtaining the Docker image for this vignette, you can use the following command to run a container:
 
-Note: You should replace the `"directory on host"` in the following command with the path to a directory 
+**Note:** You should replace the `"directory on host"` in the following command with the path to a directory 
 on your host filesystem. This will create a mount point inside the container that will allow you to transfer 
 files between the container and your host OS.
 ```shell script
 docker run -it --rm -v "directory on host":/shared cmusei/juneberry:vignette1 bash
 ```
 
-Note: The `--rm` flag cleans up the container and removes the file system when the container exits, so any 
+**Note:** The `--rm` flag cleans up the container and removes the file system when the container exits, so any 
 changes you make inside the container will not persist.
 
-Note: Whenever you want to make a file inside the container available to your host filesystem, simply transfer 
+**Note:** Whenever you want to make a file inside the container available to your host filesystem, simply transfer 
 the file to `/shared` inside the vignette container. The file(s) should appear inside the directory you specified 
 in the "directory on host" portion of the `docker run` command.
 
-## Define a Dataset for Juneberry 
+## Defining a Dataset for Juneberry 
 
 This section describes how write a dataset configuration file that tells Juneberry how to work 
 with data files located in your dataroot. 
@@ -184,7 +183,7 @@ As a time-saving convenience, a pre-built dataset configuration file is availabl
 If you do not wish to create your own dataset config file from scratch, you can simply move or copy the 
 pre-built file to the target location (data_sets/torchvision/cifar10.json).
 
-## Wrap a new PyTorch model for use by Juneberry
+## Wrapping a new PyTorch model for use by Juneberry
 
 At this point, you should have configured your Juneberry environment and established a dataset configuration for 
 the CIFAR-10 data. The next step is to define the neural network (NN) architecture you intend to train. 
@@ -464,7 +463,7 @@ As a time-saving convenience, a pre-built model architecture file is available a
 If you do not wish to create your own model architecture file from scratch, you can simply move or copy the 
 pre-built file to the target location (juneberry/architectures/pytorch/resnet_simple.py).
 
-## Implement the training strategy outlined in a paper with a Juneberry model config.
+## Implementing the training strategy outlined in a paper with a Juneberry model config.
 
 To replicate the results from the He et al. paper, you must fully specify how the model was trained. 
 
@@ -939,7 +938,7 @@ As a time-saving convenience, a pre-built model configuration file is available 
 If you do not wish to create your own model config file from scratch, you can simply move or copy the 
 pre-built file to the target location (models/cifar_R20/config.json).
 
-## Train a model with Juneberry. 
+## Training a model with Juneberry. 
 
 With the required components in place, you can begin training your 20-layer ResNet model with the following command:
 
@@ -1010,7 +1009,7 @@ qualitatively match the results reported in He et al. (2015).
 
 ![Error Plot](references/output.png)
 
-## Evaluate a model with Juneberry.
+## Evaluating a model with Juneberry.
 
 Once a trained model file exists, it can be evaluated with the `jb_evaluate` command. The command takes two 
 arguments: the name of the trained model and the path to a Juneberry dataset config describing the dataset to be 
@@ -1081,7 +1080,7 @@ At this point you have completed the training and evaluation phases for a single
 section, you will see how to group multiple models and datasets together to perform bulk training and evaluation 
 without having to manually provide individual training and evaluation commands.
 
-## Write an experiment outline to implement the various conditions within a results table in a paper. 
+## Writing an experiment outline to implement the various conditions within a results table in a paper. 
 
 An experiment outline file defines how Juneberry should construct several related model configs, train those 
 models, perform evaluations of the trained models, and then summarize the results. 
@@ -1187,7 +1186,7 @@ As a time-saving convenience, a pre-built experiment outline file is available a
 If you do not wish to create your own experiment outline file from scratch, you can simply move or copy the 
 pre-built file to the target location (experiments/cifar_layer/experiment_outline.json).
 
-## Execute an experiment with Juneberry.
+## Executing an experiment with Juneberry.
 
 Once you have a valid experiment outline file, you may begin conducting experiment operations in Juneberry. The 
 `jb_run_experiment` command is your primary method for interacting with Juneberry experiments. The command supports 
@@ -1280,7 +1279,7 @@ the experiment, your Juneberry workspace should contain the targets listed throu
 
 Documentation for doit is available [here](https://pydoit.org/contents.html) (external link).
 
-## Compare the results of the Juneberry experiment with the published results.
+## Comparing the results of the Juneberry experiment with the published results.
 
 The table below summarizes evaluation results generated by Juneberry and compares them with the results published in 
 He et al. (2015). You can see how close Juneberry came to replicating the results from the paper by comparing the error 
@@ -1301,6 +1300,11 @@ At this point you should have a general understanding of Juneberry and how it ca
 validate machine learning models. You can find additional documentation and vignettes inside the 
 `juneberry/documentation` directory of the project.
 
+# Further Reading
+
+If you would like to read more detailed information about how to use the Juneberry docker containers, refer to 
+[getting_started.md](../../getting_started.md). 
+
 # References 
 
 [1] K. He, X. Zhang, S. Ren, and J. Sun, “Deep Residual Learning for Image Recognition,” arXiv:1512.03385 [cs], Dec. 
@@ -1311,7 +1315,6 @@ classification. In ICCV, 2015.
 
 [3] S. Ioffe and C. Szegedy. Batch normalization: Accelerating deep network training by reducing internal covariate 
 shift. In ICML, 2015.
-
 
 # Copyright
 
