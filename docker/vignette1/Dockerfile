@@ -34,19 +34,17 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 COPY juneberry /juneberry
 RUN pip install -e /juneberry
 
-# ============ JUNEBERRY INIT ============
-# Since everything is mounted in the same place we can specify a 'default'
-# juneberry ini in the last place we look.  The 'home' directory of
-# the user.
+# ============ TENSORBOARD ============
 
-COPY juneberry.ini /root/juneberry.ini
 RUN mkdir /tensorboard
+ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 
 # ============ DATAROOT =============
 
 # Copy in the files to the dataroot
 RUN mkdir /dataroot
 COPY dataroot/cifar-10-batches-py /dataroot/cifar-10-batches-py/.
+ENV JUNEBERRY_DATA_ROOT="/dataroot"
 
 # ============ CONVENIENCE ============
 

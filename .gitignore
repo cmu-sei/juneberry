@@ -13,9 +13,6 @@ Juneberry.egg-info
 .coverage
 htmlcov/
 
-# We never want this
-juneberry.ini
-
 # Ignore models except the config and DVC files
 models/*/*
 !models/**/config.json

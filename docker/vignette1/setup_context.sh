@@ -32,10 +32,6 @@ pushd context/dataroot
 tar -xzf ${SCRIPT_DIR}/cifar-10-python.tar.gz
 popd
 
-# Copy in the juneberry.ini
-echo "Copying juneberry.ini..."
-cp ${SCRIPT_DIR}/juneberry.ini context/.
-
 # Clone Juneberry
 echo "Cloning Juneberry repo..."
 git clone --depth 1 https://github.com/cmu-sei/juneberry.git context/juneberry

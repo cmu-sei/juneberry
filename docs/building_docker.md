@@ -39,9 +39,9 @@ When the containers start up they will look for a script called "container_start
 directory (well, the one mounted as /juneberry) and, if found, will execute it. This is useful for
 automatically installing juneberry such as `pip install -e .` or running some test or something else.
 
-# Container layout and juneberry.ini
+# Container layout
 
-The development process works well if the following directories exist within the container.
+The development process is based around the lab layout.
 
 * /juneberry - Mount from the external users directory
 * /datasets - Mount to the external data directories.
@@ -49,10 +49,8 @@ The development process works well if the following directories exist within the
 * /root/.cache/torch/hub - Mounted for model caches for PyTorch and MMDetection
 * /root/.torch - Mounted for model caches for Detectron2
 
-As a convenience in the "home" directory (/root) is a juneberry.ini file that specifies the /juneberry
-and /datasets directories as the workspace and dataroot respectively.
-Thus, when logging into a clean container, __if no juneberry.ini exists in /juneberry__ then juneberry will
-find the juneberry.ini in the /root directory and automatically find the juneberry and datasets directories.
+The containers set the dataroot and tensorboard environment variables according.  We use the 
+current working directory as the workspace.
 
 # Convenience Scripts
 
@@ -79,12 +77,6 @@ change into `~/proj` and run:
 
 See the comments within the script for how to configure it to use a cpu-only container, adjust environment
 variables, add other mount points and configure gpus.
-
-## Juneberry.ini for Docker images
-
-The convenience file for starting a container mounts various resources, such as datasets and juneberry,
-to common locations within the container. Therefore, the home directory of the image contains a simple base 
-juneberry.ini file. This sample file is configured for docker images run via the "enter_juneberry_container" command.
 
 ## set_user.sh
 

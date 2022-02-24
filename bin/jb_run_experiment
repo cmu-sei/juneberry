@@ -26,12 +26,6 @@
 Script that runs an experiment (set of models) with corresponding test sets to make evaluations then
 a set of reports.
 
-Note about working directory and config files:
-
-Each model may be built off a different dataset, so we need to set the CWD to each model
-directory before calling the trainer so that the trainer can pick up each juneberry.ini if different
-for each model.
-
 """
 
 import argparse

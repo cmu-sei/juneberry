@@ -125,19 +125,6 @@ After the previous packages have been installed successfully, you can install Ju
 pip install -e .
 ```
 
-## Add a juneberry.ini
-
-The overview contains a deeper discussion of the Juneberry ini.  For now, create a file called 
-`juneberry.ini` _inside_ your newly cloned juneberry directory and add the following contents
-to the file:
-
-```shell script
-[DEFAULT]
-workspace_root = /path-to-project-root/juneberry
-data_root = /path-to-project-root/dataroot
-tensorboard_root = /path-to-project-root/tensorboard
-```
-
 ## Bash Completion
 
 At this point, Juneberry should be fully operational.  As an added convenience, there is a 
