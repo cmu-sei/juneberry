@@ -156,13 +156,7 @@ An experiment config file consists of two primary sections:
    for when large datasets (e.g. imagenet) are used in the experiment.
 
 Once an experiment config is created, it can be executed with the [jb_run_experiment](../bin/jb_run_experiment) 
-command. As with other scripts, the workspace root and data root need to be properly configured.   
-The experiment runner switches to each model directory before training or testing the model, 
-allowing for the train or test scripts to locate juneberry.ini files in those directories.
-
-
-TODO TODO TODO - How is run_experiment handling this?
-
+command. As with other scripts, the workspace root and data root need to be properly configured.
 
 ## Doit backend
 Behind the scenes, `jb_run_experiment` uses the [Doit]("https://pydoit.org/) task runner. `jb_run_experiment`

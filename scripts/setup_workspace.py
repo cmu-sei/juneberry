@@ -103,7 +103,6 @@ def create_workspace_dirs(workspace_dir: Path) -> None:
     create_dir(workspace_dir / "data_sets")
     create_dir(workspace_dir / "experiments")
     create_dir(workspace_dir / "models")
-    create_dir(workspace_dir / "src")
 
 
 def main():
