@@ -93,8 +93,8 @@ if [ ! -z ${JUNEBERRY_MACHINE_CLASS} ]; then MACHINE_CLASS=${JUNEBERRY_MACHINE_C
 
 
 # Wrap them in the right docker format and locations in prebuilt Juneberry container
-JB = "-v {REPOSITORY}:/juneberry"
-if [ ! -z ${WORKSPACE}]; then
+JB="-v ${REPOSITORY}:/juneberry"
+if [ ! -z ${WORKSPACE} ]; then
     # Extract the workspace name so we can have that exact directory
     WS_NAME="${WORKSPACE##*/}"
     WS="-v ${WORKSPACE}:/${WS_NAME} -w /${WS_NAME}"
