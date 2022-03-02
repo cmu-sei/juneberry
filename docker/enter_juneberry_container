@@ -2,7 +2,7 @@
 
 # =================================================================================================
 # WARNING: These containers and scripts create containers with NO SECURITY PRACTICES, such as
-# separate user accounts, unprivileged users, etc.**
+# separate user accounts, unprivileged users, etc.
 #
 # USE AT YOUR OWN RISK
 # =================================================================================================
@@ -14,7 +14,7 @@
 # When starting this container, a variety of directories for organizing the current code, data,
 # tensorboard output, caches, and workspaces (optional) will get mounted (not copied) into the container.
 # The default configuration below assums is based on this layout.  You can override these locations with
-# various environment variables or copy and modify this scriot.  A detailed description of the lab layout
+# various environment variables or copy and modify this script.  A detailed description of the lab layout
 # can be found in:
 #   - docs/overview.md
 #   - docs/getting_started.md
@@ -49,7 +49,7 @@ fi
 
 REPOSITORY=${LAB}/juneberry
 WORKSPACE=${LAB}/juneberry
-DATA_ROOT=${LAB}/data_root
+DATA_ROOT=${LAB}/dataroot
 TENSORBOARD=${LAB}/tensorboard
 CACHE=${LAB}/cache
 
@@ -61,18 +61,22 @@ DATA_ROOT_MODE=":ro"
 MACHINE_CLASS="default"
 
 # By default we use the cpudev container.  Alternately the cuda container can be used. If so, one should adjust the
-# number of jpus used.
+# number of gpus used.
 CONTAINER="cmusei/juneberry:cpudev"
 
 # This value determines which GPUs the container will be aware of.
 # Set to "" for none or "all" for all.
 # Specific GPUs can be set by listing the devices as one would with CUDA_VISIBLE_DEVICES.
+# TODO: Do we default to all or "" and how do we switch it?
 GPUS=""
 # GPUS="--gpus all"
-# GPUS="--gpus \"device=2,3\""
-# GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
+if [ ! -z ${CUDA_VISIBLE_DEVICES}]; then
+    GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
+fi
 
 # Base 'docker run' command. See "https://docs.docker.com/engine/reference/commandline/run/" for details
+# NOTE: --network=host means we can't use jupyter
+# NTOE: --ipc=host is required to make gpus work
 RUN_CMD="run -it --rm --network=host --ipc=host --name ${USER}"
 
 # ==================================================================================================
@@ -91,7 +95,6 @@ if [ ! -z ${JUNEBERRY_MACHINE_CLASS} ]; then MACHINE_CLASS=${JUNEBERRY_MACHINE_C
 
 # ==================================================================================================
 
-
 # Wrap them in the right docker format and locations in prebuilt Juneberry container
 JB="-v ${REPOSITORY}:/juneberry"
 if [ ! -z ${WORKSPACE} ]; then
@@ -106,6 +109,7 @@ DR="-v ${DATA_ROOT}:/dataroot${DATA_ROOT_MODE}"
 TB="-v ${TENSORBOARD}:/tensorboard"
 HUB_CACHE="-v ${CACHE}/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${CACHE}/torch:/root/.torch"
+TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
 
 # ===== Check to see that the project directory contains all necessary subdirectories. ==============
 required=("${REPOSITORY}" "${WORKSPACE}" "${DATA_ROOT}" "${TENSORBOARD}" "${CACHE}")
@@ -128,6 +132,7 @@ fi
 # Make the cache subdirs if missing
 if [ ! -d "${CACHE}/hub" ]; then mkdir "${CACHE}/hub"; fi
 if [ ! -d "${CACHE}/torch" ]; then mkdir "${CACHE}/torch"; fi
+if [ ! -d "${CACHE}/tensorflow" ]; then mkdir "${CACHE}/tensorflow"; fi
 
 # ================================================================================================
 
