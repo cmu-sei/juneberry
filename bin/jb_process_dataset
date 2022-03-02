@@ -71,17 +71,17 @@ def prepare_output_directory(output_data_root: str, output_dir: str, dir_names) 
     Create a set of directories within the output dir for each label.  Return that mapping of lable to directory name.
     """
     # Walk the labels make a directory for each and saving that to the output list
-    label_paths = {}
     for dir_name in dir_names.values():
         dir_path = Path(output_data_root) / output_dir / dir_name
         dir_path.mkdir(parents=True)
 
 
-def make_config_from_label_paths(ds_cfg, parent_dir: str, dir_names: dict):
+def make_config_from_label_paths(ds_cfg, set_name_dir, dir_names: dict):
     """
     Makes a configuration file based on a set of dir names within a data directory
-    :param ds_cfg:
-    :param dir_names:
+    :param ds_cfg: The dataset config
+    :param set_name_dir: Optional intermediate directory if creating multiple sets. Can be None.
+    :param dir_names: A dictionary of labels to directory names 
     :return:
     """
     # Construct a dataset file based on the other one as we want same classes, labels, etc.
@@ -89,10 +89,14 @@ def make_config_from_label_paths(ds_cfg, parent_dir: str, dir_names: dict):
 
     # Update the sources stanza to our list of labeled directories
     sources = []
+
     for label, path in dir_names.items():
+        dir_path = path
+        if set_name_dir is not None:
+            dir_path = str(Path(set_name_dir) / path)
         sources.append(jb_dataset.ImagesSource(
             label=label,
-            directory=str(Path(parent_dir) / path)
+            directory=dir_path
         ))
     new_config.image_data = jb_dataset.ImageData()
     new_config.image_data.sources = sources
@@ -111,6 +115,8 @@ def make_config_from_label_paths(ds_cfg, parent_dir: str, dir_names: dict):
 
     return new_config
 
+
+# ======================================================================================================================
 
 class DatasetProcessor:
     def __init__(self, lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, names: str, *,
@@ -156,21 +162,23 @@ class DatasetProcessor:
         pass
 
 
+# ======================================================================================================================
+
 class PyTorchClassificationImageProcessor(DatasetProcessor):
     def __init__(self, lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, output_dir: str, names: str, *,
                  model_cfg: ModelConfig = None):
         super().__init__(lab, ds_cfg, output_data_root, output_dir, names, model_cfg=model_cfg)
 
         # Paths WITHIN the dataroot just like we'd see in the sources file. So label -> path
-        self.label_paths = {}
         self.dataloader = None
+        self.dir_names = {}
 
     def load_dataset(self):
         # Load the dataset as the plain training list
         data_list, _ = jb_data.dataspec_to_manifests(self.lab, self.ds_cfg)
 
         # Construct the transform manager based on the datasets
-        # TODO: Tweak the make_transfor_manager to deal with no model config.
+        # TODO: Tweak the make_transform_manager to deal with no model config.
         opt_args = {'path_label_list': list(data_list)}
         if self.model_cfg is not None:
             transform_mgr = pyt_data.make_transform_manager(self.model_cfg, self.ds_cfg, len(data_list), opt_args)
@@ -182,9 +190,9 @@ class PyTorchClassificationImageProcessor(DatasetProcessor):
                                                     transform_mgr, batch_size=1)
 
     def prepare_output_directory(self):
-        # Walk the labels make a directory for each and saving that to the output list
-        self.label_paths = prepare_output_directory(self.output_data_root, self.output_dir,
-                                                    self.ds_cfg.retrieve_label_names())
+        # Make a list of label to directory names, then make those directories
+        self.dir_names = format_label_dir_names(self.ds_cfg.retrieve_label_names())
+        prepare_output_directory(self.output_data_root, self.output_dir, self.dir_names)
 
     def process_dataset(self):
         from torchvision import transforms
@@ -192,9 +200,10 @@ class PyTorchClassificationImageProcessor(DatasetProcessor):
         # Walk the DATASET saving each image. We name each image a number within the directory and its label number.
         label_idx = defaultdict(int)
 
-        for image, label in self.dataloader.datasets:
+        output_dir_path = Path(self.output_data_root) / self.output_dir
+        for image, label in self.dataloader.dataset:
             # The path looks something like <data_root>/my_dataset/00004_dog/00004_000001.png
-            img_path = Path(self.output_data_root) / self.label_paths[label] / f"{label:05}_{label_idx[label]:06}.png"
+            img_path = output_dir_path / self.dir_names[label] / f"{label:05}_{label_idx[label]:06}.png"
             label_idx[label] += 1
 
             # Save the image
@@ -204,14 +213,18 @@ class PyTorchClassificationImageProcessor(DatasetProcessor):
 
     def save_config_files(self):
         # Make a new config from the old one
-        new_config = make_config_from_label_paths(self.ds_cfg, self.label_paths)
+        new_config = make_config_from_label_paths(self.ds_cfg, self.output_dir, self.dir_names)
 
         # We are now an Image Classification dataset
         new_config.data_type = jb_dataset.DataType.IMAGE.value
         new_config.image_data.task_type = jb_dataset.TaskType.CLASSIFICATION.value
 
         # Now save it to the file they wanted
-        new_config.save(self.output_file)
+        config_path = Path(self.output_data_root) / self.output_dir / 'ds-config.json'
+        new_config.save(str(config_path))
+
+
+# ======================================================================================================================
 
 
 class TFDSProcessor(DatasetProcessor):
@@ -335,7 +348,6 @@ class TFDSProcessor(DatasetProcessor):
                 rel_dir = rel_dir / self.set_names[ds_idx]
 
             # Make a new config from the old one
-            # TODO: Do we really want these names?
             new_config = make_config_from_label_paths(self.ds_cfg, str(rel_dir), self.dir_names)
             new_config.tensorflow_data = None
 
@@ -400,11 +412,12 @@ def setup_args(parser) -> None:
 def main():
     # Typical argparse operations to gather the command line arguments.
     parser = argparse.ArgumentParser(description='Script to convert the data in a dataset to another dataset applying'
-                                                 'sampling and transforms and writes it to the output_dir with a '
-                                                 'structure based on the integer label and string label such as'
-                                                 '001-aardvark and an updated dataset config to the output_config.'
+                                                 'sampling and transforms and writes it to the output_dir within '
+                                                 'the data root with a structure based on the integer label and '
+                                                 'string label such as 001-aardvark and an updated dataset config to '
+                                                 'the output_config.'
                                                  'Example: jb_process_dataset.py data_sets/tfds/mnist_train.json '
-                                                 'data-out mnist/train data-out/mnist/train.json')
+                                                 'data-out')
 
     setup_args(parser)
     jbscripting.setup_args(parser)
@@ -412,34 +425,26 @@ def main():
 
     # Follow the normal procedure for setting up logs and workspace
     log_prefix = ""
-    log_file = str((Path(args.logDir) / "process_log.txt").absolute())
+    log_file = str((Path(args.logDir) / "preprocess_log.txt").absolute())
     if args.dryrun:
         log_prefix = "<<DRY_RUN>> "
-        log_file = str(Path(args.logDir) / "process_dryrun_log.txt")
+        log_file = str(Path(args.logDir) / "preprocess_dryrun_log.txt")
     lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
                                       banner_msg=">>> Juneberry Dataset Preprocessor <<<")
 
     # First, let's see if the output directory exists. We don't want to overwrite
     out_dir_path = Path(lab.data_root()) / args.output_dir
-    # if out_dir_path.exists():
-    #     if args.clean:
-    #         shutil.rmtree(str(out_dir_path))
-    #     else:
-    #         logger.error(f"{str(out_dir_path)} exists!")
-    #         logger.error(f"As a safety measure we will not overwrite an output directory. Please delete the output "
-    #                      f"directory and try again. Exiting.")
-    #         sys.exit(-1)
+    if out_dir_path.exists():
+        if args.clean:
+            shutil.rmtree(str(out_dir_path))
+        else:
+            logger.error(f"{str(out_dir_path)} exists!")
+            logger.error(f"As a safety measure we will not overwrite an output directory. Please delete the output "
+                         f"directory or specify --clean and try again. Exiting.")
+            sys.exit(-1)
 
     logger.info(f"Making output directory {str(out_dir_path)}")
     out_dir_path.mkdir(parents=True, exist_ok=True)
-
-    # When an arg for the log directory is not provided, the default behavior is to save the log in
-    # the current directory. For this script, the desired behavior is to save the log to the output directory.
-    # You can't really tell if the cwd was intentionally chosen as the log dir, so the warning is needed.
-    if args.logDir == Path.cwd().absolute():
-        args.logDir = out_dir_path
-        logger.warning(f"The log directory was detected as the current working directory. Changing the log dir to "
-                       f"match the output directory.")
 
     # Load the configs
     ds_cfg = DatasetConfig.load(args.base_dataset)
