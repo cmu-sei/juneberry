@@ -133,7 +133,7 @@ class CommandRunner:
         self.workspace_root = workspace_root
         self.data_root = data_root
 
-    def run(self, args: list, add_roots: bool = False, add_sub_env: bool = False):
+    def run(self, args: list, *, add_roots: bool = False, add_sub_env: bool = False):
         if add_roots:
             args.append("-w")
             args.append(str(self.workspace_root))
@@ -143,10 +143,7 @@ class CommandRunner:
                 args.append(str(self.data_root))
 
         args = [sys.executable] + args
-        if add_sub_env:
-            result = subprocess.run(args, env=self.sub_env)
-        else:
-            result = subprocess.run(args)
+        result = subprocess.run(args, env=self.sub_env)
         if result.returncode != 0:
             logging.error(f"Returned error code {result.returncode}. EXITING!!")
             exit(-1)
