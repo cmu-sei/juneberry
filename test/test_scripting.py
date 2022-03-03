@@ -69,7 +69,7 @@ def test_env_variables():
     assert vals['tensorboard'] == "js_tb"
     assert vals['machine_class'] == "mach_class"
 
-    # Reset the environ so we don't hork up other tests
+    # Reset the environ so we don't impact other tests
     os.environ = orig.copy()
 
 

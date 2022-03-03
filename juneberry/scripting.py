@@ -60,7 +60,7 @@ def make_default_values(workspace: str):
     """
     ws = Path(workspace)
     return {
-        "workspace": str(ws.absolute()),
+        "workspace": str(ws),
         "data_root": str((ws.parent / "dataroot").absolute()),
         "tensorboard": str((ws.parent / "tensorboard").absolute()),
         "machine_class": "default"
@@ -76,9 +76,9 @@ def resolve_arg(arg, env_name, default, is_path: bool = False):
         val = default
 
     if is_path:
-        return str(Path(val).absolute())
-    else:
-        return val
+        val = str(Path(val))
+
+    return val
 
 
 def resolve_lab_args(args):
@@ -103,7 +103,6 @@ def resolve_lab_args(args):
     vals['machine_class'] = resolve_arg(args.machineClass, 'JUNEBERRY_MACHINE_CLASS', vals['machine_class'])
 
     # Now we have the basics, let's return those.
-    print(f"FOOOOOO {vals}")
     return vals
 
 
