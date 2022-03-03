@@ -21,6 +21,8 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
+from pathlib import Path
 import os
 
 import juneberry.scripting as jbscripting
@@ -64,9 +66,9 @@ def test_env_variables():
     args = MockArgs()
     vals = jbscripting.resolve_lab_args(args)
 
-    assert vals['workspace'] == "js_ws"
-    assert vals['data_root'] == "js_dr"
-    assert vals['tensorboard'] == "js_tb"
+    assert vals['workspace'] == str((Path.cwd() / "js_ws").absolute())
+    assert vals['data_root'] == str((Path.cwd() / "js_dr").absolute())
+    assert vals['tensorboard'] == str((Path.cwd() / "js_tb").absolute())
     assert vals['machine_class'] == "mach_class"
 
     # Reset the environ so we don't impact other tests

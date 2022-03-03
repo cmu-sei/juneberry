@@ -76,7 +76,7 @@ def resolve_arg(arg, env_name, default, is_path: bool = False):
         val = default
 
     if is_path:
-        val = str(Path(val))
+        val = str(Path(val).absolute())
 
     return val
 
