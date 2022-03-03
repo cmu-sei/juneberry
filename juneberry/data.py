@@ -49,7 +49,6 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -616,6 +615,32 @@ def sample_labeled_tabular_data(labeled_tabular, sampling_algo: str, sampling_ar
         labeled_tabular[key] = sample_data_list(labeled_tabular[key], sampling_algo, sampling_args, randomizer)
 
 
+def sample_list(data_list, count: int, randomizer, omit: bool = False):
+    # Generate a lis of indexes and use to keep or omit.
+    indexes = list(range(len(data_list)))
+
+    # NOTE: Sample does NOT provide them in order, so we use a set to identify
+    # the indexes then remove or keep accordingly
+    indexes = set(randomizer.sample(indexes, count))
+    result = []
+    if omit:
+        # OMIT case - scan and NOT keep things in index list
+        for idx, item in enumerate(data_list):
+            if idx in indexes:
+                indexes.remove(idx)
+            else:
+                result.append(item)
+        logger.info(f"OMIT case: {len(data_list)}, {len(result)}")
+    else:
+        # KEEP case - scan and keep things in the index list
+        for idx, item in enumerate(data_list):
+            if idx in indexes:
+                indexes.remove(idx)
+                result.append(item)
+        logger.info(f"KEEP case: {len(data_list)}, {len(result)}")
+    return result
+
+
 def sample_data_list(data_list, algo: str, args, randomizer):
     """
     Returns a sample (subset) of the source list.
@@ -626,16 +651,21 @@ def sample_data_list(data_list, algo: str, args, randomizer):
     :return: The sampled (reduced) data list.
     """
     if algo == jb_dataset.SamplingAlgo.RANDOM_FRACTION:
+        fraction = args['fraction']
+        if fraction > 1:
+            logger.error(f"The random fraction must be less than 1.  It is {fraction}. Exiting.")
+            sys.exit(-1)
         count = round(len(data_list) * float(args['fraction']))
         if count == 0:
             logger.error("Fraction is less than 1, setting quantity to 1")
             count = 1
         if count < len(data_list):
-            data_list = randomizer.sample(data_list, count)
+            data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
+
     elif algo == jb_dataset.SamplingAlgo.RANDOM_QUANTITY:
         count = args['count']
         if count < len(data_list):
-            data_list = randomizer.sample(data_list, count)
+            data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
 
     # Randomize list, split list into groups, return position item from each group
     elif algo == jb_dataset.SamplingAlgo.ROUND_ROBIN:
