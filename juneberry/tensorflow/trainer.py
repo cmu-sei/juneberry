@@ -95,6 +95,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         logger.info(f"Setting random seed: {self.model_config.seed}")
         random.seed(self.model_config.seed)
         np.random.seed(self.model_config.seed)
+        tf.random.set_seed(self.model_config.seed)
 
         # Setup the data loaders like normal.
         self.setup_datasets()
