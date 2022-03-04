@@ -1,17 +1,29 @@
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-02.html
-# CUDA 11.2.0, Driver 460.27.04, Python 3.8.?, pytorch 1.8
-FROM nvcr.io/nvidia/pytorch:21.02-py3
+FROM nvidia/cuda:11.2.0-devel-ubuntu20.04
 
 # ============ BASE PLATFORM ============
 
 # These are needed for opencv - not by default on some platforms
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet sudo \
+    && apt-get install -y libgl1-mesa-glx figlet sudo curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install python
+RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
+RUN bash Miniforge3-Linux-x86_64.sh -b
+RUN eval "$(/root/miniforge3/bin/conda shell.bash hook)"
+RUN conda init
+RUN conda config --set auto_activate_base false
+
+RUN conda create -n juneberry python=3.8.10
+RUN conda activate juneberry
+
 # Make sure we are using the latest pip
 RUN pip3 install --upgrade pip
+
+# ============ PyTorch ============
+
+RUN pip3 install torch torchvision
 
 # ============ Tensorflow ============
 
