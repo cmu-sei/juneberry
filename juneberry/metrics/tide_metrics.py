@@ -67,4 +67,4 @@ class TideMetrics:
                                  pos_thresh=self.iou_threshold,
                                  bg_thresh=self.bg_thresh,
                                  tqdm=self.tqdm)
-        return self.tide.mdAP
+        return self.tide.mdAP.to_dict()

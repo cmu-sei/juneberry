@@ -13,7 +13,7 @@
             "kwargs": {
                 "iou_threshold": 0.5,
                 "max_det": 100,
-                "tqdm": true
+                "tqdm": false
             }
         },
         {
@@ -24,7 +24,7 @@
                 "max_det": 100,
                 "area_range_min": 0,
                 "area_range_max": 100000,
-                "tqdm": true
+                "tqdm": false
             }
         }
     ]

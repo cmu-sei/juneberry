@@ -79,3 +79,5 @@ class CocoMetrics:
             new_k = "AP_75_" + k
             result[new_k] = v
 
+        return result
+
