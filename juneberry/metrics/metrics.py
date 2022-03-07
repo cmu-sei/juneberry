@@ -22,136 +22,55 @@
 #
 # ======================================================================================================================
 
-# needed to reference Metrics class inside Metrics for typing
-# will no longer be necessary starting in Python 3.10
-from __future__ import annotations
-
-import csv
-from enum import Enum
-import json
 import logging
-from pathlib import Path
-import tempfile
-from typing import Dict, List, Tuple
+from typing import Dict
 
 import brambox as bb
-import matplotlib.pyplot as plt
-from numpy import ndarray
 from pandas.core.frame import DataFrame
 
-from juneberry.filesystem import EvalDirMgr, ModelManager
+from juneberry.metrics.metrics_utils import MetricsUtils
 
 
-logger = logging.getLogger("juneberry.metrics.metrics")
-
-
-class MetricsToolkit(Enum):
-    COCO = 1
-    TIDE = 2
+logger = logging.getLogger(__name__)
 
 
 class Metrics:
     def __init__(self,
-                 anno_file: Path,
-                 det_file: Path,
-                 model_name: str,
-                 dataset_name: str,
-                 iou_threshold: float = 0.5) -> None:
+                 iou_threshold,
+                 tp_threshold) -> None:
         """
         Initialize a Metrics object using annotations and detections files in
         COCO JSON format.
-        :param anno_file: The annotations file in COCO JSON format.
-        :param det_file: The detections file in COCO JSON format.
-        :param model_name: The model name
-        :param dataset_name: The dataset name
         :param iou_threshold: The iou threshold
+        :param tp_threshold: The tp threshold
         :return: None
         """
-        self.model_name = model_name
-        self.dataset_name = dataset_name
         self.iou_threshold = iou_threshold
-        self.class_label_map = Metrics._get_class_label_map(anno_file)
-        self.det = bb.io.load("det_coco",
-                              str(det_file),
-                              class_label_map=self.class_label_map)
-        self.anno = bb.io.load("anno_coco",
-                               str(anno_file),
-                               parse_image_names=False)
-        if self.anno.empty:
-            raise ValueError("Cannot initialize Metrics with no annotations.")
+        self.tp_threshold = tp_threshold
 
-    @staticmethod
-    def _create(anno_file: Path,
-                det_file: Path,
-                model_name: str,
-                dataset_name: str,
-                iou_threshold: float,
-                toolkit: MetricsToolkit) -> Metrics:
-        if (toolkit is MetricsToolkit.COCO):
-            from juneberry.metrics.coco_metrics import CocoMetrics
-            return CocoMetrics(anno_file, det_file, model_name, dataset_name, iou_threshold)
-        elif (toolkit is MetricsToolkit.TIDE):
-            from juneberry.metrics.tide_metrics import TideMetrics
-            return TideMetrics(anno_file, det_file, model_name, dataset_name, iou_threshold)
-        else:
-            raise ValueError(f"Invalid MetricsToolkit {toolkit}")
+    def __call__(self, anno: Dict, det: Dict) -> Dict:
+        self.det, self.anno = MetricsUtils.load_det_and_anno(det, anno)
+        return self.as_dict(self.tp_threshold)
 
-    @staticmethod
-    def create_with_filesystem_managers(model_mgr: ModelManager,
-                                        eval_dir_mgr: EvalDirMgr,
-                                        iou_threshold: float = 0.5,
-                                        toolkit: MetricsToolkit = MetricsToolkit.COCO) -> Metrics:
-        """
-        Create a Metrics object using a model manager and eval dir manager.
-        :param model_mgr: The model manager
-        :param eval_dir_mgr: The eval dir mgr
-        :param iou_threshold: iou_threshold
-        :param metrics_toolkit: Which toolkit to use for evaluation
-        :return: a Metrics object
-        """
-        model_name = model_mgr.model_name
-        dataset_name = eval_dir_mgr.get_dir().stem
+    def as_dict(self, tp_threshold):
+        result = {
+            "prc": self.prc(),
+            "ap": self.ap(),
+            "max_r": self.max_r(),
+            "fscore": self.fscore(),
+            "pr_auc": self.pr_auc(),
+            "pc_auc": self.pc_auc(),
+            "rc_auc": self.rc_auc(),
+            "prediction_types": self.prediction_types(tp_threshold),
+        }
+        return result
 
-        anno_file = Path(eval_dir_mgr.get_manifest_path())
-        det_file = Path(eval_dir_mgr.get_detections_path())
-
-        return Metrics._create(anno_file, det_file, model_name, dataset_name, iou_threshold, toolkit)
-
-    @staticmethod
-    def create_with_data(anno: Dict,
-                         det: Dict,
-                         model_name: str = "unknown model",
-                         dataset_name: str = "unknown dataset",
-                         iou_threshold: float = 0.5,
-                         toolkit: MetricsToolkit = MetricsToolkit.COCO) -> Metrics:
-        """
-        Create a Metrics object using dictionaries containing
-        annotations and detections.
-        :param anno: annotations
-        :param det: detections
-        :param model_name: model name
-        :param dataset_name: dataset name
-        :param iou_threshold: iou_threshold
-        :return: a Metrics object
-        """
-        anno_file = tempfile.NamedTemporaryFile(mode="w+")
-        json.dump(anno, anno_file)
-        anno_file.flush()
-
-        det_file = tempfile.NamedTemporaryFile(mode="w+")
-        json.dump(det, det_file)
-        det_file.flush()
-
-        return Metrics._create(anno_file.name, det_file.name, model_name, dataset_name, iou_threshold, toolkit)
-
-    @property
     def _prc_df(self) -> DataFrame:
         return bb.stat.pr(self.det,
                           self.anno,
                           self.iou_threshold)
 
-    @property
-    def prc(self) -> ndarray[ndarray]:
+    def prc(self):
         """
         Get the precision / recall / confidence values for this
         Metrics object.
@@ -159,22 +78,18 @@ class Metrics:
         ndarray[0] => precision, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return Metrics.df_to_ndarray(self._prc_df)
+        return Metrics.df_to_ndarray(self._prc_df())
 
-    @property
     def ap(self) -> float:
-        return bb.stat.ap(self._prc_df)
+        return bb.stat.ap(self._prc_df())
 
-    @property
     def max_r(self) -> float:
-        return bb.stat.peak(self._prc_df, y="recall")["recall"]
+        return bb.stat.peak(self._prc_df(), y="recall")["recall"]
 
-    @property
     def _fscore_df(self, beta: int = 1) -> DataFrame:
-        return bb.stat.fscore(self._prc_df, beta)
+        return bb.stat.fscore(self._prc_df(), beta)
 
-    @property
-    def fscore(self, beta: int = 1) -> ndarray[ndarray]:
+    def fscore(self, beta: int = 1):
         """
         Get the f1 / recall / confidence values for this
         Metrics object.
@@ -182,41 +97,34 @@ class Metrics:
         ndarray[0] => f1, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return Metrics.df_to_ndarray(self._fscore_df)
+        return Metrics.df_to_ndarray(self._fscore_df())
 
-    @property
     def pr_auc(self) -> float:
         """
         Get the precision-recall area under curve.
         :return: PR AUC float
         """
-        return bb.stat.auc(self._prc_df,
+        return bb.stat.auc(self._prc_df(),
                            x="recall",
                            y="precision")
 
-    @property
     def pc_auc(self) -> float:
         """
         Get the precision-confidence area under curve.
         :return: PC AUC float
         """
-        return bb.stat.auc(self._prc_df,
+        return bb.stat.auc(self._prc_df(),
                            x="confidence",
                            y="precision")
 
-    @property
     def rc_auc(self) -> float:
         """
         Get the recall-confidence area under curve.
         :return: RC AUC float
         """
-        return bb.stat.auc(self._prc_df,
+        return bb.stat.auc(self._prc_df(),
                            x="confidence",
                            y="recall")
-
-    @staticmethod
-    def df_to_ndarray(df: DataFrame) -> ndarray[ndarray]:
-        return DataFrame.to_numpy(df)
 
     def prediction_types(self, tp_threshold: float) -> Dict[str, int]:
         """
@@ -237,42 +145,5 @@ class Metrics:
         return result
 
     @staticmethod
-    def _get_class_label_map(anno_file: Path) -> List[str]:
-        """
-        This function is responsible for retrieving the class label map from
-        the annotations file. The class label map is used to convert the
-        values in the class_label column of the detections Dataframe from
-        integers into strings.
-        :param anno_file: The annotations file containing the class label
-        information.
-        :return: A List of str containing the classes for each integer label.
-        """
-
-        # Open the annotation file and retrieve the information in the
-        # categories field.
-        with open(anno_file) as json_file:
-            categories = json.load(json_file)["categories"]
-
-        # Create an ID list, which contains every integer value that appears
-        # as a category in the annotations file.
-        id_list = []
-        for category in categories:
-            id_list.append(category["id"])
-
-        # Set up the class label map such that there is one entry for every
-        # possible integer, even if the integer does not appear as a category
-        # in the annotations file.
-        class_label_map = [None] * (max(id_list) + 1)
-
-        # For the categories that appear in the annotations file, fill in the
-        # appropriate entry of the class label map using the string for that
-        # integer.
-        for category in categories:
-            class_label_map[category["id"]] = category["name"]
-
-        # Brambox expects the first item in the class label map to be for
-        # label 1, so take the first item (label 0) and move it to the end of
-        # the class label map.
-        class_label_map.append(class_label_map.pop(0))
-
-        return class_label_map
+    def df_to_ndarray(df: DataFrame):
+        return DataFrame.to_numpy(df)

@@ -1,0 +1,31 @@
+{
+    "metrics": [
+        {
+            "fqcn": "juneberry.metrics.metrics.Metrics",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "tp_threshold": 0.5
+
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.coco_metrics.CocoMetrics",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "max_det": 100,
+                "tqdm": true
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.tide_metrics.TideMetrics",
+            "kwargs": {
+                "pos_thresh": 0.5,
+                "bg_thresh": 0.5,
+                "max_det": 100,
+                "area_range_min": 0,
+                "area_range_max": 100000,
+                "tqdm": true
+            }
+        }
+    ]
+}
