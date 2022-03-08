@@ -13,7 +13,7 @@
 # === LAB LAYOUT ===
 # When starting this container, a variety of directories for organizing the current code, data,
 # tensorboard output, caches, and workspaces (optional) will get mounted (not copied) into the container.
-# The default configuration below assums is based on this layout.  You can override these locations with
+# The default configuration below is based on this layout.  You can override these locations with
 # various environment variables or copy and modify this script.  A detailed description of the lab layout
 # can be found in:
 #   - docs/overview.md
@@ -35,9 +35,8 @@
 # JUNEBERRY_TENSORBOARD     - Path to store the tensorboard outputs
 # JUNEBERRY_CACHE           - Path to a cache to store downloads
 # JUNEBERRY_CONTAINER       - Path to
-# JUNEBERRY_GPUS            - The GPUS to assign to the container
+# JUNEBERRY_GPUS            - The GPUS to assign to the container. "all" to set to all.
 # JUNEBERRY_MACHINE_CLASS   - The machine class
-
 
 # === Lab Layout ===
 LAB=${PWD}
@@ -47,6 +46,7 @@ if [ !-z ${JUNEBERRY_LAB} ]; then
     LAB=${PWD}
 fi
 
+# Standard directory layout
 REPOSITORY=${LAB}/juneberry
 WORKSPACE=${LAB}/juneberry
 DATA_ROOT=${LAB}/dataroot
@@ -54,31 +54,31 @@ TENSORBOARD=${LAB}/tensorboard
 CACHE=${LAB}/cache
 
 # By default, the data root is mounted read only for safety.
-# Under normal conditions Juneberry will not change the data.
+# Under normal conditions (train/eval) Juneberry will not need to change the data.
 DATA_ROOT_MODE=":ro"
 
 # By default the machine class Juneberry uses is "default"
 MACHINE_CLASS="default"
 
-# By default we use the cpudev container.  Alternately the cuda container can be used. If so, one should adjust the
-# number of gpus used.
+# By default we use the 'cpudev' container. Alternately the cuda container can be used. If so, one should adjust the
+# number of gpus used setting the GPUS or JUNEBERRY_GPUS.
 CONTAINER="cmusei/juneberry:cpudev"
 
 # This value determines which GPUs the container will be aware of.
 # Set to "" for none or "all" for all.
-# Specific GPUs can be set by listing the devices as one would with CUDA_VISIBLE_DEVICES.
-# TODO: Do we default to all or "" and how do we switch it?
+# Specific GPUs can be set by listing the devices by id as one would with CUDA_VISIBLE_DEVICES.
 GPUS=""
-# GPUS="--gpus all"
+# GPUS="all"
 if [ ! -z ${CUDA_VISIBLE_DEVICES}]; then
-    GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
+    GPUS="\"device=${CUDA_VISIBLE_DEVICES}\""
 fi
 
 # Base 'docker run' command. See "https://docs.docker.com/engine/reference/commandline/run/" for details
 # NOTE: --network=host means we can't use jupyter
-# NTOE: --ipc=host is required to make gpus work
+# NOTE: --ipc=host is required to make gpus work
 RUN_CMD="run -it --rm --network=host --ipc=host --name ${USER}"
 
+# ==================================================================================================
 # ==================================================================================================
 # ==================================================================================================
 # The remainder of this file is argument checking and command formatting
@@ -95,7 +95,7 @@ if [ ! -z ${JUNEBERRY_MACHINE_CLASS} ]; then MACHINE_CLASS=${JUNEBERRY_MACHINE_C
 
 # ==================================================================================================
 
-# Wrap them in the right docker format and locations in prebuilt Juneberry container
+# ===== Wrap them in the right docker format/switches
 JB="-v ${REPOSITORY}:/juneberry"
 if [ ! -z ${WORKSPACE} ]; then
     # Extract the workspace name so we can have that exact directory
@@ -110,8 +110,11 @@ TB="-v ${TENSORBOARD}:/tensorboard"
 HUB_CACHE="-v ${CACHE}/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${CACHE}/torch:/root/.torch"
 TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
+CACHES="${HUB_CACHE} ${TORCH_CACHE} ${TF_CACHE}"
+if [ ! -z ${GPUS} ]; then
+    GPUS="--gpus ${GPUS}"
 
-# ===== Check to see that the project directory contains all necessary subdirectories. ==============
+# ===== Check to see that the project directory contains all necessary subdirectories.
 required=("${REPOSITORY}" "${WORKSPACE}" "${DATA_ROOT}" "${TENSORBOARD}" "${CACHE}")
 
 all_project_subdirs_exist=1
@@ -129,18 +132,18 @@ if [ ${all_project_subdirs_exist} -eq 0 ]; then
     exit 1
 fi
 
-# Make the cache subdirs if missing
+# ===== Make the cache sub directories if missing
 if [ ! -d "${CACHE}/hub" ]; then mkdir "${CACHE}/hub"; fi
 if [ ! -d "${CACHE}/torch" ]; then mkdir "${CACHE}/torch"; fi
 if [ ! -d "${CACHE}/tensorflow" ]; then mkdir "${CACHE}/tensorflow"; fi
 
 # ================================================================================================
 
-# Tunnel in a variety of common things that the container can use
+# Tunnel in a variety of common environment variables that the container can use
 ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy"
 ENVS_USER="-e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER}) -e HOST_UNAME=$(uname)"
 
 # Assemble the command, show it, and run it.
-CMD="docker ${RUN_CMD} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DR} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${CONTAINER} bash"
+CMD="docker ${RUN_CMD} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DR} ${TB} ${CACHES} ${CONTAINER} bash"
 echo "${CMD}"
 ${CMD}
