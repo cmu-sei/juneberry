@@ -133,7 +133,7 @@ class CommandRunner:
         self.workspace_root = workspace_root
         self.data_root = data_root
 
-    def run(self, args: list, *, add_roots: bool = False, add_sub_env: bool = False):
+    def run(self, args: list, *, add_roots: bool = False):
         if add_roots:
             args.append("-w")
             args.append(str(self.workspace_root))
