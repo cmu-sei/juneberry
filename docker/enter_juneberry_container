@@ -42,7 +42,7 @@
 LAB=${PWD}
 
 # If they specified a lab, use it.
-if [ !-z ${JUNEBERRY_LAB} ]; then
+if [ ! -z ${JUNEBERRY_LAB} ]; then
     LAB=${PWD}
 fi
 
@@ -69,7 +69,7 @@ CONTAINER="cmusei/juneberry:cpudev"
 # Specific GPUs can be set by listing the devices by id as one would with CUDA_VISIBLE_DEVICES.
 GPUS=""
 # GPUS="all"
-if [ ! -z ${CUDA_VISIBLE_DEVICES}]; then
+if [ ! -z ${CUDA_VISIBLE_DEVICES} ]; then
     GPUS="\"device=${CUDA_VISIBLE_DEVICES}\""
 fi
 
@@ -113,6 +113,7 @@ TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
 CACHES="${HUB_CACHE} ${TORCH_CACHE} ${TF_CACHE}"
 if [ ! -z ${GPUS} ]; then
     GPUS="--gpus ${GPUS}"
+fi
 
 # ===== Check to see that the project directory contains all necessary subdirectories.
 required=("${REPOSITORY}" "${WORKSPACE}" "${DATA_ROOT}" "${TENSORBOARD}" "${CACHE}")
