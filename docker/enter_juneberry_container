@@ -34,8 +34,8 @@
 # JUNEBERRY_DATA_ROOT       - Path to the root of the data
 # JUNEBERRY_TENSORBOARD     - Path to store the tensorboard outputs
 # JUNEBERRY_CACHE           - Path to a cache to store downloads
-# JUNEBERRY_CONTAINER       - Path to
-# JUNEBERRY_GPUS            - The GPUS to assign to the container. "all" to set to all.
+# JUNEBERRY_CONTAINER       - The name of the container to run.
+# JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, ids for specific ones.
 # JUNEBERRY_MACHINE_CLASS   - The machine class
 
 # === Lab Layout ===
@@ -48,7 +48,7 @@ fi
 
 # Standard directory layout
 REPOSITORY=${LAB}/juneberry
-WORKSPACE=${LAB}/juneberry
+WORKSPACE=""
 DATA_ROOT=${LAB}/dataroot
 TENSORBOARD=${LAB}/tensorboard
 CACHE=${LAB}/cache
