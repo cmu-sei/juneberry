@@ -13,10 +13,8 @@ like this:
     juneberry/ - The cloned repo for sample projects
     dataroot/ - Where all the data assets are stored.
     tensorboad/ - OPTIONAL - Where tensorboard outputs are stores
-    cache/ - A place where we store platform cached data
-        hub/ 
-        torch/
-    *workspace-directories*
+    cache/ - A place where we store platform cached data for pytorch, tensorflow, etc.
+    *workspace-directories* - e.g. juneberry-example-workspace
 ```
 
 While this structure it is preferred but not required. Sometimes, for larger deployments it is important
@@ -24,12 +22,17 @@ to store files in paths that could be different storgae devices. Later, we'll di
 
 # Workspaces (Required)
 
-While the lab structure is a convention, Juneberry requires a particular worksa
-Juneberry uses a workspace directory structure to hold models and experiments. Most
-of the configuration is done via files.
+While the lab layout is a common convention, Juneberry 
+requires a particular structure to manage all these files. The Juneberry repository not only has the Juneberry
+source code, but also functions as a sample workspace with sample models and experiments. While you can use
+it for testing your installation, you'll want to create your own to manage your own experiments. See
+the [Getting Started](getting_started.md) guide for directions on how to create your own workspace.
+
+While a workspace directory can have any name, it must have the following layout:
 
 ```
 <WORKSPACE_ROOT>/
+    config.json - (Optional) A file that describes various machine-specific configurations used by the workspace
     data_sets/ - datasets pair data with labeling schemes
         <data-set-name>.json
     models/ - models combine architectures and hyperparameters
@@ -48,41 +51,7 @@ of the configuration is done via files.
     ... store your data in this directory ...
 ``` 
 
-
-
-
-
-
-# Workspace Directory
-
-The workspace is where one keeps model configurations, experiment configurations, and all outputs such as 
-trained models, log files, charts and reports. While the lab layout is a common convention, Juneberry 
-requires a particular structure to manage all these files. The Juneberry repository not only has the Juneberry
-source code, but also functions as a sample workspace with sample models and experiments. While you can use
-it for testing your installation, you'll want to create your own to manage your own experiments. See
-the [Getting Started](getting_started.md) guide for directions on how to create your own workspace.
-
-While the workspace directory can be called anything it needs to have the following layout:
-```
-<workspace-directory>/
-    config.json - A file that describes various machine-specific configurations used by the workspace
-    data_sets/ - datasets pair data with labeling schemes
-        <data-set-name>.json
-    models/ - models combine architectures and hyperparameters
-        <model-name>
-            config.json
-            eval/ - created by Juneberry to hold evaluation outputs
-            train/ - created by Juneberry to hold training output
-    experiments/ - experiments specify models and tests to evaluate and compare
-        <experiment-name>
-            config.json
-            outline.json - Optional outline file for generating more complex experiments
-            ... generated Doit files and outputs such as logs or trained models ARE PLACED here ...
-    <workspace package> - [OPTIONAL] Python code goes here and should be available for import
-        <subpackage>
-```
-
-In most cases Juneberry commands, when issues assume the current working directory is the workspace. 
+In most cases Juneberry commands, when issued assume the current working directory is the workspace. 
 The workspace directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
 variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
 details.
@@ -145,9 +114,9 @@ The data root directory path can be set via the `-d` command line switch or `JUN
 variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
 details.
 
-# TENSORBOARD_ROOT Directory (optional)
+# Tensorboard (`tensorboard`) Directory (optional)
 
-The tensorboard directory (if specified and exisst) will be used to store outputs to be used by tensorboard.
+The tensorboard directory (if specified and exists) will be used to store outputs to be used by tensorboard.
 
 By default, the tensorboard directory is assumed to be a peer of the workspace.
 The data root directory path can be set via the `-t` command line switch or `JUNEBERRY_TENSORBOARD` environment
@@ -156,7 +125,8 @@ details.
 
 # Example
 
-Juneberry provides a sample model to use for a small system test. This classification model config file is located in
+Juneberry provides a sample model to use for a small system test in the repository 'juneberry-example-workspace'.
+This classification model config file is located in
 [`models/imagenette_160x160_rgb_unit_test_pyt_resnet18`](../models/imagenette_160x160_rgb_unit_test_pyt_resnet18)
 and uses the dataset config files
 [`data_sets/imagenette_unit_train.json`](../data_sets/imagenette_unit_train.json) to 'train' the model and 
