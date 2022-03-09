@@ -43,7 +43,10 @@ def run_with_gpu(cmd, gpu_num: int, concurrent: int):
             # Get the lock and run the code 
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             env = os.environ.copy()
-            env['CUDA_VISIBLE_DEVICES'] = str(gpu_num % concurrent)
+            dev_num = gpu_num
+            if concurrent > 1:
+                dev_num = gpu_num % concurrent
+            env['CUDA_VISIBLE_DEVICES'] = str(dev_num)
             subprocess.run(cmd, env=env)
             return True
         except BlockingIOError as e:
