@@ -6,6 +6,23 @@ relies on a Juneberry Docker container. Juneberry can also be used from a virtua
 necessary. Be aware that installation and management of all the supporting cuda enabled packages
 can be a challenging task.
 
+# The Basics
+
+Juneberry is just a python pack that can be cloned from github and installed using a normal
+installation process in a properly configured environment. 
+
+```shell sript
+git clone https://github.com/cmu-sei/juneberry.git
+pip install juneberry
+```
+
+**IMPORTANT**: Juneberry requires a lot of infrastructure (depending on platform) to actually run models,
+so in the vast majority of cases a lot of other packages will need to be installed such
+as tensorflow, pytorch, detectron2, mmdetection or onnx. While these can be installed with extras
+(e.g. `pip install juneberry[tf]` - see `setup.py` for details) the dependencies are complex 
+and the ordering is challenging. The rest of this document explains how pre-configured docker containers 
+can be used as experiment environments, or if all else fails, a virtual environment can be constructed.
+
 # Preparation Steps
 
 ## Lab Layout
@@ -110,7 +127,7 @@ juneberry/docker/enter_juneberry_container
 
 The `enter_juneberry_container` script can be controlled via a wide variety of environment variables
 or can be copied elsewhere and modified.  
-See the contents of [enter_juneberry_container](docker/enter_juneberry_container) for details.
+See the contents of [enter_juneberry_container](../docker/enter_juneberry_container) for details.
 
 For example, to start the CUDA container with "all" gpus using environment variables:
 
