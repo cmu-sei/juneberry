@@ -240,6 +240,10 @@ class ExperimentManager:
         """
         return self.experiment_dir_path / file_name
 
+    def get_experiment_db_file(self):
+        """ :return: The relative path to the experiment's DB-file (pydoit). """
+        return self.experiment_dir_path / '.doit.db'
+
     def get_experiment_log_path(self):
         """ :return: The path to the experiment log file. """
         return self.experiment_log_dir_path / "log_experiment.txt"
@@ -559,6 +563,7 @@ class ModelManager:
             self.model_platform = platform
         else:
             self.model_platform = self.set_model_platform()
+        self.model_task = self.set_model_task()
 
     def setup(self):
         """ Prepares a directory for use. """
@@ -691,6 +696,20 @@ class ModelManager:
         else:
             return None
 
+    def set_model_task(self):
+        """: return: The task the model is for, e.g. classification, objectDetection."""
+        # Load the model config (if it exists).
+        if self.get_model_config().exists():
+            data = load_file(self.get_model_config())
+
+            # Get the value for the task property (if it exists).
+            task = data.get('task', None)
+
+            # Log a warning if a task type wasn't found and return the task.
+            if task is None:
+                logger.warning(f"Task was not found in {self.get_model_config()}")
+            return task
+
     # ============ MMDetection ============
 
     def get_mmd_latest_model_path(self):
@@ -794,9 +813,9 @@ class ModelManager:
         """
         return [self.get_dryrun_imgs_path("*")]
 
-    def get_predictions_output_list(self, data_set):
+    def get_evaluation_output_list(self, data_set):
         """
-        :return: A list of files or glob patterns of files that are produced by predictions.
+        :return: A list of files or glob patterns of files that are produced during an evaluation.
         """
         eval_dir_mgr = self.get_eval_dir_mgr(data_set)
         return [
@@ -819,7 +838,7 @@ class ModelManager:
         cwd = Path('.')
         for data_list in (self.get_training_output_list(),
                           self.get_dry_run_output_list(),
-                          self.get_predictions_output_list("*")):
+                          self.get_evaluation_output_list("*")):
             for item in data_list:
                 if Path(item).is_dir():
                     files_to_clean.append(item)

@@ -119,7 +119,7 @@ class RuleMaker:
             if model.tests:
                 for test in model.tests:
                     inputs = [model_mgr.get_model_path(), test.dataset_path]
-                    outputs = model_mgr.get_predictions_output_list(test.dataset_path)
+                    outputs = model_mgr.get_evaluation_output_list(test.dataset_path)
                     command = [JB_EVALUATE_COMMAND, model_mgr.model_name, test.dataset_path]
                     if test.classify:
                         command.extend(["--topK", test.classify])
@@ -139,7 +139,8 @@ class RuleMaker:
                         'dataset': test.dataset_path,
                         'filename': eval_dir_mgr.get_predictions_path(),
                         'id': cmd_id,
-                        'model': model.name
+                        'model': model.name,
+                        'metrics': eval_dir_mgr.get_metrics_path()
                     }
 
                     if test.filters:
@@ -172,9 +173,9 @@ class RuleMaker:
         # Add all tests to the command.
         for test in report.tests:
 
-            # The presence of this prediction file indicates an evaluation has occurred for this
-            # model / dataset combination. The plot_pr script relies on the data in the predictions file.
-            predictions_file = str(self.tag_map[test.tag]['filename'])
+            # The presence of the metrics file indicates an evaluation has occurred for this
+            # model / dataset combination.
+            predictions_file = str(self.tag_map[test.tag]['metrics'])
             inputs.append(predictions_file)
 
             # Add the model and eval dataset arguments to the command.
@@ -247,8 +248,8 @@ class RuleMaker:
 
         for entry in self.tag_map.values():
             command.append('-f')
-            command.append(entry['filename'])
-            inputs.append(entry['filename'])
+            command.append(entry['metrics'])
+            inputs.append(entry['metrics'])
             requirements.append(entry['id'])
 
         # We need all the output file names. Depending on the report type, different plots may
