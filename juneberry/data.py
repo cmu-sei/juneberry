@@ -232,7 +232,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
 class DatasetMarshal:
     """
-    Dataset Marshalls are used to load and process various types of data configs into "datasets"
+    Dataset Marshals are used to load and process various types of data configs into "datasets"
     that are basically lists of data items (pytorch Datasets that support __len__ and __getitem__)
     that can be fed to data loaders.
     """
@@ -616,7 +616,7 @@ def sample_labeled_tabular_data(labeled_tabular, sampling_algo: str, sampling_ar
 
 
 def sample_list(data_list, count: int, randomizer, omit: bool = False):
-    # Generate a lis of indexes and use to keep or omit.
+    # Generate a list of indexes and use to keep or omit
     indexes = list(range(len(data_list)))
 
     # NOTE: Sample does NOT provide them in order, so we use a set to identify
@@ -624,7 +624,7 @@ def sample_list(data_list, count: int, randomizer, omit: bool = False):
     indexes = set(randomizer.sample(indexes, count))
     result = []
     if omit:
-        # OMIT case - scan and NOT keep things in index list
+        # OMIT case - scan and discard things from index list
         for idx, item in enumerate(data_list):
             if idx in indexes:
                 indexes.remove(idx)
@@ -653,7 +653,7 @@ def sample_data_list(data_list, algo: str, args, randomizer):
     if algo == jb_dataset.SamplingAlgo.RANDOM_FRACTION:
         fraction = args['fraction']
         if fraction > 1:
-            logger.error(f"The random fraction must be less than 1.  It is {fraction}. Exiting.")
+            logger.error(f"The random fraction must be less than 1. It is {fraction}. Exiting.")
             sys.exit(-1)
         count = round(len(data_list) * float(args['fraction']))
         if count == 0:

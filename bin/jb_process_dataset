@@ -68,7 +68,7 @@ def format_label_dir_names(label_mapping):
 
 def prepare_output_directory(output_data_root: str, output_dir: str, dir_names) -> None:
     """
-    Create a set of directories within the output dir for each label.  Return that mapping of lable to directory name.
+    Create a set of directories within the output dir for each label. Return that mapping of label to directory name.
     """
     # Walk the labels make a directory for each and saving that to the output list
     for dir_name in dir_names.values():
@@ -78,10 +78,10 @@ def prepare_output_directory(output_data_root: str, output_dir: str, dir_names) 
 
 def make_config_from_label_paths(ds_cfg, set_name_dir, dir_names: dict):
     """
-    Makes a configuration file based on a set of dir names within a data directory
-    :param ds_cfg: The dataset config
+    Makes a configuration file based on a set of dir names within a data directory.
+    :param ds_cfg: The dataset config.
     :param set_name_dir: Optional intermediate directory if creating multiple sets. Can be None.
-    :param dir_names: A dictionary of labels to directory names 
+    :param dir_names: A dictionary of labels to directory names.
     :return:
     """
     # Construct a dataset file based on the other one as we want same classes, labels, etc.
@@ -190,7 +190,7 @@ class PyTorchClassificationImageProcessor(DatasetProcessor):
                                                     transform_mgr, batch_size=1)
 
     def prepare_output_directory(self):
-        # Make a list of label to directory names, then make those directories
+        # Make a list of label to directory names, then make those directories.
         self.dir_names = format_label_dir_names(self.ds_cfg.retrieve_label_names())
         prepare_output_directory(self.output_data_root, self.output_dir, self.dir_names)
 
@@ -286,7 +286,7 @@ class TFDSProcessor(DatasetProcessor):
     def prepare_output_directory(self):
         self.dir_names = format_label_dir_names(self.ds_cfg.retrieve_label_names())
 
-        # If we have more than set, prepare multiple dirs
+        # If we have more than one set, prepare multiple dirs
         if len(self.datasets) > 1:
             for name in self.set_names:
                 out_dir = str(Path(self.output_dir) / name)
@@ -402,8 +402,8 @@ def setup_args(parser) -> None:
     parser.add_argument('base_dataset', help="Path to a dataset file to process.")
     parser.add_argument('output_dir', help="Subdirectory within data_root in which to place files.")
     parser.add_argument('-m', '--model', help="Optional model config with a transform stanza to apply.")
-    parser.add_argument('-n', '--names', type=str, help="Comma separate list of names for multi-set datasest. "
-                                                        "If not specified 'set_#' will be used..")
+    parser.add_argument('-n', '--names', type=str, help="Comma separated list of names for multi-set dataset. "
+                                                        "If not specified 'set_#' will be used.")
 
     parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode. ')
     parser.add_argument('--clean', default=False, action='store_true', help='Remove output directory before writing. ')
