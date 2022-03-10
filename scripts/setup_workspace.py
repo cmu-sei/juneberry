@@ -25,9 +25,6 @@
 import argparse
 import logging
 from pathlib import Path
-import platform
-import re
-import shutil
 import sys
 
 logging.basicConfig(level=logging.INFO, format="%(filename)s:%(levelname)s - %(message)s")
@@ -46,59 +43,13 @@ def create_dir(some_dir: Path) -> None:
         some_dir.mkdir()
 
 
-def copy_container_start(workspace_dir: Path, project_dir: Path) -> None:
-    """
-    Copy the template container_start.sh file from the project to the
-    workspace.
-    :param workspace_dir: The Juneberry workspace directory.
-    :param project_dir: The Juneberry project directory.
-    :return: None
-    """
-    container_start = Path(project_dir, "juneberry/docker/container_start.sh")
-    logging.info(f"Copying {container_start} into workspace...")
-    shutil.copy(container_start, workspace_dir)
-
-
-def add_host_os_to_container_start(workspace_dir: Path) -> None:
-    """
-    Write the HOST_OS to the workspace's copy of container_start.sh.
-    :param workspace_dir: The Juneberry workspace directory.
-    :return: None
-    """
-    container_start = Path(workspace_dir / "container_start.sh")
-    outlines = []
-
-    logging.info(f"Adding HOST_OS={platform.system()} to {container_start}...")
-
-    with open(container_start, "r") as f:
-        inlines = f.readlines()
-
-        for l in inlines:
-            outlines.append(re.sub(r"^HOST_OS=\"\"$",
-                                   f"HOST_OS=\"{platform.system()}\"", l))
-
-    with open(container_start, "w") as f:
-        f.writelines(outlines)
-
-
-def create_workspace_files(workspace_dir: Path, project_dir: Path) -> None:
-    """
-    Create Juneberry workspace files if missing from this workspace.
-    :param workspace_dir: The Juneberry workspace directory.
-    :param project_dir: The Juneberry project directory.
-    :return: None
-    """
-    if not (workspace_dir / "container_start.sh").exists():
-        copy_container_start(workspace_dir, project_dir)
-        add_host_os_to_container_start(workspace_dir)
-
-
-def create_workspace_dirs(workspace_dir: Path) -> None:
+def create_workspace_dirs(workspace_dir: str) -> None:
     """
     Create the Juneberry workspace directory and subdirectories, if necessary.
     :param workspace_dir: The Juneberry workspace directory.
     :return: None
     """
+    workspace_dir = Path(workspace_dir)
     create_dir(workspace_dir)
     create_dir(workspace_dir / "data_sets")
     create_dir(workspace_dir / "experiments")
@@ -107,20 +58,15 @@ def create_workspace_dirs(workspace_dir: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--project_dir", help="Directory containing the Juneberry project.")
-    parser.add_argument("-w", "--workspace", help="Juneberry workspace to set up and run in.")
+    parser.add_argument("workspace", help="Juneberry workspace to set up.")
     args = parser.parse_args()
 
-    project_dir = Path(args.project_dir)
-    workspace_dir = Path(args.workspace)
-
-    logging.info(f"Setting up workspace in {workspace_dir}...")
+    logging.info(f"Setting up workspace in {args.workspace}...")
 
     # Create the Juneberry workspace directories and files.
     # Return 0 for success, 1 for failure.
     try:
-        create_workspace_dirs(workspace_dir)
-        create_workspace_files(workspace_dir, project_dir)
+        create_workspace_dirs(args.workspace)
     except Exception as e:
         logging.error(e)
         sys.exit(1)
