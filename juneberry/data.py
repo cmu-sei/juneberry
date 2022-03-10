@@ -58,13 +58,13 @@ def dataspec_to_manifests(lab: Lab, dataset_config, *,
                           splitting_config: SplittingConfig = SplittingConfig(None, None, None),
                           preprocessors: TransformManager = None):
     """
-    Creates the appropriate data loaders based on the training and dataset configurations.
+    Creates the appropriate data manifests (file path/label) based on the training and dataset configurations.
     :param lab: The Juneberry Lab in which this operation occurs.
     :param dataset_config: The dataset config that describes the data.
     :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into
     a separate subset. Specify None for no splitting.
     :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
-    :return: This function returns data_loader, split_loader
+    :return: This function returns data manifest and validation manifest
     """
     # In case folks pass in None for the config
     if splitting_config is None:
@@ -233,7 +233,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
 class DatasetMarshal:
     """
-    Dataset Marshalls are used to load and process various types of data configs into "datasets"
+    Dataset Marshals are used to load and process various types of data configs into "datasets"
     that are basically lists of data items (pytorch Datasets that support __len__ and __getitem__)
     that can be fed to data loaders.
     """
