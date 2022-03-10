@@ -181,13 +181,20 @@ class Evaluator(EvaluatorBase):
                 logger.info("Evaluating using ONLY the validation portion of the split data.")
                 eval_list = split
 
+
             # The eval list is the already a list of name and targets
             self.eval_name_targets = eval_list
 
+            # NOTE: In the process of making the data loader we shuffle the data.
             self.eval_loader = pyt_data.make_eval_data_loader(self.lab,
                                                               self.eval_dataset_config,
                                                               self.model_config,
                                                               eval_list)
+
+            # Save the manifest
+            jbdata.save_path_label_manifest(eval_list,
+                                            self.eval_dir_mgr.get_manifest_path(),
+                                            self.lab.data_root())
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")
