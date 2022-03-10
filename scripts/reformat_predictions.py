@@ -1,10 +1,5 @@
 #! /usr/bin/env python3
 
-import argparse
-import json
-import sys
-from pathlib import Path
-
 # ======================================================================================================================
 # Juneberry - General Release
 #
@@ -27,6 +22,11 @@ from pathlib import Path
 #
 # ======================================================================================================================
 
+import argparse
+import json
+import sys
+from pathlib import Path
+
 
 def reformat_data(manifest, pred):
     # The manifest and predictions are in the same order, so just numerically
@@ -47,7 +47,7 @@ def reformat_data(manifest, pred):
             "predictions": pred_preds[idx]
         })
 
-    # Replace it int the predictions structure and return
+    # Replace it in the predictions structure and return
     new_out = pred.copy()
     del new_out['results']['labels']
     new_out['results']['predictions'] = new_pred
@@ -61,11 +61,11 @@ def reformat_file(eval_dir: str):
     out_path = Path(eval_dir) / "predictions_v2.json"
 
     if not manifest_path.exists():
-        print(f"Missing '{manifest_path}' file. Exiting")
+        print(f"Missing '{manifest_path}' file. Exiting.")
         sys.exit()
 
     if not pred_path.exists():
-        print(f"Missing '{pred_path}' file. Exiting")
+        print(f"Missing '{pred_path}' file. Exiting.")
         sys.exit()
 
     with open(pred_path) as pred_file:
