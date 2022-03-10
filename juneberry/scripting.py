@@ -148,13 +148,7 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
     # Resolve all the args we want for the lab.
     lab_args = resolve_lab_args(args)
 
-    # Check that paths exist
-    # Lab.validate_args()
-    # if errors > 0:
-    #     print("Failed to set up Juneberry environment.  See console for details. EXITING!!")
-    #     sys.exit(-1)
-
-    # Make the lab
+    # Check the lab args and make the lab
     Lab.validate_args(**lab_args)
     lab = Lab(**lab_args)
 
@@ -167,10 +161,10 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
     # If there's an existing log_train file, rename it to include the last modified timestamp in the filename.
     # The current run will then get logged into a fresh log_train.txt file.
     if log_file is not None and log_file.exists():
-        if int(os.environ.get('JUNEBERRY_REMOVE_OLD_LOG', 0)) == 1:
+        if int(os.environ.get('JUNEBERRY_REMOVE_OLD_LOGS', 0)) == 1:
             log_file.unlink()
         else:
-            logger.info("Keeping old log files.  Specify 'JUNEBERRY_REMOVE_OLD_LOG=1' to remove them.")
+            logger.info("Keeping old log files.  Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
             time_val = datetime.datetime.fromtimestamp(os.path.getmtime(log_file)).strftime("%m%d%y_%H%M")
             new_file_path = Path(log_file.parent, f"{log_file.stem}_{time_val}.txt")
             os.rename(log_file, new_file_path)

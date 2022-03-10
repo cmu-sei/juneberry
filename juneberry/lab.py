@@ -68,7 +68,7 @@ class Lab:
         """
         Checks to see that the four lab arguments are valid and dies if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
-        without everything existing because might create them.
+        without everything existing because a script might create them.
         :param workspace: The workspace
         :param data_root: The data root
         :param tensorboard: OPTIONAL: tensorboard directory
@@ -81,8 +81,8 @@ class Lab:
         if tensorboard is not None:
             errors += Lab.check_path(tensorboard, "tensorboard directory")
 
-        # Try to load the machine config
-        # TODO:
+        # Try to load the machine section from the workspace config
+        # TODO once machine class is finished
 
         if errors > 0:
             logger.error(f"Identified {errors} configuration errors. See log for details. Exiting.")
