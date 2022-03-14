@@ -192,6 +192,7 @@ For **random_fraction**:
 {
     "seed": <optional integer seed for the randomizer>
     "fraction": <decimal fraction, can be overriden by set specific fraction>
+    "omit": <optional boolean - If true, the fraction is omitted instead of included>
 }
 ```
 

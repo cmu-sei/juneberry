@@ -178,7 +178,7 @@ def test_generate_image_sample_quantity(monkeypatch):
     assert len(val_list) == 0
 
     # Make sure they are in this order
-    assert_correct_list(train_list, [3, 0, 4], [0, 4, 5])
+    assert_correct_list(train_list, [0, 3, 4], [0, 4, 5])
 
 
 def test_generate_image_sample_fraction(monkeypatch):
@@ -199,7 +199,7 @@ def test_generate_image_sample_fraction(monkeypatch):
     assert len(val_list) == 0
 
     # Make sure they are in this order.
-    assert_correct_list(train_list, [3, 0], [0, 5])
+    assert_correct_list(train_list, [0, 3], [0, 5])
 
 
 def test_generate_image_validation_split(monkeypatch, tmp_path):
@@ -682,13 +682,30 @@ def test_load_tabular_data_with_validation(tmp_path):
 #                       | |               __/ |
 #                       |_|              |___/
 
+def test_sample_list():
+    randomizer = random.Random()
+    randomizer.seed(1234)
+    data_list = list(range(6))
+    sampled = jb_data.sample_list(data_list, 2, randomizer)
+    for correct, test in zip([0, 3], sampled):
+        assert correct == test
+
+
+def test_sample_list_omit():
+    randomizer = random.Random()
+    randomizer.seed(1234)
+    data_list = list(range(6))
+    sampled = jb_data.sample_list(data_list, 4, randomizer, omit=True)
+    for correct, test in zip([1, 2, 4, 5], sampled):
+        assert correct == test
+
 
 def test_sampling_random_quantity():
     randomizer = random.Random()
     randomizer.seed(1234)
     data_list = list(range(6))
     sampled = jb_data.sample_data_list(data_list, "random_quantity", {"count": 3}, randomizer)
-    for correct, test in zip([3, 0, 4], sampled):
+    for correct, test in zip([0, 3, 4], sampled):
         assert correct == test
 
 
@@ -697,7 +714,7 @@ def test_sampling_random_fraction():
     randomizer.seed(1234)
     data_list = list(range(6))
     sampled = jb_data.sample_data_list(data_list, "random_fraction", {"fraction": 0.3333333333}, randomizer)
-    for correct, test in zip([3, 0], sampled):
+    for correct, test in zip([0, 3], sampled):
         assert correct == test
 
 

@@ -108,6 +108,7 @@ def setup_workspace(args, *, log_file, log_prefix="", add_data_root=True, model_
         sys.exit(-1)
 
     # Change to the workspace root so we can find everything.
+    logger.info(f"Changing directory to workspace: '{lab.workspace()}'")
     os.chdir(lab.workspace())
 
     # Convert verbose argument to proper logging level.
