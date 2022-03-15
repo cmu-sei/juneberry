@@ -4,7 +4,7 @@ Workspace and Experiment Overview
 # Lab Structure (Common)
 
 One of the core purposes of Juneberry is to manage all the inputs and output files associated
-with a set of machine learning experiments. Similar to other experimental labs, we organizes
+with a set of machine learning experiments. Similar to other experimental labs, we organize
 files into a "lab structure" that has data and workspaces. A common lab structure looks 
 like this:
 
@@ -12,13 +12,13 @@ like this:
 <project>
     juneberry/ - The cloned repo for sample projects
     dataroot/ - Where all the data assets are stored.
-    tensorboad/ - OPTIONAL - Where tensorboard outputs are stores
+    tensorboard/ - OPTIONAL - Where tensorboard outputs are stored
     cache/ - A place where we store platform cached data for pytorch, tensorflow, etc.
     *workspace-directories* - e.g. juneberry-example-workspace
 ```
 
 While this structure it is preferred but not required. Sometimes, for larger deployments it is important
-to store files in paths that could be different storgae devices. Later, we'll discuss how to create your own.
+to store files in paths that could be different storage devices. Later, we'll discuss how to create your own.
 
 # Workspaces (Required)
 
@@ -53,7 +53,7 @@ While a workspace directory can have any name, it must have the following layout
 
 In most cases Juneberry commands, when issued assume the current working directory is the workspace. 
 The workspace directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
-variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
 details.
 
 The [Getting Started](getting_started.md) explains how to specify the workspace.
@@ -111,7 +111,7 @@ data in the data root.
 
 By default, the dataroot directory is assumed to be a peer of the workspace.
 The data root directory path can be set via the `-d` command line switch or `JUNEBERRY_DATAROOT` environment
-variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
 details.
 
 # Tensorboard (`tensorboard`) Directory (optional)
@@ -120,7 +120,7 @@ The tensorboard directory (if specified and exists) will be used to store output
 
 By default, the tensorboard directory is assumed to be a peer of the workspace.
 The data root directory path can be set via the `-t` command line switch or `JUNEBERRY_TENSORBOARD` environment
-variable. See [Getting Started - Specifying the Structure](getting_started.md#Specifying the structure) for
+variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
 details.
 
 # Example

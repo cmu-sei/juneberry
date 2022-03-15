@@ -8,11 +8,11 @@ Using a prebuilt docker container is the preferred method
 # Direct Installation
 
 If you wish to just install Juneberry without any particular platform, just get a clone of juneberry and
-install using `pip install .` from within the repo. By default Juneberry doesn't install any platforms
+install using `pip install .` from within the repo. By default, Juneberry doesn't install any platforms
 as we don't know which ones the user will want.  The available platforms are:
 
 * tf - Tensorflow
-* torch - Pytorhc
+* torch - Pytorch
 * onnx - Onnx support for cpu.
 * onnx-gpu - Onnx support for gpus.
 * opacus - Support for opacus.

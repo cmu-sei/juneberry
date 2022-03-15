@@ -120,17 +120,17 @@ fi
 # ===== Check to see that the project directory contains all necessary subdirectories.
 required=("${REPOSITORY}" "${WORKSPACE}" "${DATA_ROOT}" "${TENSORBOARD}" "${CACHE}")
 
-all_project_subdirs_exist=1
+all_lab_subdirs_exist=1
 for subdir in ${required[@]}; do
     if [ ! -d ${subdir} ]; then
         echo "Lab subdirectory ${subdir} does not exist."
-        all_project_subdirs_exist=0
+        all_lab_subdirs_exist=0
     fi
 done
 
-if [ ${all_project_subdirs_exist} -eq 0 ]; then
-    echo "${PROJ} is not a valid lab directory."
-    echo "Please run 'scripts/setup_lab.py' to create the project directory structure."
+if [ ${all_lab_subdirs_exist} -eq 0 ]; then
+    echo "${LAB} is not a valid lab directory."
+    echo "Please run 'scripts/setup_lab.py' to create the lab directory structure."
     echo "Exiting."
     exit 1
 fi
