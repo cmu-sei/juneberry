@@ -17,7 +17,7 @@ like this:
     *workspace-directories* - e.g. juneberry-example-workspace
 ```
 
-While this structure it is preferred but not required. Sometimes, for larger deployments it is important
+This structure is preferred but not required. Sometimes, for larger deployments, it is important
 to store files in paths that could be different storage devices. Later, we'll discuss how to create your own.
 
 # Workspaces (Required)
