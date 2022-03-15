@@ -78,7 +78,5 @@ RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/
     echo "if [ -f ./container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING bash ./container_start.sh'"  >> /root/.bashrc; \
     echo "    source ./container_start.sh" >> /root/.bashrc; \
-    echo "else" >> /root/.bashrc; \
-    echo "    echo './container_start.sh NOT found.'" >> /root/.bashrc; \
     echo "fi" >> /root/.bashrc
 
