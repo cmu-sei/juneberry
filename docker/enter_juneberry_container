@@ -25,7 +25,7 @@
 #   dataroot <- This is where the source data is located, i.e. the Juneberry "dataroot".
 #   tensorboard <- This is where tensorboard outputs will be stored.
 #   cache <- This where the model downloads are cached.
-#   workspace <- This is an optional external workspace directory, see docker/README.md for details
+#   <workspace> <- This is an optional external workspace directory, see docker/README.md for details
 
 ### ENVIRONMENT VARIABLES
 # JUNEBERRY_LAB             - The root of the lab instead of the CWD
