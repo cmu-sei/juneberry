@@ -264,9 +264,9 @@ def check_training_metric(model_name, model_mgr, eval_dir_mgr, min_train_metric,
 
     train_outfile = model_mgr.get_training_out_file()
     training_data = TrainingOutput.load(train_outfile)
-    if model_mgr.model_task is "classification":
+    if model_mgr.model_task == "classification":
         eval_data = EvaluationOutput.load(eval_dir_mgr.get_predictions_path())
-    elif model_mgr.model_task is "objectDetection":
+    elif model_mgr.model_task == "objectDetection":
         eval_data = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
     else:
         logging.error(f"Unknown task type detected for model {model_name}. Unable to determine which training metric "
@@ -659,9 +659,9 @@ def check_metric(test_set) -> int:
     for model_name, test_name, min_train_metric, min_eval_metric in test_set:
         model_mgr = jbfs.ModelManager(model_name)
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(test_name)
-        if model_mgr.model_task is "classification":
+        if model_mgr.model_task == "classification":
             metric_file_path = eval_dir_mgr.get_predictions_path()
-        elif model_mgr.model_task is "objectDetection":
+        elif model_mgr.model_task == "objectDetection":
             metric_file_path = eval_dir_mgr.get_metrics_path()
         else:
             logging.warning(f"The task type for model '{model_name}' could not be determined. Skipping metrics check.")
