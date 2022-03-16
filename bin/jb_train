@@ -163,7 +163,7 @@ def main():
     trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
 
     if trainer is None:
-        logger.error("No Trainer instantiated for configuration.  Exiting.")
+        logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
     # Set the output format for the trainer.

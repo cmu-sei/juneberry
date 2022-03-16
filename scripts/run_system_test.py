@@ -264,7 +264,14 @@ def check_training_metric(model_name, model_mgr, eval_dir_mgr, min_train_metric,
 
     train_outfile = model_mgr.get_training_out_file()
     training_data = TrainingOutput.load(train_outfile)
-    eval_data = EvaluationOutput.load(eval_dir_mgr.get_predictions_path())
+    if model_mgr.model_task == "classification":
+        eval_data = EvaluationOutput.load(eval_dir_mgr.get_predictions_path())
+    elif model_mgr.model_task == "objectDetection":
+        eval_data = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
+    else:
+        logging.error(f"Unknown task type detected for model {model_name}. Unable to determine which training metric "
+                      f"to check for this model. Exiting.")
+        sys.exit(-1)
 
     platform = model_mgr.get_model_platform()
 
@@ -284,7 +291,7 @@ def check_training_metric(model_name, model_mgr, eval_dir_mgr, min_train_metric,
         eval_metric = eval_data.results.metrics.accuracy
 
     else:
-        logging.error(f"Unknown platform type detected for model {model_name}. EXITING.")
+        logging.error(f"Unknown platform type detected for model {model_name}. Exiting.")
         sys.exit(-1)
 
     if training_metric >= min_train_metric:
@@ -652,12 +659,18 @@ def check_metric(test_set) -> int:
     for model_name, test_name, min_train_metric, min_eval_metric in test_set:
         model_mgr = jbfs.ModelManager(model_name)
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(test_name)
-        prediction_file_path = eval_dir_mgr.get_predictions_path()
+        if model_mgr.model_task == "classification":
+            metric_file_path = eval_dir_mgr.get_predictions_path()
+        elif model_mgr.model_task == "objectDetection":
+            metric_file_path = eval_dir_mgr.get_metrics_path()
+        else:
+            logging.warning(f"The task type for model '{model_name}' could not be determined. Skipping metrics check.")
+            continue
 
         # Check the metric against what we expect before we move forward
         # If good, make a latest results file that can be checked
         if check_training_metric(model_name, model_mgr, eval_dir_mgr, min_train_metric, min_eval_metric):
-            convert_output_to_latest(model_mgr, prediction_file_path)
+            convert_output_to_latest(model_mgr, metric_file_path)
         else:
             failures += 1
 

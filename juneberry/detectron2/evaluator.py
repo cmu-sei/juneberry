@@ -215,5 +215,5 @@ class Evaluator(EvaluatorBase):
         coco_utils.generate_bbox_images(out, self.lab, sample_dir, sample_limit=20, shuffle=True)
 
         # Save the eval output to file.
-        logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_predictions_path()}")
-        self.output_builder.save_predictions(self.eval_dir_mgr.get_predictions_path())
+        logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_metrics_path()}")
+        self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
