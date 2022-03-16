@@ -43,7 +43,7 @@ LAB=${PWD}
 
 # If they specified a lab directory then use it as a basis for the lab structure.
 if [ ! -z ${JUNEBERRY_LAB} ]; then
-    LAB=${PWD}
+    LAB=${JUNEBERRY_LAB}
 fi
 
 # Standard directory layout based on the lab
