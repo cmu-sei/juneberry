@@ -1,17 +1,17 @@
 Getting Started
 ==========
 
-This document describes how to get started using Juneberry. The recommended installation method, 
+This document describes how to get started using Juneberry. The recommended installation method
 relies on a Juneberry Docker container. Juneberry can also be used from a virtual environment if
 necessary. Be aware that installation and management of all the supporting cuda enabled packages
 can be a challenging task.
 
 # The Basics
 
-Juneberry is just a python pack that can be cloned from github and installed using a normal
+Juneberry is just a python package that can be cloned from github and installed using a normal
 installation process in a properly configured environment. 
 
-```shell sript
+```shell script
 git clone https://github.com/cmu-sei/juneberry.git
 pip install juneberry
 ```
@@ -19,7 +19,7 @@ pip install juneberry
 **IMPORTANT**: Juneberry requires a lot of infrastructure (depending on platform) to actually run models,
 so in the vast majority of cases a lot of other packages will need to be installed such
 as tensorflow, pytorch, detectron2, mmdetection or onnx. While these can be installed with extras
-(e.g. `pip install juneberry[tf]` - see `setup.py` for details) the dependencies are complex 
+(e.g. `pip install juneberry[tf]` - see `setup.py` for details), the dependencies are complex
 and the ordering is challenging. The rest of this document explains how pre-configured docker containers 
 can be used as experiment environments, or if all else fails, a virtual environment can be constructed.
 
@@ -30,12 +30,12 @@ can be used as experiment environments, or if all else fails, a virtual environm
 Juneberry requires several directories to store its components, such as the source code, data,
 Tensorboard logs, and caches.  
 The purposes of these directories is described in the [Workspace and Experiment Overview](overview.md).
-Juneberry has a default structure that it knows how to work with. This can customized but for
+Juneberry has a default structure that it knows how to work with. This can be customized but for
 the purposes of getting started, this is a good way to get started.
 To start, a single directory for the project should be created which is referred to as the **lab-root**.
 
 Inside the lab-root, the goal is to create sub-directories for the various Juneberry components.
-These sub-directories cab be created manually, or via the `setup_lab.py` script located in the 
+These sub-directories can be created manually, or via the `setup_lab.py` script located in the
 `scripts` directory.
 
 ### Using setup_lab.py
@@ -107,7 +107,7 @@ If a Juneberry container can't be acquired (or needs to be modified) it can be b
 ## Starting the Container
 
 The Docker images themselves do not contain any Juneberry source code or data.  The code and data get
-_mounted_ into the container whenever either container starts. This means the directories containing the 
+_mounted_ into the container when the container starts. This means the directories containing the
 source code and data in the host environment are directly accessible from inside the container. Therefore, 
 any changes made to these files in the host environment will also be available inside the container, since 
 the container is not working on copies of those files. Any editor available in the host environment can be 
@@ -116,7 +116,7 @@ created by Juneberry inside the container such as models, log files, and plots w
 outside the container after the container terminates, due to this relationship with the host filesystem.
 
 A sample script called `enter_juneberry_container` starts (by default) a **temporary** 'cpudev' container.
-It assumes the project directory structure described above and to be called from that directory.
+It assumes the project directory structure described above and must be called from that directory.
 
 For example, the following command will start an instance of the downloaded CPU-only container 
 from within the _project-root_ directory:
