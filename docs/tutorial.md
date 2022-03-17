@@ -32,19 +32,20 @@ file) as input. The output of the training process is a trained model and traini
 output JSON file.
 
 **NOTE:** To train with TensorBoard activated, either set a system environment variable
-```JUNEBERRY_TENSORBAORD="path/to/dir"``` or configure the tensorboard root via `-t` when calling executing
-a tool.
+```JUNEBERRY_TENSORBAORD="path/to/dir"``` or configure the tensorboard root via `-t` when calling the 
+training script.
 
-The training script needs to know what workspace to use. By default, the tools use the current working
-directory as the workspace unless another one has been specified. By default, the data root is
-a peer directory to the workspace called `dataroot`.  These can be optionally set via `-w` or '-d'
-respectively.
+The training script also needs to know which workspace to use. By default, most scripts use the current working
+directory as the workspace, unless another workspace has been specified via `-w`. By default, the data root is
+assumed to be a peer directory to the workspace called `dataroot`, but it can also be specified via `-d`.
 
-If following the common lab layout execute the following command within the juneberry directory.
+If your environment adheres to the common lab layout structure, you simply need to execute the following command 
+within your juneberry directory to train the sample model:
 
 ```jb_train imagenette_160x160_rgb_unit_test_pyt_resnet18```
 
-To specify workspace and dataroot, the command would appear as:
+If you need to specify a workspace and dataroot outside the common lab layout structure, the command would 
+take the following form:
 
 ```jb_train -w <path-to-workspace> -d <path-to-dataroot> imagenette_160x160_rgb_unit_test_pyt_resnet18```
 
@@ -93,7 +94,7 @@ loading, and transformation.
 The next step is to evaluate a test set against the trained model and see
 how well the model performs. Evaluation require a trained model, like the one from step 3, 
 and a dataset config describing the evaluation dataset. As with the other commands, the evaluation 
-script requires workspace and data roots to be set either `-w`/`-d` switches or the environment variables.
+script requires workspace and data roots to be set either `-w`/`-d` switches or via environment variables.
 
 This example command demonstrates how to test the model trained in the previous step on a 
 new dataset it has not seen before. The workspace root and data root are not shown in this command:

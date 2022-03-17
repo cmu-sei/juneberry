@@ -41,7 +41,7 @@ automatically installing juneberry such as `pip install -e .` or running some te
 
 # Container layout
 
-The development process is based around the lab layout.
+The development process is based around the following lab layout:
 
 * /juneberry - Mount from the external users directory
 * /datasets - Mount to the external data directories.
@@ -49,8 +49,8 @@ The development process is based around the lab layout.
 * /root/.cache/torch/hub - Mounted for model caches for PyTorch and MMDetection
 * /root/.torch - Mounted for model caches for Detectron2
 
-The containers set the dataroot and tensorboard environment variables according.  We use the 
-current working directory as the workspace.
+The containers set the dataroot and tensorboard environment variables automatically. The current working 
+directory will be chosen as the workspace, unless specified otherwise.
 
 # Convenience Scripts
 

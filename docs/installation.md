@@ -3,27 +3,27 @@ Installation
 
 # Juneberry with a Docker Container
 
-Using a prebuilt docker container is the preferred method
+Using a prebuilt Docker container is the recommended method for accessing Juneberry.
 
 # Direct Installation
 
-If you wish to just install Juneberry without any particular platform, just get a clone of juneberry and
+If you wish to just install Juneberry without any particular platform, clone of Juneberry from GitHub and
 install using `pip install .` from within the repo. By default, Juneberry doesn't install any platforms
-as we don't know which ones the user will want.  The available platforms are:
+because it makes no assumptions about which platforms the user wants. The available platforms are:
 
-* tf - Tensorflow
-* torch - Pytorch
-* onnx - Onnx support for cpu.
-* onnx-gpu - Onnx support for gpus.
-* opacus - Support for opacus.
+* tf - TensorFlow
+* torch - PyTorch
+* onnx - ONNX support for CPU.
+* onnx-gpu - ONNX support for GPUs.
+* opacus - Support for Opacus.
 
 # Juneberry with a Virtual Environment
 
 **Apple Silicon Note:** Currently, there is no configuration for Apple Silicon.
 
-Juneberry can be installed in a virtual environment. However, a specific order of operations and a set of 
-platform versions is required in order to get all the included platforms to install properly if you want 
-to access all the platforms.
+Juneberry can be installed in a virtual environment. However, if you want to access all the available 
+platforms, then a specific order of operations and a set of platform versions is required in order to get 
+all the included platforms to install properly.
 
 ## Set up a virtual environment
 
@@ -69,7 +69,7 @@ cat requirements.txt | xargs pip install --no-cache-dir
 
 ## Install MMDetection
 
-The initial MMDetection installation step vary depending on whether a GPU is available 
+The initial MMDetection installation step varies depending on whether a GPU is available 
 for use on your system. In this section, perform one of the "Step 1" commands, followed 
 by the "Step 2" code block.
 
@@ -127,7 +127,7 @@ pip install -e .
 
 ## Bash Completion
 
-At this point, Juneberry should be fully operational.  As an added convenience, there is a 
+At this point, Juneberry should be fully operational. As an added convenience, there is a 
 completion support script which provides tab completion for dataset and model names. 
 
 To activate this enhancement, use the following command to `source` the completion script:

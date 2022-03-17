@@ -11,24 +11,27 @@ like this:
 ```
 <project>
     juneberry/ - The cloned repo for sample projects
-    dataroot/ - Where all the data assets are stored.
+    dataroot/ - Where all the data assets are stored
     tensorboard/ - OPTIONAL - Where tensorboard outputs are stored
-    cache/ - A place where we store platform cached data for pytorch, tensorflow, etc.
+    cache/ - A place where we store platform cached data for PyTorch, TensorFlow, etc.
     *workspace-directories* - e.g. juneberry-example-workspace
 ```
 
-This structure is preferred but not required. Sometimes, for larger deployments, it is important
-to store files in paths that could be different storage devices. Later, we'll discuss how to create your own.
+This structure is preferred but not required. Sometimes, especially in larger deployments, it is important to store 
+files in paths that could be on different storage devices. If a different lab structure is chosen then the directories 
+must be provided to the enter_juneberry_container script or directly to the Juneberry tools (e.g. jb_train) via the 
+various configuration variables. Refer to the [Getting Started](getting_started.md) guide for details.
 
 # Workspaces (Required)
 
-While the lab layout is a common convention, Juneberry 
-requires a particular structure to manage all these files. The Juneberry repository not only has the Juneberry
-source code, but also functions as a sample workspace with sample models and experiments. While you can use
-it for testing your installation, you'll want to create your own to manage your own experiments. See
-the [Getting Started](getting_started.md) guide for directions on how to create your own workspace.
+Although Juneberry only recommends a common structure for its lab layout, a specific structure is **required** 
+for managing all the files in a workspace. The Juneberry repository not only contains the Juneberry
+source code, but also it also functions as an example workspace with sample models and experiments. Even though 
+you can use this example workspace for testing your Juneberry installation, we recommend creating your own 
+workspace to manage your own models and experiments. Refer to the [Getting Started](getting_started.md) guide 
+for directions on how to create your own workspace.
 
-While a workspace directory can have any name, it must have the following layout:
+While a workspace directory can have any name, it **must** have the following layout:
 
 ```
 <WORKSPACE_ROOT>/
@@ -48,15 +51,14 @@ While a workspace directory can have any name, it must have the following layout
         
         
 <DATA_ROOT>/
-    ... store your data in this directory ...
+    ... store your input data for models in this directory ...
 ``` 
 
-In most cases Juneberry commands, when issued assume the current working directory is the workspace. 
-The workspace directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
-variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
+Most Juneberry commands will assume the current working directory is the workspace. However, the workspace 
+directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
+variable. See 
+[Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
 details.
-
-The [Getting Started](getting_started.md) explains how to specify the workspace.
 
 ## Models (`models` Directory)
 
@@ -79,10 +81,10 @@ documentation directory.
 
 ## Data specs (`data_sets` Directory)
 
-"Datasets" describe where data elements come from within the data root and how the data should be labeled.
+"Datasets" describe where data elements come from within the data root and how that data should be labeled.
 Each dataset configuration is defined by a JSON file. These configuration files allow you to specify subsets 
 of source directories, how they are ordered, and how the data should be split or transformed 
-(such as image resizing). Together, these options construct a unique and traceable data input set 
+(such as image resizing). Together, these options construct a unique and traceable input dataset 
 which can be referenced by your model and experiment configs.
 
 For more details on the structure of dataset configs, refer to
@@ -106,22 +108,22 @@ Juneberry documentation directory.
 
 # Data Root (`dataroot`) Directory
 
-The data root directory is where all the data is stored. All the paths in the data specs are relative to the 
-data in the data root.
+The data root directory is where all the input data is stored. Juneberry interprets any paths in the dataset configs 
+as relative to this data root.
 
 By default, the dataroot directory is assumed to be a peer of the workspace.
 The data root directory path can be set via the `-d` command line switch or `JUNEBERRY_DATAROOT` environment
-variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
-details.
+variable. Refer to  
+[Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for details.
 
-# Tensorboard (`tensorboard`) Directory (optional)
+# TensorBoard (`tensorboard`) Directory (optional)
 
-The tensorboard directory (if specified and exists) will be used to store outputs to be used by tensorboard.
+The tensorboard directory (when specified and if it exists) will be used to store outputs to be used by TensorBoard.
 
 By default, the tensorboard directory is assumed to be a peer of the workspace.
-The data root directory path can be set via the `-t` command line switch or `JUNEBERRY_TENSORBOARD` environment
-variable. See [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
-details.
+The tensorboard directory path can be set via the `-t` command line switch or via the `JUNEBERRY_TENSORBOARD` 
+environment variable. Refer to  
+[Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for details.
 
 # Example
 

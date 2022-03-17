@@ -13,19 +13,19 @@
 # === LAB LAYOUT ===
 # When starting this container, a variety of directories for organizing the current code, data,
 # tensorboard output, caches, and workspaces (optional) will get mounted (not copied) into the container.
-# The default configuration below is based on this layout.  You can override these locations with
-# various environment variables or copy and modify this script.  A detailed description of the lab layout
+# The default configuration below is based on this layout. You can override these locations with
+# various environment variables or copy and modify this script. A detailed description of the lab layout
 # can be found in:
 #   - docs/overview.md
 #   - docs/getting_started.md
 
 # SUMMARY
 # <lab-root>/
-#   juneberry <- This is the Juneberry repo that was cloned
+#   juneberry <- This is the Juneberry repo that was cloned.
 #   dataroot <- This is where the source data is located, i.e. the Juneberry "dataroot".
 #   tensorboard <- This is where tensorboard outputs will be stored.
 #   cache <- This where the model downloads are cached.
-#   <workspace> <- This is an optional external workspace directory, see docker/README.md for details
+#   <workspace> <- This is an optional external workspace directory, see docker/README.md for details.
 
 ### ENVIRONMENT VARIABLES
 # JUNEBERRY_LAB             - The root of the lab instead of the CWD
@@ -34,8 +34,8 @@
 # JUNEBERRY_DATA_ROOT       - Path to the root of the data
 # JUNEBERRY_TENSORBOARD     - Path to store the tensorboard outputs
 # JUNEBERRY_CACHE           - Path to a cache to store downloads
-# JUNEBERRY_CONTAINER       - The name of the container to run.
-# JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, ids for specific ones.
+# JUNEBERRY_CONTAINER       - The name of the container to run
+# JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, IDs for specific ones.
 # JUNEBERRY_MACHINE_CLASS   - The machine class
 
 # === Lab Layout ===
@@ -60,24 +60,24 @@ DATA_ROOT_MODE=":ro"
 # By default the machine class Juneberry uses is "default"
 MACHINE_CLASS="default"
 
-# By default we use the 'cpudev' container. Alternately the cuda container can be used.
-# If so, one should adjust the number of gpus used (GPUS or JUNEBERRY_GPUS) should be adjusted.
+# The 'cpudev' container is used by default. The 'cudadev' container is one alternative that can be used.
+# If 'cudadev' is chosen, one should adjust the number of GPUs used (GPUS or JUNEBERRY_GPUS).
 CONTAINER="cmusei/juneberry:cpudev"
 
-# This value determines which GPUs will be exposed into the container.  Meaning, running
-# nvidia-smi inside the container will show these gpus.
+# This value determines which GPUs will be exposed into the container. Meaning, running
+# nvidia-smi inside the container will show the GPUs specified by this value.
 # Set to "" for none or "all" for all.
-# Specific GPUs can be set by listing the devices by id as one would with CUDA_VISIBLE_DEVICES.
-# If CUDA_VISIBLE_DEVICES is set, we automatically pick that up.
+# Specific GPUs can be set by listing the devices by ID as one would with CUDA_VISIBLE_DEVICES.
+# If CUDA_VISIBLE_DEVICES is set, the script will automatically pick that up instead.
 GPUS=""
 # GPUS="all"
 if [ ! -z ${CUDA_VISIBLE_DEVICES} ]; then
     GPUS="\"device=${CUDA_VISIBLE_DEVICES}\""
 fi
 
-# Base 'docker run' command. See "https://docs.docker.com/engine/reference/commandline/run/" for details
+# Base 'docker run' command. See "https://docs.docker.com/engine/reference/commandline/run/" for details.
 # NOTE: --network=host means we can't use jupyter or expose any other ports.
-# NOTE: --ipc=host is required to make gpus work.
+# NOTE: --ipc=host is required to make GPUs work.
 RUN_CMD="run -it --rm --network=host --ipc=host --name ${USER}"
 
 # ==================================================================================================
@@ -135,7 +135,7 @@ if [ ${all_lab_subdirs_exist} -eq 0 ]; then
     exit 1
 fi
 
-# ===== Make the cache sub directories if missing
+# ===== Make the cache subdirectories if missing
 if [ ! -d "${CACHE}/hub" ]; then mkdir "${CACHE}/hub"; fi
 if [ ! -d "${CACHE}/torch" ]; then mkdir "${CACHE}/torch"; fi
 if [ ! -d "${CACHE}/tensorflow" ]; then mkdir "${CACHE}/tensorflow"; fi

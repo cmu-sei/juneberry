@@ -94,10 +94,10 @@ def resolve_lab_args(args):
     # STEP 1: Find the workspace first, so we can start with that structure.
     def_ws = resolve_arg(args.workspace, "JUNEBERRY_WORKSPACE", Path.cwd(), is_path=True)
 
-    # STEP 2: Populate the "normal" structure based on the workspace relative values
+    # STEP 2: Populate the "normal" structure based on the workspace relative values.
     vals = make_default_values(def_ws)
 
-    # STEP 3: Overlay the *remaining* (not ws) values from environment vars
+    # STEP 3: Overlay the *remaining* (not ws) values from environment vars.
     vals['data_root'] = resolve_arg(args.dataRoot, 'JUNEBERRY_DATA_ROOT', vals['data_root'], is_path=True)
     vals['tensorboard'] = resolve_arg(args.tensorboard, 'JUNEBERRY_TENSORBOARD', vals['tensorboard'], is_path=True)
     vals['machine_class'] = resolve_arg(args.machineClass, 'JUNEBERRY_MACHINE_CLASS', vals['machine_class'])
@@ -164,7 +164,7 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
         if int(os.environ.get('JUNEBERRY_REMOVE_OLD_LOGS', 0)) == 1:
             log_file.unlink()
         else:
-            logger.info("Keeping old log files.  Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
+            logger.info("Keeping old log files. Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
             time_val = datetime.datetime.fromtimestamp(os.path.getmtime(log_file)).strftime("%m%d%y_%H%M")
             new_file_path = Path(log_file.parent, f"{log_file.stem}_{time_val}.txt")
             os.rename(log_file, new_file_path)

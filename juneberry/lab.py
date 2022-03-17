@@ -66,7 +66,7 @@ class Lab:
     @staticmethod
     def validate_args(workspace: str, data_root: str, tensorboard: str, machine_class: str) -> None:
         """
-        Checks to see that the four lab arguments are valid and dies if they aren't. We do NOT do this
+        Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
         without everything existing because a script might create them.
         :param workspace: The workspace
@@ -107,7 +107,8 @@ class Lab:
     def add_data_root(self, data_root, dr_key):
         self._data_roots[dr_key] = data_root
 
-    def model_manager(self, model_name: str, model_version=None) -> jbfs.ModelManager:
+    @staticmethod
+    def model_manager(model_name: str, model_version=None) -> jbfs.ModelManager:
         """ :return: The ModelManager for this model. """
         # return jbfs.ModelManager(self.workspace, model_name)
         return jbfs.ModelManager(model_name, model_version)

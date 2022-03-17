@@ -1,41 +1,43 @@
 Getting Started
 ==========
 
-This document describes how to get started using Juneberry. The recommended installation method, 
+This document describes how to get started using Juneberry. The recommended installation method 
 relies on a Juneberry Docker container. Juneberry can also be used from a virtual environment if
-necessary. Be aware that installation and management of all the supporting cuda enabled packages
+necessary. Be aware that installation and management of all the supporting CUDA enabled packages
 can be a challenging task.
 
 # The Basics
 
-Juneberry is just a python pack that can be cloned from github and installed using a normal
+Juneberry is a Python package that can be cloned from GitHub and installed using a normal
 installation process in a properly configured environment. 
 
-```shell sript
+```shell script
 git clone https://github.com/cmu-sei/juneberry.git
 pip install juneberry
 ```
 
 **IMPORTANT**: Juneberry requires a lot of infrastructure (depending on platform) to actually run models,
-so in the vast majority of cases a lot of other packages will need to be installed such
-as tensorflow, pytorch, detectron2, mmdetection or onnx. While these can be installed with extras
+so in the vast majority of cases, a lot of other packages such as tensorflow, pytorch, detectron2, mmdetection 
+or onnx may need to be installed. While these can be installed with extras 
 (e.g. `pip install juneberry[tf]` - see `setup.py` for details) the dependencies are complex 
-and the ordering is challenging. The rest of this document explains how pre-configured docker containers 
-can be used as experiment environments, or if all else fails, a virtual environment can be constructed.
+and the ordering is challenging. The rest of this document explains how pre-configured Docker containers 
+can be used as experiment environments. An alternative method, describing how to construct a virtual environment 
+for Juneberry, will also be presented as an alternative to the Docker containers.
 
 # Preparation Steps
 
 ## Lab Layout
 
-Juneberry requires several directories to store its components, such as the source code, data,
-Tensorboard logs, and caches.  
-The purposes of these directories is described in the [Workspace and Experiment Overview](overview.md).
-Juneberry has a default structure that it knows how to work with. This can customized but for
-the purposes of getting started, this is a good way to get started.
-To start, a single directory for the project should be created which is referred to as the **lab-root**.
+Juneberry requires several directories to store its components, such as source code, data,
+Tensorboard logs, and caches. The purpose of these directories is described in the 
+[Workspace and Experiment Overview](overview.md). 
+
+Juneberry has a default structure that it knows how to work with. The structure can be customized, but for
+introductory purposes the default structure should be sufficient.
+To start, a single directory for the project should be created. This directory is referred to as the **lab-root**.
 
 Inside the lab-root, the goal is to create sub-directories for the various Juneberry components.
-These sub-directories cab be created manually, or via the `setup_lab.py` script located in the 
+These sub-directories can be created manually, or via the `setup_lab.py` script located in the 
 `scripts` directory.
 
 ### Using setup_lab.py
@@ -64,7 +66,7 @@ do not need the cache directory.
 
 ### The Project Structure
 
-At this point, the lab root should resemble the following directory structure:
+At this point, the lab-root should resemble the following directory structure:
 
 ```
 lab-root/
@@ -75,7 +77,7 @@ lab-root/
 ```
 # Juneberry with a Docker Container
 
-This section describes how run Juneberry using a Docker container.
+This section describes how to run Juneberry using a Docker container.
 
 ## Acquiring the Container
 
@@ -101,7 +103,7 @@ docker pull cmusei/juneberry:cudadev
 
 ### Building a container
 
-If a Juneberry container can't be acquired (or needs to be modified) it can be built from scratch as described in 
+If a Juneberry container can't be acquired (or needs to be modified), it can be built from scratch as described in 
 [Building Juneberry Docker Containers](building_docker.md).
 
 ## Starting the Container
@@ -129,7 +131,7 @@ The `enter_juneberry_container` script can be controlled via a wide variety of e
 or can be copied elsewhere and modified.  
 See the contents of [enter_juneberry_container](../docker/enter_juneberry_container) for details.
 
-For example, to start the CUDA container with "all" gpus using environment variables:
+For example, to start the CUDA container with "all" GPUs using environment variables:
 
 ```shell script
 JUNEBERRY_CONTAINER=cmusei/juneberry:cudadev JUNEBERRY_GPUS=all juneberry/docker/enter_juneberry_container
@@ -137,12 +139,12 @@ JUNEBERRY_CONTAINER=cmusei/juneberry:cudadev JUNEBERRY_GPUS=all juneberry/docker
 
 ## Using the Container
 
-Once inside the container, the user will find themselves in the `/juneberry` directory by default
+Once inside the container, the user will find themselves in the `/juneberry` directory by default,
 or the workspace directory if one was specified.
 There are a few more initialization tasks to complete before Juneberry is operational:
 
 * Install Juneberry (from a python package perspective)
-* Optional: Set up user id mapping so outputs use proper user/group ids.
+* Optional: Set up user ID mapping so outputs use proper user/group IDs.
 * Optional: Activate bash shell completion (if desired)
 
 The following commands will achieve these tasks:
@@ -182,16 +184,16 @@ reports a training accuracy of 97.58%.
 ## container_start.sh
 
 For convenience, users can create a bash script containing the previous commands and name the file 
-`container_start.sh`. If a script with that name is found inside the juneberry directory of the project-root, 
+`container_start.sh`. When a script with that name is found inside the juneberry directory of the project-root, 
 or inside a custom workspace (see below), it will be executed during the container's initialization. The 
 `juneberry/docker` directory contains a sample `container_start.sh` script.
 
 # Custom Workspaces
 
-Juneberry uses "workspaces" to house the user model configurations, experiments, and all outputs such as 
-trained models, log files, charts and reports. The structure is described in the 
-[Workspace and Experiment Overview](overview.md). The Juneberry repository comes with some sample models
-for testing the installation which will be sufficient for now.
+Juneberry uses "workspaces" to house the user's model configurations, experiments, and all outputs, such as  
+trained models, log files, charts, and reports. The structure is described in the 
+[Workspace and Experiment Overview](overview.md). The Juneberry repository includes some sample models
+for testing the installation.
 
 When a user first enters a Juneberry container, they should find themselves inside the `/juneberry` directory 
 by default. However, the user can also choose another directory, known as a "custom workspace", to be the 
@@ -201,11 +203,11 @@ To start the Juneberry container in a custom workspace use the `JUNEBERRY_WORKSP
 or modify a copy of the `enter_juneberry_container` script.
 
 Workspaces require a particular layout as described in [Workspace and Experiment Overview](overview.md).
-The script `setup_workspace.py' from the scripts directory can be used to initialize a new workspace.
+The script `setup_workspace.py' from the 'scripts' directory can be used to initialize a new workspace.
 The following command creates a workspace "my-workspace" in the lab directory on the host system:
 
 ```shell script
-junebery/scripts/setup_workspace my-workspace
+juneberry/scripts/setup_workspace my-workspace
 ```
 
 Optionally, a simple `container_start.sh` script is provided to simplify container startup. If desired,
@@ -215,30 +217,31 @@ copy it into the new workspace.
 cp junebery/docker/container_start.sh myworkspace/.
 ```
 
-Once the customr workspace is created, either use the `JUNEBERRY_WORKSPACE` environment variable or
-modify a copy of the `enter_juneberry_container` script.  The following command uses a customer
+Once the custom workspace is created, either use the `JUNEBERRY_WORKSPACE` environment variable or
+modify a copy of the `enter_juneberry_container` script.  The following command uses a custom
 workspace:
 
 ```shell script
-JUNEBERRY_WORKSPACE=my-worksapce juneberry/docker/enter_juneberry_container
+JUNEBERRY_WORKSPACE=my-workspace juneberry/docker/enter_juneberry_container
 ```
 
 # Configuring Juneberry paths
 
-**NOTE:** This section applies when multiple workspace mounted into a container (using a custom
-`enter_juneberry_container` script, or to non-container virtual environments. 
+**NOTE:** This section applies when multiple workspaces are mounted into a container (using a custom
+`enter_juneberry_container` script), or to non-container virtual environments. 
 Within the container the environment variables have already been set to point to the in-container locations.
 
 By default, when Juneberry tools are executed (e.g. jb_train), the **current working directory** will 
 be used for the workspace. The default locations for the dataroot and the tensorboard directories that 
 Juneberry will use are peers to the workspace directory.  Thus, if one has multiple workspaces within the lab
 then executing commands from within that workspace directory will result in using that workspace.
-Multiple workspaces aren't exposed into a container without adding extra workspace mounts,
+Multiple workspaces aren't exposed in a container without adding extra workspace mounts.
 
-The workspace can be specified to a Juneberry tool using the `-w` switch or the by setting the
-`JUNEBERRY_WORKSPACE` environment variable.  For example, if one was in the lab root, and they
-had a workspace called `test-workspace` and wanted to train a model `test-model` contained
-in the `test-workspace` models directory, then these commands would work similarly.
+The workspace can be specified to a Juneberry tool using the `-w` switch, or by setting the
+`JUNEBERRY_WORKSPACE` environment variable.  For example, if one was in the lab-root, with a workspace 
+called `test-workspace`, if you wanted to train a model named `test-model` located
+in the `test-workspace` models directory, then the following commands would be equivalent and would 
+initiate training for the desired model.
 
 ```shell script
 jb_train -w test-workspace test-model
@@ -250,23 +253,19 @@ JUNEBERRY_WORKSPACE=test-workspace jb_train test-model
 
 ## Specifying the structure manually
 
-If the default structure won't work (e.g. the dataroot or tensorboard are stored elsewhere) then they can
+If the default structure doesn't work (e.g. the dataroot or tensorboard are stored elsewhere), then deviations can
 be specified directly using command line switches or environment variables.  Command line switches take precedence
-over environment variables which take precedence over default locations. The following table summarizes
-the switches, environment variables, and default values.
+over environment variables, and environment variables take precedence over default locations. The following table 
+summarizes the switches, environment variables, and default values.
 
-| Configuraton | switch | environment variable | default value |
+| Configuration | switch | environment variable | default value |
 | --- | --- | --- | --- |
 | workspace | -w | JUNEBERRY_WORKSPACE | cwd() |
 | data_root | -d | JUNEBERRY_DATAROOT | -workspace-/../dataroot |
 | tensorboard | -t | JUNEBERRY_TENSORBOARD | -workspace/../tensorboard |
 
 It is important to note that the default locations for dataroot and tensorboard are workspace relative,
-not cwd() relative. Meaning, if the workspace is specific and the dataroot or tensorboard are not, 
-then they default to peers of the specified workspace.  Of course, if the data root or tensorboard directories
-are specified in any way (switch or environment variable), those values are used directly.
-
-
-
-
-
+not cwd() relative. Meaning, if the workspace is specified and the dataroot or tensorboard are not, 
+then Juneberry assumes the dataroot and tensorboard directories are peer directories of the specified workspace.  
+Of course, if the data root or tensorboard directories are specified in any way (switch or environment variable), 
+those values are used instead.
