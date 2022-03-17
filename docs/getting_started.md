@@ -1,7 +1,7 @@
 Getting Started
 ==========
 
-This document describes how to get started using Juneberry. The recommended installation method 
+This document describes how to get started using Juneberry. The recommended installation method
 relies on a Juneberry Docker container. Juneberry can also be used from a virtual environment if
 necessary. Be aware that installation and management of all the supporting CUDA enabled packages
 can be a challenging task.
@@ -19,7 +19,7 @@ pip install juneberry
 **IMPORTANT**: Juneberry requires a lot of infrastructure (depending on platform) to actually run models,
 so in the vast majority of cases, a lot of other packages such as tensorflow, pytorch, detectron2, mmdetection 
 or onnx may need to be installed. While these can be installed with extras 
-(e.g. `pip install juneberry[tf]` - see `setup.py` for details) the dependencies are complex 
+(e.g. `pip install juneberry[tf]` - see `setup.py` for details), the dependencies are complex 
 and the ordering is challenging. The rest of this document explains how pre-configured Docker containers 
 can be used as experiment environments. An alternative method, describing how to construct a virtual environment 
 for Juneberry, will also be presented as an alternative to the Docker containers.
@@ -109,7 +109,7 @@ If a Juneberry container can't be acquired (or needs to be modified), it can be 
 ## Starting the Container
 
 The Docker images themselves do not contain any Juneberry source code or data.  The code and data get
-_mounted_ into the container whenever either container starts. This means the directories containing the 
+_mounted_ into the container when the container starts. This means the directories containing the
 source code and data in the host environment are directly accessible from inside the container. Therefore, 
 any changes made to these files in the host environment will also be available inside the container, since 
 the container is not working on copies of those files. Any editor available in the host environment can be 
@@ -118,7 +118,7 @@ created by Juneberry inside the container such as models, log files, and plots w
 outside the container after the container terminates, due to this relationship with the host filesystem.
 
 A sample script called `enter_juneberry_container` starts (by default) a **temporary** 'cpudev' container.
-It assumes the project directory structure described above and to be called from that directory.
+It assumes the project directory structure described above and must be called from that directory.
 
 For example, the following command will start an instance of the downloaded CPU-only container 
 from within the _project-root_ directory:
