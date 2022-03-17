@@ -49,7 +49,6 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transform_manager import TransformManager
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -58,13 +57,13 @@ def dataspec_to_manifests(lab: Lab, dataset_config, *,
                           splitting_config: SplittingConfig = SplittingConfig(None, None, None),
                           preprocessors: TransformManager = None):
     """
-    Creates the appropriate data loaders based on the training and dataset configurations.
+    Creates the appropriate data manifests (file path/label) based on the training and dataset configurations.
     :param lab: The Juneberry Lab in which this operation occurs.
     :param dataset_config: The dataset config that describes the data.
     :param splitting_config: OPTIONAL The SplittingConfig that is used to split the data into
     a separate subset. Specify None for no splitting.
     :param preprocessors: OPTIONAL - A TransformManager to be applied to each entry before returning.
-    :return: This function returns data_loader, split_loader
+    :return: This function returns data manifest and validation manifest
     """
     # In case folks pass in None for the config
     if splitting_config is None:
@@ -233,7 +232,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
 class DatasetMarshal:
     """
-    Dataset Marshalls are used to load and process various types of data configs into "datasets"
+    Dataset Marshals are used to load and process various types of data configs into "datasets"
     that are basically lists of data items (pytorch Datasets that support __len__ and __getitem__)
     that can be fed to data loaders.
     """
@@ -616,6 +615,32 @@ def sample_labeled_tabular_data(labeled_tabular, sampling_algo: str, sampling_ar
         labeled_tabular[key] = sample_data_list(labeled_tabular[key], sampling_algo, sampling_args, randomizer)
 
 
+def sample_list(data_list, count: int, randomizer, omit: bool = False):
+    # Generate a list of indexes and use to keep or omit
+    indexes = list(range(len(data_list)))
+
+    # NOTE: Sample does NOT provide them in order, so we use a set to identify
+    # the indexes then remove or keep accordingly
+    indexes = set(randomizer.sample(indexes, count))
+    result = []
+    if omit:
+        # OMIT case - scan and discard things from index list
+        for idx, item in enumerate(data_list):
+            if idx in indexes:
+                indexes.remove(idx)
+            else:
+                result.append(item)
+        logger.info(f"OMIT case: {len(data_list)}, {len(result)}")
+    else:
+        # KEEP case - scan and keep things in the index list
+        for idx, item in enumerate(data_list):
+            if idx in indexes:
+                indexes.remove(idx)
+                result.append(item)
+        logger.info(f"KEEP case: {len(data_list)}, {len(result)}")
+    return result
+
+
 def sample_data_list(data_list, algo: str, args, randomizer):
     """
     Returns a sample (subset) of the source list.
@@ -626,16 +651,21 @@ def sample_data_list(data_list, algo: str, args, randomizer):
     :return: The sampled (reduced) data list.
     """
     if algo == jb_dataset.SamplingAlgo.RANDOM_FRACTION:
+        fraction = args['fraction']
+        if fraction > 1:
+            logger.error(f"The random fraction must be less than 1. It is {fraction}. Exiting.")
+            sys.exit(-1)
         count = round(len(data_list) * float(args['fraction']))
         if count == 0:
             logger.error("Fraction is less than 1, setting quantity to 1")
             count = 1
         if count < len(data_list):
-            data_list = randomizer.sample(data_list, count)
+            data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
+
     elif algo == jb_dataset.SamplingAlgo.RANDOM_QUANTITY:
         count = args['count']
         if count < len(data_list):
-            data_list = randomizer.sample(data_list, count)
+            data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
 
     # Randomize list, split list into groups, return position item from each group
     elif algo == jb_dataset.SamplingAlgo.ROUND_ROBIN:

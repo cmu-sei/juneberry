@@ -153,6 +153,7 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
     lab = Lab(**lab_args)
 
     # Change to the workspace root so we can find everything.
+    logger.info(f"Changing directory to workspace: '{lab.workspace()}'")
     os.chdir(lab.workspace())
 
     # Convert verbose argument to proper logging level.

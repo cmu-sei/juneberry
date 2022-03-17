@@ -86,11 +86,13 @@ def main():
                                                  "a series of outputs into the experimentName directory. NOTE: By "
                                                  "default this script reports what it WOULD do but does not perform "
                                                  "any action. See --commit. NOTE: This script executes other scripts "
-                                                 "in the same directory.")
+                                                 "in the same directory. ARGS NOTE: Any command line args that are not "
+                                                 "recognized as positional or optional args for jb_run_experiment will "
+                                                 "be passed to the pydoit command.")
 
     setup_args(parser)
     jbscripting.setup_args(parser)
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     show_command = args.showcmd
 
     # Set up logging
@@ -166,11 +168,7 @@ def main():
         cmd_args = [bin_dir / "jb_rules_to_pydoit", args.experimentName, workflow]
         if args.processes and args.processes > 0:
             cmd_args.append('--parallel')
-        jbworkflow.run_command(
-            dependencies=[],
-            args=cmd_args,
-            show_command=show_command,
-        )
+        jbworkflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
 
     # Develop pydoit command
     cmd_args = ["python", "-m", "doit", "-d", str(lab.workspace()), "-f", str(dodo_path.resolve())]
@@ -200,6 +198,18 @@ def main():
             logger.info("R: run, U: up-to-date, I: ignored")
             cmd_args.append("list")
             cmd_args.append("-s")
+
+    # Save the db file for pydoit to the experiment directory.
+    db_path = str(experiment_manager.get_experiment_db_file())
+    cmd_args.extend(['--db-file', db_path])
+
+    # If there were any args that jb_run_experiment didn't recognize, log them and add them
+    # to the pydoit command.
+    if unknown:
+        logger.warning(f"jb_run_experiment did not recognize the following args: {unknown}")
+        logger.warning(f"Attempting to pass these arg(s) to the pydoit command.")
+        for arg in unknown:
+            cmd_args.append(arg)
 
     # Run PyDoit command
     jbworkflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
