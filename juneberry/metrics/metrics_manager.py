@@ -22,11 +22,14 @@
 #
 # ======================================================================================================================
 
+import json
 import logging
+from pathlib import Path
 import sys
 
 import juneberry.loader as loader
-
+from juneberry.metrics.metrics_utils import MetricsUtils
+from juneberry.filesystem import EvalDirMgr
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +62,19 @@ class MetricsManager:
     def __call__(self, anno, det):
         results = {}
 
+        det_df, anno_df = MetricsUtils.load_dets_and_annos(det, anno)
+
         for entry in self.config:
             if anno is not None:
-                results[entry.fqcn] = entry.metrics(anno, det)
+                results[entry.fqcn] = entry.metrics(anno_df, det_df)
 
         return results
+
+    def call_with_eval_dir_manager(self, eval_dir_mgr: EvalDirMgr):
+        anno_file = Path(eval_dir_mgr.get_manifest_path())
+        det_file = Path(eval_dir_mgr.get_detections_path())
+        with open(anno_file, 'r') as f:
+            anno = json.load(f)
+        with open(det_file, 'r') as f:
+            det = json.load(f)
+        self.__call__(anno, det)

@@ -23,7 +23,7 @@
 # ======================================================================================================================
 
 import matplotlib.pyplot as plt
-from juneberry.metrics.metrics import Metrics
+from juneberry.metrics.metrics import CommonMetrics
 import logging
 from pandas.core.frame import DataFrame
 from pathlib import Path
@@ -47,8 +47,6 @@ class MetricsPlot:
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel(xlabel)
         self.ax.set_ylabel(ylabel)
-        # TODO why am I saving metrics? (not currently using them)
-        self.metrics = []
 
     def _format(self) -> None:
         """
@@ -130,7 +128,7 @@ class MetricsPlot:
         self._format()
 
     # override in subclass
-    def _get_auc(self, m: Metrics) -> float:
+    def _get_auc(self, common_metrics: dict) -> float:
         """
         Select the proper AUC value from the Metrics object
         for this MetricsPlot.
@@ -139,7 +137,7 @@ class MetricsPlot:
         """
         logger.warning("Calling do-nothing superclass implementation "
                        "of _get_auc. Implement this in your subclass.")
-        return m.pr_auc
+        return common_metrics["pr_auc"]
 
     # override this for a custom title
     @staticmethod
@@ -155,28 +153,20 @@ class MetricsPlot:
             f"d({plot_label_data['dataset_name']}) " \
             f"(AUC {round(plot_label_data['auc'], 3)})"
 
-    def add_metrics(self, m: Metrics) -> None:
+    def add_metrics(self, common_metrics: dict, iou_threshold: float, model_name: str, dataset_name: str) -> None:
         """
         Add a Metrics object to this MetricsPlot.
-        :param m: a Metrics object to add to this MetricsPlot
+        :param common_metrics: the common metrics
+        :param iou_threshold: iou_threshold used when generating common_metrics
+        :param model_name: the model name
+        :param dataset_name: the dataset name
         :return: None
         """
-        self.metrics.append(m)
-        self._plot(m._prc_df,
-                   m.model_name,
-                   m.dataset_name,
-                   self._get_auc(m),
-                   m.iou_threshold)
-
-    def add_metrics_list(self,
-                         ms: List[Metrics]) -> None:
-        """
-        Add multiple Metrics objects to this MetricsPlot.
-        :param ms: a List of Metrics objects to be added to this MetricsPlot
-        :return: None
-        """
-        for m in ms:
-            self.add_metrics(m)
+        self._plot(common_metrics.prc_df,
+                   model_name,
+                   dataset_name,
+                   self._get_auc(common_metrics),
+                   iou_threshold)
 
     def save(self, output_file: Path = Path("metrics.png")) -> None:
         """
@@ -197,8 +187,8 @@ class PrecisionRecallPlot(MetricsPlot):
         super().__init__(xlabel="recall",
                          ylabel="precision")
 
-    def _get_auc(self, m: Metrics) -> float:
-        return m.pr_auc
+    def _get_auc(self, common_metrics: dict) -> float:
+        return common_metrics.pr_auc
 
 
 class PrecisionConfidencePlot(MetricsPlot):
@@ -211,8 +201,8 @@ class PrecisionConfidencePlot(MetricsPlot):
         super().__init__(xlabel="confidence",
                          ylabel="precision")
 
-    def _get_auc(self, m: Metrics) -> float:
-        return m.pc_auc
+    def _get_auc(self, common_metrics: dict) -> float:
+        return common_metrics.pc_auc
 
 
 class RecallConfidencePlot(MetricsPlot):
@@ -225,5 +215,5 @@ class RecallConfidencePlot(MetricsPlot):
         super().__init__(xlabel="confidence",
                          ylabel="recall")
 
-    def _get_auc(self, m: Metrics) -> float:
-        return m.rc_auc
+    def _get_auc(self, common_metrics: dict) -> float:
+        return common_metrics.rc_auc

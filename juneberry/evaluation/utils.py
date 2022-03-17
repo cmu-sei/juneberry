@@ -41,7 +41,8 @@ from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-from juneberry.metrics.metrics import Metrics
+from juneberry.metrics.common_metrics import CommonMetrics
+from juneberry.metrics.metrics_utils import MetricsUtils
 
 
 logger = logging.getLogger(__name__)
@@ -211,8 +212,7 @@ def invoke_evaluator_method(evaluator, module_name: str):
     jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
-def populate_metrics(model_manager: ModelManager,
-                     eval_dir_mgr: EvalDirMgr,
+def populate_metrics(eval_dir_mgr: EvalDirMgr,
                      eval_output: EvaluationOutput) -> None:
     """
     Calculate metrics and populate the output results.
@@ -221,14 +221,13 @@ def populate_metrics(model_manager: ModelManager,
     :param eval_output: The Juneberry EvaluationOutput that will be populated with metrics.
     :return: None
     """
-    anno_file = Path(eval_dir_mgr.get_manifest_path())
+    anno_file, det_file = MetricsUtils.get_files_from_eval_dir_manager(eval_dir_mgr)
     num_annotations = coco_utils.count_annotations(anno_file)
 
     # Only populate metrics output if we have annotations.
     if num_annotations > 0:
-        m = Metrics.create_with_filesystem_managers(model_manager,
-                                                    eval_dir_mgr)
-        eval_output.results.metrics.bbox = m.as_dict()
+
+        eval_output.results.metrics.bbox = m.metrics()
         eval_output.results.metrics.bbox_per_class = m.mAP_per_class
 
         for k, v in eval_output.results.metrics.bbox.items():

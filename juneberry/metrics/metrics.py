@@ -30,11 +30,91 @@ from pandas.core.frame import DataFrame
 
 from juneberry.metrics.metrics_utils import MetricsUtils
 
-
 logger = logging.getLogger(__name__)
 
 
-class Metrics:
+class CocoMetrics:
+
+    def __init__(self,
+                 iou_threshold: float,
+                 max_det: int,
+                 tqdm: bool) -> None:
+        """
+        Initialize a CocoMetrics object
+        :param iou_threshold: The iou threshold
+        :param max_det: The maximum detections
+        :param tqdm: Display progress bar
+        :return: None
+        """
+        self.iou_threshold = iou_threshold
+        self.max_det = max_det
+        self.tqdm = tqdm
+
+    def __call__(self, anno: DataFrame, det: DataFrame):
+        self.coco = bb.eval.COCO(det, anno, max_det=self.max_det, tqdm=self.tqdm)
+        return self.get_metrics()
+
+    def get_metrics(self) -> dict:
+        """
+        Get the metrics.
+        :return: the metrics
+        """
+        result = self.coco.mAP.to_dict()
+
+        ap_50 = self.coco.AP_50.to_dict()
+        for k, v in ap_50.items():
+            new_k = "AP_50_" + k
+            result[new_k] = v
+
+        ap_75 = self.coco.AP_75.to_dict()
+        for k, v in ap_75.items():
+            new_k = "AP_75_" + k
+            result[new_k] = v
+
+        return result
+
+
+class TideMetrics:
+
+    def __init__(self,
+                 pos_thresh: float,
+                 bg_thresh: float,
+                 max_det: int,
+                 area_range_min: int,
+                 area_range_max: int,
+                 tqdm: bool) -> None:
+
+        """
+        Initialize a TideMetrics object using annotations and detections files in
+        COCO JSON format.
+        :param pos_thresh: The iou threshold
+        :param area_range: The COCO area range ("small", "medium", "large", "all")
+        :param bg_thresh: The background iou threshold
+        :param tqdm: display progress bar
+        :return: None
+        """
+        self.max_det = max_det
+        self.iou_threshold = pos_thresh
+        self.area_range_min = area_range_min
+        self.area_range_max = area_range_max
+        self.bg_thresh = bg_thresh
+        self.tqdm = tqdm
+
+    def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
+        self.tide = bb.eval.TIDE(det,
+                                 anno,
+                                 area_range=(self.area_range_min, self.area_range_max),
+                                 max_det=self.max_det,
+                                 pos_thresh=self.iou_threshold,
+                                 bg_thresh=self.bg_thresh,
+                                 tqdm=self.tqdm)
+        return self.get_metrics()
+
+    def get_metrics(self) -> dict:
+        return self.tide.mdAP.to_dict()
+
+
+class CommonMetrics:
     def __init__(self,
                  iou_threshold,
                  tp_threshold) -> None:
@@ -48,13 +128,15 @@ class Metrics:
         self.iou_threshold = iou_threshold
         self.tp_threshold = tp_threshold
 
-    def __call__(self, anno: Dict, det: Dict) -> Dict:
-        self.det, self.anno = MetricsUtils.load_det_and_anno(det, anno)
-        return self.as_dict(self.tp_threshold)
+    def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
+        self.anno = anno
+        self.det = det
+        return self.get_metrics(self.tp_threshold)
 
-    def as_dict(self, tp_threshold):
+    def get_metrics(self, tp_threshold) -> dict:
         result = {
             "prc": self.prc(),
+            "prc_df": self.prc_df(),
             "ap": self.ap(),
             "max_r": self.max_r(),
             "fscore": self.fscore(),
@@ -65,7 +147,7 @@ class Metrics:
         }
         return result
 
-    def _prc_df(self) -> DataFrame:
+    def prc_df(self) -> DataFrame:
         return bb.stat.pr(self.det,
                           self.anno,
                           self.iou_threshold)
@@ -78,16 +160,16 @@ class Metrics:
         ndarray[0] => precision, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return Metrics.df_to_ndarray(self._prc_df())
+        return MetricsUtils.df_to_ndarray(self.prc_df())
 
     def ap(self) -> float:
-        return bb.stat.ap(self._prc_df())
+        return bb.stat.ap(self.prc_df())
 
     def max_r(self) -> float:
-        return bb.stat.peak(self._prc_df(), y="recall")["recall"]
+        return bb.stat.peak(self.prc_df(), y="recall")["recall"]
 
     def _fscore_df(self, beta: int = 1) -> DataFrame:
-        return bb.stat.fscore(self._prc_df(), beta)
+        return bb.stat.fscore(self.prc_df(), beta)
 
     def fscore(self, beta: int = 1):
         """
@@ -97,14 +179,14 @@ class Metrics:
         ndarray[0] => f1, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return Metrics.df_to_ndarray(self._fscore_df())
+        return MetricsUtils.df_to_ndarray(self._fscore_df(beta))
 
     def pr_auc(self) -> float:
         """
         Get the precision-recall area under curve.
         :return: PR AUC float
         """
-        return bb.stat.auc(self._prc_df(),
+        return bb.stat.auc(self.prc_df(),
                            x="recall",
                            y="precision")
 
@@ -113,7 +195,7 @@ class Metrics:
         Get the precision-confidence area under curve.
         :return: PC AUC float
         """
-        return bb.stat.auc(self._prc_df(),
+        return bb.stat.auc(self.prc_df(),
                            x="confidence",
                            y="precision")
 
@@ -122,7 +204,7 @@ class Metrics:
         Get the recall-confidence area under curve.
         :return: RC AUC float
         """
-        return bb.stat.auc(self._prc_df(),
+        return bb.stat.auc(self.prc_df(),
                            x="confidence",
                            y="recall")
 
@@ -131,7 +213,7 @@ class Metrics:
         Find the number of TP, FP, and FN given this Metrics object's
         annotations and detections.
         :param tp_threshold: The TP threshold
-        :return: Dict containing TP, FP, and FN values
+        :return: dict containing TP, FP, and FN values
         """
         result = {}
         match_det, match_anno = bb.stat.match_box(
@@ -144,6 +226,3 @@ class Metrics:
         result["fn"] = match_anno["detection"].isna().sum()
         return result
 
-    @staticmethod
-    def df_to_ndarray(df: DataFrame):
-        return DataFrame.to_numpy(df)

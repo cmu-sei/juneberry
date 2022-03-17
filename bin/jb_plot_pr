@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import List
 
 import juneberry.filesystem as jbfs
-from juneberry.metrics.metrics import Metrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
+from juneberry.metrics.common_metrics import CommonMetrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
 import juneberry.scripting as jbscripting
 
 
@@ -76,16 +76,16 @@ def main():
 
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 
-    metrics: List[Metrics] = []
+    metrics: List[CommonMetrics] = []
 
     # Create a Metrics object for each model/dataset passed in
     for idx, val in enumerate(args.model):
         model_mgr = jbfs.ModelManager(args.model[idx])
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
         metrics.append(
-            Metrics.create_with_filesystem_managers(model_mgr,
-                                                    eval_dir_mgr,
-                                                    iou_threshold=args.iou))
+            CommonMetrics.create_with_filesystem_managers(model_mgr,
+                                                          eval_dir_mgr,
+                                                          iou_threshold=args.iou))
 
     # Create empty MetricsPlots
     pr_plot = PrecisionRecallPlot()
@@ -102,7 +102,7 @@ def main():
     rc_plot.save(output_dir / "rc_curve.png")
 
     # Export the metrics as a CSV
-    Metrics.export(metrics, output_dir / "eval_metrics.csv")
+    CommonMetrics.export(metrics, output_dir / "eval_metrics.csv")
 
     logger.info(f"jb_plot_pr is done.")
 

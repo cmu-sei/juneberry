@@ -24,12 +24,15 @@
 
 import json
 import logging
+from pathlib import Path
 import tempfile
 from typing import Dict, List
 
 import brambox as bb
 from pandas.core.frame import DataFrame
 
+#from juneberry.filesystem import EvalDirMgr, ModelManager
+#from metrics_manager import MetricsManager
 
 logger = logging.getLogger(__name__)
 
@@ -37,44 +40,39 @@ logger = logging.getLogger(__name__)
 class MetricsUtils:
 
     @staticmethod
-    def convert_dicts_to_files(dicts: List[Dict]):
-        result = []
-
-        for d in dicts:
-            d_file = tempfile.NamedTemporaryFile(mode="w+")
-            json.dump(d, d_file)
-            d_file.flush()
-            result.append(d_file.name)
-
-        return result
-
-    @staticmethod
-    def load_det_and_anno(det: Dict, anno: Dict):
-        with tempfile.NamedTemporaryFile(mode="w+") as det_file, tempfile.NamedTemporaryFile(mode="w+") as anno_file:
-            json.dump(det, det_file)
-            json.dump(anno, anno_file)
-            det_file.flush()
-            anno_file.flush()
-            anno_df = bb.io.load("anno_coco", anno_file.name, parse_image_names=False)
-            det_df = bb.io.load("det_coco", det_file.name, class_label_map=MetricsUtils.get_class_label_map(anno_file.name))
-            return det_df, anno_df
-
+    def load_dets_and_annos_files(dets_file: Path, annos_file: Path):
+        # Load the dets and annos files via brambox into DataFrames
+        annos_df = bb.io.load("anno_coco", annos_file.name, parse_image_names=False)
+        # NOTE: Loading the detections requires access to the annotations file. That's why we load
+        # detections and annotations in the same method; so that the TemporaryFiles dets_file
+        # and annos_file both exist for this call.
+        dets_df = bb.io.load("det_coco", dets_file.name,
+                             class_label_map=MetricsUtils.get_class_label_map(annos_file.name))
+        return dets_df, annos_df
 
     @staticmethod
-    def get_class_label_map(anno_file: str) -> List[str]:
+    def load_dets_and_annos(dets: Dict, annos: Dict):
+        with tempfile.NamedTemporaryFile(mode="w+") as dets_file, tempfile.NamedTemporaryFile(mode="w+") as annos_file:
+            # Write the dets and annos dicts to temporary files
+            json.dump(dets, dets_file)
+            json.dump(annos, annos_file)
+            dets_file.flush()
+            annos_file.flush()
+            return MetricsUtils.load_dets_and_annos_files(dets_file, annos_file)
+
+    @staticmethod
+    def get_class_label_map(annotations_file: str) -> List[str]:
         """
-        This function is responsible for retrieving the class label map from
-        the annotations file. The class label map is used to convert the
-        values in the class_label column of the detections Dataframe from
-        integers into strings.
-        :param anno_file: The annotations file containing the class label
-        information.
+        This function is responsible for retrieving the class label map from the annotations file.
+        The class label map is used to convert the values in the class_label column of the
+        detections Dataframe from integers into strings.
+        :param annotations_file: The annotations file containing the class label information.
         :return: A List of str containing the classes for each integer label.
         """
 
         # Open the annotation file and retrieve the information in the
         # categories field.
-        with open(anno_file) as json_file:
+        with open(annotations_file) as json_file:
             categories = json.load(json_file)["categories"]
 
         # Create an ID list, which contains every integer value that appears
@@ -101,46 +99,9 @@ class MetricsUtils:
 
         return class_label_map
 
-    # @staticmethod
-    # def _create(anno_file: Path,
-    #             det_file: Path,
-    #             iou_threshold: float,
-    #             toolkit: MetricsToolkit) -> Metrics:
-    #     if (toolkit is MetricsToolkit.COCO):
-    #         from juneberry.metrics.coco_metrics import CocoMetrics
-    #         return CocoMetrics(anno_file, det_file, model_name, dataset_name, iou_threshold)
-    #     elif (toolkit is MetricsToolkit.TIDE):
-    #         from juneberry.metrics.tide_metrics import TideMetrics
-    #         return TideMetrics(anno_file, det_file, model_name, dataset_name, iou_threshold)
-    #     else:
-    #         raise ValueError(f"Invalid MetricsToolkit {toolkit}")
-
-    # @staticmethod
-    # def create(anno: Dict,
-    #            det: Dict,
-    #            model_name: str = "unknown model",
-    #            dataset_name: str = "unknown dataset",
-    #            iou_threshold: float = 0.5,
-    #            toolkit: MetricsToolkit = MetricsToolkit.COCO) -> Metrics:
-    #     """
-    #     Create a Metrics object using dictionaries containing
-    #     annotations and detections.
-    #     :param anno: annotations
-    #     :param det: detections
-    #     :param model_name: model name
-    #     :param dataset_name: dataset name
-    #     :param iou_threshold: iou_threshold
-    #     :return: a Metrics object
-    #     """
-    #     anno_file = tempfile.NamedTemporaryFile(mode="w+")
-    #     json.dump(anno, anno_file)
-    #     anno_file.flush()
-
-    #     det_file = tempfile.NamedTemporaryFile(mode="w+")
-    #     json.dump(det, det_file)
-    #     det_file.flush()
-
-    #     return Metrics._create(anno_file.name, det_file.name, model_name, dataset_name, iou_threshold, toolkit)
+    @staticmethod
+    def df_to_ndarray(df: DataFrame):
+        return DataFrame.to_numpy(df)
 
     # @staticmethod
     # def export(metrics: List[metrics.Metrics],

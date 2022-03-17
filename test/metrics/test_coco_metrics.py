@@ -29,7 +29,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
-import juneberry.metrics.metrics as metrics
+import juneberry.metrics.common_metrics as metrics
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -44,11 +44,11 @@ with open(ground_truth_filename, 'r') as f:
 with open(detections_filename, 'r') as f:
     det_data = json.load(f)
 
-coco_metrics = metrics.Metrics.create_with_data(gt_data,
-                                                det_data,
+coco_metrics = metrics.CommonMetrics.create_with_data(gt_data,
+                                                      det_data,
                                                 "test_metrics_model_name",
                                                 "test_metrics_det_name",
-                                                toolkit=metrics.MetricsToolkit.COCO)
+                                                      toolkit=metrics.MetricsToolkit.COCO)
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
@@ -90,7 +90,7 @@ def test_mAP_per_class():
 
 def test_prc_df():
     prc_df = pd.read_csv(test_data_dir / "prc.csv")
-    _pytest_assert_frame_equal(prc_df, coco_metrics._prc_df)
+    _pytest_assert_frame_equal(prc_df, coco_metrics.prc_df)
 
 
 def test_fscore():
@@ -115,7 +115,7 @@ def test_rc_auc():
 
 
 def test_as_dict():
-    assert coco_metrics.as_dict() == {
+    assert coco_metrics.metrics() == {
         "mAP": coco_metrics.mAP,
         "mAP_50": coco_metrics.mAP_50,
         "mAP_75": coco_metrics.mAP_75,

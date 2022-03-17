@@ -29,7 +29,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
-import juneberry.metrics.metrics as metrics
+import juneberry.metrics.common_metrics as metrics
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -44,8 +44,8 @@ with open(ground_truth_filename, 'r') as f:
 with open(detections_filename, 'r') as f:
     det_data = json.load(f)
 
-m = metrics.Metrics(ground_truth_filename,
-                    detections_filename,
+m = metrics.CommonMetrics(ground_truth_filename,
+                          detections_filename,
                     "test_metrics_model_name",
                     "test_metrics_det_name")
 
@@ -63,20 +63,20 @@ def _pytest_assert_frame_equal(frame1, frame2):
 
 def test_create_with_empty_annos():
     with pytest.raises(ValueError):
-        _ = metrics.Metrics(ground_truth_no_annos_filename,
-                            detections_filename,
+        _ = metrics.CommonMetrics(ground_truth_no_annos_filename,
+                                  detections_filename,
                             "test_create_with_empty_annos_model_name",
                             "test_create_with_empty_annos_det_name")
 
 
 def test_create_with_data():
-    m_with_data = metrics.Metrics.create_with_data(gt_data, det_data)
+    m_with_data = metrics.CommonMetrics.create_with_data(gt_data, det_data)
     assert m_with_data.ap == m.ap
 
 
 def test_prc_df():
     prc_df = pd.read_csv(test_data_dir / "prc.csv")
-    _pytest_assert_frame_equal(prc_df, m._prc_df)
+    _pytest_assert_frame_equal(prc_df, m.prc_df)
 
 
 def test_fscore():
