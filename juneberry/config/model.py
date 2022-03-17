@@ -148,6 +148,7 @@ class ModelConfig(Prodict):
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
     evaluator: Plugin
+    evaluation_metrics: List[Plugin]
     file_path: Path
     format_version: str
     lab_profile: LabProfile

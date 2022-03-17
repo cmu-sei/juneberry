@@ -27,6 +27,7 @@ import logging
 from pathlib import Path
 import sys
 
+import juneberry.config.coco_utils as coco_utils
 import juneberry.loader as loader
 from juneberry.metrics.metrics_utils import MetricsUtils
 from juneberry.filesystem import EvalDirMgr
@@ -43,11 +44,11 @@ class MetricsManager:
             self.metrics = None
 
     def __init__(self,
-                 config: dict,
+                 config: list,
                  opt_args: dict = None):
         self.config = []
 
-        for i in config["metrics"]:
+        for i in config:
             if 'fqcn' not in i:
                 logger.error(f"Metrics entry does not have required key 'fqcn' {i}")
                 sys.exit(-1)
@@ -73,8 +74,12 @@ class MetricsManager:
     def call_with_eval_dir_manager(self, eval_dir_mgr: EvalDirMgr):
         anno_file = Path(eval_dir_mgr.get_manifest_path())
         det_file = Path(eval_dir_mgr.get_detections_path())
-        with open(anno_file, 'r') as f:
-            anno = json.load(f)
-        with open(det_file, 'r') as f:
-            det = json.load(f)
-        self.__call__(anno, det)
+        num_annotations = coco_utils.count_annotations(anno_file)
+        if num_annotations > 0:
+            with open(anno_file, 'r') as f:
+                anno = json.load(f)
+            with open(det_file, 'r') as f:
+                det = json.load(f)
+            self.__call__(anno, det)
+        else:
+            logger.info("There are no annotations; not using Metrics class to populate metrics output.")

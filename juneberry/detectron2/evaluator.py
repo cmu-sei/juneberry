@@ -181,7 +181,6 @@ class Evaluator(EvaluatorBase):
         self.predictor = DefaultPredictor(self.cfg)
 
     def evaluate_data(self) -> None:
-        #evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False, output_dir=self.output_dir)
         mapper = dt2_data.create_mapper(self.cfg, self.model_config.evaluation_transforms, False)
         eval_loader = build_detection_test_loader(self.cfg, dt2_data.EVAL_DS_NAME, mapper=mapper)
         self.eval_results = inference_on_dataset(self.predictor.model, eval_loader, None)
@@ -189,9 +188,8 @@ class Evaluator(EvaluatorBase):
         # Rename the results to our detections file for things like plot_pr
         det = Path(self.output_dir, "coco_instances_results.json")
         det.rename(self.eval_dir_mgr.get_detections_path())
-        det = self.eval_dir_mgr.get_detections_path()
 
-        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
+        populate_metrics(self.model_config, self.eval_dir_mgr, self.output)
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
