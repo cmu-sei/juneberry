@@ -1,15 +1,14 @@
 {
-    "metrics": [
+    "evaluation_metrics": [
         {
-            "fqcn": "juneberry.metrics.metrics.CommonMetrics",
+            "fqcn": "juneberry.metrics.metrics.Stats",
             "kwargs": {
                 "iou_threshold": 0.5,
-                "tp_threshold": 0.5
-
+                "tp_threshold": 0.8
             }
         },
         {
-            "fqcn": "juneberry.metrics.metrics.CocoMetrics",
+            "fqcn": "juneberry.metrics.metrics.Coco",
             "kwargs": {
                 "iou_threshold": 0.5,
                 "max_det": 100,
@@ -17,7 +16,7 @@
             }
         },
         {
-            "fqcn": "juneberry.metrics.metrics.TideMetrics",
+            "fqcn": "juneberry.metrics.metrics.Tide",
             "kwargs": {
                 "pos_thresh": 0.5,
                 "bg_thresh": 0.5,

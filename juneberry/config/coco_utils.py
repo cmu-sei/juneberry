@@ -454,17 +454,6 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
 
-def count_annotations(coco_anno_json_file: str) -> int:
-    """
-    This function is counts the annotations in a COCO-formatted annotations JSON file.
-    :param coco_anno_json_file: The path to the COCO-formatted annotations JSON file.
-    :return: The number of annotations found.
-    """
-    # Load the COCO annotations.
-    coco = CocoAnnotations.load(coco_anno_json_file)
-    return len(coco.annotations)
-
-
 """
 {
     "info" : info, 

@@ -28,19 +28,17 @@ from typing import Dict
 import brambox as bb
 from pandas.core.frame import DataFrame
 
-from juneberry.metrics.metrics_utils import MetricsUtils
-
 logger = logging.getLogger(__name__)
 
 
-class CocoMetrics:
+class Coco:
 
     def __init__(self,
                  iou_threshold: float,
                  max_det: int,
                  tqdm: bool) -> None:
         """
-        Initialize a CocoMetrics object
+        Initialize a Coco metrics object
         :param iou_threshold: The iou threshold
         :param max_det: The maximum detections
         :param tqdm: Display progress bar
@@ -74,7 +72,7 @@ class CocoMetrics:
         return result
 
 
-class TideMetrics:
+class Tide:
 
     def __init__(self,
                  pos_thresh: float,
@@ -85,10 +83,11 @@ class TideMetrics:
                  tqdm: bool) -> None:
 
         """
-        Initialize a TideMetrics object using annotations and detections files in
+        Initialize a Tide metrics object using annotations and detections files in
         COCO JSON format.
         :param pos_thresh: The iou threshold
-        :param area_range: The COCO area range ("small", "medium", "large", "all")
+        :param area_range_min: The min of COCO area range
+        :param area_range_max: The max of COCO area range
         :param bg_thresh: The background iou threshold
         :param tqdm: display progress bar
         :return: None
@@ -114,12 +113,12 @@ class TideMetrics:
         return self.tide.mdAP.to_dict()
 
 
-class CommonMetrics:
+class Stats:
     def __init__(self,
                  iou_threshold,
                  tp_threshold) -> None:
         """
-        Initialize a Metrics object using annotations and detections files in
+        Initialize a Stats metrics object using annotations and detections files in
         COCO JSON format.
         :param iou_threshold: The iou threshold
         :param tp_threshold: The tp threshold
@@ -160,7 +159,7 @@ class CommonMetrics:
         ndarray[0] => precision, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return MetricsUtils.df_to_ndarray(self.prc_df())
+        return DataFrame.to_numpy(self.prc_df())
 
     def ap(self) -> float:
         return bb.stat.ap(self.prc_df())
@@ -179,7 +178,7 @@ class CommonMetrics:
         ndarray[0] => f1, ndarray[1] => recall,
         ndarray[2] => confidence
         """
-        return MetricsUtils.df_to_ndarray(self._fscore_df(beta))
+        return DataFrame.to_numpy(self._fscore_df(beta))
 
     def pr_auc(self) -> float:
         """
@@ -225,4 +224,3 @@ class CommonMetrics:
         # detections column.
         result["fn"] = match_anno["detection"].isna().sum()
         return result
-
