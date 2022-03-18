@@ -29,11 +29,11 @@
             "required": [ ]
         },
         "epochs": { "type": "integer" },
-        "evaluation_transforms": {
+        "evaluation_metrics": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }
         },
-        "evaluation_metrics": {
+        "evaluation_transforms": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }
         },
