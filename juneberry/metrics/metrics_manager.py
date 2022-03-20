@@ -82,7 +82,7 @@ class MetricsManager:
             anno = json.load(f)
         with open(det_file, 'r') as f:
             det = json.load(f)
-        self.__call__(anno, det)
+        return self.__call__(anno, det)
 
     @staticmethod
     def _load_annotations_and_detections(anno_data: Dict, det_data: Dict):

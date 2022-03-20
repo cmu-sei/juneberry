@@ -134,11 +134,8 @@ class Stats:
 
     def get_metrics(self, tp_threshold) -> dict:
         result = {
-            "prc": self.prc(),
-            "prc_df": self.prc_df(),
             "ap": self.ap(),
             "max_r": self.max_r(),
-            "fscore": self.fscore(),
             "pr_auc": self.pr_auc(),
             "pc_auc": self.pc_auc(),
             "rc_auc": self.rc_auc(),
