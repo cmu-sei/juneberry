@@ -804,7 +804,7 @@ class ModelManager:
             eval_dir_mgr.get_predictions_path(),
             eval_dir_mgr.get_log_path(),
             eval_dir_mgr.get_metrics_path(),
-            eval_dir_mgr.root.parent,
+#            eval_dir_mgr.root.parent,
         ]
 
     @staticmethod

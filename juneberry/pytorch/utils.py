@@ -178,7 +178,7 @@ def load_model(model_path, model) -> None:
     :param model_path: The model directory.
     :param model: The model file into which to load the model weights.
     """
-    model.load_state_dict(torch.load(str(model_path)), strict=False)
+    model.load_state_dict(torch.load(str(model_path)), strict=True)
     model.eval()
 
 

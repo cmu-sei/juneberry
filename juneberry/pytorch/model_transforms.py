@@ -224,6 +224,24 @@ class LogModelSummary:
         return model
 
 
+class ReplaceFC:
+    """
+    A transform for replacing the fully connected layer. Useful for pre-trained models.
+    """    
+
+    def __init__(self, num_classes, fc_name = 'fc', fc_bias = True):
+        self.num_classes = num_classes
+        self.fc_name = fc_name
+        self.fc_bias = fc_bias
+    
+    def __call__(self, model):
+        original_layer = getattr(model, self.fc_name)
+        in_features = original_layer.in_features
+        new_layer = torch.nn.modules.linear.Linear(in_features = in_features, out_features = self.num_classes, bias = self.fc_bias)
+        setattr(model, self.fc_name, new_layer)
+        
+        return(model)
+
 class EmptyTransform:
     def __init__(self):
         pass
