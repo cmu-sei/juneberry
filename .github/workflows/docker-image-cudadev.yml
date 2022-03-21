@@ -1,4 +1,4 @@
-name: Docker Image CI CPUDev
+name: Docker Image CI CUDADev
 
 on:
   workflow_dispatch:
@@ -25,5 +25,5 @@ jobs:
         with:
           context: ./docker
           push: true
-          file: docker/cpudev.Dockerfile
-          tags: cmusei/juneberry:cpudev
+          file: docker/cudadev.Dockerfile
+          tags: cmusei/juneberry:cudadev
