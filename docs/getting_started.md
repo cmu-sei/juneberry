@@ -43,14 +43,14 @@ These sub-directories can be created manually, or via the `setup_lab.py` script 
 ### Using setup_lab.py
 
 Inside the lab root, clone the Juneberry repository from GitHub, then use the `setup_lab.py` script 
-from inside the newly cloned repository to create the remaining sub-directories in the project root.
+from inside the newly cloned repository to create the remaining sub-directories in the lab-root.
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
 juneberry/scripts/setup_lab.py . 
 ```
 
-### Manually Creating the Project Structure
+### Manually Creating the Lab Structure
 
 The following commands can be used to create the structure manually:
 
@@ -64,7 +64,7 @@ mkdir tensorboard
 NOTE: The cache directories are only needed for containers (recommended). Virtual environments
 do not need the cache directory.
 
-### The Project Structure
+### The Lab Structure
 
 At this point, the lab-root should resemble the following directory structure:
 
@@ -118,10 +118,10 @@ created by Juneberry inside the container such as models, log files, and plots w
 outside the container after the container terminates, due to this relationship with the host filesystem.
 
 A sample script called `enter_juneberry_container` starts (by default) a **temporary** 'cpudev' container.
-It assumes the project directory structure described above and must be called from that directory.
+It assumes the lab directory structure described above and must be called from that directory.
 
 For example, the following command will start an instance of the downloaded CPU-only container 
-from within the _project-root_ directory:
+from within the _lab-root_ directory:
 
 ```shell script
 juneberry/docker/enter_juneberry_container
@@ -184,7 +184,7 @@ reports a training accuracy of 97.58%.
 ## container_start.sh
 
 For convenience, users can create a bash script containing the previous commands and name the file 
-`container_start.sh`. When a script with that name is found inside the juneberry directory of the project-root, 
+`container_start.sh`. When a script with that name is found inside the juneberry directory of the lab-root, 
 or inside a custom workspace (see below), it will be executed during the container's initialization. The 
 `juneberry/docker` directory contains a sample `container_start.sh` script.
 

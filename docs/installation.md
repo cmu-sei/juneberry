@@ -7,7 +7,7 @@ Using a prebuilt Docker container is the recommended method for accessing Junebe
 
 # Direct Installation
 
-If you wish to just install Juneberry without any particular platform, clone of Juneberry from GitHub and
+If you wish to just install Juneberry without any particular platform, clone Juneberry from GitHub and
 install using `pip install .` from within the repo. By default, Juneberry doesn't install any platforms
 because it makes no assumptions about which platforms the user wants. The available platforms are:
 

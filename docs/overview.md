@@ -26,7 +26,7 @@ various configuration variables. Refer to the [Getting Started](getting_started.
 
 Although Juneberry only recommends a common structure for its lab layout, a specific structure is **required** 
 for managing all the files in a workspace. The Juneberry repository not only contains the Juneberry
-source code, but also it also functions as an example workspace with sample models and experiments. Even though 
+source code, but it also functions as an example workspace with sample models and experiments. Even though 
 you can use this example workspace for testing your Juneberry installation, we recommend creating your own 
 workspace to manage your own models and experiments. Refer to the [Getting Started](getting_started.md) guide 
 for directions on how to create your own workspace.
@@ -55,7 +55,7 @@ While a workspace directory can have any name, it **must** have the following la
 ``` 
 
 Most Juneberry commands will assume the current working directory is the workspace. However, the workspace 
-directory path can be set via the `-w` command line switch or `JUNEBERRY_WORKSPACE` environment
+directory path can be set via the `-w` command line switch or the `JUNEBERRY_WORKSPACE` environment
 variable. See 
 [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for
 details.
