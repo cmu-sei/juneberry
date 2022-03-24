@@ -61,24 +61,21 @@ RUN pip install -r requirements/build.txt
 RUN pip install -v -e .
 WORKDIR /
 
-# ============ JUNEBERRY INIT ============
-# Since everything is mounted in the same place we can specify a 'default'
-# juneberry ini in the last place we look.  The 'home' directory of
-# the user.
+# ============ JUNEBERRY PATHS ============
+# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 
-COPY juneberry.ini /root/juneberry.ini
+ENV JUNEBERRY_DATA_ROOT="/dataroot"
+ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v9.1"
+ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v10"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CPU Development v9.1" >> /root/.bashrc; \
+    echo "figlet -w 120 CPU Development v10" >> /root/.bashrc; \
     echo "if [ -f ./container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING ./container_start.sh'"  >> /root/.bashrc; \
     echo "    source ./container_start.sh" >> /root/.bashrc; \
-    echo "else" >> /root/.bashrc; \
-    echo "    echo './container_start.sh NOT found.'"  >> /root/.bashrc; \
     echo "fi" >> /root/.bashrc
 

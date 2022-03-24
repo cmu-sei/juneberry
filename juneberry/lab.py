@@ -23,12 +23,16 @@
 # ======================================================================================================================
 
 import datetime
+import logging
 from pathlib import Path
+import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.machine_specs import MachineSpecs
 import juneberry.filesystem as jbfs
+
+logger = logging.getLogger(__name__)
 
 
 class Lab:
@@ -50,8 +54,42 @@ class Lab:
         self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
         self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
 
+    @staticmethod
+    def check_path(path, label):
+        path_obj = Path(path)
+        if not path_obj.exists():
+            logger.error(f"The requested {label} at {path_obj.absolute()} does not exist.")
+            return 1
+        else:
+            return 0
+
+    @staticmethod
+    def validate_args(workspace: str, data_root: str, tensorboard: str, machine_class: str) -> None:
+        """
+        Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
+        automatically on lab construction because there are cases where we want to construct a lab
+        without everything existing because a script might create them.
+        :param workspace: The workspace
+        :param data_root: The data root
+        :param tensorboard: OPTIONAL: tensorboard directory
+        :param machine_class: OPTIONAL: Machine class.
+        :return:
+        """
+        errors = 0
+        errors += Lab.check_path(workspace, "workspace")
+        errors += Lab.check_path(data_root, "data root")
+        if tensorboard is not None:
+            errors += Lab.check_path(tensorboard, "tensorboard directory")
+
+        # Try to load the machine section from the workspace config
+        # TODO once machine class is finished
+
+        if errors > 0:
+            logger.error(f"Identified {errors} configuration errors. See log for details. Exiting.")
+            sys.exit(-1)
+
     def create_copy_from_keys(self, ws_key, dr_key):
-        return Lab(workspace=self.workspace(ws_key), data_root=self.data_root(dr_key),
+        return Lab(workspace=str(self.workspace(ws_key)), data_root=str(self.data_root(dr_key)),
                    tensorboard=self.tensorboard, num_gpus=self.num_gpus, num_workers=self.num_workers,
                    machine_class=self.machine_class)
 
@@ -69,7 +107,8 @@ class Lab:
     def add_data_root(self, data_root, dr_key):
         self._data_roots[dr_key] = data_root
 
-    def model_manager(self, model_name: str, model_version=None) -> jbfs.ModelManager:
+    @staticmethod
+    def model_manager(model_name: str, model_version=None) -> jbfs.ModelManager:
         """ :return: The ModelManager for this model. """
         # return jbfs.ModelManager(self.workspace, model_name)
         return jbfs.ModelManager(model_name, model_version)

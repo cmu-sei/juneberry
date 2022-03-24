@@ -31,15 +31,23 @@ model name (i.e. the name of a sub-directory in the "models" directory containin
 file) as input. The output of the training process is a trained model and training metrics in an 
 output JSON file.
 
-**NOTE:** To train with TensorBoard activated, either set a system environment variable 
-```TENSORBOARD_DIR="path/to/dir"``` or configure the tensorboard root in a `juneberry.ini`.
+**NOTE:** To train with TensorBoard activated, either set a system environment variable
+```JUNEBERRY_TENSORBAORD="path/to/dir"``` or configure the tensorboard root via `-t` when calling the 
+training script.
 
-The training script requires the configured `workspace_root` and `data_root` to be set
-via the ini file or via command line. The following command demonstrates how to use 
-the training script to train a model, assuming the `workspace_root` and `data_root` are set via 
-a `juneberry.ini` file:
+The training script also needs to know which workspace to use. By default, most scripts use the current working
+directory as the workspace, unless another workspace has been specified via `-w`. By default, the data root is
+assumed to be a peer directory to the workspace called `dataroot`, but it can also be specified via `-d`.
+
+If your environment adheres to the common lab layout structure, you simply need to execute the following command 
+within your juneberry directory to train the sample model:
 
 ```jb_train imagenette_160x160_rgb_unit_test_pyt_resnet18```
+
+If you need to specify a workspace and dataroot outside the common lab layout structure, the command would 
+take the following form:
+
+```jb_train -w <path-to-workspace> -d <path-to-dataroot> imagenette_160x160_rgb_unit_test_pyt_resnet18```
 
 The script provides ongoing status to the console (which can be silenced with the `-s` flag) 
 as well as the model, log files, and visual summaries. Some output files you may see in the
@@ -86,11 +94,10 @@ loading, and transformation.
 The next step is to evaluate a test set against the trained model and see
 how well the model performs. Evaluation require a trained model, like the one from step 3, 
 and a dataset config describing the evaluation dataset. As with the other commands, the evaluation 
-script requires workspace and data roots to be set either via `juneberry.ini` or the `-w`/`-d` switches.
+script requires workspace and data roots to be set either `-w`/`-d` switches or via environment variables.
 
 This example command demonstrates how to test the model trained in the previous step on a 
-new dataset it has not seen before. The workspace root and data root were defined in a 
-`juneberry.ini`, so they will not be shown in this command:
+new dataset it has not seen before. The workspace root and data root are not shown in this command:
 
 ```jb_evaluate imagenette_160x160_rgb_unit_test_pyt_resnet18 data_sets/imagenette_unit_test.json```
 
@@ -150,10 +157,7 @@ An experiment config file consists of two primary sections:
    for when large datasets (e.g. imagenet) are used in the experiment.
 
 Once an experiment config is created, it can be executed with the [jb_run_experiment](../bin/jb_run_experiment) 
-command. As with other scripts, the workspace root `-w` can be provided via `juneberry.ini` or via the command line.  
-However, the data root **is ignored** because each model may use a different data root. The experiment runner 
-switches to each model directory before training or testing the model, allowing for the train or test scripts
-to locate juneberry.ini files in those directories.
+command. As with other scripts, the workspace root and data root need to be properly configured.
 
 ## Doit backend
 Behind the scenes, `jb_run_experiment` uses the [Doit]("https://pydoit.org/) task runner. `jb_run_experiment`

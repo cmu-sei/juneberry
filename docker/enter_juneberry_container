@@ -2,7 +2,7 @@
 
 # =================================================================================================
 # WARNING: These containers and scripts create containers with NO SECURITY PRACTICES, such as
-# separate user accounts, unprivileged users, etc.**
+# separate user accounts, unprivileged users, etc.
 #
 # USE AT YOUR OWN RISK
 # =================================================================================================
@@ -10,138 +10,143 @@
 # This is a sample startup script for the Juneberry container.  Please feel free to copy
 # and modify as needed.
 
-# === DOCKER BUILD ===
-# This assumes the Juneberry container was built with a tag of "juneberry/<type>:dev", such as:
-# docker build -f cudadev.Dockerfile -t juneberry/cudadev:dev .
-# or
-# docker build -f cpudev.Dockerfile -t juneberry/cpudev:dev .
-
-# === PROXIES ===
-# To set proxies during the build, specify them via build args. For example:
-# docker build --build-arg HTTP_PROXY=${HTTP_PROXY} ... -f juneberry.Dockerfile -t juneberry/cudadev:dev .
-
-# === PROJECT LAYOUT ===
+# === LAB LAYOUT ===
 # When starting this container, a variety of directories for organizing the current code, data,
 # tensorboard output, caches, and workspaces (optional) will get mounted (not copied) into the container.
-# This script assumes a single "project" directory (passed in as the one argument), with the mounted directories
-# organized as subdirectories according to the following layout:
-# <project>/
-#   juneberry <- This is the Juneberry repo that was pulled
+# The default configuration below is based on this layout. You can override these locations with
+# various environment variables or copy and modify this script. A detailed description of the lab layout
+# can be found in:
+#   - docs/overview.md
+#   - docs/getting_started.md
+
+# SUMMARY
+# <lab-root>/
+#   juneberry <- This is the Juneberry repo that was cloned.
 #   dataroot <- This is where the source data is located, i.e. the Juneberry "dataroot".
 #   tensorboard <- This is where tensorboard outputs will be stored.
 #   cache <- This where the model downloads are cached.
-#   workspace <- This is an optional external workspace directory, see docker/README.md for details
+#   <workspace> <- This is an optional external workspace directory, see docker/README.md for details.
 
-# Set our default arguments.
-CONTAINER="juneberry/cudadev:dev"
-#CONTAINER="juneberry/cpudev:dev"
+### ENVIRONMENT VARIABLES
+# JUNEBERRY_LAB             - The root of the lab instead of the CWD
+# JUNEBERRY_REPOSITORY      - Path to Juneberry Repository
+# JUNEBERRY_WORKSPACE       - Optional path to the workspace. (The Juneberry repo is a sample workspace.)
+# JUNEBERRY_DATA_ROOT       - Path to the root of the data
+# JUNEBERRY_TENSORBOARD     - Path to store the tensorboard outputs
+# JUNEBERRY_CACHE           - Path to a cache to store downloads
+# JUNEBERRY_CONTAINER       - The name of the container to run
+# JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, IDs for specific ones.
+# JUNEBERRY_MACHINE_CLASS   - The machine class
 
-# This value determines which GPUs the container will be aware of.  "all" is default.
-# Set to "" for none. Specific GPUs can be set by listing the devices as one would
-# with CUDA_VISIBLE_DEVICES.
-GPUS="--gpus all"
-# GPUS=""
-# GPUS="--gpus \"device=2,3\""
-# GPUS="--gpus \"device=${CUDA_VISIBLE_DEVICES}\""
+# === Lab Layout ===
+LAB=${PWD}
 
-function show_help() {
-  echo "Usage: [-w <workspace>] [-c <container>] [-g <gpus>] [-p <project_dir>]"
-  echo "Optional arguments:"
-  echo "    -w <workspace>   - Optional: The path to a custom workspace."
-  echo "    -c <container>   - Optional: Name of the container. The default is ${CONTAINER}."
-  echo "    -g <gpus>        - Optional: The number of gpus.  The default is ${GPUS}."
-  echo "    -p <project_dir> - Optional: The path to the Juneberry project directory.\
- This should be an absolute path. The default is the current working directory."
-  echo "    -h <help>        - Show this message and exit."
-}
+# If they specified a lab directory then use it as a basis for the lab structure.
+if [ ! -z ${JUNEBERRY_LAB} ]; then
+    LAB=${JUNEBERRY_LAB}
+fi
 
-# === Process the command line arguments.
+# Standard directory layout based on the lab
+REPOSITORY=${LAB}/juneberry
+WORKSPACE=""
+DATA_ROOT=${LAB}/dataroot
+TENSORBOARD=${LAB}/tensorboard
+CACHE=${LAB}/cache
 
-DOHELP=0
-while getopts w:c:g:p:h option; do
-  case $option in
-  w) WS=$OPTARG ;;
-  c) CONTAINER=$OPTARG ;;
-  g) GPUS=$OPTARG ;;
-  p) PROJ=$OPTARG ;;
-  h) DOHELP=1 ;;
-  esac
+# By default, the data root is mounted read only for safety.
+# Under normal conditions (train/eval) Juneberry will NOT need to change the data.
+DATA_ROOT_MODE=":ro"
+
+# By default the machine class Juneberry uses is "default"
+MACHINE_CLASS="default"
+
+# The 'cpudev' container is used by default. The 'cudadev' container is one alternative that can be used.
+# If 'cudadev' is chosen, one should adjust the number of GPUs used (GPUS or JUNEBERRY_GPUS).
+CONTAINER="cmusei/juneberry:cpudev"
+
+# This value determines which GPUs will be exposed into the container. Meaning, running
+# nvidia-smi inside the container will show the GPUs specified by this value.
+# Set to "" for none or "all" for all.
+# Specific GPUs can be set by listing the devices by ID as one would with CUDA_VISIBLE_DEVICES.
+# If CUDA_VISIBLE_DEVICES is set, the script will automatically pick that up instead.
+GPUS=""
+# GPUS="all"
+if [ ! -z ${CUDA_VISIBLE_DEVICES} ]; then
+    GPUS="\"device=${CUDA_VISIBLE_DEVICES}\""
+fi
+
+# Base 'docker run' command. See "https://docs.docker.com/engine/reference/commandline/run/" for details.
+# NOTE: --network=host means we can't use jupyter or expose any other ports.
+# NOTE: --ipc=host is required to make GPUs work.
+RUN_CMD="run -it --rm --network=host --ipc=host --name ${USER}"
+
+# ==================================================================================================
+# ==================================================================================================
+# ==================================================================================================
+# The remainder of this file is argument checking and command formatting
+
+# Bring in environment variables if set
+if [ ! -z ${JUNEBERRY_REPOSITORY} ]; then REPOSITORY=${JUNEBERRY_REPOSITORY}; fi
+if [ ! -z ${JUNEBERRY_WORKSPACE} ]; then WORKSPACE=${JUNEBERRY_WORKSPACE}; fi
+if [ ! -z ${JUNEBERRY_DATA_ROOT} ]; then DATA_ROOT=${JUNEBERRY_DATA_ROOT}; fi
+if [ ! -z ${JUNEBERRY_TENSORBOARD} ]; then TENSORBOARD=${JUNEBERRY_TENSORBOARD}; fi
+if [ ! -z ${JUNEBERRY_CACHE} ]; then CACHE=${JUNEBERRY_CACHE}; fi
+if [ ! -z ${JUNEBERRY_CONTAINER} ]; then CONTAINER=${JUNEBERRY_CONTAINER}; fi
+if [ ! -z ${JUNEBERRY_GPUS} ]; then GPUS=${JUNEBERRY_GPUS}; fi
+if [ ! -z ${JUNEBERRY_MACHINE_CLASS} ]; then MACHINE_CLASS=${JUNEBERRY_MACHINE_CLASS}; fi
+
+# ==================================================================================================
+
+# ===== Wrap them in the right docker format/switches
+JB="-v ${REPOSITORY}:/juneberry"
+if [ ! -z ${WORKSPACE} ]; then
+    # Extract the workspace name so we can have that exact directory
+    WS_NAME="${WORKSPACE##*/}"
+    WS="-v ${WORKSPACE}:/${WS_NAME} -w /${WS_NAME}"
+else
+    WS=""
+    JB="${JB} -w /juneberry"
+fi
+DR="-v ${DATA_ROOT}:/dataroot${DATA_ROOT_MODE}"
+TB="-v ${TENSORBOARD}:/tensorboard"
+HUB_CACHE="-v ${CACHE}/hub:/root/.cache/torch/hub"
+TORCH_CACHE="-v ${CACHE}/torch:/root/.torch"
+TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
+CACHES="${HUB_CACHE} ${TORCH_CACHE} ${TF_CACHE}"
+if [ ! -z ${GPUS} ]; then
+    GPUS="--gpus ${GPUS}"
+fi
+
+# ===== Check to see that the project directory contains all necessary subdirectories.
+required=("${REPOSITORY}" "${WORKSPACE}" "${DATA_ROOT}" "${TENSORBOARD}" "${CACHE}")
+
+all_lab_subdirs_exist=1
+for subdir in ${required[@]}; do
+    if [ ! -d ${subdir} ]; then
+        echo "Lab subdirectory ${subdir} does not exist."
+        all_lab_subdirs_exist=0
+    fi
 done
-shift $((OPTIND - 1))
 
-# Show usage and exit if they ask for help.
-if ([ ${DOHELP} -eq 1 ]); then
-  show_help
-  exit 1
+if [ ${all_lab_subdirs_exist} -eq 0 ]; then
+    echo "${LAB} is not a valid lab directory."
+    echo "Please run 'scripts/setup_lab.py' to create the lab directory structure."
+    echo "Exiting."
+    exit 1
 fi
 
-# If no project directory was passed in, use the current working directory.
-if [ -z ${PROJ} ]; then
-  PROJ=${PWD}
-fi
+# ===== Make the cache subdirectories if missing
+if [ ! -d "${CACHE}/hub" ]; then mkdir "${CACHE}/hub"; fi
+if [ ! -d "${CACHE}/torch" ]; then mkdir "${CACHE}/torch"; fi
+if [ ! -d "${CACHE}/tensorflow" ]; then mkdir "${CACHE}/tensorflow"; fi
 
-# === Generate all the derivative settings.
-echo "Using project '${PROJ}'..."
-
-# === Check to see that the project directory contains all necessary subdirectories. ==============
-project_subdirs=("cache" "cache/hub" "cache/torch" "dataroot" "juneberry" "tensorboard")
-
-all_project_subdirs_exist=1
-for subdir in ${project_subdirs[@]}; do
-  if [ ! -d ${PROJ}/${subdir} ]; then
-    echo "Project subdirectory ${subdir} does not exist."
-    all_project_subdirs_exist=0
-  fi
-done
-
-if [ ${all_project_subdirs_exist} -eq 0 ]; then
-  echo "${PROJ} is not a valid project directory."
-  echo "Please run scripts/setup_project.py to create the project directory structure."
-  echo "Exiting."
-  exit 1
-fi
 # ================================================================================================
 
-# Docker run specific options.
-
-# The -rm means the container is destroyed upon exit.  This is okay because the useful data persists
-# in the mounted locations.
-BASE="-it --rm --network=host --ipc=host"
+# Tunnel in a variety of common environment variables that the container can use
 ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy"
-ENVS_USER="-e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER})"
-NAME="--name ${USER}"
-
-# Directory layout
-
-# These are all the mount points into the container so the code, data, and outputs persist across container starts.
-# Feel free to change the paths to the left of the colon as needed. These sub-directories are not required to all be in
-# the same project directory.
-JB="-v ${PROJ}/juneberry:/juneberry"
-
-# If the user didn't pass a workspace argument, make Juneberry
-# the working directory. Otherwise, setup the workspace and
-# if that's successful, make the workspace directory the working directory.
-# NOTE: The '//' in the workspace is for Git Bash support.
-if [ -z ${WS} ]; then
-  echo "Using default workspace..."
-  JB="${JB} -w //juneberry"
-else
-  echo "Using workspace ${WS}..."
-  ${PROJ}/juneberry/scripts/setup_workspace.py -p ${PROJ} -w ${WS}
-  if [ $? -eq 0 ]; then
-    WS="-v ${WS}:/workspace -w //workspace"
-  else
-    echo "Unable to setup workspace in ${WS}. Exiting."
-    exit 1
-  fi
-fi
-
-DATA="-v ${PROJ}/dataroot:/dataroot:ro"
-TB="-v ${PROJ}/tensorboard:/tensorboard"
-HUB_CACHE="-v ${PROJ}/cache/hub:/root/.cache/torch/hub"
-TORCH_CACHE="-v ${PROJ}/cache/torch:/root/.torch"
+ENVS_USER="-e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER}) -e HOST_UNAME=$(uname)"
 
 # Assemble the command, show it, and run it.
-CMD="docker run ${BASE} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DATA} ${TB} ${HUB_CACHE} ${TORCH_CACHE} ${NAME} ${CONTAINER} bash"
+CMD="docker ${RUN_CMD} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DR} ${TB} ${CACHES} ${CONTAINER} bash"
 echo "${CMD}"
 ${CMD}

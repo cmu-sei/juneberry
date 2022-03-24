@@ -18,7 +18,6 @@ curl -o cifar-10-python.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-python.
 To properly build this image we need to prepare a context directory containing:
 
 * dataroot/cifar-10-batches-py/ - Unzip the tar.gz from above
-* juneberry.ini - copy the one from this directory
 * juneberry/ - a clone of the repo modified/pruned as desired, consider --depth 1
 * juneberry/setup.py - A copy of the stripped down setup.py from this directory.
 
