@@ -30,6 +30,7 @@ from pandas.testing import assert_frame_equal
 import pytest
 
 import juneberry.metrics.metrics_manager as mm
+import juneberry.metrics.metrics_formatter_manager as mfm
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -38,6 +39,7 @@ ground_truth_filename = test_data_dir / "ground_truth.json"
 ground_truth_no_annos_filename = test_data_dir / "ground_truth_no_annos.json"
 detections_filename = test_data_dir / "detections.json"
 config_filename = test_data_dir / "config.json"
+config_format_filename = test_data_dir / "config_format.json"
 
 with open(ground_truth_filename, 'r') as f:
     gt_data = json.load(f)
@@ -51,14 +53,18 @@ with open(detections_filename, 'r') as f:
 with open(config_filename, 'r') as f:
     config_data = json.load(f)
 
+with open(config_format_filename, 'r') as f:
+    config_format_data = json.load(f)
+
 metrics_mgr = mm.MetricsManager(config_data["evaluation_metrics"])
 metrics = metrics_mgr(gt_data, det_data)
+
 coco_metrics = metrics["juneberry.metrics.metrics.Coco"]
 tide_metrics = metrics["juneberry.metrics.metrics.Tide"]
 stats_metrics = metrics["juneberry.metrics.metrics.Stats"]
 
-def approx(val: float):
-    return pytest.approx(val, abs=2.5e-3)
+metrics_formatter_mgr = mfm.MetricsFormatterManager(config_format_data["metrics_formatter"])
+formatted_coco_metrics = metrics_formatter_mgr(coco_metrics)
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
@@ -77,12 +83,28 @@ def test_coco_metrics():
         'mAP_small': 0.2498019801980198,
         'mAP_medium': 0.3226072607260726,
         'mAP_large': 0.100990099009901,
-        'AP_50_class_2': 0.14356435643564355,
-        'AP_50_class_1': 0.603960396039604,
-        'AP_75_class_2': 0.14356435643564355,
-        'AP_75_class_1': 0.37623762376237624
+        'class_2': 0.14356435643564355,
+        'class_1': 0.37623762376237624
     }
     assert coco_metrics == expected_result
+
+
+def test_formatted_coco_metrics():
+    expected_result = {
+        "bbox": {
+            "mAP": 0.23648514851485147,
+            "mAP_50": 0.3737623762376238,
+            "mAP_75": 0.2599009900990099,
+            "mAP_s": 0.2498019801980198,
+            "mAP_m": 0.3226072607260726,
+            "mAP_l": 0.100990099009901
+        },
+        "bbox_per_class": {
+            'mAP_class_1': 0.37623762376237624,
+            'mAP_class_2': 0.14356435643564355
+        }
+    }
+    assert formatted_coco_metrics == expected_result
 
 
 def test_tide_metrics():

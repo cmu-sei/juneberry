@@ -57,19 +57,11 @@ class Coco:
         Get the metrics.
         :return: the metrics
         """
-        result = self.coco.mAP.to_dict()
-
+        map = self.coco.mAP.to_dict()
         ap_50 = self.coco.AP_50.to_dict()
-        for k, v in ap_50.items():
-            new_k = "AP_50_" + k
-            result[new_k] = v
-
         ap_75 = self.coco.AP_75.to_dict()
-        for k, v in ap_75.items():
-            new_k = "AP_75_" + k
-            result[new_k] = v
-
-        return result
+        # Use '|' operator when we upgrade to Python 3.9
+        return {**map, **ap_50, **ap_75}
 
 
 class Tide:
@@ -134,8 +126,11 @@ class Stats:
 
     def get_metrics(self, tp_threshold) -> dict:
         result = {
+            "prc": self.prc(),
+            "prc_df": self.prc_df(),
             "ap": self.ap(),
             "max_r": self.max_r(),
+            "fscore": self.fscore(),
             "pr_auc": self.pr_auc(),
             "pc_auc": self.pc_auc(),
             "rc_auc": self.rc_auc(),

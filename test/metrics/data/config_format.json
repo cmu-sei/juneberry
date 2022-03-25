@@ -1,0 +1,9 @@
+{
+    "metrics_formatter": [
+        {
+            "fqcn": "juneberry.metrics.metrics_format.Coco",
+            "kwargs": {
+            }
+        }
+    ]
+}
