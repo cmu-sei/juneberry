@@ -46,6 +46,7 @@ class MetricsManager:
             self.fqcn = fqcn
             self.kwargs = kwargs
             self.metrics = None
+            self.formatter = None
 
     def __init__(self,
                  config: list,
@@ -58,9 +59,16 @@ class MetricsManager:
                 sys.exit(-1)
 
             entry = MetricsManager.Entry(i['fqcn'], i.get('kwargs', None))
-
             logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
             entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
+
+            if "opt_args" in i and "formatter" in i["opt_args"]:
+                if "fqcn" not in i["opt_args"]["formatter"]:
+                    logger.error(f"Metrics Formatter entry does not have required key 'fqcn' {i['opt_args']['formatter']}")
+                    sys.exit(-1)
+                formatter_fqcn = i["opt_args"]["formatter"]["fqcn"]
+                formatter_kwargs = i["opt_args"]["formatter"].get("kwargs", None)
+                entry.formatter = loader.construct_instance(formatter_fqcn, formatter_kwargs)
 
             self.config.append(entry)
 
@@ -73,6 +81,8 @@ class MetricsManager:
         anno_df, det_df = MetricsManager._load_annotations_and_detections(anno, det)
         for entry in self.config:
             results[entry.fqcn] = entry.metrics(anno_df, det_df)
+            if entry.formatter:
+                results[entry.fqcn] = entry.formatter(results[entry.fqcn])
         return results
 
     def call_with_eval_dir_manager(self, eval_dir_mgr: EvalDirMgr):

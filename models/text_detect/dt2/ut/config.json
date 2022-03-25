@@ -17,6 +17,13 @@
                "iou_threshold": 0.5,
                "max_det": 100,
                "tqdm": false
+           },
+           "opt_args": {
+             "formatter": {
+               "fqcn": "juneberry.metrics.format.Coco",
+               "kwargs": {
+               }
+             }
            }
        }
     ],
