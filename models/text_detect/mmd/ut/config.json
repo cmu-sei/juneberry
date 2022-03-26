@@ -2,6 +2,23 @@
     "batch_size": 4,
     "description": "Unit test for an object detector on the TextDetection data set.",
     "epochs": 6,
+    "evaluation_metrics": [
+       {
+           "fqcn": "juneberry.metrics.metrics.Coco",
+           "kwargs": {
+               "iou_threshold": 0.5,
+               "max_det": 100,
+               "tqdm": false
+           },
+           "opt_args": {
+             "formatter": {
+               "fqcn": "juneberry.metrics.format.Coco",
+               "kwargs": {
+               }
+             }
+           }
+       }
+    ],
     "evaluation_transforms": [],
     "evaluator": {
         "fqcn": "juneberry.mmdetection.evaluator.Evaluator"
@@ -37,3 +54,4 @@
         }
     }
 }
+

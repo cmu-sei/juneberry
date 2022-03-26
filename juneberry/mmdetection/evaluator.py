@@ -260,7 +260,7 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
+        populate_metrics(self.model_config, self.eval_dir_mgr, self.output)
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
 
