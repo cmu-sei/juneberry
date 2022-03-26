@@ -24,7 +24,6 @@
 
 import logging
 import numpy as np
-from pathlib import Path
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
@@ -32,7 +31,6 @@ from types import SimpleNamespace
 import torch
 from tqdm import tqdm
 
-import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
