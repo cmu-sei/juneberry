@@ -221,9 +221,9 @@ def populate_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr,
     :return: None
     """
     metrics_mgr = MetricsManager(model_config.evaluation_metrics)
-    metrics = metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)
-    eval_output.results.metrics.bbox = metrics["juneberry.metrics.metrics.Coco"]["bbox"]
-    eval_output.results.metrics.bbox_per_class = metrics["juneberry.metrics.metrics.Coco"]["bbox_per_class"]
+    coco_metrics = metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)["juneberry.metrics.metrics.Coco"]
+    eval_output.results.metrics.bbox = coco_metrics["bbox"]
+    eval_output.results.metrics.bbox_per_class = coco_metrics["bbox_per_class"]
 
 
 def prepare_classification_eval_output(evaluator: Evaluator):
