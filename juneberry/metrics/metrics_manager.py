@@ -31,7 +31,6 @@ from typing import Dict, List
 
 import brambox as bb
 
-import juneberry.config.coco_utils as coco_utils
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
 
@@ -54,20 +53,20 @@ class MetricsManager:
         self.config = []
 
         for i in config:
-            if 'fqcn' not in i:
+            if "fqcn" not in i:
                 logger.error(f"Metrics entry does not have required key 'fqcn' {i}")
                 sys.exit(-1)
 
-            entry = MetricsManager.Entry(i['fqcn'], i.get('kwargs', None))
+            entry = MetricsManager.Entry(i["fqcn"], i.get("kwargs", None))
             logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
             entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
 
-            if "opt_args" in i and "formatter" in i["opt_args"]:
-                if "fqcn" not in i["opt_args"]["formatter"]:
-                    logger.error(f"Metrics Formatter entry does not have required key 'fqcn' {i['opt_args']['formatter']}")
+            if "formatter" in i:
+                if "fqcn" not in i["formatter"]:
+                    logger.error(f"Metrics Formatter entry does not have required key 'fqcn' {i['formatter']}")
                     sys.exit(-1)
-                formatter_fqcn = i["opt_args"]["formatter"]["fqcn"]
-                formatter_kwargs = i["opt_args"]["formatter"].get("kwargs", None)
+                formatter_fqcn = i["formatter"]["fqcn"]
+                formatter_kwargs = i["formatter"].get("kwargs", None)
                 entry.formatter = loader.construct_instance(formatter_fqcn, formatter_kwargs)
 
             self.config.append(entry)
@@ -88,9 +87,9 @@ class MetricsManager:
     def call_with_eval_dir_manager(self, eval_dir_mgr: EvalDirMgr):
         anno_file = Path(eval_dir_mgr.get_manifest_path())
         det_file = Path(eval_dir_mgr.get_detections_path())
-        with open(anno_file, 'r') as f:
+        with open(anno_file, "r") as f:
             anno = json.load(f)
-        with open(det_file, 'r') as f:
+        with open(det_file, "r") as f:
             det = json.load(f)
         return self.__call__(anno, det)
 
