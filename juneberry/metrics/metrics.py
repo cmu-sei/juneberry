@@ -22,6 +22,12 @@
 #
 # ======================================================================================================================
 
+"""
+This module provides object detection plugin classes to be used with Juneberry.
+Add one or more of these plugins to the "evaluation_metrics" section of your
+model config. When the MetricsManager is called with annotations and detections,
+the metrics will be computed.
+"""
 import logging
 from typing import Dict
 
