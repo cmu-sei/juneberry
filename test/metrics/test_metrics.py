@@ -59,8 +59,8 @@ tide_metrics = metrics["juneberry.metrics.metrics.Tide"]
 stats_metrics = metrics["juneberry.metrics.metrics.Stats"]
 
 
-def approx(val: float):
-    return pytest.approx(val, abs=5e-3)
+def approx(expected_val):
+    return pytest.approx(expected_val, abs=5e-3)
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
