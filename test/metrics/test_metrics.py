@@ -49,6 +49,9 @@ m = metrics.Metrics(ground_truth_filename,
                     "test_metrics_model_name",
                     "test_metrics_det_name")
 
+def approx(val: float):
+    return pytest.approx(val, abs=2.5e-3)
+
 
 def _pytest_assert_frame_equal(frame1, frame2):
     try:
@@ -72,32 +75,32 @@ def test_create_with_data():
 
 
 def test_mAP():
-    assert m.mAP == 0.23531353135313532
+    assert m.mAP == approx(0.235)
 
 
 def test_mAP_50():
-    assert m.mAP_50 == 0.372937293729373
+    assert m.mAP_50 == approx(0.373)
 
 
 def test_mAP_75():
-    assert m.mAP_75 == 0.2599009900990099
+    assert m.mAP_75 == approx(0.260)
 
 
 def test_mAP_small():
-    assert m.mAP_small == 0.2495049504950495
+    assert m.mAP_small == approx(0.250)
 
 
 def test_mAP_medium():
-    assert m.mAP_medium == 0.3226072607260726
+    assert m.mAP_medium == approx(0.323)
 
 
 def test_mAP_large():
-    assert m.mAP_large == 0.100990099009901
+    assert m.mAP_large == approx(0.101)
 
 
 def test_mAP_per_class():
-    assert m.mAP_per_class["class_1"] == 0.37013201320132016
-    assert m.mAP_per_class["class_2"] == 0.10049504950495049
+    assert m.mAP_per_class["class_1"] == approx(0.370)
+    assert m.mAP_per_class["class_2"] == approx(0.100)
 
 
 def test_prc_df():
@@ -111,19 +114,19 @@ def test_fscore():
 
 
 def test_ap():
-    assert m.ap == 0.2594444444444444
+    assert m.ap == approx(0.259)
 
 
 def test_pr_auc():
-    assert m.pr_auc == 0.2461111111111111
+    assert m.pr_auc == approx(0.246)
 
 
 def test_pc_auc():
-    assert m.pc_auc == 0.4143311403508772
+    assert m.pc_auc == approx(0.414)
 
 
 def test_rc_auc():
-    assert m.rc_auc == 0.3533333333333334
+    assert m.rc_auc == approx(0.353)
 
 
 def test_as_dict():
