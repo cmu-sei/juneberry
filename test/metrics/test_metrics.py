@@ -59,6 +59,10 @@ tide_metrics = metrics["juneberry.metrics.metrics.Tide"]
 stats_metrics = metrics["juneberry.metrics.metrics.Stats"]
 
 
+def approx(val: float):
+    return pytest.approx(val, abs=5e-3)
+
+
 def _pytest_assert_frame_equal(frame1, frame2):
     try:
         assert_frame_equal(frame1, frame2)
@@ -70,34 +74,36 @@ def _pytest_assert_frame_equal(frame1, frame2):
 def test_formatted_coco_metrics():
     expected_result = {
         "bbox": {
-            "mAP": 0.23648514851485147,
-            "mAP_50": 0.3737623762376238,
-            "mAP_75": 0.2599009900990099,
-            "mAP_s": 0.2498019801980198,
-            "mAP_m": 0.3226072607260726,
-            "mAP_l": 0.100990099009901
+            "mAP": 0.236,
+            "mAP_50": 0.374,
+            "mAP_75": 0.260,
+            "mAP_s": 0.250,
+            "mAP_m": 0.323,
+            "mAP_l": 0.101,
         },
         "bbox_per_class": {
-            'mAP_class_1': 0.37623762376237624,
-            'mAP_class_2': 0.14356435643564355
+            'mAP_class_1': 0.376,
+            'mAP_class_2': 0.144,
         }
     }
-    assert coco_metrics == expected_result
+    # We need two comparisons because pytest.approx doesn't support nested dictionaries
+    assert coco_metrics["bbox"] == approx(expected_result["bbox"])
+    assert coco_metrics["bbox_per_class"] == approx(expected_result["bbox_per_class"])
 
 
 def test_tide_metrics():
     expected_result = {
-        'mAP': 0.3737623762376238,
+        'mAP': 0.374,
         'mdAP_localisation': 0.0,
         'mdAP_classification': 0.0,
         'mdAP_both': 0.0,
         'mdAP_duplicate': 0.0,
-        'mdAP_background': 0.08168316831683163,
-        'mdAP_missed': 0.3567106710671066,
-        'mdAP_fp': 0.08168316831683163,
-        'mdAP_fn': 0.3567106710671066
+        'mdAP_background': 0.082,
+        'mdAP_missed': 0.357,
+        'mdAP_fp': 0.082,
+        'mdAP_fn': 0.357,
     }
-    assert tide_metrics == expected_result
+    assert tide_metrics == approx(expected_result)
 
 
 def test_create_with_empty_annos():
@@ -112,19 +118,19 @@ def test_prc_df():
 
 
 def test_ap():
-    assert stats_metrics["ap"] == 0.2594444444444444
+    assert stats_metrics["ap"] == approx(0.259)
 
 
 def test_pr_auc():
-    assert stats_metrics["pr_auc"] == 0.2461111111111111
+    assert stats_metrics["pr_auc"] == approx(0.246)
 
 
 def test_pc_auc():
-    assert stats_metrics["pc_auc"] == 0.4143311403508772
+    assert stats_metrics["pc_auc"] == approx(0.414)
 
 
 def test_rc_auc():
-    assert stats_metrics["rc_auc"] == 0.3533333333333334
+    assert stats_metrics["rc_auc"] == approx(0.353)
 
 
 def _test_prediction_types(tp: int, fp: int, fn: int):
