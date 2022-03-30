@@ -114,7 +114,7 @@ def make_eval_data_loader(lab, dataset_config, model_config, data_lst, *,
     # TODO: Should we use collate and sampler?
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing data loader from EVALUATION data set using prediction transforms.")
-    return make_data_loader(lab.profile, dataset_config, data_lst,
+    return make_data_loader(lab, dataset_config, data_lst,
                             make_transform_manager(model_config, dataset_config, len(data_lst), opt_args, True),
                             model_config.batch_size, no_paging=no_paging)
 
