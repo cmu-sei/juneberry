@@ -31,7 +31,6 @@ from torch.utils import data
 
 from juneberry.config.dataset import DataType, DatasetConfig, TaskType
 from juneberry.lab import Lab
-from juneberry.config.lab_profile import LabProfile
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 import juneberry.pytorch.utils as pyt_utils
@@ -141,7 +140,7 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
     # Convenience function to wrap these
     dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=no_paging)
     # NOTE: We do not shuffle since the dataset conversion above already did
-    return wrap_dataset_in_dataloader(lab.profile, dataset, batch_size, collate_fn=collate_fn,
+    return wrap_dataset_in_dataloader(lab, dataset, batch_size, collate_fn=collate_fn,
                                       sampler_args=sampler_args)
 
 
