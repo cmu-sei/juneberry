@@ -26,11 +26,9 @@ import json
 import logging
 from pathlib import Path
 import sys
-import tempfile
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import brambox as bb
-from pandas import DataFrame
 
 from juneberry.config import coco_utils
 import juneberry.loader as loader
@@ -98,7 +96,15 @@ class MetricsManager:
             raise ValueError
 
         results = {}
-        anno_df, det_df = MetricsManager._load_annotations_and_detections(anno, det)
+
+        anno_parser = bb.io.parser.annotation.CocoParser(parse_image_names=False)
+        anno_parser.deserialize(json.dumps(anno))
+        anno_df = anno_parser.get_df()
+
+        det_parser = bb.io.parser.detection.CocoParser(class_label_map=coco_utils.get_class_label_map(anno))
+        det_parser.deserialize(json.dumps(det))
+        det_df = det_parser.get_df()
+
         # For each metrics plugin listed in the config, use the annotations and
         # detections to compute the metrics and add to our results.
         for entry in self.config:
@@ -132,29 +138,3 @@ class MetricsManager:
         anno_file = Path(eval_dir_mgr.get_manifest_path())
         det_file = Path(eval_dir_mgr.get_detections_path())
         return self.call_with_files(str(anno_file), str(det_file))
-
-    @staticmethod
-    def _load_annotations_and_detections(anno_data: Dict, det_data: Dict) -> Tuple[DataFrame, DataFrame]:
-        """
-        Load annotations and detections data into Brambox for metrics computation.
-        :param anno_data: Annotations data
-        :param det_data: Detections data
-        :return: DataFrames containing annotations and detections data
-        """
-        with tempfile.NamedTemporaryFile(mode="w+") as anno_file, tempfile.NamedTemporaryFile(mode="w+") as det_file:
-            # Write the anno_data and det_data dicts to temporary files; the Brambox
-            # load methods take files as input.
-            json.dump(anno_data, anno_file)
-            json.dump(det_data, det_file)
-            anno_file.flush()
-            det_file.flush()
-            # Load anno_file and det_file via brambox into DataFrames
-            anno_df = bb.io.load("anno_coco", anno_file.name, parse_image_names=False)
-            # NOTE: Loading the detections requires access to the annotations file. That's why we load
-            # detections and annotations in the same method; so that the TemporaryFiles anno_file
-            # and det_file both exist for this call.
-            det_df = bb.io.load("det_coco",
-                                det_file.name,
-                                class_label_map=coco_utils.get_class_label_map(anno_file.name))
-            return anno_df, det_df
-

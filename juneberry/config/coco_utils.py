@@ -455,19 +455,16 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
     logger.info(f"Drew {box_total} {box_str} across all images.")
 
 
-def get_class_label_map(anno_file: str) -> List[str]:
+def get_class_label_map(anno: Dict) -> List[str]:
     """
     This function is responsible for retrieving the class label map from the annotations file.
     The class label map is used to convert the values in the class_label column of the
     detections Dataframe from integers into strings.
-    :param anno_file: The annotations file containing the class label information.
+    :param anno: The annotations Dict in COCO format containing the class label information.
     :return: A List of str containing the classes for each integer label.
     """
 
-    # Open the annotation file and retrieve the information in the
-    # categories field.
-    with open(anno_file) as json_file:
-        categories = json.load(json_file)["categories"]
+    categories = anno["categories"]
 
     # Create an ID list, which contains every integer value that appears
     # as a category in the annotations file.
