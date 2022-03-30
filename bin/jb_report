@@ -1,0 +1,100 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+import sys
+
+import juneberry.reporting.utils as jb_report_utils
+import juneberry.scripting as jbscripting
+
+logger = logging.getLogger("juneberry.jb_report")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+
+    parser.add_argument('-e', '--experiment', help='Name of the experiment directory whose experiment config contains '
+                                                   'a reports stanza indicating which reports to build.')
+    parser.add_argument('-m', '--model', help='Name of the model directory whose model config contains a reports '
+                                              'stanza indicating which reports to build.')
+    parser.add_argument('-f', '--fqcn', action='append', help='Fully qualified class name of the report to build. When '
+                                                              'using this option, only one fqcn argument should be '
+                                                              'provided to this script.')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='This script generates report files for models and experiments. '
+                                                 'ARGS NOTE: Any command line args that are not '
+                                                 'recognized as positional or optional args for jb_report will '
+                                                 'be passed to the --fqcn option, if it was provided.')
+    setup_args(parser)
+    jbscripting.setup_args(parser)
+    args, unknown = parser.parse_known_args()
+
+    # TODO: Reports should be able to come from a model config, experiment config, or just CLI arguments.
+    #  A new 'reports.json' may have been suggested as a possible alternative to a new stanza in existing configs.
+    #  I think each time the script runs, it should produce the results for ONE of the
+    #  options: experiment | model | fqcn
+
+    # Fetch the desired reports for the experiment and build each report.
+    if args.experiment:
+        report_list = jb_report_utils.extract_experiment_reports()
+
+        for report in report_list:
+            jb_report_utils.construct_report(report.fqcn, report.kwargs)
+            report.create_report()
+
+    # Fetch the desired reports for the model and build each report.
+    if args.model:
+        report_list = jb_report_utils.extract_model_reports()
+
+        for report in report_list:
+            jb_report_utils.construct_report(report.fqcn, report.kwargs)
+            report.create_report()
+
+    # Build the desired report using the provided 'fqcn'.
+    if args.fqcn:
+        # Check that only one 'fqcn' arg was provided. Multiple 'fqcn' args are not permitted,
+        # because the assumption is that all unknown script args should be passed into the desired
+        # report fqcn.
+        if len(args.fqcn) > 1:
+            logger.error(f"This script only accepts one 'fqcn' arg at a time. Exiting.")
+            sys.exit(-1)
+
+        fqcn_str = args.fqcn[0]
+        # TODO: I'm not thrilled with how I got these args to work. Open to suggestions for improving this.
+        fqcn_args = dict(zip(unknown[::2], unknown[1::2]))
+
+        report = jb_report_utils.construct_report(fqcn_str, fqcn_args)
+        report.create_report()
+
+    logger.info(f"jb_report is done.")
+
+
+if __name__ == "__main__":
+    main()

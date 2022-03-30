@@ -68,6 +68,7 @@ bin_scripts = [
     'bin/jb_gpu_runner',
     'bin/jb_plot_pr',
     'bin/jb_plot_roc',
+    'bin/jb_report',
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',
     'bin/jb_run_plugin',

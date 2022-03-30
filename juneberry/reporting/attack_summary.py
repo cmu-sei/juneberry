@@ -31,13 +31,15 @@ from juneberry.config.attack import PropertyInferenceAttackConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
+from juneberry.reporting.report import Report
 
 logger = logging.getLogger(__name__)
 
 
-class AttackSummary:
+class AttackSummary(Report):
 
     def __init__(self, experiment_name: str = "", output_path: str = ""):
+        super().__init__()
         # Handle the case when an output file is not provided.
         if output_path == "":
             output_path = Path.cwd() / "attack_summary.md"
@@ -193,7 +195,7 @@ class AttackSummary:
             model_name = self.attack_mgr.get_shadow_model_name(i, disjoint=False)
 
             # Write the row for that model. The accuracy values are returned.
-            acc_values = self.write_table_3_row(model_name, output_file)
+            acc_values = self._write_table_3_row(model_name, output_file)
 
             # Place the returned accuracy values in the appropriate accuracy list.
             for value, val_list in zip(acc_values, acc_lists):
@@ -205,7 +207,7 @@ class AttackSummary:
             model_name = self.attack_mgr.get_shadow_model_name(i, disjoint=True)
 
             # Write the row for that model. The accuracy values are returned.
-            acc_values = self.write_table_3_row(model_name, output_file)
+            acc_values = self._write_table_3_row(model_name, output_file)
 
             # Place the returned accuracy values in the appropriate accuracy list.
             for value, val_list in zip(acc_values, acc_lists):
