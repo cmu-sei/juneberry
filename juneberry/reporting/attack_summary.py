@@ -26,6 +26,7 @@ import logging
 from pathlib import Path
 from statistics import mean, stdev
 import sys
+from typing import List
 
 from juneberry.config.attack import PropertyInferenceAttackConfig
 from juneberry.config.eval_output import EvaluationOutput
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 class AttackSummary(Report):
 
     def __init__(self, experiment_name: str = "", output_path: str = ""):
-        super().__init__()
+        super().__init__(output_path=output_path)
         # Handle the case when an output file is not provided.
         if output_path == "":
             output_path = Path.cwd() / "attack_summary.md"
@@ -64,7 +65,7 @@ class AttackSummary(Report):
             self._build_table_2(output_file)
             self._build_table_3(output_file)
 
-    def _build_table_1(self, output_file: '__file__'):
+    def _build_table_1(self, output_file: '__file__') -> None:
         """
         This method is responsible for obtaining the data in the "Summary Statistics for Private/Meta Models"
         table and writing the table to the Attack Summary markdown file.
@@ -86,7 +87,7 @@ class AttackSummary(Report):
             self._write_table_1_row(model_name, output_file)
 
     @staticmethod
-    def _write_table_1_row(model_name: Path, output_file: '__file__'):
+    def _write_table_1_row(model_name: Path, output_file: '__file__') -> List:
         """
         This method is responsible for writing a model's Summary Statistics row to a table. It's
         primarily used for Table 1, however the rows in Table 3 are nearly similar so this method
@@ -117,7 +118,7 @@ class AttackSummary(Report):
         # Return the accuracy values.
         return [train_acc, val_acc, test_acc]
 
-    def _build_table_2(self, output_file: '__file__'):
+    def _build_table_2(self, output_file: '__file__') -> None:
         """
         This method is responsible for obtaining the data in the "Accuracy for Meta Models"
         table and writing the table to the Attack Summary markdown file.
@@ -138,7 +139,7 @@ class AttackSummary(Report):
             self._write_table_2_row(model_name, output_file)
 
     @staticmethod
-    def _write_table_2_row(model_name: Path, output_file: '__file__'):
+    def _write_table_2_row(model_name: Path, output_file: '__file__') -> None:
         """
         This method is responsible for writing rows to the "Accuracy for Meta Models" table.
         :param model_name: The Path to a model in the 'models' directory.
@@ -166,7 +167,7 @@ class AttackSummary(Report):
         # The row must end with a new line character.
         output_file.write("\n")
 
-    def _build_table_3(self, output_file: '__file__'):
+    def _build_table_3(self, output_file: '__file__') -> None:
         """
         This method is responsible for obtaining the data in the "Summary Statistics for Shadow Models"
         table and writing the table to the Attack Summary markdown file.
@@ -221,7 +222,7 @@ class AttackSummary(Report):
         stdev_row = f"stdev | - | {stdev(train_acc)} | {stdev(val_acc)} | {stdev(test_acc)} | -\n"
         output_file.write(stdev_row)
 
-    def _write_table_3_row(self, model_name: Path, output_file: '__file__'):
+    def _write_table_3_row(self, model_name: Path, output_file: '__file__') -> List:
         """
         This method is responsible for writing a model's Summary Statistics row to Table 3. It
         takes advantage of the code written for Table 1, which produces a nearly identical row.

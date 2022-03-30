@@ -31,5 +31,12 @@ class Report:
     """
     This is the base class for all reports.
     """
-    def __init__(self):
-        pass
+    def __init__(self, output_path):
+        self.output_path = output_path
+
+    def create_report(self) -> None:
+        """
+        Creates the report file and writes it to the desired output file.
+        :return: Nothing
+        """
+        logger.warning("'create_report' is not implemented in the base Report class.")
