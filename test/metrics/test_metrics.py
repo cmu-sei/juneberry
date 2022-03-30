@@ -24,12 +24,14 @@
 
 import json
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
 import juneberry.metrics.metrics_manager as mm
+from juneberry.config.model import Metrics
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -51,7 +53,11 @@ with open(detections_filename, 'r') as f:
 with open(config_filename, 'r') as f:
     config_data = json.load(f)
 
-metrics_mgr = mm.MetricsManager(config_data["evaluation_metrics"])
+evaluation_metrics: List[Metrics] = []
+for cd in config_data["evaluation_metrics"]:
+    evaluation_metrics.append(Metrics.from_dict(cd))
+
+metrics_mgr = mm.MetricsManager(evaluation_metrics)
 metrics = metrics_mgr(gt_data, det_data)
 
 coco_metrics = metrics["juneberry.metrics.metrics.Coco"]

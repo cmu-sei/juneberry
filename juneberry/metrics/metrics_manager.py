@@ -26,11 +26,12 @@ import json
 import logging
 from pathlib import Path
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import brambox as bb
 
 from juneberry.config import coco_utils
+from juneberry.config.model import Metrics
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
 
@@ -53,7 +54,7 @@ class MetricsManager:
             self.metrics = None
             self.formatter = None
 
-    def __init__(self, config: list, opt_args: dict = None) -> None:
+    def __init__(self, config: List[Metrics], opt_args: dict = None) -> None:
         """
         Create a metrics plugin instance for each entry in the config.
         :param config: list of metrics plugins from the config file
@@ -64,22 +65,14 @@ class MetricsManager:
         # For each metrics plugin entry in the config, instantiate a metrics plugin object
         # (and associated formatter, if given) and add to the list of metrics
         for i in config:
-            if "fqcn" not in i:
-                logger.error(f"Metrics entry does not have required key 'fqcn' {i}")
-                sys.exit(-1)
-
             # Create a metrics plugin for each entry in the config
-            entry = MetricsManager.Entry(i["fqcn"], i.get("kwargs", None))
+            entry = MetricsManager.Entry(i.fqcn, i.kwargs)
             logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
             entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
 
-            # If a formatter exists for this entry, create it
-            if "formatter" in i:
-                if "fqcn" not in i["formatter"]:
-                    logger.error(f"Metrics Formatter entry does not have required key 'fqcn' {i['formatter']}")
-                    sys.exit(-1)
-                formatter_fqcn = i["formatter"]["fqcn"]
-                formatter_kwargs = i["formatter"].get("kwargs", None)
+            if i.formatter:
+                formatter_fqcn = i.formatter.fqcn
+                formatter_kwargs = i.formatter.kwargs
                 entry.formatter = loader.construct_instance(formatter_fqcn, formatter_kwargs)
 
             self.config.append(entry)
