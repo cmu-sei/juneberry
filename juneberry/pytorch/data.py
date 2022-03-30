@@ -85,14 +85,14 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     """
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing TRAINING data loader.")
-    data_loader = make_data_loader(lab.profile, ds_cfg, data_lst,
+    data_loader = make_data_loader(lab, ds_cfg, data_lst,
                                    make_transform_manager(model_cfg, ds_cfg, len(data_lst), opt_args, False),
                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn,
                                    sampler_args=sampler_args)
 
     logger.info("Constructing VALIDATION data loader.")
     opt_args = {'path_label_list': list(split_lst)}
-    split_loader = make_data_loader(lab.profile, ds_cfg, split_lst,
+    split_loader = make_data_loader(lab, ds_cfg, split_lst,
                                     make_transform_manager(model_cfg, ds_cfg, len(split_lst), opt_args, True),
                                     model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn)
 
