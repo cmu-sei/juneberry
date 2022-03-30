@@ -32,6 +32,7 @@ from typing import Any, Dict, List, Tuple
 import brambox as bb
 from pandas import DataFrame
 
+from juneberry.config import coco_utils
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
 
@@ -154,44 +155,6 @@ class MetricsManager:
             # and det_file both exist for this call.
             det_df = bb.io.load("det_coco",
                                 det_file.name,
-                                class_label_map=MetricsManager._get_class_label_map(anno_file.name))
+                                class_label_map=coco_utils.get_class_label_map(anno_file.name))
             return anno_df, det_df
 
-    @staticmethod
-    def _get_class_label_map(anno_file: str) -> List[str]:
-        """
-        This function is responsible for retrieving the class label map from the annotations file.
-        The class label map is used to convert the values in the class_label column of the
-        detections Dataframe from integers into strings.
-        :param anno_file: The annotations file containing the class label information.
-        :return: A List of str containing the classes for each integer label.
-        """
-
-        # Open the annotation file and retrieve the information in the
-        # categories field.
-        with open(anno_file) as json_file:
-            categories = json.load(json_file)["categories"]
-
-        # Create an ID list, which contains every integer value that appears
-        # as a category in the annotations file.
-        id_list = []
-        for category in categories:
-            id_list.append(category["id"])
-
-        # Set up the class label map such that there is one entry for every
-        # possible integer, even if the integer does not appear as a category
-        # in the annotations file.
-        class_label_map = [None] * (max(id_list) + 1)
-
-        # For the categories that appear in the annotations file, fill in the
-        # appropriate entry of the class label map using the string for that
-        # integer.
-        for category in categories:
-            class_label_map[category["id"]] = category["name"]
-
-        # Brambox expects the first item in the class label map to be for
-        # label 1, so take the first item (label 0) and move it to the end of
-        # the class label map.
-        class_label_map.append(class_label_map.pop(0))
-
-        return class_label_map
