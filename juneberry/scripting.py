@@ -118,7 +118,7 @@ def setup_args(parser) -> None:
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Verbose flag that will log DEBUG messages. Default is off.')
     parser.add_argument('-p', '--profileName', type=str, default=None,
-                        help='The name of the host profile.')
+                        help='The name of the lab profile.')
     parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
                         help="Directory where the log file will be saved. Default is the current working directory.")
 

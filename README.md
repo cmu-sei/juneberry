@@ -1,7 +1,6 @@
 README
 ==========
 
-
 # Introduction
 
 Juneberry improves the experience of machine learning experimentation by providing a framework for automating 
@@ -29,6 +28,10 @@ the structure of the Juneberry workspace and how to organize experiments.
 The [Juneberry Basic Tutorial](docs/tutorial.md) describes how to create a model, train the model, 
 and run an experiment.
 
+## Configuring Juneberry
+
+The [Juneberry Configuraton Guide](docs/configuring.md) describes the various ways that Juneberry can be configurted.
+
 ## Known Warnings
 
 During normal use of Juneberry, you may encounter warning messages. The
@@ -41,15 +44,6 @@ The [vignettes](docs/vignettes) directory contains detailed walkthroughs of vari
 The vignettes provide helpful examples of how to construct various Juneberry configuration files, 
 including datasets, models, and experiments. A good start is 
 [Replicating a Classic Machine Learning Result with Juneberry](docs/vignettes/vignette1/Replicating_a_Classic_Machine_Learning_Result_with_Juneberry.md).
-
-# Special Configuration Variables
-
-## JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD
-
-When this environment variable is set, the `torch.cuda.memory_summary()` will appear during training after 
-the model is loaded and again after the specified period of epochs starting at epoch one.  
-In other words, if JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD is set to 10, the memory summary will be emitted 
-after model load and again after epochs 1, 11, 21, 31, etc.
 
 # Copyright
 
