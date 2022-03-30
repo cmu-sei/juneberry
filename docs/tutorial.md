@@ -128,11 +128,11 @@ This example command adheres to the following structure:
 jb_plot_roc -f [prediction file path] -p [classes] [output location]
 ```
 
-The `-f` switch indicates which predictions file the data should come from. The `-p` switch indicates 
+The `-f` switch indicates which predictions file the data should come from. The `-c` switch indicates 
 integer labels of the classes to include on the plot. The `myplot.png` indicates the filename to use when 
 saving the plot. It is possible to plot data from multiple predictions files 
 on the same plot. To do so, simply add another `-f` switch and the desired file, along with another 
-`-p` switch with the desired class integers.
+`-c` switch with the desired class integers.
 
 # Step 6 - Building experiments
 
