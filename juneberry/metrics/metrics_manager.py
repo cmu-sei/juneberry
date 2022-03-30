@@ -89,8 +89,8 @@ class MetricsManager:
     def __call__(self, anno: Dict, det: Dict) -> Dict[str, Any]:
         """
         Compute metrics given annotations and detections in dicts.
-        :param anno_file: Annotations dict
-        :param det_file: Detections dict
+        :param anno: Annotations dict in COCO format
+        :param det: Detections dict in COCO format
         :return: the metrics calculations in a dict
         """
         if not anno:
