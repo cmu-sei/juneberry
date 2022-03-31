@@ -25,8 +25,8 @@
 import argparse
 import logging
 from pathlib import Path
-from typing import List
 
+from juneberry.config.model import Metrics
 import juneberry.filesystem as jbfs
 import juneberry.metrics.metrics_manager as metrics_manager
 from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
@@ -84,15 +84,15 @@ def main():
 
     stats_fqcn = "juneberry.metrics.metrics.Stats"
 
-    mm = metrics_manager.MetricsManager([
-        {
-            "fqcn": stats_fqcn,
-            "kwargs": {
-                "iou_threshold": args.iou,
-                "tp_threshold": 0.8
-            }
+    metrics_config = Metrics.from_dict({
+        "fqcn": stats_fqcn,
+        "kwargs": {
+            "iou_threshold": args.iou,
+            "tp_threshold": 0.8
         }
-    ])
+    })
+
+    mm = metrics_manager.MetricsManager([metrics_config])
 
     for idx, val in enumerate(args.model):
         model_mgr = jbfs.ModelManager(args.model[idx])
