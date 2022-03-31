@@ -54,6 +54,9 @@ class Coco:
         self.max_det = max_det
         self.tqdm = tqdm
 
+    # TODO switch this to take dicts and then convert to dataframes
+    # We'd like to hide our use of dataframes (Brambox needs them) and have
+    # the user deal with vanilla dicts or numpy
     def __call__(self, anno: DataFrame, det: DataFrame):
         self.coco = bb.eval.COCO(det, anno, max_det=self.max_det, tqdm=self.tqdm)
         return self.get_metrics()
@@ -97,6 +100,7 @@ class Tide:
         self.bg_thresh = bg_thresh
         self.tqdm = tqdm
 
+    # TODO switch this to take dicts and then convert to dataframes
     def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
         self.tide = bb.eval.TIDE(det,
                                  anno,
@@ -125,6 +129,7 @@ class Stats:
         self.iou_threshold = iou_threshold
         self.tp_threshold = tp_threshold
 
+    # TODO switch this to take dicts and then convert to dataframes
     def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
         self.anno = anno
         self.det = det

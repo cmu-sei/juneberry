@@ -87,6 +87,9 @@ class MetricsManager:
 
         results = {}
 
+        # TODO instead of calling get_df() and passing a dataframe to the metrics plugin,
+        # send the dict instead and let the plugin convert it to a dataframe for the brambox call
+
         anno_parser = bb.io.parser.annotation.CocoParser(parse_image_names=False)
         anno_parser.deserialize(json.dumps(anno))
         anno_df = anno_parser.get_df()
