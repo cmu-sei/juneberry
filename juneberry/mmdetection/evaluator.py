@@ -50,7 +50,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram, populate_metrics
+from juneberry.evaluation.utils import get_histogram, get_metrics
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
@@ -260,12 +260,14 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        populate_metrics(self.model_config, self.eval_dir_mgr, self.output)
-
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
 
         # TODO: Add some samples. Refactor the code out of DT2.
 
+    def populate_metrics(self) -> None:
+        metrics = get_metrics(self.model_config, self.eval_dir_mgr)["juneberry.metrics.metrics.Coco"]
+        self.output.results.metrics.bbox = metrics["bbox"]
+        self.output.results.metrics.bbox_per_class = metrics["bbox_per_class"]
 
 def make_coco_annotations(input_anno, outputs, category_list):
     # Inputs are the images from the input set.

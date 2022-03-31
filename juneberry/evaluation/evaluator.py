@@ -214,6 +214,13 @@ class EvaluatorBase:
         """
         pass
 
+    def populate_metrics(self) -> None:
+        """
+        The intent of this extension point is to populate the evaluation output with metrics.
+        :return: Nothing
+        """
+        pass
+
     def perform_evaluation(self) -> None:
         """
         The order in which the extension points are called is described here. After setup occurs, the
@@ -235,6 +242,8 @@ class EvaluatorBase:
         self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
 
         self.evaluate_data()
+
+        self.populate_metrics()
 
         # Record the time the evaluation ended.
         self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)

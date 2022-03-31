@@ -27,6 +27,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
+from typing import Dict
 
 import torch
 from tqdm import tqdm
@@ -209,19 +210,15 @@ def invoke_evaluator_method(evaluator, module_name: str):
     jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
-def populate_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr,
-                     eval_output: EvaluationOutput) -> None:
+def get_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr) -> Dict:
     """
-    Calculate metrics and populate the output results.
+    Calculate metrics and return the result.
     :param model_config: The Juneberry ModelConfig that lists the metrics plugins to be called.
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to get data for metrics.
-    :param eval_output: The Juneberry EvaluationOutput that will be populated with metrics.
     :return: None
     """
     metrics_mgr = MetricsManager(model_config.evaluation_metrics)
-    coco_metrics = metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)["juneberry.metrics.metrics.Coco"]
-    eval_output.results.metrics.bbox = coco_metrics["bbox"]
-    eval_output.results.metrics.bbox_per_class = coco_metrics["bbox_per_class"]
+    return metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)
 
 
 def prepare_classification_eval_output(evaluator: Evaluator):
