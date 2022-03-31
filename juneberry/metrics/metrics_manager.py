@@ -25,7 +25,6 @@
 import json
 import logging
 from pathlib import Path
-import sys
 from typing import Any, Dict, List
 
 import brambox as bb
@@ -35,12 +34,10 @@ from juneberry.config.model import Metrics
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
 
-
 logger = logging.getLogger(__name__)
 
 
 class MetricsManager:
-
     class Entry:
         """
         Contains the data for each metrics entry in the config.
@@ -48,6 +45,7 @@ class MetricsManager:
         :param kwargs: The keyword args given with this entry.
         :return: None
         """
+
         def __init__(self, fqcn: str, kwargs: dict = None) -> None:
             self.fqcn = fqcn
             self.kwargs = kwargs
@@ -57,8 +55,9 @@ class MetricsManager:
     def __init__(self, config: List[Metrics], opt_args: dict = None) -> None:
         """
         Create a metrics plugin instance for each entry in the config.
-        :param config: list of metrics plugins from the config file
+        :param config: list of Metrics plugin entries usually from a config file
         :param opt_args: optional arguments passed to this metrics manager
+        :return: None
         """
         self.config = []
 
@@ -71,9 +70,7 @@ class MetricsManager:
             entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
 
             if i.formatter:
-                formatter_fqcn = i.formatter.fqcn
-                formatter_kwargs = i.formatter.kwargs
-                entry.formatter = loader.construct_instance(formatter_fqcn, formatter_kwargs)
+                entry.formatter = loader.construct_instance(i.formatter.fqcn, i.formatter.kwargs)
 
             self.config.append(entry)
 

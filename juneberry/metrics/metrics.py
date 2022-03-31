@@ -63,11 +63,11 @@ class Coco:
         Get the metrics.
         :return: the metrics
         """
-        map = self.coco.mAP.to_dict()
+        mAP = self.coco.mAP.to_dict()
         ap_50 = self.coco.AP_50.to_dict()
         ap_75 = self.coco.AP_75.to_dict()
         # Use '|' operator when we upgrade to Python 3.9
-        return {**map, **ap_50, **ap_75}
+        return {**mAP, **ap_50, **ap_75}
 
 
 class Tide:
