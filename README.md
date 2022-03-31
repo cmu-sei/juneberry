@@ -30,7 +30,7 @@ and run an experiment.
 
 ## Configuring Juneberry
 
-The [Juneberry Configuraton Guide](docs/configuring.md) describes the various ways that Juneberry can be configurted.
+The [Juneberry Configuration Guide](docs/configuring.md) describes various ways to configure Juneberry.
 
 ## Known Warnings
 

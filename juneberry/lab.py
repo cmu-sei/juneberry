@@ -28,8 +28,8 @@ from pathlib import Path
 import sys
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.model import ModelConfig
 from juneberry.config.lab_profile import LabProfile
+from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
@@ -38,14 +38,15 @@ logger = logging.getLogger(__name__)
 class Lab:
     """
     Class which represents a "Laboratory" for performing experiments.  It contains local execution
-    specific values as paths to workspaces, data roots, output directories, and host specifics.
+    specific values as paths to workspaces, data roots, output directories, and other host specific
+    information.
     """
 
     def __init__(self, *, workspace='.', data_root='.', tensorboard=None, profile_name="default"):
-        # We expose these as direct attributes
+        # We expose these as direct attributes.
         self.tensorboard = Path(tensorboard) if tensorboard is not None else None
 
-        # Where we store host specific information
+        # Where we store host specific information.
         self.profile_name = profile_name
 
         # We store multiple workspaces and data_roots so we can search them.  The first one is
@@ -84,8 +85,8 @@ class Lab:
         if tensorboard is not None:
             errors += Lab.check_path(tensorboard, "tensorboard directory")
 
-        # Try to load the machine section from the workspace config
-        # TODO once machine class is finished
+        # Try to load the lab profile from the workspace config
+        # TODO once lab profile is finished
 
         if errors > 0:
             logger.error(f"Identified {errors} configuration errors. See log for details. Exiting.")

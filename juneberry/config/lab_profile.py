@@ -23,11 +23,11 @@
 # ======================================================================================================================
 
 import logging
-import sys
-import re
 import os
-from prodict import Prodict
 from pathlib import Path
+from prodict import Prodict
+import re
+import sys
 
 import juneberry.filesystem as jbfs
 
@@ -65,7 +65,7 @@ class LabProfile(Prodict):
 
     # This is the Prodict init method to set default values
     def init(self):
-        # For most platform 4 is a reasonable default
+        # For most platforms, 4 is a reasonable default
         self.num_workers = 4
         self.no_paging = False
 
@@ -130,7 +130,7 @@ class LabProfile(Prodict):
                         error_count += 1
 
         if error_count > 0:
-            logger.error(f"Found {error_count} errors in workspace config. EXITING.")
+            logger.error(f"Found {error_count} errors in workspace config. Exiting.")
             if test:
                 return False
             else:
@@ -141,7 +141,7 @@ class LabProfile(Prodict):
 
     @staticmethod
     def load_file(path):
-        # Load the workspace config file, if  it exists
+        # Load the workspace config file, if it exists.
         if Path(path).exists():
             return jbfs.load_file(path)
         else:

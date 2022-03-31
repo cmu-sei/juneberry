@@ -190,7 +190,7 @@ def main():
 
         if lab.profile.max_gpus is not None:
             if trainer.num_gpus > lab.profile.max_gpus:
-                logger.info(f"Maximum numbers of gpus {trainer.num_gpus} being capped to {lab.profile.max_gpus} "
+                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to {lab.profile.max_gpus} "
                             f"because of lab profile.")
                 trainer.num_gpus = lab.profile.max_gpus
 

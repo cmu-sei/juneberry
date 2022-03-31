@@ -46,8 +46,7 @@ def make_sample_workspace_config(config_path):
             "od": {
                 "num_workers": 16
             }
-        }
-        ,
+        },
         "gpu10": {
             "default": {
                 "num_workers": 8
@@ -115,4 +114,3 @@ def test_lab_profile_load(tmp_path):
     ws_specs = LabProfile.load(data_path=config_path, profile_name="gpu10", model_name="object_det_vers3")
     assert ws_specs['num_workers'] == 16
     assert ws_specs['num_gpus'] == 12
-
