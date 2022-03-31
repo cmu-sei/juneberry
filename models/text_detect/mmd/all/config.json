@@ -2,6 +2,21 @@
     "batch_size": 4,
     "description": "Trains an object detector with MMDetection using the Sample TextDetection data set.",
     "epochs": 15,
+    "evaluation_metrics": [
+        {
+            "fqcn": "juneberry.metrics.metrics.Coco",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "max_det": 100,
+                "tqdm": false
+            },
+            "formatter": {
+                "fqcn": "juneberry.metrics.format.Coco",
+                "kwargs": {
+                }
+            }
+        }
+    ],
     "evaluation_transforms": [],
     "evaluator": {
         "fqcn": "juneberry.mmdetection.evaluator.Evaluator"
