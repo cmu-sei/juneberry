@@ -50,7 +50,7 @@ class LabProfile(Prodict):
         """
         error_count = 0
 
-        # Check that the number of gpus doesn't exceed the number of cuda visible devices
+        # Check that the number of GPUs doesn't exceed the number of cuda visible devices
         visible_gpus = os.environ.get('CUDA_VISIBLE_DEVICES')
         if visible_gpus is not None:
             visible_gpus = visible_gpus.count(",") + 1
@@ -60,7 +60,7 @@ class LabProfile(Prodict):
 
         # If errors found, report and exit
         if error_count > 0:
-            logger.error(f"Found {error_count} errors in machine specs. EXITING.")
+            logger.error(f"Found {error_count} errors in lab profile. Exiting.")
             sys.exit(-1)
 
     # This is the Prodict init method to set default values
