@@ -38,7 +38,6 @@ from juneberry.trainer import EpochTrainer
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
-import juneberry.scripting as jbscripting
 from juneberry.lab import Lab
 
 import test_data_set

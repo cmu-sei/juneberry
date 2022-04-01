@@ -33,7 +33,7 @@ class MockArgs:
         self.workspace = None
         self.dataRoot = None
         self.tensorboard = None
-        self.machineClass = None
+        self.profileName = None
 
 
 def test_defaults():
@@ -41,7 +41,7 @@ def test_defaults():
     assert vals['workspace'] == "/foo"
     assert vals['data_root'] == "/dataroot"
     assert vals['tensorboard'] == "/tensorboard"
-    assert vals['machine_class'] == "default"
+    assert vals['profile_name'] == "default"
 
 
 def test_resolve_lab_args_ws():
@@ -60,7 +60,7 @@ def test_resolve_lab_args_ws():
     assert vals['workspace'] == "/fakeroot/ws"
     assert vals['data_root'] == "/fakeroot/dataroot"
     assert vals['tensorboard'] == "/fakeroot/tensorboard"
-    assert vals['machine_class'] == "default"
+    assert vals['profile_name'] == "default"
 
     # Reset the environ so we don't impact other tests
     os.environ = orig.copy()
@@ -79,7 +79,7 @@ def test_env_variables():
     assert vals['workspace'] == str((Path.cwd() / "js_ws").absolute())
     assert vals['data_root'] == str((Path.cwd() / "js_dr").absolute())
     assert vals['tensorboard'] == str((Path.cwd() / "js_tb").absolute())
-    assert vals['machine_class'] == "prof_name"
+    assert vals['profile_name'] == "prof_name"
 
     # Reset the environ so we don't impact other tests
     os.environ = orig.copy()
@@ -99,7 +99,7 @@ def test_overrides():
     assert vals['workspace'] == "/fakeroot/ws"
     assert vals['data_root'] == "/some/hardcoded/path"
     assert vals['tensorboard'] == "/fakeroot/tensorboard"
-    assert vals['machine_class'] == "default"
+    assert vals['profile_name'] == "default"
 
     # Reset the environ so we don't impact other tests
     os.environ = orig.copy()

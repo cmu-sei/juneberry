@@ -120,12 +120,12 @@ how to plot the ROC data for particular labels in a predictions file.
 ```
 jb_plot_roc 
    -f models/imagenette_160x160_rgb_unit_test_pyt_resnet18/predictions_imagenette_unit_test.json 
-   -p "0,217,482,491,497,566,569,571,574,701" 
+   -c "0,217,482,491,497,566,569,571,574,701" 
    models/imagenette_160x160_rgb_unit_test_pyt_resnet18/myplot.png
 ```
 This example command adheres to the following structure:
 ```
-jb_plot_roc -f [prediction file path] -p [classes] [output location]
+jb_plot_roc -f [prediction file path] -c [classes] [output location]
 ```
 
 The `-f` switch indicates which predictions file the data should come from. The `-c` switch indicates 

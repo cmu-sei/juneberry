@@ -36,7 +36,7 @@
 # JUNEBERRY_CACHE           - Path to a cache to store downloads
 # JUNEBERRY_CONTAINER       - The name of the container to run
 # JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, IDs for specific ones.
-# JUNEBERRY_PROFILE_NAME   - The profile name
+# JUNEBERRY_PROFILE_NAME    - The profile name
 
 # === Lab Layout ===
 LAB=${PWD}
@@ -57,8 +57,8 @@ CACHE=${LAB}/cache
 # Under normal conditions (train/eval) Juneberry will NOT need to change the data.
 DATA_ROOT_MODE=":ro"
 
-# By default the machine class Juneberry uses is "default"
-MACHINE_CLASS="default"
+# By default, Juneberry will use the "default" PROFILE_NAME
+PROFILE_NAME="default"
 
 # The 'cpudev' container is used by default. The 'cudadev' container is one alternative that can be used.
 # If 'cudadev' is chosen, one should adjust the number of GPUs used (GPUS or JUNEBERRY_GPUS).
@@ -93,7 +93,7 @@ if [ ! -z ${JUNEBERRY_TENSORBOARD} ]; then TENSORBOARD=${JUNEBERRY_TENSORBOARD};
 if [ ! -z ${JUNEBERRY_CACHE} ]; then CACHE=${JUNEBERRY_CACHE}; fi
 if [ ! -z ${JUNEBERRY_CONTAINER} ]; then CONTAINER=${JUNEBERRY_CONTAINER}; fi
 if [ ! -z ${JUNEBERRY_GPUS} ]; then GPUS=${JUNEBERRY_GPUS}; fi
-if [ ! -z ${JUNEBERRY_PROFILE_NAME} ]; then MACHINE_CLASS=${JUNEBERRY_PROFILE_NAME}; fi
+if [ ! -z ${JUNEBERRY_PROFILE_NAME} ]; then PROFILE_NAME=${JUNEBERRY_PROFILE_NAME}; fi
 
 # ==================================================================================================
 

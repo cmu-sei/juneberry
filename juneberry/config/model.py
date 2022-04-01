@@ -31,8 +31,8 @@ import random
 import sys
 import typing
 
-from juneberry.config.lab_profile import LabProfile
 import juneberry.config.util as conf_utils
+from juneberry.config.workspace import LabProfile
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)

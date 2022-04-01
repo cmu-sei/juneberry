@@ -325,8 +325,9 @@ Linux style version of the **format** of the file. Not the version of
 the data, but the version of the semantics of the fields of this file. 
 The current version: 0.2.0
 
-## lab_profle
-Specific limits for this model. See the workspace config for details.
+## lab_profile
+Specific limits for this model. Refer to the workspace config section in 
+[configuring.md](../configuring.md#workspace-config) for details.
 
 ## label_mapping
 **Optional:** This field contains the integer class labels that the model is aware of and how those integers 
