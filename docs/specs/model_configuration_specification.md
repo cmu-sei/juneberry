@@ -200,6 +200,66 @@ model is loaded, but before Juneberry adjusts for batch size, solver, etc. and b
 ## epochs
 The number of epochs to train.
 
+## evaluation_metrics
+This section contains a list of Plugins that compute metrics on the evaluation results. Each plugin follows the general
+schema for a Plugin as described above. In addition, a Metrics plugin supports an optional field, `formatter.` The
+value of this field is itself a Plugin that is responsible for formatting the Metrics plugin's output if desired.
+An example of a Metrics plugin list is:
+
+```json
+{
+    "evaluation_metrics": [
+        {
+            "fqcn": "juneberry.metrics.metrics.Coco",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "max_det": 100,
+                "tqdm": false
+            },
+            "formatter": {
+                "fqcn": "juneberry.metrics.format.Coco",
+                "kwargs": {
+                }
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.metrics.Tide",
+            "kwargs": {
+                "pos_thresh": 0.5,
+                "bg_thresh": 0.5,
+                "max_det": 100,
+                "area_range_min": 0,
+                "area_range_max": 100000,
+                "tqdm": false
+            }
+        }
+    ]
+}
+```
+Note that the `juneberry.metrics.metrics.Coco` plugin configuration contains the optional `formatter` field.
+The results from that plugin will be passed through the `juneberry.metrics.format.Coco` formatter. The
+`juneberry.metrics.metrics.Tide` plugin configuration does not specify a formatter. The results from that plugin
+will be output as-is without further formatting.
+
+The result of the Metrics plugin calls is of the type Dict[Dict]. The keys of the result are the fully-qualified
+class names of the Metrics plugins. The value for each key of the result is a Python Dict containing the metrics
+produced by that plugin. For example:
+
+```
+{
+    "juneberry.metrics.metrics.Coco": {
+        "mAP": 0.375,
+        "mAP_small: 0.526
+    },
+    "juneberry.metrics.metrics.Tide": {
+        "mdAP_localisation: 0.755",
+        "mdAP_fp: 0.082
+    }
+}
+```
+
+Generally, this dict will be output to a JSON file (e.g. `metrics.json`) by Juneberry.
+
 ## evaluation_transforms
 This section contains a **chain** of transforms to be applied to data during validation
 or testing.
