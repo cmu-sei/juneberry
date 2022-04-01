@@ -31,7 +31,7 @@ from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.lab_profile import LabProfile
+from juneberry.config.workspace import LabProfile
 from juneberry.detectron2.evaluator import Evaluator as Detectron2Evaluator
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import create_evaluator

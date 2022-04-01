@@ -1,0 +1,27 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "description": "A configuration for the workspace",
+    "properties": {
+        "profiles": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "include": {"type": "string"},
+                    "model": {"type": "string"},
+                    "name": {"type": "string"},
+                    "profile": {
+                        "type": "object",
+                        "properties": {
+                            "max_gpus": {"type": "integer"},
+                            "no_paging": {"type": "boolean"},
+                            "num_gpus": {"type": "integer"},
+                            "num_workers": {"type": "integer"}
+                        }
+                    }
+                },
+                "required": ["model", "name", "profile"]
+            }
+        }
+    }
+}

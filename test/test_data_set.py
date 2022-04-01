@@ -32,7 +32,7 @@ import torch.utils.data.dataloader
 from juneberry.config.dataset import DatasetConfigBuilder
 from juneberry.config.dataset import DatasetConfig, DataType, TaskType, SamplingAlgo
 from juneberry.config.model import ModelConfig
-from juneberry.config.lab_profile import LabProfile
+from juneberry.config.workspace import LabProfile
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 

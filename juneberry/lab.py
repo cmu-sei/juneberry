@@ -29,7 +29,7 @@ import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.lab_profile import LabProfile
+from juneberry.config.workspace import WorkspaceConfig, LabProfile
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,8 @@ class Lab:
         self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
         self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
 
-        # Start off with a machine default workspace.
+        # A place to store the workspace config and the
+        self.ws_config = WorkspaceConfig.load()
         self.profile: LabProfile
         self.profile = LabProfile()
 
@@ -161,10 +162,7 @@ class Lab:
         :param ws_key: The workspace to use to load.
         :return: A LabProfile object containing execution specifications.
         """
-        profile_name = self.profile_name
-        config_path = Path(self.workspace(ws_key)) / 'config.json'
-        lab_profile = LabProfile.load(data_path=str(config_path), profile_name=profile_name, model_name=model_name)
-        return lab_profile
+        return self.ws_config.get_profile(self.profile_name, model_name)
 
     def save_model_config(self, model_config, model_name, model_version=None, ws_key='default'):
         mm = self.model_manager(model_name, model_version)
