@@ -210,7 +210,7 @@ class RuleMaker:
 
             command.append('-f')
             command.append(predictions_file)
-            command.append('-p')
+            command.append('-c')
             if test.classes:
                 command.append(test.classes)
             else:

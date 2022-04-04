@@ -190,8 +190,7 @@ class Detectron2Trainer(Trainer):
         if self.num_gpus == 0:
             cfg.MODEL.DEVICE = "cpu"
 
-        # TODO: update call site
-        cfg.DATALOADER.NUM_WORKERS = self.lab.load_machine_specs(self.model_manager.model_name)['num_workers']
+        cfg.DATALOADER.NUM_WORKERS = self.lab.profile.num_workers
 
         # =====================================================================
         # In JB the user specifies the number of epochs. An epoch is ONE complete pass through the data

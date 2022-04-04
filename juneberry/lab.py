@@ -29,7 +29,7 @@ import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.machine_specs import MachineSpecs
+from juneberry.config.workspace import LabProfile, WorkspaceConfig
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
@@ -37,22 +37,27 @@ logger = logging.getLogger(__name__)
 
 class Lab:
     """
-    Class which represents a "Laboratory" for performing experiments.  It contains local execution
-    specific values as paths to workspaces, data roots, output directories, and numbers of gpus.
+    Class which represents a "Laboratory" for performing experiments. It contains local execution
+    specific values, such as paths to workspaces, data roots, output directories, and other host-specific
+    information.
     """
 
-    def __init__(self, *, workspace='.', data_root='.', tensorboard=None, num_gpus=0, num_workers=4,
-                 machine_class=None):
-        # We expose these as direct attributes
+    def __init__(self, *, workspace='.', data_root='.', tensorboard=None, profile_name="default"):
+        # We expose these as direct attributes.
         self.tensorboard = Path(tensorboard) if tensorboard is not None else None
-        self.num_gpus = num_gpus
-        self.num_workers = num_workers
-        self.machine_class = machine_class
+
+        # Where we store host specific information.
+        self.profile_name = profile_name
 
         # We store multiple workspaces and data_roots so we can search them.  The first one is
         # always the default.
         self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
         self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
+
+        # A place to store the workspace config and the profile.
+        self.ws_config = WorkspaceConfig.load()
+        self.profile: LabProfile
+        self.profile = LabProfile()
 
     @staticmethod
     def check_path(path, label):
@@ -64,7 +69,7 @@ class Lab:
             return 0
 
     @staticmethod
-    def validate_args(workspace: str, data_root: str, tensorboard: str, machine_class: str) -> None:
+    def validate_args(workspace: str, data_root: str, tensorboard: str, profile_name: str) -> None:
         """
         Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
@@ -72,7 +77,7 @@ class Lab:
         :param workspace: The workspace
         :param data_root: The data root
         :param tensorboard: OPTIONAL: tensorboard directory
-        :param machine_class: OPTIONAL: Machine class.
+        :param profile_name: OPTIONAL: Name of the profile to use.
         :return:
         """
         errors = 0
@@ -81,17 +86,19 @@ class Lab:
         if tensorboard is not None:
             errors += Lab.check_path(tensorboard, "tensorboard directory")
 
-        # Try to load the machine section from the workspace config
-        # TODO once machine class is finished
+        # Try to load the lab profile from the workspace config
+        # TODO once lab profile is finished
 
         if errors > 0:
             logger.error(f"Identified {errors} configuration errors. See log for details. Exiting.")
             sys.exit(-1)
 
     def create_copy_from_keys(self, ws_key, dr_key):
-        return Lab(workspace=str(self.workspace(ws_key)), data_root=str(self.data_root(dr_key)),
-                   tensorboard=self.tensorboard, num_gpus=self.num_gpus, num_workers=self.num_workers,
-                   machine_class=self.machine_class)
+        # Construct a new one and copy over the profile
+        lab = Lab(workspace=str(self.workspace(ws_key)), data_root=str(self.data_root(dr_key)),
+                  tensorboard=self.tensorboard, profile_name=self.profile_name)
+        lab.profile = self.profile
+        return lab
 
     def workspace(self, ws_key='default') -> Path:
         """ :return: The path to the default workspace. """
@@ -112,6 +119,21 @@ class Lab:
         """ :return: The ModelManager for this model. """
         # return jbfs.ModelManager(self.workspace, model_name)
         return jbfs.ModelManager(model_name, model_version)
+
+    # Setup commands
+    def setup_lab_profile(self, *, model_name: str = None, model_config: ModelConfig = None) -> None:
+        """
+        When the lab is used for a specific model/model config, this adjusts the values in the
+        lab based on that model.
+        :param model_name: The name of the model.
+        :param model_config: Optional loaded model config with potential overrides.
+        :return: None
+        """
+        self.profile = self.load_lab_profile(model_name)
+        if model_config is not None and model_config.lab_profile is not None:
+            for k, v in model_config.lab_profile.items():
+                if v is not None:
+                    self.profile[k] = model_config.lab_profile[k]
 
     # Convenience loaders
 
@@ -136,16 +158,14 @@ class Lab:
         full_path = Path(self.workspace(ws_key)) / config_path
         return DatasetConfig.load(str(full_path), relative_path=full_path.parent)
 
-    def load_machine_specs(self, model_name, ws_key='default') -> MachineSpecs:
+    def load_lab_profile(self, model_name: str = None, ws_key='default') -> LabProfile:
         """
-        Finds the relevant execution specs based on machine and model class.
+        Finds the relevant lab profile based on lab's profile name and optional model name class.
         :param model_name: The model name.
         :param ws_key: The workspace to use to load.
-        :return: A MachineSpecs object containing execution specifications.
+        :return: A LabProfile object containing execution specifications.
         """
-        machine_class = self.machine_class
-        machine_config_path = Path(self.workspace(ws_key)) / 'config.json'
-        return MachineSpecs.load(data_path=str(machine_config_path), machine_class=machine_class, model_name=model_name)
+        return self.ws_config.get_profile(self.profile_name, model_name)
 
     def save_model_config(self, model_config, model_name, model_version=None, ws_key='default'):
         mm = self.model_manager(model_name, model_version)
@@ -173,6 +193,5 @@ class Lab:
         return f'{{"workspace"="{self.workspace()}", ' \
                f'"data_root"="{self.data_root()}", ' \
                f'"tensorboard"="{self.tensorboard}", ' \
-               f'"num_gpus"={self.num_gpus}, ' \
-               f'"num_workers"={self.num_workers}, ' \
-               f'"machine_class"={self.machine_class}}}'
+               f'"profile_name"={self.profile_name}' \
+               f'"profile"={self.profile}}}'

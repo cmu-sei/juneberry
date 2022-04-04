@@ -24,7 +24,6 @@
 
 from collections import namedtuple
 from enum import Enum
-import json
 import logging
 from pathlib import Path
 from prodict import List, Prodict
@@ -33,8 +32,8 @@ import sys
 import typing
 
 import juneberry.config.util as conf_utils
+from juneberry.config.workspace import LabProfile
 import juneberry.filesystem as jbfs
-# import juneberry.version_system as jbvs
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +150,7 @@ class ModelConfig(Prodict):
     evaluator: Plugin
     file_path: Path
     format_version: str
+    lab_profile: LabProfile
     label_mapping: typing.Union[Prodict, str]
     # TODO: Define mmdetection
     mmdetection: Prodict
@@ -175,7 +175,6 @@ class ModelConfig(Prodict):
         """
         This is NOT init. This is a similar method called by Prodict to set defaults
         on values BEFORE to_dict is called.
-        :param file_path: Optional - string indicating the model config file used to construct the object.
         """
         self.task = "classification"
 

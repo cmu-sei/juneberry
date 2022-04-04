@@ -34,6 +34,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
     }
     "format_version": <Linux style version string of the format of this file>,
+    "lab_profile": <Specific host settings or limits relevant to this model.>
     "label_mapping": <OPTIONAL: A dictionary or filepath to a JSON file containing a dictionary which translates
                      the integer class numbers the model is aware of into human-readable strings.>,
     "mmdetection": {
@@ -323,6 +324,10 @@ refer to juneberry.onnx.onnx_model_zoo.faster_rcnn.Evaluator.
 Linux style version of the **format** of the file. Not the version of 
 the data, but the version of the semantics of the fields of this file. 
 The current version: 0.2.0
+
+## lab_profile
+Specific limits for this model. Refer to the workspace config section in 
+[configuring.md](../configuring.md#workspace-config) for details.
 
 ## label_mapping
 **Optional:** This field contains the integer class labels that the model is aware of and how those integers 

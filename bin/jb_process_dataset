@@ -382,8 +382,7 @@ def process_dataset(lab: Lab, ds_cfg: DatasetConfig, output_data_root: str, outp
             processor = PyTorchClassificationImageProcessor(lab, ds_cfg, output_data_root, output_dir, names,
                                                             model_cfg=model_cfg)
     elif ds_cfg.data_type == jb_dataset.DataType.TENSORFLOW:
-        processor = TFDSProcessor(lab, ds_cfg, output_data_root, output_dir, names,
-                                  model_cfg=model_cfg)
+        processor = TFDSProcessor(lab, ds_cfg, output_data_root, output_dir, names, model_cfg=model_cfg)
 
     if processor is not None:
         if dryrun:
@@ -452,8 +451,11 @@ def main():
     if args.model is not None:
         model_cfg = ModelConfig.load(args.model)
 
+    # Now, set up the lab profile so we get all the gnarly bits.
+    lab.setup_lab_profile(model_name=args.model, model_config=model_cfg)
+
     # Kick it off
-    process_dataset(lab, ds_cfg, lab.data_root(), args.output_dir, args.names,
+    process_dataset(lab, ds_cfg, str(lab.data_root()), args.output_dir, args.names,
                     model_cfg=model_cfg, dryrun=args.dryrun)
 
     logger.info(f"jb_process_dataset is done.")

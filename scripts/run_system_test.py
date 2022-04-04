@@ -82,7 +82,7 @@ OD_GPU_TEST_SET = [
         "data_sets/text_detect_val.json",
         # Single GPU (0.34), 2 GPU (0.27), 4 GPU (0.31)
         # This number came from 2 A100 gpus
-        0.19,
+        0.18,
         #  Single GPU (0.004), 2 GPU (0.003), 4 GPU (0.004)
         0.00003
     ],

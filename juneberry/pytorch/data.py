@@ -53,19 +53,19 @@ logger = logging.getLogger(__name__)
 
 
 def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
-                           opt_args: dict, eval: bool = False):
+                           opt_args: dict, eval_bool: bool = False):
     """
     Constructs the appropriate transform manager for the this data.
     :param model_cfg: The model config.
-    :param ds_cfg: The datasett config.
+    :param ds_cfg: The dataset config.
     :param set_size: The size of the data set.
     :param opt_args: Optional args to pass into the construction of the plugin.
-    :param eval: Are we in train (False) or eval mode (True).
+    :param eval_bool: Are we in train (False) or eval mode (True).
     :return: Transform manager.
     """
     # Convenience to call the base on with our custom stage transform
     return jb_data.make_transform_manager(model_cfg, ds_cfg, set_size, opt_args,
-                                          pyt_utils.PyTorchStagedTransform, eval)
+                                          pyt_utils.PyTorchStagedTransform, eval_bool)
 
 
 def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
@@ -205,7 +205,7 @@ def wrap_dataset_in_dataloader(lab: Lab, dataset, batch_size, *,
     # Parameters
     params = {'batch_size': batch_size,
               'shuffle': shuffle,
-              'num_workers': lab.num_workers,
+              'num_workers': lab.profile.num_workers,
               'collate_fn': collate_fn,
               'sampler': sampler,
               'worker_init_fn': pyt_utils.worker_init_fn}
@@ -304,7 +304,7 @@ def sample_and_split(count, *, sampling_config: SamplingConfig = None, splitting
     return training_indices, validation_indices
 
 
-def construct_torchvision_dataloaders(lab, tv_data: TorchvisionData, model_config: ModelConfig,
+def construct_torchvision_dataloaders(lab: Lab, tv_data: TorchvisionData, model_config: ModelConfig,
                                       sampling_config: SamplingConfig = None,
                                       *, collate_fn=None, sampler_args=None):
     """
