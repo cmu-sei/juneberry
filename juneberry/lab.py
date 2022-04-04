@@ -131,7 +131,9 @@ class Lab:
         """
         self.profile = self.load_lab_profile(model_name)
         if model_config is not None and model_config.lab_profile is not None:
-            self.profile.update(model_config.lab_profile)
+            for k, v in model_config.lab_profile.items():
+                if v is not None:
+                    self.profile[k] = model_config.lab_profile[k]
 
     # Convenience loaders
 
