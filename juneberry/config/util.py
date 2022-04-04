@@ -36,7 +36,6 @@ import sys
 import hjson
 
 import juneberry.filesystem as jbfs
-import juneberry.utils as jb_utils
 from juneberry.utils import none_stripper
 import juneberry.version_system as jbvs
 
