@@ -30,15 +30,13 @@ import json
 import time
 import inspect
 import logging
-
 from pathlib import Path
-
-from juneberry.trainer import EpochTrainer
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
 from juneberry.lab import Lab
+from juneberry.trainer import EpochTrainer
 
 import test_data_set
 import test_model_config
@@ -264,8 +262,7 @@ def test_epoch_trainer(tmp_path):
     model_manager = jbfs.ModelManager("foo")
     lab.setup_lab_profile(model_config=model_config)
 
-    trainer = EpochTrainerHarness(lab, model_manager, model_config, data_set_config,
-                                  log_level=logging.INFO)
+    trainer = EpochTrainerHarness(lab, model_manager, model_config, data_set_config, log_level=logging.INFO)
 
     trainer.train_model(None)
     assert trainer.setup_calls == [0]

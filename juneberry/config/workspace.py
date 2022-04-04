@@ -25,10 +25,9 @@
 from collections import defaultdict
 import logging
 from pathlib import Path
+from prodict import Prodict, List
 import re
 import sys
-
-from prodict import Prodict, List
 
 import juneberry.filesystem as jbfs
 import juneberry.config.util as conf_utils
@@ -49,7 +48,7 @@ class LabProfile(Prodict):
 
 class ProfileStanza(Prodict):
     """
-    A data structure to that add a profile-name and model-name and option include to a profile entry..
+    A data structure that adds a profile-name and model-name and options to include for a profile entry.
     """
     name: str
     model: str
@@ -70,15 +69,15 @@ class WorkspaceConfig(Prodict):
         - Every include references a valid entry
         NOTE: Structure validation is handled by the schema
         :param test: Set to true to not exit.
-        :return: Boolean indicating succes
+        :return: Boolean indicating success
         """
         error_list = []
 
-        # If we don't have a profiles section, add and empty one to make the everything simpler.
+        # If we don't have a profiles section, add an empty one to make everything simpler.
         if self.profiles is None:
             self.profiles = []
 
-        # Build profile-name map checking for duplicate entries
+        # Build profile-name map, checking for duplicate entries.
         profile_model_map = defaultdict(dict)
         all_includes = []
         for entry in self.profiles:
@@ -88,13 +87,13 @@ class WorkspaceConfig(Prodict):
                 profile_model_map[entry.name][entry.model] = 1
 
             if entry.include:
-                # Make empty entries None to make it easier to process
+                # Make empty entries None to make it easier to process.
                 if len(entry.include.strip()) == 0:
                     entry.include = None
                 else:
                     all_includes.append(entry.include)
 
-        # Check that all the include exist
+        # Check that all the "includes" exist.
         for include in all_includes:
             include_pair = include.split(':')
             if len(include_pair) == 2:
@@ -103,9 +102,9 @@ class WorkspaceConfig(Prodict):
             else:
                 error_list.append(f"Improperly formatted include '{include}'. Expecting profile_name:model_name.")
 
-        # Summarize errors and exit if not in test mode
+        # Summarize errors and exit if not in test mode.
         if len(error_list) > 0:
-            err_msg = f"Found {len(error_list)} errors in workspace config from {file_path}. EXITING."
+            err_msg = f"Found {len(error_list)} errors in workspace config from {file_path}. Exiting."
             logger.error(err_msg)
             for error in error_list:
                 logger.error(f">>> {error}")
@@ -120,14 +119,14 @@ class WorkspaceConfig(Prodict):
     @staticmethod
     def construct(data: dict, file_path: str = None):
         """
-        Load, validate, and construct a WorkspaceConfig object
+        Load, validate, and construct a WorkspaceConfig object.
         :param data: The data to use to construct the object.
         :param file_path: Optional path to the file for logging.
         :return: The constructed object.
         """
         # Validate
         if not conf_utils.validate_schema(data, WorkspaceConfig.SCHEMA_NAME):
-            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING.")
+            logger.error(f"Validation errors in ModelConfig from {file_path}. See log. Exiting.")
             sys.exit(-1)
 
         # Finally, construct the object and do a final value cleanup
@@ -144,32 +143,32 @@ class WorkspaceConfig(Prodict):
         :return: None.
         """
 
-        # Walk all the entries finding the one to include. If that entry has an include, grab its
+        # Walk all the entries, finding the one to include. If that entry has an include, grab its
         # values first. Note, we do this for the entire list because we may match against multiple
         # model names, because they may have wildcards.
         for entry in self.profiles:
             if entry.name == profile_name:
                 if re.match(entry.model, model_name):
-                    # If it has an include, then include its values first
+                    # If it has an include, then include its values first.
                     if entry.include:
                         temp_machine, temp_model = entry.include.split(':')
                         self.update_properties(temp_machine, temp_model, profile_data)
 
-                    # Now add non None values
+                    # Now add non-None values.
                     print(f"update_properties adding: {profile_name}:{model_name} = {entry.profile}")
                     for k, v in entry.profile.items():
                         if v is not None:
                             profile_data[k] = v
 
-                    # Since we found a match we are done
+                    # Since we found a match, we are done.
                     return
 
     @staticmethod
     def load(data_path: str = "./config.json"):
         """
-        Loads the config from the provided path, validate and construct the config.
+        Loads the config from the provided path, validate, and construct the config.
         :param data_path: Path to config.
-        :return: Loaded, validated and constructed object.
+        :return: Loaded, validated, and constructed object.
         """
         # Load the raw file.
         logger.info(f"Loading WORKSPACE CONFIG from {data_path}")
@@ -188,7 +187,7 @@ class WorkspaceConfig(Prodict):
         :param model_name: The name of the model.
         :return: Loaded, validated, and constructed LabProfile object.
         """
-        # Build up a dict to make the aggregated lab profile object
+        # Build up a dict to make the aggregated lab profile object.
         print(f"get_profile: {profile_name}:{model_name}")
 
         profile_data = {}

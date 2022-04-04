@@ -29,7 +29,7 @@ import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.workspace import WorkspaceConfig, LabProfile
+from juneberry.config.workspace import LabProfile, WorkspaceConfig
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 
 class Lab:
     """
-    Class which represents a "Laboratory" for performing experiments.  It contains local execution
-    specific values as paths to workspaces, data roots, output directories, and other host specific
+    Class which represents a "Laboratory" for performing experiments. It contains local execution
+    specific values, such as paths to workspaces, data roots, output directories, and other host-specific
     information.
     """
 
@@ -54,7 +54,7 @@ class Lab:
         self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
         self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
 
-        # A place to store the workspace config and the
+        # A place to store the workspace config and the profile.
         self.ws_config = WorkspaceConfig.load()
         self.profile: LabProfile
         self.profile = LabProfile()

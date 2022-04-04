@@ -125,4 +125,3 @@ def validate_and_save_json(json_data: dict, data_path: str, schema_name: str) ->
 
     # Use the filesystem to figure out how to save it
     jbfs.save_json(json_data, data_path)
-
