@@ -154,20 +154,12 @@ class WorkspaceConfig(Prodict):
 
                     # Now add non None values
                     print(f"update_properties adding: {profile_name}:{model_name} = {entry.profile}")
-                    for k,v in entry.profile.items():
+                    for k, v in entry.profile.items():
                         if v is not None:
                             profile_data[k] = v
 
                     # Since we found a match we are done
                     return
-
-    @staticmethod
-    def load_file(path: str):
-        # Load the workspace config file, if  it exists
-        if Path(path).exists():
-            return jbfs.load_file(path)
-        else:
-            return {}
 
     @staticmethod
     def load(data_path: str = "./config.json"):
@@ -181,7 +173,7 @@ class WorkspaceConfig(Prodict):
         if Path(data_path).exists():
             data = jbfs.load_file(data_path)
         else:
-            data = {}
+            data = {"profiles": []}
 
         # Validate and construct the model.
         return WorkspaceConfig.construct(data, data_path)
@@ -211,7 +203,6 @@ class WorkspaceConfig(Prodict):
         # Load from machine:model
         if profile_name and model_name:
             self.update_properties(profile_name=profile_name, model_name=model_name, profile_data=profile_data)
-
 
         # Construct the specs object
         lab_profile = LabProfile.from_dict(profile_data)

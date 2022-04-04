@@ -32,7 +32,6 @@ import torch.utils.data.dataloader
 from juneberry.config.dataset import DatasetConfigBuilder
 from juneberry.config.dataset import DatasetConfig, DataType, TaskType, SamplingAlgo
 from juneberry.config.model import ModelConfig
-from juneberry.config.workspace import LabProfile
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 
@@ -345,11 +344,11 @@ def test_torchvision():
 
     # Build a Lab and basic ModelConfig (required for building the torchvision dataloader).
     lab = Lab(workspace='ws', data_root='dr')
-    lab_profile = LabProfile.construct({'num_gpus': 0, 'num_workers': 4})
+    lab.setup_lab_profile()
     model_config_data = test_model_config.make_basic_config()
     mc = ModelConfig.from_dict(model_config_data)
 
-    # Get the training and evaluation torchvision dataloaders.
+    # Get the training and evaluation torchvision data loaders.
     training_iterable, evaluation_iterable = pyt_data.construct_torchvision_dataloaders(
         lab, ds.torchvision_data, mc, ds.get_sampling_config(), sampler_args=None)
 
