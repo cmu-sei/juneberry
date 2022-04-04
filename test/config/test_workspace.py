@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-from juneberry.config.workspace import WorkspaceConfig, LabProfile
+from juneberry.config.workspace import WorkspaceConfig
 
 
 def make_sample_workspace_config(config_path):

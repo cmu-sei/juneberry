@@ -74,6 +74,10 @@ class WorkspaceConfig(Prodict):
         """
         error_list = []
 
+        # If we don't have a profiles section, add and empty one to make the everything simpler.
+        if self.profiles is None:
+            self.profiles = []
+
         # Build profile-name map checking for duplicate entries
         profile_model_map = defaultdict(dict)
         all_includes = []
@@ -110,7 +114,6 @@ class WorkspaceConfig(Prodict):
                 return False
             else:
                 raise RuntimeError(err_msg)
-                sys.exit(-1)
 
         return True
 
@@ -173,7 +176,7 @@ class WorkspaceConfig(Prodict):
         if Path(data_path).exists():
             data = jbfs.load_file(data_path)
         else:
-            data = {"profiles": []}
+            data = {}
 
         # Validate and construct the model.
         return WorkspaceConfig.construct(data, data_path)
