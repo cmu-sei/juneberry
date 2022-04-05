@@ -68,12 +68,6 @@ class Plugin(Prodict):
     kwargs: Prodict
 
 
-class Metrics(Prodict):
-    fqcn: str
-    kwargs: Prodict
-    formatter: Prodict
-
-
 class ModelArchitecture(Prodict):
     module: str
     args: Prodict
@@ -150,7 +144,8 @@ class ModelConfig(Prodict):
     description: str
     detectron2: Detectron2
     epochs: int
-    evaluation_metrics: List[Metrics]
+    evaluation_metrics: List[Plugin]
+    evaluation_metrics_formatter: Plugin
     evaluation_transforms: List[TransformEntry]
     evaluation_target_transforms: List[TransformEntry]
     evaluator: Plugin

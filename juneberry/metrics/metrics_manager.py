@@ -30,7 +30,7 @@ from typing import Any, Dict, List
 import brambox as bb
 
 from juneberry.config import coco_utils
-from juneberry.config.model import Metrics
+from juneberry.config.model import Plugin
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
 
@@ -38,41 +38,50 @@ logger = logging.getLogger(__name__)
 
 
 class MetricsManager:
+
     class Entry:
         """
-        Contains the data for each metrics entry in the config.
-        :param fqcn: The fully-qualified class name for this entry.
-        :param kwargs: The keyword args given with this entry.
-        :return: None
+        A convenience class used to hold Metrics plugin information from
+        the model config, as well as an instance of the Metrics class
+        instantiated using that information.
         """
-
         def __init__(self, fqcn: str, kwargs: dict = None) -> None:
+            """
+            Initialize an Entry with the fully-qualified class name and kwargs
+            for an "evaluation_metrics" entry in the config.
+            :param fqcn: The fully-qualified class name for this entry.
+            :param kwargs: The keyword args given with this entry.
+            :return: None
+            """
             self.fqcn = fqcn
             self.kwargs = kwargs
             self.metrics = None
-            self.formatter = None
 
-    def __init__(self, config: List[Metrics], opt_args: dict = None) -> None:
+    def __init__(self, metrics_config: List[Plugin], formatter_config: Plugin = None, opt_args: Dict = None) -> None:
         """
-        Create a metrics plugin instance for each entry in the config.
-        :param config: list of Metrics plugin entries usually from a config file
+        Populate an Entry for each metrics plugin listed in the "evaluation_metrics" section of
+        the model config. Also create a metrics formatter if an "evaluation_metrics_formatter" entry
+        exists in the config.
+        :param metrics_config: list of Metrics plugin entries in the model config's "evaluation_metrics" section
+        :param formatter_config: a Metrics formatter plugin entry in the model config's
+        "evaluation_metrics_formatter" section
         :param opt_args: optional arguments passed to this metrics manager
         :return: None
         """
-        self.config = []
+        self.metrics_entries = []
+        self.formatter = None
 
-        # For each metrics plugin entry in the config, instantiate a metrics plugin object
-        # (and associated formatter, if given) and add to the list of metrics
-        for i in config:
+        # For each metrics plugin entry in the config,
+        # instantiate a metrics plugin object and add to the list of metrics
+        for i in metrics_config:
             # Create a metrics plugin for each entry in the config
             entry = MetricsManager.Entry(i.fqcn, i.kwargs)
             logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
             entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
+            self.metrics_entries.append(entry)
 
-            if i.formatter:
-                entry.formatter = loader.construct_instance(i.formatter.fqcn, i.formatter.kwargs)
-
-            self.config.append(entry)
+        if formatter_config:
+            self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
 
     def __call__(self, anno: Dict, det: Dict) -> Dict[str, Any]:
         """
@@ -98,14 +107,14 @@ class MetricsManager:
         det_parser.deserialize(json.dumps(det))
         det_df = det_parser.get_df()
 
-        # For each metrics plugin listed in the config, use the annotations and
+        # For each metrics plugin we've created, use the annotations and
         # detections to compute the metrics and add to our results.
-        for entry in self.config:
+        for entry in self.metrics_entries:
             results[entry.fqcn] = entry.metrics(anno_df, det_df)
-            # If a formatter was specified for this metrics plugin, pass the
-            # results through the formatter.
-            if entry.formatter:
-                results[entry.fqcn] = entry.formatter(results[entry.fqcn])
+
+        if self.formatter:
+            results = self.formatter(results)
+
         return results
 
     def call_with_files(self, anno_file: str, det_file: str) -> Dict[str, Any]:

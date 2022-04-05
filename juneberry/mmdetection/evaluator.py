@@ -265,9 +265,9 @@ class Evaluator(EvaluatorBase):
         # TODO: Add some samples. Refactor the code out of DT2.
 
     def populate_metrics(self) -> None:
-        metrics = get_metrics(self.model_config, self.eval_dir_mgr)["juneberry.metrics.metrics.Coco"]
-        self.output.results.metrics.bbox = metrics["bbox"]
-        self.output.results.metrics.bbox_per_class = metrics["bbox_per_class"]
+        # TODO we're assuming we're getting COCO metrics and they're being returned
+        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
+        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
 
 def make_coco_annotations(input_anno, outputs, category_list):
     # Inputs are the images from the input set.

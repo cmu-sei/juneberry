@@ -33,6 +33,7 @@
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }
         },
+        "evaluation_metrics_formatter": { "$ref": "#/definitions/plugin_item" },
         "evaluation_transforms": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }

@@ -217,7 +217,7 @@ def get_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr) -> Dict:
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to get data for metrics.
     :return: None
     """
-    metrics_mgr = MetricsManager(model_config.evaluation_metrics)
+    metrics_mgr = MetricsManager(model_config.evaluation_metrics, model_config.evaluation_metrics_formatter)
     return metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)
 
 

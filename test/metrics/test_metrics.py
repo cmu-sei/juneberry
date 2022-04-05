@@ -31,7 +31,7 @@ from pandas.testing import assert_frame_equal
 import pytest
 
 import juneberry.metrics.metrics_manager as mm
-from juneberry.config.model import Metrics
+from juneberry.config.model import Plugin
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -40,6 +40,7 @@ ground_truth_filename = test_data_dir / "ground_truth.json"
 ground_truth_no_annos_filename = test_data_dir / "ground_truth_no_annos.json"
 detections_filename = test_data_dir / "detections.json"
 config_filename = test_data_dir / "config.json"
+coco_with_format_config_filename = test_data_dir / "coco_with_format_config.json"
 
 with open(ground_truth_filename, 'r') as f:
     gt_data = json.load(f)
@@ -53,16 +54,27 @@ with open(detections_filename, 'r') as f:
 with open(config_filename, 'r') as f:
     config_data = json.load(f)
 
-evaluation_metrics: List[Metrics] = []
+with open(coco_with_format_config_filename, 'r') as f:
+    coco_with_format_config_data = json.load(f)
+
+evaluation_metrics_all: List[Plugin] = []
 for cd in config_data["evaluation_metrics"]:
-    evaluation_metrics.append(Metrics.from_dict(cd))
+    evaluation_metrics_all.append(Plugin.from_dict(cd))
 
-metrics_mgr = mm.MetricsManager(evaluation_metrics)
-metrics = metrics_mgr(gt_data, det_data)
+evaluation_metrics_coco_formatted: List[Plugin] = []
+for cd in coco_with_format_config_data["evaluation_metrics"]:
+    evaluation_metrics_coco_formatted.append(Plugin.from_dict(cd))
+evaluation_metrics_formatter = Plugin.from_dict(coco_with_format_config_data["evaluation_metrics_formatter"])
 
-coco_metrics = metrics["juneberry.metrics.metrics.Coco"]
-tide_metrics = metrics["juneberry.metrics.metrics.Tide"]
-stats_metrics = metrics["juneberry.metrics.metrics.Stats"]
+metrics_mgr_all = mm.MetricsManager(evaluation_metrics_all)
+metrics_mgr_coco_formatted = mm.MetricsManager(evaluation_metrics_coco_formatted, evaluation_metrics_formatter)
+
+metrics_all = metrics_mgr_all(gt_data, det_data)
+metrics_coco_formatted = metrics_mgr_coco_formatted(gt_data, det_data)
+
+coco_metrics = metrics_all["juneberry.metrics.metrics.Coco"]
+tide_metrics = metrics_all["juneberry.metrics.metrics.Tide"]
+stats_metrics = metrics_all["juneberry.metrics.metrics.Stats"]
 
 
 def approx(expected_val):
@@ -93,8 +105,8 @@ def test_formatted_coco_metrics():
         }
     }
     # We need two comparisons because pytest.approx doesn't support nested dictionaries
-    assert coco_metrics["bbox"] == approx(expected_result["bbox"])
-    assert coco_metrics["bbox_per_class"] == approx(expected_result["bbox_per_class"])
+    assert metrics_coco_formatted["bbox"] == approx(expected_result["bbox"])
+    assert metrics_coco_formatted["bbox_per_class"] == approx(expected_result["bbox_per_class"])
 
 
 def test_tide_metrics():
@@ -114,7 +126,7 @@ def test_tide_metrics():
 
 def test_create_with_empty_annos():
     with pytest.raises(ValueError):
-        _ = metrics_mgr(gt_no_annos_data, det_data)
+        _ = metrics_mgr_all(gt_no_annos_data, det_data)
 
 
 def test_prc_df():

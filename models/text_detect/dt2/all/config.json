@@ -17,14 +17,14 @@
                 "iou_threshold": 0.5,
                 "max_det": 100,
                 "tqdm": false
-            },
-            "formatter": {
-                "fqcn": "juneberry.metrics.format.Coco",
-                "kwargs": {
-                }
             }
         }
     ],
+    "evaluation_metrics_formatter": {
+        "fqcn": "juneberry.metrics.format.DefaultCocoFormatter",
+        "kwargs": {
+        }
+    },
     "evaluation_transforms": [
         {
             "fqcn": "juneberry.detectron2.transforms.DT2Logger",
