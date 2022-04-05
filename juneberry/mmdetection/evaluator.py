@@ -260,14 +260,16 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
+        # TODO this line should be in a populate_metrics method and called by
+        # the super evaluator.py. We can't do that here, the way we do for dt2.
+        # TODO we're assuming we're getting COCO metrics and they're being returned
+        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
+        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
+
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
 
         # TODO: Add some samples. Refactor the code out of DT2.
 
-    def populate_metrics(self) -> None:
-        # TODO we're assuming we're getting COCO metrics and they're being returned
-        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
-        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
 
 def make_coco_annotations(input_anno, outputs, category_list):
     # Inputs are the images from the input set.
