@@ -16,7 +16,7 @@
         {
             "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
             "kwargs": {
-                "imageShape": [2]
+                "image_shape": [2]
             }
         }
     ],

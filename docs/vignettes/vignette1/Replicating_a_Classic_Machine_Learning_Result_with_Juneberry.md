@@ -786,7 +786,7 @@ model config file to add a summary of the constructed model architecture to the 
     {
         "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
         "kwargs": {
-            "imageShape": [
+            "image_shape": [
                 3,
                 32,
                 32
@@ -849,7 +849,7 @@ and it should look something like the following block of code:
     {
         "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
         "kwargs": {
-            "imageShape": [
+            "image_shape": [
                 3,
                 32,
                 32
