@@ -26,7 +26,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from juneberry.config.model import Metrics
+from juneberry.config.model import Plugin
 import juneberry.filesystem as jbfs
 import juneberry.metrics.metrics_manager as metrics_manager
 from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
@@ -84,7 +84,7 @@ def main():
 
     stats_fqcn = "juneberry.metrics.metrics.Stats"
 
-    metrics_config = Metrics.from_dict({
+    metrics_config = Plugin.from_dict({
         "fqcn": stats_fqcn,
         "kwargs": {
             "iou_threshold": args.iou,
