@@ -23,7 +23,9 @@
 # ======================================================================================================================
 
 import logging
+from typing import List
 
+from juneberry.config.report import ReportConfig
 import juneberry.loader as jb_loader
 
 logger = logging.getLogger(__name__)
@@ -40,3 +42,14 @@ def extract_experiment_reports():
 
 def extract_model_reports():
     pass
+
+
+def extract_file_reports(file_list: List):
+    report_list = []
+
+    for file in file_list:
+        report_config = ReportConfig.load(file)
+        for report in report_config.reports:
+            report_list.append(report)
+
+    return report_list

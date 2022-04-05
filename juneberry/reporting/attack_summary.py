@@ -39,20 +39,21 @@ logger = logging.getLogger(__name__)
 
 class AttackSummary(Report):
 
-    def __init__(self, experiment_name: str = "", output_path: str = ""):
-        super().__init__(output_path=output_path)
+    def __init__(self, experiment_name: str = "", output_str: str = ""):
+        super().__init__(output_str=output_str)
         # Handle the case when an output file is not provided.
-        if output_path == "":
-            output_path = Path.cwd() / "attack_summary.md"
-            logger.warning(f"An output file was not provided. Using {output_path}")
+        if self.output_path == Path.cwd():
+            self.report_file = self.output_path / "attack_summary.md"
+        else:
+            self.report_file = Path(output_str)
+        logger.info(f"Saving the report to {self.report_file}")
 
         # Handle the case where an experiment name is not provided.
         if experiment_name == "":
             logger.error(f"Failed to build report. The experiment_name was not provided.")
             sys.exit(-1)
 
-        # Set the attributes.
-        self.output_path = output_path
+        # Establish the AttackManager for the Attack directory.
         self.attack_mgr = jbfs.AttackManager(experiment_name)
 
     def create_report(self):

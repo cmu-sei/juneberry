@@ -22,27 +22,9 @@
 #
 # ======================================================================================================================
 
-import logging
-from pathlib import Path
-
-logger = logging.getLogger(__name__)
+from prodict import Prodict
 
 
-class Report:
-    """
-    This is the base class for all reports.
-    """
-    def __init__(self, output_str: str = ""):
-        if output_str == "":
-            logger.warning(f"An output path for the report was not provided. Saving the report to the "
-                           f"current working directory.")
-            self.output_dir = Path.cwd()
-        else:
-            self.output_dir = Path(output_str).parent
-
-    def create_report(self) -> None:
-        """
-        Creates the report file and writes it to the desired output file.
-        :return: Nothing
-        """
-        logger.warning("'create_report' is not implemented in the base Report class.")
+class Plugin(Prodict):
+    fqcn: str
+    kwargs: Prodict

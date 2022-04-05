@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "definitions": {
+        "plugin_item": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "fqcn" ]
+        }
+    },
+    "type": "object",
+    "description": "A configuration for defining reports to be generated.",
+    "properties": {
+        "reports": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/plugin_item" }
+        }
+    },
+    "required": [
+        "reports"
+    ]
+}

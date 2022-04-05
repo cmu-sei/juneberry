@@ -190,7 +190,7 @@ def load_file(path: str):
             sys.exit(-1)
 
     else:
-        logger.error(f'Failed to load {path}. The file could not be found. EXITING.')
+        logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
         sys.exit(-1)
     
 

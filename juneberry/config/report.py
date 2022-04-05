@@ -33,72 +33,39 @@ import juneberry.filesystem as jbfs
 logger = logging.getLogger(__name__)
 
 
-class Models(Prodict):
-    meta: str
-    private: str
-    shadow: str
-    shadow_disjoint_quantity: int
-    shadow_superset_quantity: int
-
-
-class DataConfigs(Prodict):
-    in_out_builder: Plugin
-    query_data: str
-    training_data: str
-
-
-class Watermarks(Prodict):
-    disjoint_args: List[Prodict]
-    private_disjoint_args: Prodict
-    private_superset_args: Prodict
-    query_watermarks: Plugin
-    superset_args: List[Prodict]
-    training_watermarks: Plugin
-
-
-class PropertyInferenceAttackConfig(Prodict):
+class ReportConfig(Prodict):
     FORMAT_VERSION = '0.1.0'
-    SCHEMA_NAME = 'property_inference_attack_schema.json'
-
-    data_configs: DataConfigs
-    models: Models
-    watermarks: Watermarks
-
-    def _finish_init(self):
-        """
-        TODO: Value cleanup steps go here.
-        """
-        pass
+    SCHEMA_NAME = 'report_schema.json'
+    reports: List[Plugin]
 
     @staticmethod
     def construct(data: dict, file_path: str = None):
         """
-        Validate and construct an AttackConfig object.
+        Load, validate, and construct a config object from a supposedly VALID and LATEST FORMAT report.
         :param data: The data to use to construct the object.
-        :param file_path: (Optional) path to a file that may have been loaded. Used for logging.
+        :param file_path: Optional path to a file that may have been loaded. Used for logging.
         :return: A constructed and validated object.
         """
 
-        conf_utils.require_version(data, PropertyInferenceAttackConfig.FORMAT_VERSION, file_path, 'AttackConfig')
-        if not conf_utils.validate_schema(data, PropertyInferenceAttackConfig.SCHEMA_NAME):
-            logger.error(f"Validation errors in AttackConfig from {file_path}. See log. EXITING.")
+        # Validate
+        if not conf_utils.validate_schema(data, ReportConfig.SCHEMA_NAME):
+            logger.error(f"Validation errors in ReportConfig from {file_path}. See log. Exiting.")
             sys.exit(-1)
 
-        # Finally, construct the object and do a final value cleanup.
-        attack_config = PropertyInferenceAttackConfig.from_dict(data)
-        attack_config._finish_init()
-        return attack_config
+        # Finally, construct the object and do a final value cleanup
+        report_config = ReportConfig.from_dict(data)
+        return report_config
 
     @staticmethod
     def load(data_path: str):
         """
-        Loads the config from the provided path, validates, and constructs the config.
+        Loads the config from the provided path, validate, and construct the config.
         :param data_path: Path to config.
-        :return: Loaded, validated, and constructed object.
+        :return: Loaded, validated and constructed object.
         """
         # Load the raw file.
-        logger.info(f"Loading ATTACK CONFIG from {data_path}")
+        logger.info(f"Loading REPORT CONFIG from {data_path}")
         data = jbfs.load_file(data_path)
 
-        # Validate and construct the attack config.
-        return PropertyInferenceAttackConfig.construct(data, data_path)
+        # Validate and construct the model.
+        return ReportConfig.construct(data, data_path)
