@@ -32,6 +32,7 @@ import logging
 from typing import Dict
 
 import brambox as bb
+from juneberry.metrics.utils import get_df
 from pandas.core.frame import DataFrame
 
 logger = logging.getLogger(__name__)
@@ -54,11 +55,9 @@ class Coco:
         self.max_det = max_det
         self.tqdm = tqdm
 
-    # TODO switch this to take dicts and then convert to dataframes
-    # We'd like to hide our use of dataframes (Brambox needs them) and have
-    # the user deal with vanilla dicts or numpy
-    def __call__(self, anno: DataFrame, det: DataFrame):
-        self.coco = bb.eval.COCO(det, anno, max_det=self.max_det, tqdm=self.tqdm)
+    def __call__(self, anno: Dict, det: Dict):
+        anno_df, det_df = get_df(anno, det)
+        self.coco = bb.eval.COCO(det_df, anno_df, max_det=self.max_det, tqdm=self.tqdm)
         return self.get_metrics()
 
     def get_metrics(self) -> dict:
@@ -82,7 +81,6 @@ class Tide:
                  area_range_min: int,
                  area_range_max: int,
                  tqdm: bool) -> None:
-
         """
         Initialize a Tide metrics object using annotations and detections files in
         COCO JSON format.
@@ -100,10 +98,11 @@ class Tide:
         self.bg_thresh = bg_thresh
         self.tqdm = tqdm
 
-    # TODO switch this to take dicts and then convert to dataframes
-    def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
-        self.tide = bb.eval.TIDE(det,
-                                 anno,
+    def __call__(self, anno: Dict, det: Dict) -> dict:
+        anno_df, det_df = get_df(anno, det)
+
+        self.tide = bb.eval.TIDE(det_df,
+                                 anno_df,
                                  area_range=(self.area_range_min, self.area_range_max),
                                  max_det=self.max_det,
                                  pos_thresh=self.iou_threshold,
@@ -129,10 +128,8 @@ class Stats:
         self.iou_threshold = iou_threshold
         self.tp_threshold = tp_threshold
 
-    # TODO switch this to take dicts and then convert to dataframes
-    def __call__(self, anno: DataFrame, det: DataFrame) -> dict:
-        self.anno = anno
-        self.det = det
+    def __call__(self, anno: Dict, det: Dict) -> dict:
+        self.anno_df, self.det_df = get_df(anno, det)
         return self.get_metrics(self.tp_threshold)
 
     def get_metrics(self, tp_threshold) -> dict:
@@ -150,8 +147,8 @@ class Stats:
         return result
 
     def prc_df(self) -> DataFrame:
-        return bb.stat.pr(self.det,
-                          self.anno,
+        return bb.stat.pr(self.det_df,
+                          self.anno_df,
                           self.iou_threshold)
 
     def prc(self):
@@ -219,7 +216,7 @@ class Stats:
         """
         result = {}
         match_det, match_anno = bb.stat.match_box(
-            self.det, self.anno, tp_threshold)
+            self.det_df, self.anno_df, tp_threshold)
         result["tp"] = match_det["tp"].values.sum()
         result["fp"] = match_det["fp"].values.sum()  # or could just be ~tp?
         # False negatives are annotations with no detections;

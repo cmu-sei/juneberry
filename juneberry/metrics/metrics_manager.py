@@ -27,9 +27,6 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
-import brambox as bb
-
-from juneberry.config import coco_utils
 from juneberry.config.model import Plugin
 import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
@@ -96,21 +93,10 @@ class MetricsManager:
 
         results = {}
 
-        # TODO instead of calling get_df() and passing a dataframe to the metrics plugin,
-        # send the dict instead and let the plugin convert it to a dataframe for the brambox call
-
-        anno_parser = bb.io.parser.annotation.CocoParser(parse_image_names=False)
-        anno_parser.deserialize(json.dumps(anno))
-        anno_df = anno_parser.get_df()
-
-        det_parser = bb.io.parser.detection.CocoParser(class_label_map=coco_utils.get_class_label_map(anno))
-        det_parser.deserialize(json.dumps(det))
-        det_df = det_parser.get_df()
-
         # For each metrics plugin we've created, use the annotations and
         # detections to compute the metrics and add to our results.
         for entry in self.metrics_entries:
-            results[entry.fqcn] = entry.metrics(anno_df, det_df)
+            results[entry.fqcn] = entry.metrics(anno, det)
 
         if self.formatter:
             results = self.formatter(results)
