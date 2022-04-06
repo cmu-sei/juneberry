@@ -104,10 +104,12 @@ class ImageDataset(EpochDataset):
             image = Image.open(file_path)
 
         if self.transforms is not None:
-            if self.extended_signature:
-                image = self.transforms(item=image, index=index, epoch=self.epoch)
-            else:
-                image = self.transforms(image)
+            args = {'label': label, 'index': index, 'epoch': self.epoch}
+            image, label = self.transforms(image, **args)
+            # if self.extended_signature:
+            #     image = self.transforms(item=image, index=index, epoch=self.epoch)
+            # else:
+            #     image = self.transforms(image)
 
         # We want to pass back a tensor, so convert if it wasn't already converted
         if not isinstance(image, Tensor):

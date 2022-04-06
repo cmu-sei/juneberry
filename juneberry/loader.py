@@ -79,6 +79,19 @@ def extract_kwargs(instance_dict):
     return {'fq_name': fq_name, 'kwargs': instance_dict.get('kwargs', {})}
 
 
+def extract_kwarg_names(func):
+    """
+    Extracts the names of arguments (past the first) that are of type POSITIONAL_OR_KEYWORD
+    or KEYWORD_ONLY so we omit positional only, or VAR_KEYWORD args.
+    :return:
+    """
+    params = []
+    for i, (k,v) in enumerate(inspect.signature(func).parameters.items()):
+        if i != 0 and ( v.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or v.kind == inspect.Parameter.KEYWORD_ONLY):
+            params.append(k)
+
+    return params
+
 def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     """
     Constructs an instance of the class from the fully qualified name expanding
