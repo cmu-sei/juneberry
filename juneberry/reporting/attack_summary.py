@@ -43,10 +43,10 @@ class AttackSummary(Report):
         super().__init__(output_str=output_str)
         # Handle the case when an output file is not provided.
         if self.output_dir == Path.cwd():
-            self.report_file = self.output_dir / "attack_summary.md"
+            self.report_path = self.output_dir / "attack_summary.md"
         else:
-            self.report_file = Path(output_str)
-        logger.info(f"Saving the report to {self.report_file}")
+            self.report_path = Path(output_str)
+        logger.info(f"Saving the report to {self.report_path}")
 
         # Handle the case where an experiment name is not provided.
         if experiment_name == "":
@@ -61,7 +61,7 @@ class AttackSummary(Report):
         This method is responsible for creating the Attack Summary report and writing it to file.
         """
         # Open up the desired output file for writing, and add each of the tables.
-        with open(self.report_file, "w") as output_file:
+        with open(self.report_path, "w") as output_file:
             self._build_table_1(output_file)
             self._build_table_2(output_file)
             self._build_table_3(output_file)
