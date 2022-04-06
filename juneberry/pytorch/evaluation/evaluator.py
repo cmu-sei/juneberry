@@ -49,7 +49,7 @@ class Evaluator(EvaluatorBase):
     This subclass is the Pytorch-specific version of the Evaluator.
     """
 
-    def __init__(self, lab: Lab, model_config: ModelConfig, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
+    def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
         """
         Creates an Evaluator object based on command line arguments and a Juneberry
@@ -158,7 +158,7 @@ class Evaluator(EvaluatorBase):
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
             self.eval_loader = pyt_data.wrap_dataset_in_dataloader(
-                self.lab, val_dataset, self.model_config.batch_size)
+                self.lab.profile, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -185,9 +185,7 @@ class Evaluator(EvaluatorBase):
             self.eval_name_targets = eval_list
 
             # NOTE: In the process of making the data loader we shuffle the data.
-            self.eval_loader = pyt_data.make_eval_data_loader(self.lab,
-                                                              self.eval_dataset_config,
-                                                              self.model_config,
+            self.eval_loader = pyt_data.make_eval_data_loader(self.lab, self.eval_dataset_config, self.model_config,
                                                               eval_list)
 
             # Save the manifest

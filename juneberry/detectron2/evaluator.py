@@ -40,7 +40,8 @@ from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram, populate_metrics
+from juneberry.evaluation.utils import get_histogram, get_metrics
+
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
@@ -189,9 +190,11 @@ class Evaluator(EvaluatorBase):
         # Rename the results to our detections file for things like plot_pr
         det = Path(self.output_dir, "coco_instances_results.json")
         det.rename(self.eval_dir_mgr.get_detections_path())
-        det = self.eval_dir_mgr.get_detections_path()
 
-        populate_metrics(self.model_manager, self.eval_dir_mgr, self.output)
+    def populate_metrics(self) -> None:
+        # TODO we're assuming we're getting COCO metrics and they're being returned
+        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
+        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()

@@ -70,7 +70,7 @@ def make_basic_config(image_data=True, classification=True, torchvision=False):
         config['data_type'] = 'torchvision'
         config['torchvision_data'] = {
             "eval_kwargs": kwargs,
-            "fqcn": "torchvision.datasets.FakeData",    # A fake dataset that returns randomly generated PIL images.
+            "fqcn": "torchvision.datasets.FakeData",  # A fake dataset that returns randomly generated PIL images.
             "root": "",
             "train_kwargs": kwargs,
             "val_kwargs": kwargs
@@ -344,10 +344,11 @@ def test_torchvision():
 
     # Build a Lab and basic ModelConfig (required for building the torchvision dataloader).
     lab = Lab(workspace='ws', data_root='dr')
+    lab.setup_lab_profile()
     model_config_data = test_model_config.make_basic_config()
     mc = ModelConfig.from_dict(model_config_data)
 
-    # Get the training and evaluation torchvision dataloaders.
+    # Get the training and evaluation torchvision data loaders.
     training_iterable, evaluation_iterable = pyt_data.construct_torchvision_dataloaders(
         lab, ds.torchvision_data, mc, ds.get_sampling_config(), sampler_args=None)
 

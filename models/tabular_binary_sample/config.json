@@ -14,6 +14,9 @@
         }
     ],
     "format_version": "0.2.0",
+    "lab_profile": {
+        "max_gpus": 1
+    },
     "model_architecture": {
         "args": {
             "num_classes": 2

@@ -33,8 +33,8 @@ import typing
 
 from juneberry.config.plugin import Plugin
 import juneberry.config.util as conf_utils
+from juneberry.config.workspace import LabProfile
 import juneberry.filesystem as jbfs
-# import juneberry.version_system as jbvs
 
 logger = logging.getLogger(__name__)
 
@@ -134,12 +134,14 @@ class ModelConfig(Prodict):
     description: str
     detectron2: Detectron2
     epochs: int
-    evaluator: Plugin
+    evaluation_metrics: List[Plugin]
+    evaluation_metrics_formatter: Plugin
     evaluation_transforms: List[Plugin]
     evaluation_target_transforms: List[Plugin]
     evaluator: Plugin
     file_path: Path
     format_version: str
+    lab_profile: LabProfile
     label_mapping: typing.Union[Prodict, str]
     # TODO: Define mmdetection
     mmdetection: Prodict
@@ -164,7 +166,6 @@ class ModelConfig(Prodict):
         """
         This is NOT init. This is a similar method called by Prodict to set defaults
         on values BEFORE to_dict is called.
-        :param file_path: Optional - string indicating the model config file used to construct the object.
         """
         self.task = "classification"
 

@@ -786,7 +786,7 @@ model config file to add a summary of the constructed model architecture to the 
     {
         "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
         "kwargs": {
-            "imageShape": [
+            "image_shape": [
                 3,
                 32,
                 32
@@ -849,7 +849,7 @@ and it should look something like the following block of code:
     {
         "fqcn": "juneberry.pytorch.model_transforms.LogModelSummary",
         "kwargs": {
-            "imageShape": [
+            "image_shape": [
                 3,
                 32,
                 32
@@ -1060,17 +1060,17 @@ After an evaluation, Juneberry offers some basic support for common plots. ROC c
 types. You can generate this type of plot with the following command:
 
 ```
-jb_plot_roc -f models/cifar_R20/eval/cifar10/predictions.json -p all models/cifar_R20/cifar10_roc.png
+jb_plot_roc -f models/cifar_R20/eval/cifar10/predictions.json -c all models/cifar_R20/cifar10_roc.png
 ```
 
 This command follows the following structure:
 
 ```
-jb_plot_roc -f [predictions file path] -p [classes] [output location]
+jb_plot_roc -f [predictions file path] -c [classes] [output location]
 ```
 
 The predictions file path indicates the location of the predictions file containing the data for generating the ROC 
-curves. The `-p` indicates which classes to draw curves for. "all" is a supported keyword which produces curves for all 
+curves. The `-c` indicates which classes to draw curves for. "all" is a supported keyword which produces curves for all 
 known classes. The final argument, the output location, indicates where to save the resulting plot file. When you run 
 this command, it should produce a plot similar to the following figure:
 

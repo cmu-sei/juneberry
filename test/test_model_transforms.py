@@ -184,7 +184,7 @@ def test_log_model_summary():
     model = torchvision.models.resnet18()
 
     # Let the transform do its work
-    transform = juneberry.pytorch.model_transforms.LogModelSummary(imageShape=(3, 224, 224))
+    transform = juneberry.pytorch.model_transforms.LogModelSummary(image_shape=(3, 224, 224))
     model = transform(model)
 
 

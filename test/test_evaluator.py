@@ -31,6 +31,7 @@ from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
+from juneberry.config.workspace import LabProfile
 from juneberry.detectron2.evaluator import Evaluator as Detectron2Evaluator
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import create_evaluator
@@ -48,6 +49,7 @@ class EvalTestHelper:
         self.model_config.model_architecture = {'args': {'img_height': 0, 'img_width': 0, 'channels': 0}}
 
         self.lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
+        self.lab_profile = LabProfile()
         self.dataset = DatasetConfig()
         self.dataset.file_path = ""
         self.model_manager = self.lab.model_manager("test")

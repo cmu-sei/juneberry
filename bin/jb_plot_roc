@@ -322,7 +322,7 @@ def setup_args(parser) -> None:
                         help="The name of a file containing the prediction data to use. The expected format is "
                              "described in the predictions_specification. You can specify this argument multiple "
                              "times, but each instance should have its own plot argument.")
-    parser.add_argument('-p', '--plotClasses', action='append', required=True,
+    parser.add_argument('-c', '--plotClasses', action='append', required=True,
                         help="The classes that should appear on the plot. This should either be the string "
                              "'all' (without quotes) or a comma separated string of class integers (or label names). "
                              "Using the 'all' string will plot every individual label present in the mapping of the "

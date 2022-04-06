@@ -122,6 +122,10 @@ def main():
     # for this evaluation.
     model_config = ModelConfig.load(model_manager.get_model_config())
 
+    # Set up the lab profile
+    lab.setup_lab_profile(model_name=model_name, model_config=model_config)
+    logger.info(f"Using lab profile: {lab.profile}")
+
     evaluator = jb_eval_utils.create_evaluator(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options,
                                                log_file)
 
@@ -135,7 +139,7 @@ def main():
 
         else:
             # Perform the evaluation.
-            evaluator.num_gpus = evaluator.check_gpu_availability(args.num_gpus)
+            evaluator.num_gpus = evaluator.check_gpu_availability(lab.profile.num_gpus)
             evaluator.perform_evaluation()
             logger.info(f"Evaluation complete.")
 

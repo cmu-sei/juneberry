@@ -49,8 +49,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClassifierTrainer(juneberry.trainer.Trainer):
-    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level):
+    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig,
+                 dataset_config: DatasetConfig, log_level):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         # Grab these out of the model architecture for convenience.
@@ -159,7 +159,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             shuffle=False,
             callbacks=self.callbacks,
             # max_queue_size                    # TODO: Should we set this?
-            workers=self.lab.num_workers,
+            workers=self.lab.profile.num_workers,
             use_multiprocessing=True,  # True since we use tf.keras.Sequence
             verbose=self.verbose,
         )
