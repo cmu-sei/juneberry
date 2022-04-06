@@ -27,6 +27,8 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "supplements": [ <array of FILES to add to the config using merge_from_file()> ]
     },
     "epochs": <The maximum number of epochs to train>,
+    "evaluation_metrics" : [ <array of plugins - see below> ],
+    "evaluation_metrics_formatter" : <OPTIONAL; plugin to format metrics output>,
     "evaluation_transforms": [ <array of transforms - see below> ],
     "evaluation_target_transforms": [ <array of transforms - see below> ],
     "evaluator": {
@@ -199,6 +201,79 @@ model is loaded, but before Juneberry adjusts for batch size, solver, etc. and b
 
 ## epochs
 The number of epochs to train.
+
+## evaluation_metrics
+This section contains a list of Plugins that compute metrics on the evaluation results. Each plugin follows the general
+schema for a Plugin as described above. An example of a Metrics plugin list is:
+
+```json
+{
+    "evaluation_metrics": [
+        {
+            "fqcn": "juneberry.metrics.metrics.Coco",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "max_det": 100,
+                "tqdm": false
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.metrics.Tide",
+            "kwargs": {
+                "pos_thresh": 0.5,
+                "bg_thresh": 0.5,
+                "max_det": 100,
+                "area_range_min": 0,
+                "area_range_max": 100000,
+                "tqdm": false
+            }
+        }
+    ]
+}
+```
+
+If no formatter is specified (see below), the result of the Metrics plugin calls is of the type Dict[Dict].
+The keys of the result are the fully-qualified class names of the Metrics plugins. The value for each key of the result
+is a Python Dict containing the metrics produced by that plugin. For example:
+
+```
+{
+    "juneberry.metrics.metrics.Coco": {
+        "mAP": 0.375,
+        "mAP_small: 0.526
+    },
+    "juneberry.metrics.metrics.Tide": {
+        "mdAP_localisation: 0.755",
+        "mdAP_fp: 0.082
+    }
+}
+```
+
+# evaluation_metrics_formatter
+
+This optional section contains a plugin that formats the output from the evaluation metrics. By specifying a formatter,
+the default output can be modified. For example, Juneberry's default COCO formatter, `juneberry.metrics.format.DefaultCocoFormatter`,
+will output something like this:
+
+```json
+{
+  "bbox": {
+    "mAP": 4.573400411159715e-05,
+    "mAP_50": 0.00031547888650699726,
+    "mAP_75": 0.0,
+    "mAP_l": 0.00018100842046770595,
+    "mAP_m": 6.19280358799161e-05,
+    "mAP_s": 9.01350639265607e-06
+  },
+  "bbox_per_class": {
+    "mAP_ENGLISH": 0.0,
+    "mAP_HINDI": 0.0,
+    "mAP_OTHER": 0.0
+  }
+}
+```
+
+Generally, the results of the metrics calls and formatting will be output to a JSON file (e.g. `metrics.json`) by Juneberry. 
 
 ## evaluation_transforms
 This section contains a **chain** of transforms to be applied to data during validation

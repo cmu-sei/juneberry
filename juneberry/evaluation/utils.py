@@ -24,15 +24,14 @@
 
 import logging
 import numpy as np
-from pathlib import Path
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
+from typing import Dict
 
 import torch
 from tqdm import tqdm
 
-import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
@@ -41,7 +40,7 @@ from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-from juneberry.metrics.metrics import Metrics
+from juneberry.metrics.metrics_manager import MetricsManager
 
 
 logger = logging.getLogger(__name__)
@@ -211,34 +210,15 @@ def invoke_evaluator_method(evaluator, module_name: str):
     jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
-def populate_metrics(model_manager: ModelManager,
-                     eval_dir_mgr: EvalDirMgr,
-                     eval_output: EvaluationOutput) -> None:
+def get_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr) -> Dict:
     """
-    Calculate metrics and populate the output results.
-    :param model_manager: The Juneberry ModelManager that will be used to get data for metrics.
+    Calculate metrics and return the result.
+    :param model_config: The Juneberry ModelConfig that lists the metrics plugins to be called.
     :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to get data for metrics.
-    :param eval_output: The Juneberry EvaluationOutput that will be populated with metrics.
     :return: None
     """
-    anno_file = Path(eval_dir_mgr.get_manifest_path())
-    num_annotations = coco_utils.count_annotations(anno_file)
-
-    # Only populate metrics output if we have annotations.
-    if num_annotations > 0:
-        m = Metrics.create_with_filesystem_managers(model_manager,
-                                                    eval_dir_mgr)
-        eval_output.results.metrics.bbox = m.as_dict()
-        eval_output.results.metrics.bbox_per_class = m.mAP_per_class
-
-        for k, v in eval_output.results.metrics.bbox.items():
-            logger.info(k + " = " + str(v))
-
-        for k, v in eval_output.results.metrics.bbox_per_class.items():
-            logger.info(k + " = " + str(v))
-    else:
-        logger.info(
-            "There are no annotations; not using Metrics class to populate metrics output.")
+    metrics_mgr = MetricsManager(model_config.evaluation_metrics, model_config.evaluation_metrics_formatter)
+    return metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)
 
 
 def prepare_classification_eval_output(evaluator: Evaluator):

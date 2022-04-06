@@ -25,10 +25,11 @@
 import argparse
 import logging
 from pathlib import Path
-from typing import List
 
+from juneberry.config.model import Plugin
 import juneberry.filesystem as jbfs
-from juneberry.metrics.metrics import Metrics, PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
+import juneberry.metrics.metrics_manager as metrics_manager
+from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
 import juneberry.scripting as jbscripting
 
 
@@ -76,33 +77,42 @@ def main():
 
     logger.info(f"Starting to generate PR, PC, and RC curves...")
 
-    metrics: List[Metrics] = []
-
-    # Create a Metrics object for each model/dataset passed in
-    for idx, val in enumerate(args.model):
-        model_mgr = jbfs.ModelManager(args.model[idx])
-        eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
-        metrics.append(
-            Metrics.create_with_filesystem_managers(model_mgr,
-                                                    eval_dir_mgr,
-                                                    iou_threshold=args.iou))
-
     # Create empty MetricsPlots
     pr_plot = PrecisionRecallPlot()
     pc_plot = PrecisionConfidencePlot()
     rc_plot = RecallConfidencePlot()
 
-    # Add metrics to the plots
-    pr_plot.add_metrics_list(metrics)
-    pc_plot.add_metrics_list(metrics)
-    rc_plot.add_metrics_list(metrics)
+    stats_fqcn = "juneberry.metrics.metrics.Stats"
+
+    metrics_config = Plugin.from_dict({
+        "fqcn": stats_fqcn,
+        "kwargs": {
+            "iou_threshold": args.iou,
+            "tp_threshold": 0.8
+        }
+    })
+
+    mm = metrics_manager.MetricsManager([metrics_config])
+
+    for idx, val in enumerate(args.model):
+        model_mgr = jbfs.ModelManager(args.model[idx])
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
+
+        metrics = mm.call_with_eval_dir_manager(eval_dir_mgr)[stats_fqcn]
+
+        model_name = model_mgr.model_name
+        dataset_name = eval_dir_mgr.get_dir().stem
+
+        pr_plot.add_metrics(metrics, args.iou, model_name, dataset_name)
+        pc_plot.add_metrics(metrics, args.iou, model_name, dataset_name)
+        rc_plot.add_metrics(metrics, args.iou, model_name, dataset_name)
 
     pr_plot.save(output_dir / "pr_curve.png")
     pc_plot.save(output_dir / "pc_curve.png")
     rc_plot.save(output_dir / "rc_curve.png")
 
     # Export the metrics as a CSV
-    Metrics.export(metrics, output_dir / "eval_metrics.csv")
+    # CommonMetrics.export(metrics, output_dir / "eval_metrics.csv")
 
     logger.info(f"jb_plot_pr is done.")
 

@@ -24,12 +24,14 @@
 
 import json
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
-import juneberry.metrics.metrics as metrics
+import juneberry.metrics.metrics_manager as mm
+from juneberry.config.model import Plugin
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"
@@ -37,20 +39,46 @@ test_data_dir = Path(__file__).resolve().parent / "data"
 ground_truth_filename = test_data_dir / "ground_truth.json"
 ground_truth_no_annos_filename = test_data_dir / "ground_truth_no_annos.json"
 detections_filename = test_data_dir / "detections.json"
+config_filename = test_data_dir / "config.json"
+coco_with_format_config_filename = test_data_dir / "coco_with_format_config.json"
 
 with open(ground_truth_filename, 'r') as f:
     gt_data = json.load(f)
 
+with open(ground_truth_no_annos_filename, 'r') as f:
+    gt_no_annos_data = json.load(f)
+
 with open(detections_filename, 'r') as f:
     det_data = json.load(f)
 
-m = metrics.Metrics(ground_truth_filename,
-                    detections_filename,
-                    "test_metrics_model_name",
-                    "test_metrics_det_name")
+with open(config_filename, 'r') as f:
+    config_data = json.load(f)
 
-def approx(val: float):
-    return pytest.approx(val, abs=2.5e-3)
+with open(coco_with_format_config_filename, 'r') as f:
+    coco_with_format_config_data = json.load(f)
+
+evaluation_metrics_all: List[Plugin] = []
+for cd in config_data["evaluation_metrics"]:
+    evaluation_metrics_all.append(Plugin.from_dict(cd))
+
+evaluation_metrics_coco_formatted: List[Plugin] = []
+for cd in coco_with_format_config_data["evaluation_metrics"]:
+    evaluation_metrics_coco_formatted.append(Plugin.from_dict(cd))
+evaluation_metrics_formatter = Plugin.from_dict(coco_with_format_config_data["evaluation_metrics_formatter"])
+
+metrics_mgr_all = mm.MetricsManager(evaluation_metrics_all)
+metrics_mgr_coco_formatted = mm.MetricsManager(evaluation_metrics_coco_formatted, evaluation_metrics_formatter)
+
+metrics_all = metrics_mgr_all(gt_data, det_data)
+metrics_coco_formatted = metrics_mgr_coco_formatted(gt_data, det_data)
+
+coco_metrics = metrics_all["juneberry.metrics.metrics.Coco"]
+tide_metrics = metrics_all["juneberry.metrics.metrics.Tide"]
+stats_metrics = metrics_all["juneberry.metrics.metrics.Stats"]
+
+
+def approx(expected_val):
+    return pytest.approx(expected_val, abs=5e-3)
 
 
 def _pytest_assert_frame_equal(frame1, frame2):
@@ -61,94 +89,73 @@ def _pytest_assert_frame_equal(frame1, frame2):
         assert False
 
 
+def test_formatted_coco_metrics():
+    expected_result = {
+        "bbox": {
+            "mAP": 0.236,
+            "mAP_50": 0.374,
+            "mAP_75": 0.260,
+            "mAP_s": 0.250,
+            "mAP_m": 0.323,
+            "mAP_l": 0.101,
+        },
+        "bbox_per_class": {
+            'mAP_class_1': 0.376,
+            'mAP_class_2': 0.144,
+        }
+    }
+    # We need two comparisons because pytest.approx doesn't support nested dictionaries
+    assert metrics_coco_formatted["bbox"] == approx(expected_result["bbox"])
+    assert metrics_coco_formatted["bbox_per_class"] == approx(expected_result["bbox_per_class"])
+
+
+def test_tide_metrics():
+    expected_result = {
+        'mAP': 0.374,
+        'mdAP_localisation': 0.0,
+        'mdAP_classification': 0.0,
+        'mdAP_both': 0.0,
+        'mdAP_duplicate': 0.0,
+        'mdAP_background': 0.082,
+        'mdAP_missed': 0.357,
+        'mdAP_fp': 0.082,
+        'mdAP_fn': 0.357,
+    }
+    assert tide_metrics == approx(expected_result)
+
+
 def test_create_with_empty_annos():
     with pytest.raises(ValueError):
-        _ = metrics.Metrics(ground_truth_no_annos_filename,
-                            detections_filename,
-                            "test_create_with_empty_annos_model_name",
-                            "test_create_with_empty_annos_det_name")
-
-
-def test_create_with_data():
-    m_with_data = metrics.Metrics.create_with_data(gt_data, det_data)
-    assert m_with_data.mAP == m.mAP
-
-
-def test_mAP():
-    assert m.mAP == approx(0.235)
-
-
-def test_mAP_50():
-    assert m.mAP_50 == approx(0.373)
-
-
-def test_mAP_75():
-    assert m.mAP_75 == approx(0.260)
-
-
-def test_mAP_small():
-    assert m.mAP_small == approx(0.250)
-
-
-def test_mAP_medium():
-    assert m.mAP_medium == approx(0.323)
-
-
-def test_mAP_large():
-    assert m.mAP_large == approx(0.101)
-
-
-def test_mAP_per_class():
-    assert m.mAP_per_class["class_1"] == approx(0.370)
-    assert m.mAP_per_class["class_2"] == approx(0.100)
+        _ = metrics_mgr_all(gt_no_annos_data, det_data)
 
 
 def test_prc_df():
-    prc_df = pd.read_csv(test_data_dir / "prc.csv")
-    _pytest_assert_frame_equal(prc_df, m._prc_df)
-
-
-def test_fscore():
-    fscore_df = pd.read_csv(test_data_dir / "fscore.csv")
-    _pytest_assert_frame_equal(fscore_df, m._fscore_df)
+    expected_result = pd.read_csv(test_data_dir / "prc.csv")
+    actual_result = stats_metrics["prc_df"]
+    _pytest_assert_frame_equal(expected_result, actual_result)
 
 
 def test_ap():
-    assert m.ap == approx(0.259)
+    assert stats_metrics["ap"] == approx(0.259)
 
 
 def test_pr_auc():
-    assert m.pr_auc == approx(0.246)
+    assert stats_metrics["pr_auc"] == approx(0.246)
 
 
 def test_pc_auc():
-    assert m.pc_auc == approx(0.414)
+    assert stats_metrics["pc_auc"] == approx(0.414)
 
 
 def test_rc_auc():
-    assert m.rc_auc == approx(0.353)
+    assert stats_metrics["rc_auc"] == approx(0.353)
 
 
-def test_as_dict():
-    assert m.as_dict() == {
-        "mAP": m.mAP,
-        "mAP_50": m.mAP_50,
-        "mAP_75": m.mAP_75,
-        "mAP_s": m.mAP_small,
-        "mAP_m": m.mAP_medium,
-        "mAP_l": m.mAP_large,
-    }
+def _test_prediction_types(tp: int, fp: int, fn: int):
+    assert stats_metrics["prediction_types"]["tp"] == tp
+    assert stats_metrics["prediction_types"]["fp"] == fp
+    assert stats_metrics["prediction_types"]["fn"] == fn
 
 
-def _test_prediction_types(tp_threshold: float, tp: int, fp: int, fn: int):
-    assert m.prediction_types(tp_threshold)["tp"] == tp
-    assert m.prediction_types(tp_threshold)["fp"] == fp
-    assert m.prediction_types(tp_threshold)["fn"] == fn
-
-
-def test_prediction_types_high_threshold():
-    _test_prediction_types(0.8, 4, 15, 11)
-
-
-def test_prediction_types_low_threshold():
-    _test_prediction_types(0.1, 9, 10, 6)
+def test_prediction_types():
+    _test_prediction_types(4, 15, 11)
