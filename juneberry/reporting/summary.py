@@ -25,9 +25,9 @@
 import csv
 import logging
 from pathlib import Path
+from prodict import List, Prodict
 from shutil import copy
 import sys
-from typing import List
 
 from juneberry.config.eval_output import EvaluationOutput, Metrics
 from juneberry.config.training_output import TrainingOutput
@@ -68,6 +68,11 @@ class Summary(Report):
         # Store the two types of files to be included in the summary.
         self.metrics_files = metrics_files
         self.plot_files = plot_files
+
+        # This Prodict will contain the relevant Summary data for each metrics file. It will be
+        # populated during the determination of the shared metric (below). Building this dict
+        # eliminates the need to load the metrics file AGAIN during construction of the Summary table.
+        self.table_data_dict = Prodict()
 
         # Determine which metric the desired metrics files have in common.
         self.metric = self._determine_shared_metric() if self.metrics_files is not None else None
@@ -138,11 +143,11 @@ class Summary(Report):
         for file in self.metrics_files:
             logger.info(f"Adding the metrics data from {file} to the summary report.")
 
-            # Load the metrics file, retrieve the model name and the eval dataset that was used in
-            # the evaluation, and build a model manager.
-            metrics_data = EvaluationOutput.load(file)
-            eval_data_name = metrics_data.options.dataset.config
-            model_name = metrics_data.options.model.name
+            # Fetch the appropriate table data from the table_data_dict, retrieve the model name and eval dataset
+            # that was used in the evaluation, and build a model manager.
+            table_data = self.table_data_dict[file]
+            eval_data_name = table_data.eval_data_name
+            model_name = table_data.model_name
             model_mgr = ModelManager(model_name)
 
             # Load the training output and retrieve the amount of time spent training the model.
@@ -155,7 +160,7 @@ class Summary(Report):
             copy(orig_training_plot, dst_training_plot)
 
             # Retrieve the metric value from the metrics data.
-            metric_value = self._retrieve_metric_data(metrics_data.results.metrics)
+            metric_value = self._retrieve_metric_data(table_data.metrics_stanza)
 
             # Assemble the table row and add it to the summary table.
 
@@ -247,6 +252,11 @@ class Summary(Report):
                 found = True
             if not found:
                 counts['None'].append(metrics_file)
+
+            # Add the data needed to build the Summary table to the table_data_dict.
+            self.table_data_dict[metrics_file] = Prodict(eval_data_name=eval_data.options.dataset.config,
+                                                         model_name=eval_data.options.model.name,
+                                                         metrics_stanza=eval_data.results.metrics)
 
         # If we have some that we didn't identify, then show the files and bail.
         if len(counts['None']) > 0:
