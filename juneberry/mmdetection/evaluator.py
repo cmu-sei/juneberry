@@ -27,7 +27,6 @@ import itertools
 import logging
 import mmcv
 import numpy as np
-from pathlib import Path
 import sys
 from types import SimpleNamespace
 import warnings
@@ -50,11 +49,12 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram, get_metrics
+from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_config, get_default_od_metrics_formatter
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
 
@@ -260,11 +260,19 @@ class Evaluator(EvaluatorBase):
         result = JBMMDCocoDataset.evaluate(self=self.dataset, results=self.raw_output,
                                            metric=self.cfg.evaluation.metric, logger=logger, classwise=True)
 
-        # TODO this line should be in a populate_metrics method and called by
-        # the super evaluator.py. We can't do that here, the way we do for dt2.
+        # TODO these lines should be extracted into a populate_metrics method and called by
+        #   the super evaluator.py. We can't do that here, the way we do for dt2.
         # TODO we're assuming we're getting COCO metrics and they're being returned
-        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
-        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
+        #   in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
+        metrics_config = self.model_config.evaluation_metrics
+        metrics_formatter = self.model_config.evaluation_metrics_formatter
+
+        if not metrics_config:
+            metrics_config = get_default_od_metrics_config()
+            metrics_formatter = get_default_od_metrics_formatter()
+
+        metrics_mgr = MetricsManager(metrics_config, metrics_formatter)
+        self.output.results.metrics = metrics_mgr.call_with_eval_dir_manager(self.eval_dir_mgr)
 
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
 

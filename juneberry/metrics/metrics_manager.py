@@ -70,15 +70,18 @@ class MetricsManager:
 
         # For each metrics plugin entry in the config,
         # instantiate a metrics plugin object and add to the list of metrics
-        for i in metrics_config:
-            # Create a metrics plugin for each entry in the config
-            entry = MetricsManager.Entry(i.fqcn, i.kwargs)
-            logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
-            entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
-            self.metrics_entries.append(entry)
+        if not metrics_config:
+            logger.warning("No evaluation_metrics stanza found in model config, no metrics will be generated!")
+        else:
+            for i in metrics_config:
+                # Create a metrics plugin for each entry in the config
+                entry = MetricsManager.Entry(i.fqcn, i.kwargs)
+                logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
+                entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
+                self.metrics_entries.append(entry)
 
-        if formatter_config:
-            self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
+            if formatter_config:
+                self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
 
     def __call__(self, anno: Dict, det: Dict) -> Dict[str, Any]:
         """

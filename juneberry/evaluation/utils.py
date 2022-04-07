@@ -27,20 +27,19 @@ import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, List
 
 import torch
 from tqdm import tqdm
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
-from juneberry.config.model import ModelConfig
+from juneberry.config.model import ModelConfig, Plugin
 from juneberry.config.training_output import TrainingOutput
 from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-from juneberry.metrics.metrics_manager import MetricsManager
 
 
 logger = logging.getLogger(__name__)
@@ -210,17 +209,6 @@ def invoke_evaluator_method(evaluator, module_name: str):
     jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
-def get_metrics(model_config: ModelConfig, eval_dir_mgr: EvalDirMgr) -> Dict:
-    """
-    Calculate metrics and return the result.
-    :param model_config: The Juneberry ModelConfig that lists the metrics plugins to be called.
-    :param eval_dir_mgr: The Juneberry EvalDirMgr that will be used to get data for metrics.
-    :return: None
-    """
-    metrics_mgr = MetricsManager(model_config.evaluation_metrics, model_config.evaluation_metrics_formatter)
-    return metrics_mgr.call_with_eval_dir_manager(eval_dir_mgr)
-
-
 def prepare_classification_eval_output(evaluator: Evaluator):
     """
     This function is responsible for performing some of the common preparation tasks when working
@@ -301,3 +289,28 @@ def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
 
     # Add the hash of the model used for evaluation to the Evaluator output.
     evaluator.output.options.model.hash = evaluated_model_hash
+
+
+# TODO it would be better if this was in an OD-specific superclass of evaluator
+#   as a more general get_default_metrics_config
+def get_default_od_metrics_config() -> List[Plugin]:
+    default_metrics_config = {
+        "fqcn": "juneberry.metrics.metrics.Coco",
+        "kwargs": {
+            "iou_threshold": 0.5,
+            "max_det": 100,
+            "tqdm": False
+        }
+    }
+    return [Plugin.from_dict(default_metrics_config)]
+
+
+# TODO it would be better if this was in an OD-specific superclass of evaluator
+#   as a more general get_default_metrics_formatter
+def get_default_od_metrics_formatter() -> Dict:
+    default_metrics_formatter = {
+        "fqcn": "juneberry.metrics.format.DefaultCocoFormatter",
+        "kwargs": {
+        }
+    }
+    return Plugin.from_dict(default_metrics_formatter)
