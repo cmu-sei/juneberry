@@ -282,9 +282,11 @@ or testing.
 *Pytorch Transform Format*
 
 Each transform is an instance of a class that has a `__call__` method which accepts an 
-image or tensor and an optional `__init__` method that accepts an optional set of arguments. 
-The values to the `__init__` method come from an optional kwargs stanza. The class should 
-follow the following structure:
+image or tensor (with optional args) and an optional `__init__` method that accepts an 
+optional set of arguments. 
+The values to the `__call__` method are those that change on a per data element basis.
+The values to the `__init__` method come from an optional kwargs stanza in a condig.
+The plugin should follow the following structure:
 
 ```
 class <MyTransformerClass>:
@@ -298,28 +300,17 @@ class <MyTransformerClass>:
 
 An example can be found in Juneberry under **juneberry.transforms.debugging_transformer**.
 
-If the transform `__init__` method has `path_label_list` as a parameter, it will be passed
-a copy of the entire list of paths and labels of the input dataset.  Note, this does NOT
-guarantee that this instance will be passed every entry in the list due to multi-threading
-not can modify the list.  This simply allow the transform to make informed decisions about
-how to transform the data based on the number and distribution of data.
-
-Native pytorch transformers can be used directly with no modification such as 
-**torchvision.transforms.CenterCrop**.
-
-The transforms are called in the order they are specified in the chain, and the output
-of one transformer is passed to the next as-is. Thus, if a transformer is used that returns
-a `torch.Tensor` instead of a `PIL.Image` then the next transformer should accept a 
-`torch.Tensor`.
-
-At the end of the chain, all the input images are converted into `torch.Tensors` if they
-have not already been converted.
-
 Each class is constructed **once** at Juneberry start up time. The class is initialized
 with the values specified in the `kwargs` parameter using "keyword" expansion. In keyword 
 expansion the value of each key is passed in as that named argument, therefore all the 
 values in the init call (except for self) **must** be in the `kwargs` structure, and the kwargs
 structure must contain no additional arguments.
+
+If the transform `__init__` method has `path_label_list` as a parameter, it will be passed
+a copy of the entire list of paths and labels of the input dataset.  Note, this does NOT
+guarantee that this instance will be passed every entry in the list due to multi-threading
+not can modify the list.  This simply allow the transform to make informed decisions about
+how to transform the data based on the number and distribution of data.
 
 For example, if the `__init__` call looks like this:
 
@@ -340,6 +331,35 @@ Then the `kwargs` stanza should have `width` and `height`.  Such as:
 }
 ```
 
+The `__call__` method of the transform should take as its first argument the item to be transformed.
+Additionally, if desired the signature can contain the `label`, item `index`, or `epoch` number. 
+If found, Juneberry will pass in those values. The order of the optional arguments isn't important,
+but the names must be exact.
+
+The `__call__` method must return either `item` or an `item, label` tuple. Juneberry will accept 
+either for data transforms.
+
+For example, a `__call__` definition will all three optional arguments and returns the item and label.
+
+```
+class <MyTransformerClass>:
+    def __call__(self, image, *, epoch, index, label):
+        ... image transformation ...
+        ... label change ...
+        return image, label
+```
+
+The transforms are called in the order they are specified in the chain, and the output
+of one transformer is passed to the next as-is. Thus, if a transformer is used that returns
+a `torch.Tensor` instead of a `PIL.Image` then the next transformer should accept a 
+`torch.Tensor`.
+
+At the end of the chain, all the input images are converted into `torch.Tensors` if they
+have not already been converted.
+
+Native pytorch transformers can be used directly with no modification such as 
+**torchvision.transforms.CenterCrop**.
+
 ### fqcn
 This is the fully qualified name to the class to be loaded.
 **juneberry.transforms.debugging_transformer.NoOpTensorTransformer**.
@@ -350,7 +370,7 @@ the class.
 
 *Detectron2 Transform Format*
 
-Transforms for detectron 2 can be Detectron2 Augmentations, Transforms, or some object that looks
+When using Detectron2 transforms *can be* Detectron2 Augmentations, Transforms, or some object that looks
 like a detectron2 transform by provided the appropriate methods: 
 
 ```
