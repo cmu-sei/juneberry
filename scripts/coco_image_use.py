@@ -25,6 +25,7 @@
 import argparse
 import json
 import logging
+from pathlib import Path
 
 import juneberry.config.coco_utils as coco_utils
 import juneberry.scripting as jb_scripting
@@ -33,14 +34,14 @@ logger = logging.getLogger("juneberry.coco_image_use.py")
 
 
 def setup_args(parser):
-    parser.add_argument("model", help="Directory containing the Juneberry project.")
-    parser.add_argument("file_name", help="Image filename (within dataroot) in which to search for.")
+    parser.add_argument("model", help="Model directory to search through.")
+    parser.add_argument("file_name", help="Image filename to search for.")
     parser.add_argument("-e", "--evals", default=False, action='store_true', help="Also scan all eval directories.")
 
 
 def show_uses(coco_path, file_name):
     # We get the annotations as a merged file list to make it easy to find.
-    # We just scan the list looking for that file name, and if we find it, show it.
+    # We just scan the list looking for that filename, and if we find it, show it.
     logger.info(f"Searching {coco_path} for {file_name}...")
     helper = coco_utils.load_from_json_file(coco_path)
     flat_list = helper.to_image_list()
@@ -50,7 +51,12 @@ def show_uses(coco_path, file_name):
             logger.info(json.dumps(entry, indent=4))
             return
 
-    logger.info(f"None found in {coco_path}.")
+        entry_file_path = Path(entry.file_name)
+        if entry_file_path.name == file_name:
+            logger.info(json.dumps(entry, indent=4))
+            return
+
+    logger.info(f"  {file_name} was not found in {coco_path}")
 
 
 def main():

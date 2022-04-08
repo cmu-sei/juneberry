@@ -468,6 +468,8 @@ class AttackManager(ExperimentManager):
 
     def get_plugin_file(self, meta=False, disjoint=False):
         """
+        :param meta: Boolean that controls whether to return the 'meta' version of the
+        in_out_plugin or the 'private' directory version.
         :param disjoint: Boolean that controls whether to return the 'superset' (default) or
         'disjoint' version of the desired property.
         : return: The path to the Plugin file used to build the in_out datasets for the
