@@ -47,12 +47,8 @@ def show_uses(coco_path, file_name):
     flat_list = helper.to_image_list()
 
     for entry in flat_list:
-        if entry.file_name == file_name:
-            logger.info(json.dumps(entry, indent=4))
-            return
-
         entry_file_path = Path(entry.file_name)
-        if entry_file_path.name == file_name:
+        if file_name == entry.file_name or file_name == entry_file_path.name:
             logger.info(json.dumps(entry, indent=4))
             return
 
