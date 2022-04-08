@@ -34,7 +34,7 @@ logger = logging.getLogger("juneberry.coco_image_use.py")
 
 
 def setup_args(parser):
-    parser.add_argument("model", help="Model directory to search through.")
+    parser.add_argument("model", help="Model to search through.")
     parser.add_argument("file_name", help="Image filename to search for.")
     parser.add_argument("-e", "--evals", default=False, action='store_true', help="Also scan all eval directories.")
 
@@ -56,8 +56,8 @@ def show_uses(coco_path, file_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="This script searches through the specified model directory"
-                                                 "for uses of the specified image.")
+    parser = argparse.ArgumentParser(description="This script searches the specified model for "
+                                                 "uses of the specified image.")
     jb_scripting.setup_args(parser)
     setup_args(parser)
     args = parser.parse_args()
