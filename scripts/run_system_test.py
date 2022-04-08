@@ -871,17 +871,17 @@ def main():
     args = parser.parse_args()
 
     # We need to find the juneberry directory so we can make the bin directory
-    script_dir = Path(__file__).parent
+    script_dir = Path(__file__).parent.absolute()
     workspace_root = script_dir.parent
     juneberry_dir = workspace_root.parent / "juneberry"
     if args.juneberry is not None:
-        juneberry_dir = Path(args.juneberry)
-    bin_dir = (juneberry_dir / "bin").absolute()
+        juneberry_dir = Path(args.juneberry).absolute()
+    bin_dir = (juneberry_dir / "bin")
     data_root = None
     if args.dataRoot is not None:
         data_root = Path(args.dataRoot).absolute()
 
-    os.chdir(workspace_root.absolute())
+    os.chdir(workspace_root)
 
     # Set up our environment variables so that we are deterministic
     # https://github.com/NVIDIA/tensorflow-determinism
