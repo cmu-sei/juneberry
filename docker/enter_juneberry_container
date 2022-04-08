@@ -38,17 +38,34 @@
 # JUNEBERRY_GPUS            - The GPUS for the container: "" for none, "all" to set to all, IDs for specific ones.
 # JUNEBERRY_PROFILE_NAME    - The profile name
 
-# === Lab Layout ===
-LAB=${PWD}
+# ==================================================================================================
+# Try to determine workspace and lab
+
+# We expect this script to be run from the desired workspace that is directory within the lab root.
+# Or, if an argument is provided then this script is executed within the current lab root
+
+if [ "$#" -eq 1 ]; then
+    # If one arg, then that is the workspace within the lab and PWD is the lab directory
+    echo "One arg"
+    LAB="${PWD}"
+    WORKSPACE="${LAB}/${1}"
+else
+    # If no args, then CWD is the workspace and the Lab is the parent
+    echo "No args"
+    WORKSPACE="${PWD}"
+    LAB="$(dirname ${WORKSPACE})"
+fi
+
+# ==================================================================================================
 
 # If they specified a lab directory then use it as a basis for the lab structure.
+# NOTE: The works[ace doesn't change here.  But they can overrie later with JUNEBERRY_WORKSPACE of course
 if [ ! -z ${JUNEBERRY_LAB} ]; then
     LAB=${JUNEBERRY_LAB}
 fi
 
 # Standard directory layout based on the lab
 REPOSITORY=${LAB}/juneberry
-WORKSPACE=""
 DATA_ROOT=${LAB}/dataroot
 TENSORBOARD=${LAB}/tensorboard
 CACHE=${LAB}/cache
@@ -112,7 +129,8 @@ TB="-v ${TENSORBOARD}:/tensorboard"
 HUB_CACHE="-v ${CACHE}/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${CACHE}/torch:/root/.torch"
 TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
-CACHES="${HUB_CACHE} ${TORCH_CACHE} ${TF_CACHE}"
+KERAS_CACHE="-v ${CACHE}/keras:/root/.keras"
+CACHES="${HUB_CACHE} ${TORCH_CACHE} ${TF_CACHE} ${KERAS_CACHE}"
 if [ ! -z ${GPUS} ]; then
     GPUS="--gpus ${GPUS}"
 fi
@@ -139,6 +157,7 @@ fi
 if [ ! -d "${CACHE}/hub" ]; then mkdir "${CACHE}/hub"; fi
 if [ ! -d "${CACHE}/torch" ]; then mkdir "${CACHE}/torch"; fi
 if [ ! -d "${CACHE}/tensorflow" ]; then mkdir "${CACHE}/tensorflow"; fi
+if [ ! -d "${CACHE}/keras" ]; then mkdir "${CACHE}/keras"; fi
 
 # ================================================================================================
 
