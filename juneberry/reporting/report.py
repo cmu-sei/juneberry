@@ -40,6 +40,10 @@ class Report:
         else:
             self.output_dir = Path(output_str).parent
 
+        # Create the output directory (and any parent directories) if it does not exist.
+        if not self.output_dir.exists():
+            self.output_dir.mkdir(parents=True)
+
     def create_report(self) -> None:
         """
         Creates the report file and writes it to the desired output file.

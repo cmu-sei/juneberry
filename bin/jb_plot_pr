@@ -26,7 +26,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from juneberry.config.model import Plugin
+from juneberry.config.plugin import Plugin
 import juneberry.filesystem as jbfs
 import juneberry.metrics.metrics_manager as metrics_manager
 from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
