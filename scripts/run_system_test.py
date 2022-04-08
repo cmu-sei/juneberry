@@ -851,6 +851,8 @@ def main():
 
     parser = argparse.ArgumentParser(description="Script for executing unit tests. Use --init to initialize known "
                                                  "good files for this host.")
+    parser.add_argument("-w", "--workspace", type=str, default=None,
+                        help="Manual override for the workspace direcory.")
     parser.add_argument("-d", "--dataRoot", type=str, default=None,
                         help="Root of data directory. Overrides values pulled from config files.")
     parser.add_argument("--init", default=False, action="store_true",
@@ -861,12 +863,16 @@ def main():
     parser.add_argument("--initifneeded", default=False, action="store_true",
                         help="Set to true to automatically init if not inited. Incompatible with init or reinit.")
 
+
+
     args = parser.parse_args()
 
-    # Get the script directory
+    # Get the script directory and the bin directory associated with this script
     script_dir = Path(__file__).parent.absolute()
+    bin_dir = script_dir.parent.absolute() / "bin"
     workspace_root = script_dir.parent.absolute()
-    bin_dir = workspace_root / "bin"
+    if args.workspace is not None:
+        workspace_root = args.workspace
     data_root = None
     if args.dataRoot is not None:
         data_root = Path(args.dataRoot).absolute()
