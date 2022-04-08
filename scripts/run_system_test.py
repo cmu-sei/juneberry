@@ -122,13 +122,11 @@ class CommandRunner:
     Simple helper object used to encapsulate the command line arguments and manages calls to subprocess.
     """
 
-    def __init__(self, bin_dir: Path, sub_env, workspace_root: Path, data_root: Path):
+    def __init__(self, sub_env, workspace_root: Path, data_root: Path):
         """
-        :param bin_dir: The directory in which the command is called from.
         :param workspace_root: Root directory of the current workspace.
         :param data_root: Root directory for the data files.
         """
-        self.bin_dir = bin_dir
         self.sub_env = sub_env
         self.workspace_root = workspace_root
         self.data_root = data_root
@@ -508,7 +506,7 @@ def clean_experiment(runner, experiment_name: str, workflow_flag=None) -> None:
     :param workflow_flag: Optional flag for the workflow that needs to be cleaned.
     """
     show_banner(f"Running Experiment (CLEAN)...")
-    args = [str(runner.bin_dir / "jb_run_experiment"), experiment_name, "--clean", "--commit"]
+    args = ["jb_run_experiment", experiment_name, "--clean", "--commit"]
     if workflow_flag:
         args.append(workflow_flag)
     runner.run(args, add_roots=True)
@@ -521,7 +519,7 @@ def clean_pydoit_predictions(runner, experiment_name: str) -> None:
     :param experiment_name: The experiment to clean.
     """
     show_banner(f"Cleaning predictions files for PyDoit experiment {experiment_name}...")
-    runner.run([str(runner.bin_dir / "jb_clean_predictions"), experiment_name])
+    runner.run(["jb_clean_predictions", experiment_name])
 
 
 def check_clean(runner, experiment_name: str, model_names: list, error_summary, check_experiment=True) -> int:
@@ -591,7 +589,7 @@ def dry_run_experiment(runner, experiment_name: str) -> None:
     """
     show_banner(f"Running Experiment (DRY RUN)...")
 
-    args = [str(runner.bin_dir / "jb_run_experiment"), experiment_name, "--dryrun", "--commit"]
+    args = ["jb_run_experiment", experiment_name, "--dryrun", "--commit"]
     runner.run(args, add_roots=True)
 
 
@@ -634,7 +632,7 @@ def commit_experiment(runner, experiment_name) -> None:
     """
     show_banner(f"Running Experiment (COMMIT)...")
 
-    args = [str(runner.bin_dir / "jb_run_experiment"), experiment_name, "--commit"]
+    args = ["jb_run_experiment", experiment_name, "--commit"]
     runner.run(args, add_roots=True)
 
 
@@ -819,7 +817,7 @@ def do_reinit(test_set, error_summary) -> None:
 #             config_path.unlink()
 #
 #     # Run the generator
-#     args = [str(runner.bin_dir / "jb_generate_experiments"), "generatedExperiment"]
+#     args = ["jb_generate_experiments", "generatedExperiment"]
 #     runner.run(args)
 #
 #     # At this point we should have config files. We don't diff them or anything yet.
@@ -851,8 +849,6 @@ def main():
 
     parser = argparse.ArgumentParser(description="Script for executing unit tests. Use --init to initialize known "
                                                  "good files for this host.")
-    parser.add_argument("-w", "--workspace", type=str, default=None,
-                        help="Manual override for the workspace direcory.")
     parser.add_argument("-d", "--dataRoot", type=str, default=None,
                         help="Root of data directory. Overrides values pulled from config files.")
     parser.add_argument("--init", default=False, action="store_true",
@@ -863,20 +859,17 @@ def main():
     parser.add_argument("--initifneeded", default=False, action="store_true",
                         help="Set to true to automatically init if not inited. Incompatible with init or reinit.")
 
-
-
     args = parser.parse_args()
 
-    # Get the script directory and the bin directory associated with this script
-    script_dir = Path(__file__).parent.absolute()
-    bin_dir = script_dir.parent.absolute() / "bin"
-    workspace_root = script_dir.parent.absolute()
-    if args.workspace is not None:
-        workspace_root = args.workspace
+    # We assume that this script is in a directory 'scripts' the workspace we are testing.
+    # So parent of the script to parent of scripts
+    workspace_root = Path(__file__).parent.parent.absolute()
     data_root = None
     if args.dataRoot is not None:
         data_root = Path(args.dataRoot).absolute()
 
+    # Make sure we are at the workspace root if they entered the command from somewhere else, like
+    # within the scripts dir.
     os.chdir(workspace_root)
 
     # Set up our environment variables so that we are deterministic
@@ -886,7 +879,7 @@ def main():
     sub_env["PYTHONHASHSEED"] = "0"
 
     # Set up the thing to run the command
-    runner = CommandRunner(bin_dir, sub_env, workspace_root, data_root)
+    runner = CommandRunner(sub_env, workspace_root, data_root)
     error_summary = []
 
     if args.init and args.reinit:
