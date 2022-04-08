@@ -123,6 +123,11 @@ class ROCPlot(Report):
         # Size the figure to a reasonable size using the magic buffer.
         fig.set_size_inches(w=7, h=5 + magic * self.num_curves)
 
+        # Sort the legend by class (alphabetically) and add the legend to the figure.
+        handles, labels = ax.get_legend_handles_labels()
+        labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+        ax.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, -0.15))
+
         # Adjust the final layout and save the figure to file.
         plt.tight_layout()
         plt.savefig(self.report_path)
@@ -205,9 +210,9 @@ class ROCPlot(Report):
             eval_dataset = prediction_file_content.options.dataset.config.split("/")[-1]
             model_name = prediction_file_content.options.model.name
 
-            # Plot the curve and add the legend to the figure.
-            ax.plot(fpr, tpr, lw=self.line_width, label=f"{model_name}:{eval_dataset} class {class_string} (AUC = {roc_auc:0.2f})")
-            ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15))
+            # Plot the curve. The label identifies this curve in the legend.
+            ax.plot(fpr, tpr, lw=self.line_width,
+                    label=f"'{class_string}' AUC: {roc_auc:0.2f} Source: {model_name}:{eval_dataset}")
 
     @staticmethod
     def _convert_classes(desired_classes: str, mapping: Prodict, current_file: str) -> List:
