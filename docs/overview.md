@@ -9,8 +9,8 @@ files into a "lab structure" that has data and workspaces. A common lab structur
 like this:
 
 ```
-<project>
-    juneberry/ - The cloned repo for sample projects
+<lab>
+    juneberry/ - The cloned repo for tools, docs and support scripts
     dataroot/ - Where all the data assets are stored
     tensorboard/ - OPTIONAL - Where tensorboard outputs are stored
     cache/ - A place where we store platform cached data for PyTorch, TensorFlow, etc.
@@ -22,16 +22,18 @@ files in paths that could be on different storage devices. If a different lab st
 must be provided to the enter_juneberry_container script or directly to the Juneberry tools (e.g. jb_train) via the 
 various configuration variables. Refer to the [Getting Started](getting_started.md) guide for details.
 
-# Workspaces (Required)
+# Workspace (Required)
 
 Although Juneberry only recommends a common structure for its lab layout, a specific structure is **required** 
-for managing all the files in a workspace. The Juneberry repository not only contains the Juneberry
-source code, but it also functions as an example workspace with sample models and experiments. Even though 
+for managing all the files in a workspace. The git repository at 
+[https://github.com/cmu-sei/juneberry-example-workspace](https://github.com/cmu-sei/juneberry-example-workspace)
+is an example workspace with working models, data_specs and experiments. Even though 
 you can use this example workspace for testing your Juneberry installation, we recommend creating your own 
 workspace to manage your own models and experiments. Refer to the [Getting Started](getting_started.md) guide 
 for directions on how to create your own workspace.
 
-While a workspace directory can have any name, it **must** have the following layout:
+While a workspace directory can have any name, it should be at the root of the lab and
+it **must** have the following layout:
 
 ```
 <WORKSPACE_ROOT>/
