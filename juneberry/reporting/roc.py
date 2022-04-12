@@ -27,7 +27,6 @@ import logging
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
 from prodict import List, Prodict
 import re
 from sklearn.metrics import auc, roc_curve
@@ -35,6 +34,7 @@ import sys
 
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.reporting.report import Report
+from juneberry.reporting.utils import determine_report_path
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +49,9 @@ class ROCPlot(Report):
                  curve_sources: Prodict = None, line_width: int = 2, legend_font_size: int = 10):
         super().__init__(output_str=output_str)
 
-        # Create a Path for the output file (typically a PNG) if one was not provided.
-        if output_str == "":
-            self.report_path = self.output_dir / "ROC_curves.png"
-
-        # Otherwise, try to use the desired path for the output file.
-        else:
-            self.report_path = Path(output_str)
-
+        # Determine where to save the output for this report.
+        default_filename = "ROC_curves.png"
+        self.report_path = determine_report_path(self.output_dir, output_str, default_filename)
         logger.info(f"Saving the ROC plot to {self.report_path}")
 
         # Store some attributes related to the plot.

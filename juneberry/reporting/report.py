@@ -38,7 +38,9 @@ class Report:
                            f"current working directory.")
             self.output_dir = Path.cwd()
         else:
-            self.output_dir = Path(output_str).parent
+            self.output_dir = Path(output_str)
+            if "." in self.output_dir.parts[-1]:
+                self.output_dir = self.output_dir.parent
 
         # Create the output directory (and any parent directories) if it does not exist.
         if not self.output_dir.exists():

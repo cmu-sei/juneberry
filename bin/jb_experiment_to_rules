@@ -39,9 +39,7 @@ logger = logging.getLogger(__name__)
 
 JB_TRAIN_COMMAND = 'jb_train'
 JB_EVALUATE_COMMAND = 'jb_evaluate'
-JB_PLOT_PR_COMMAND = 'jb_plot_pr'
-JB_PLOT_ROC_COMMAND = 'jb_plot_roc'
-JB_SUMMARY_COMMAND = 'jb_summary_report'
+JB_REPORT_COMMAND = 'jb_report'
 
 
 class RuleMaker:
@@ -147,136 +145,150 @@ class RuleMaker:
                         self.add_filters(test.filters, model_mgr, test.dataset_path, cmd_id)
 
     def add_reports(self):
-        for report in self.experiment_config.reports:
-            if report.type == ReportType.PLOT_ROC:
-                self.add_plot_roc(report)
-            elif report.type == ReportType.PLOT_PR:
-                self.add_plot_pr(report)
-            elif report.type == ReportType.SUMMARY:
-                self.add_summary(report)
 
-    def add_plot_pr(self, report: Report):
-        # Obtain the output directory as a string.
-        output_dir = str(self.experiment_manager.get_experiment_file(report.output_dir))
-        log_dir = str(self.experiment_manager.get_experiment_log_dir())
-
-        # Accumulate all the tests into one report.
         inputs = []
         requirements = []
-        command = [JB_PLOT_PR_COMMAND, '--outputDir', output_dir, '--logDir', log_dir]
+        outputs = []
 
-        # Retrieve the desired IoU value for the command.
-        if report.iou:
-            command.append(f'--iou')
-            command.append(report.iou)
+        workflow_components = (inputs, requirements, outputs)
 
+        for report in self.experiment_config.reports:
+
+            if report.fqcn == ReportType.PLOT_ROC:
+                report, workflow_components = self.add_plot_roc(report, workflow_components)
+            elif report.fqcn == ReportType.PLOT_PR:
+                report, workflow_components = self.add_plot_pr(report, workflow_components)
+            elif report.fqcn == ReportType.SUMMARY:
+                report, workflow_components = self.add_summary(report, workflow_components)
+
+        self.experiment_config.save(self.experiment_manager.get_experiment_config())
+        self.add_jb_report(workflow_components)
+
+    def add_plot_pr(self, report: Report, workflow_components: tuple):
+
+        inputs, requirements, outputs = workflow_components
+
+        # If an output_dir was not provided in the kwargs, use the experiment directory.
+        if "output_dir" not in report.kwargs:
+            report.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path)
+        else:
+            output_dir_path = Path(report.kwargs.output_dir)
+            if output_dir_path not in self.experiment_manager.experiment_dir_path.parents:
+                report.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path / output_dir_path)
+
+        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
         # Add all tests to the command.
         for test in report.tests:
 
+            curve_sources[self.tag_map[test.tag]['model']] = self.tag_map[test.tag]['dataset']
+
             # The presence of the metrics file indicates an evaluation has occurred for this
             # model / dataset combination.
-            predictions_file = str(self.tag_map[test.tag]['metrics'])
-            inputs.append(predictions_file)
-
-            # Add the model and eval dataset arguments to the command.
-            command.append('-m')
-            command.append(str(self.tag_map[test.tag]['model']))
-            command.append('-e')
-            command.append(str(self.tag_map[test.tag]['dataset']))
+            metrics_file = str(self.tag_map[test.tag]['metrics'])
+            inputs.append(metrics_file)
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        outputs = [Path(output_dir, "pr_curve.png"), Path(output_dir, "pc_curve.png"),
-                   Path(output_dir, "rc_curve.png"), Path(output_dir, "eval_metrics.csv")]
+        output_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png", "eval_metrics.csv"]
+        for output_file in output_files:
+            output_str = str(Path(report.kwargs.output_dir, output_file))
+            if output_str not in outputs:
+                outputs.append(output_str)
 
-        doc = " ".join([str(x) for x in command])
-        clean_extras = []
-        workflow = self.builder.get_workflow("main")
-        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        report.kwargs.curve_sources = curve_sources
 
-    def add_plot_roc(self, report: Report):
+        return report, (inputs, requirements, outputs)
 
-        # Everything gets put into one output
-        output_path = str(self.experiment_manager.get_experiment_file(report.output_name))
-        log_dir = str(self.experiment_manager.get_experiment_log_dir())
+    def add_plot_roc(self, report: Report, workflow_components: tuple):
 
+        inputs, requirements, outputs = workflow_components
+
+        if "output_str" not in report.kwargs:
+            report.kwargs.output_str = str(self.experiment_manager.experiment_dir_path)
+        else:
+            report.kwargs.output_str = str(self.experiment_manager.get_experiment_file(report.output_name))
+        outputs.append(report.kwargs.output_str)
+
+        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
         # Accumulate all the tests (predictions) into one report
-        inputs = []
-        requirements = []
-        command = [JB_PLOT_ROC_COMMAND, output_path, "--logDir", log_dir]
         for test in report.tests:
             predictions_file = str(self.tag_map[test.tag]['filename'])
+            classes = test.classes if test.classes else report.classes
+            curve_sources[predictions_file] = classes
             inputs.append(predictions_file)
-
-            command.append('-f')
-            command.append(predictions_file)
-            command.append('-c')
-            if test.classes:
-                command.append(test.classes)
-            else:
-                command.append(report.classes)
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        if report.plot_title:
-            command.append('--title')
-            command.append(report.plot_title)
+        return report, (inputs, requirements, outputs)
 
-        outputs = [output_path]
+    def add_summary(self, report: Report, workflow_components: tuple):
 
-        doc = " ".join([str(x) for x in command])
-        clean_extras = []
-        workflow = self.builder.get_workflow("main")
-        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        inputs, requirements, outputs = workflow_components
 
-    def add_summary(self, report: Report):
+        if report.kwargs.md_str:
+            md_path = Path(report.kwargs.md_str)
 
-        inputs = []
-        requirements = []
+            if len(md_path.parents) == 1:
+                report.kwargs.md_str = self.experiment_manager.experiment_dir_path / md_path
 
-        output_path = self.experiment_manager.get_experiment_file(report.output_name)
-        outputs = [output_path]
+        else:
+            report.kwargs.md_str = str(self.experiment_manager.experiment_dir_path / "summary.md")
 
-        command = [JB_SUMMARY_COMMAND, output_path]
-        if report.csv_name:
-            csv_path = self.experiment_manager.get_experiment_file(report.csv_name)
-            command.extend(['--csvFilename', csv_path])
-            outputs.append(str(csv_path))
-            log_dir = self.experiment_manager.get_experiment_log_dir()
-            command.extend(['--logDir', log_dir])
-            outputs.append(str(log_dir / "log_jb_summary_report.txt"))
+        outputs.append(report.kwargs.md_str)
 
+        if report.kwargs.csv_str:
+            csv_path = Path(report.kwargs.csv_str)
+
+            if len(csv_path.parents) == 1:
+                report.kwargs.csv_str = self.experiment_manager.experiment_dir_path / csv_path
+
+            outputs.append(report.kwargs.csv_str)
+
+        metrics_files = report.kwargs.metrics_files if 'metrics_files' in report.kwargs else []
         for entry in self.tag_map.values():
-            command.append('-f')
-            command.append(entry['metrics'])
             inputs.append(entry['metrics'])
+            if entry['metrics'] not in metrics_files:
+                metrics_files.append(entry['metrics'])
             requirements.append(entry['id'])
 
+        report.kwargs.metrics_files = metrics_files
+
+        plot_files = report.kwargs.plot_files if 'plot_files' in report.kwargs else []
         # We need all the output file names. Depending on the report type, different plots may
         # get added to the summary file.
-        for r in self.experiment_config.reports:
 
+        for r in self.experiment_config.reports:
             # Add ROC plots to the summary file, if necessary.
-            if r.type == ReportType.PLOT_ROC:
-                command.append('-pf')
-                command.append(r.output_name)
-                inputs.append(self.experiment_manager.experiment_dir_path / r.output_name)
+            if r.fqcn == ReportType.PLOT_ROC:
+                # TODO: Need to add any ROC curve files to the plot_files
+                continue
 
             # Add PR plots to the summary file, if necessary.
-            elif r.type == ReportType.PLOT_PR:
-
+            elif r.fqcn == ReportType.PLOT_PR:
                 # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
-                plot_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
+                plot_filenames = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
 
-                for file in plot_files:
-                    command.append('-pf')
-                    command.append(f"{r.output_dir}/{file}")
-                    inputs.append(self.experiment_manager.experiment_dir_path / r.output_dir / file)
+                for file_name in plot_filenames:
+                    plot_file = str(Path(r.kwargs.output_dir) / file_name)
+                    if plot_file not in plot_files:
+                        plot_files.append(plot_file)
 
             else:
                 continue
 
+        report.kwargs.plot_files = plot_files
+
+        return report, (inputs, requirements, outputs)
+
+    def add_jb_report(self, workflow_components: tuple):
+        inputs, requirements, outputs = workflow_components
+
+        inputs = list(set(inputs))
+        outputs = list(set(outputs))
+
+        command = [JB_REPORT_COMMAND, '-e', self.experiment_name]
         doc = " ".join([str(x) for x in command])
+
         clean_extras = []
 
         workflow = self.builder.get_workflow("main")

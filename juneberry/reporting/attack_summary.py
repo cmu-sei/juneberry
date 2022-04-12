@@ -33,6 +33,7 @@ from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
 from juneberry.reporting.report import Report
+from juneberry.reporting.utils import determine_report_path
 
 logger = logging.getLogger(__name__)
 
@@ -41,11 +42,10 @@ class AttackSummary(Report):
 
     def __init__(self, experiment_name: str = "", output_str: str = ""):
         super().__init__(output_str=output_str)
-        # Handle the case when an output file is not provided.
-        if self.output_dir == Path.cwd():
-            self.report_path = self.output_dir / "attack_summary.md"
-        else:
-            self.report_path = Path(output_str)
+
+        # Determine where to save the output for this report.
+        default_filename = "attack_summary.md"
+        self.report_path = determine_report_path(self.output_dir, output_str, default_filename)
         logger.info(f"Saving the report to {self.report_path}")
 
         # Handle the case where an experiment name is not provided.

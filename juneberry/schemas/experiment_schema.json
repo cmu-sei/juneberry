@@ -62,42 +62,110 @@
                 "type": "object",
                 "properties": {
                     "description": { "type": "string" },
-                    "type": {
-                        "type": "string",
-                        "enum": [ "plot_pr", "plot_roc", "summary" ]
-                    },
-                    "classes": { "type": "string" },
-                    "tests": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "tag": { "type": "string" },
-                                "classes": { "type": "string" }
-                            },
-                            "required": [ "tag" ]
-                        }
-                    },
-                    "output_dir": { "type": "string" },
-                    "output_name": { "type": "string" },
-                    "csv_name": { "type": "string" },
-                    "plot_title": { "type": "string" }
+                    "fqcn": { "type": "string" },
+                    "kwargs": { "type": "object" }
                 },
                 "required": [
-                    "type"
+                    "fqcn"
                 ],
                 "anyOf": [
                     {
-                        "properties": { "type": { "const": "plot_roc" } },
-                        "required": [ "description", "tests", "output_name", "plot_title" ]
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.report.roc.ROCPlot" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "output_str": { "type": "string"},
+                                    "plot_title": { "type": "string"},
+                                    "legend_scaling": { "type": "number" },
+                                    "curve_sources": { "type": "object" },
+                                    "line_width": { "type": "integer" },
+                                    "legend_font_size": { "type": "integer" }
+                                }
+                            },
+                            "tests": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tag": { "type": "string" },
+                                        "classes": { "type": "string" }
+                                    },
+                                    "required": [ "tag" ]
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn", "tests" ]
                     },
                     {
-                        "properties": { "type": { "const": "plot_pr" } },
-                        "required": [ "description", "tests", "output_dir" ]
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.reporting.pr.PRCurve" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "output_dir": { "type": "string"},
+                                    "iou": { "type": "number" },
+                                    "curve_sources": { "type": "object" },
+                                    "tp_threshold": { "type": "number" },
+                                    "stats_fqcn": { "type": "string"}
+                                }
+                            },
+                            "tests": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tag": { "type": "string" },
+                                        "classes": { "type": "string" }
+                                    },
+                                    "required": [ "tag" ]
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn", "tests" ]
                     },
                     {
-                        "properties": { "type": { "const": "summary" } },
-                        "required": [ "description", "output_name" ]
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.reporting.summary.Summary" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "md_str": { "type": "string"},
+                                    "csv_str": { "type": "string"},
+                                    "metrics_files": {
+                                        "type": "array",
+                                        "items": { "type": "string"}
+                                    },
+                                    "plot_files": {
+                                        "type": "array",
+                                        "items": { "type": "string"}
+                                    }
+                                }
+                            },
+                            "tests": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tag": { "type": "string" },
+                                        "classes": { "type": "string" }
+                                    },
+                                    "required": [ "tag" ]
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn", "tests" ]
+                    },
+                    {
+                        "properties": {
+                            "description": { "type": "string" },
+                            "fqcn": { "type": "string" },
+                            "kwargs": { "type": "object" }
+                        },
+                        "required": [ "description", "fqcn" ]
                     }
                 ]
             }

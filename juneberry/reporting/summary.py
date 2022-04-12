@@ -33,6 +33,7 @@ from juneberry.config.eval_output import EvaluationOutput, Metrics
 from juneberry.config.training_output import TrainingOutput
 from juneberry.filesystem import ModelManager
 from juneberry.reporting.report import Report
+from juneberry.reporting.utils import determine_report_path
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +53,9 @@ class Summary(Report):
                  plot_files: List = None):
         super().__init__(output_str=md_str)
 
-        # Create a Path for the output file (markdown) if one was not provided.
-        if md_str == "":
-            self.report_path = self.output_dir / "summary.md"
-
-        # Otherwise, attempt to use the desired path for the markdown file.
-        else:
-            self.report_path = Path(md_str)
-
+        # Determine where to save the output for this report.
+        default_filename = "summary.md"
+        self.report_path = determine_report_path(self.output_dir, md_str, default_filename)
         logger.info(f"Saving the report to {self.report_path}")
 
         # CSV mode is optional. If a CSV path was not provided, skip the CSV steps.
@@ -148,6 +144,8 @@ class Summary(Report):
             table_data = self.table_data_dict[file]
             eval_data_name = table_data.eval_data_name
             model_name = table_data.model_name
+            model_name_str = str(model_name).replace("/", "_") if "/" in model_name else model_name
+
             model_mgr = ModelManager(model_name)
 
             # Load the training output and retrieve the amount of time spent training the model.
@@ -156,7 +154,7 @@ class Summary(Report):
 
             # Retrieve the model's training plot and place a copy of it in the `report_files` directory.
             orig_training_plot = model_mgr.get_training_summary_plot()
-            dst_training_plot = self.report_files_path / f"{model_name}_output.png"
+            dst_training_plot = self.report_files_path / f"{model_name_str}_output.png"
             copy(orig_training_plot, dst_training_plot)
 
             # Retrieve the metric value from the metrics data.
@@ -167,12 +165,12 @@ class Summary(Report):
             # Accuracy metrics are formatted one way.
             if self.metric == 'Accuracy' or self.metric == 'Balanced Accuracy':
                 output_file.write(f"{model_name} | {duration} | {eval_data_name} | {metric_value:.2%} | "
-                                  f"[Training Chart](./report_files/{model_name}_output.png)\n")
+                                  f"[Training Chart](./report_files/{model_name_str}_output.png)\n")
 
             # And mAP is formatted another way.
             elif self.metric == 'mAP':
                 output_file.write(f"{model_name} | {duration} | {eval_data_name} | {metric_value} | "
-                                  f"[Training Chart](./report_files/{model_name}_output.png)\n")
+                                  f"[Training Chart](./report_files/{model_name_str}_output.png)\n")
 
             # If a CSV was requested, format the row and write it to the CSV file.
             if csv_writer is not None:

@@ -24,7 +24,6 @@
 
 import argparse
 import logging
-import sys
 
 import juneberry.reporting.utils as jb_report_utils
 import juneberry.scripting as jbscripting
@@ -68,7 +67,7 @@ def main():
 
     # Fetch the desired reports for the experiment and build each report.
     if args.experiment:
-        report_list = jb_report_utils.extract_experiment_reports()
+        report_list = jb_report_utils.extract_experiment_reports(args.experiment)
 
     # Fetch the desired reports for the model and build each report.
     if args.model:

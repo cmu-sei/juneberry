@@ -23,9 +23,12 @@
 # ======================================================================================================================
 
 import logging
+from pathlib import Path
 from typing import List
 
+from juneberry.config.experiment import ExperimentConfig
 from juneberry.config.report import ReportConfig
+import juneberry.filesystem as jbfs
 import juneberry.loader as jb_loader
 
 logger = logging.getLogger(__name__)
@@ -36,8 +39,11 @@ def construct_report(fqcn, args):
     return report
 
 
-def extract_experiment_reports():
-    pass
+def extract_experiment_reports(experiment_name: str):
+    experiment_manager = jbfs.ExperimentManager(experiment_name)
+    experiment_config = ExperimentConfig.load(experiment_manager.get_experiment_config())
+
+    return experiment_config.reports
 
 
 def extract_model_reports():
@@ -53,3 +59,19 @@ def extract_file_reports(file_list: List):
             report_list.append(report)
 
     return report_list
+
+
+def determine_report_path(output_dir: Path, input_str: str, default_filename: str):
+    # If an output string was not provided, save the report to the
+    # current working directory with the default filename.
+    if input_str == "":
+        return output_dir / default_filename
+
+    # Otherwise, check if the provided output string is a file or directory.
+    else:
+        output_path = Path(input_str)
+
+        if "." in output_path.parts[-1]:
+            return output_path
+        else:
+            return output_path / default_filename

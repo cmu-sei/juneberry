@@ -91,6 +91,7 @@ class PRCurve(Report):
             rc_plot.add_metrics(metrics, self.iou, model_name, dataset_name)
 
         # Save the figures.
+        logger.info(f"Saving plot files to {self.output_dir}")
         pr_plot.save(self.output_dir / "pr_curve.png")
         pc_plot.save(self.output_dir / "pc_curve.png")
         rc_plot.save(self.output_dir / "rc_curve.png")

@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 
 
 class ReportType(str, Enum):
-    PLOT_PR = 'plot_pr'
-    PLOT_ROC = 'plot_roc'
-    SUMMARY = 'summary'
+    PLOT_PR = 'juneberry.reporting.pr.PRCurve'
+    PLOT_ROC = 'juneberry.report.roc.ROCPlot'
+    SUMMARY = 'juneberry.reporting.summary.Summary'
     ALL_ROC = 'all_roc'
     ALL_PR = 'all_pr'
 
@@ -65,16 +65,10 @@ class ReportTest(Prodict):
 
 
 class Report(Prodict):
-    # type is [all_pr | all_roc | plot_pr | plot_roc | summary]
-    classes: str
-    csv_name: str
     description: str
-    iou: float
-    output_dir: str
-    output_name: str
-    plot_title: str
+    fqcn: str
+    kwargs: Prodict
     tests: List[ReportTest]
-    type: str
 
 
 class Filter(Prodict):
@@ -136,7 +130,7 @@ class ExperimentConfig(Prodict):
 
         # The reports should have a tests section to make sense and tags in those tests
         for i, report in enumerate(self.reports):
-            if report.type == ReportType.PLOT_ROC or report.type == ReportType.PLOT_PR:
+            if report.fqcn == ReportType.PLOT_ROC or report.fqcn == ReportType.PLOT_PR:
 
                 for test in report.tests:
                     if test.tag not in tag_set:
@@ -144,7 +138,7 @@ class ExperimentConfig(Prodict):
                         error_count += 1
 
         if error_count > 0:
-            logger.error(f"Found {error_count} errors in experiment config. EXITING.")
+            logger.error(f"Found {error_count} errors in experiment config. Exiting.")
             sys.exit(-1)
 
     @staticmethod
