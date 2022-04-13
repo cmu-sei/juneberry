@@ -189,6 +189,9 @@ source /juneberry/scripts/juneberry_completion.sh
 NOTE: If you use a temporary container (by default `enter_juneberry_container` creates temporary containers)
 you'll need to source the juneberry completion script every time you start the container.
 
+TODO: This section needs a rewrite since the model is now in the example workspace. It seems like we're trying 
+to dance this line of "you don't really need the example workspace" and "yeah you kind of do". We should commit to 
+one side and write that approach.
 ## Testing Your Installation
 
 After installing Juneberry, you can run the following training command to test your installation:
@@ -206,6 +209,7 @@ For convenience, users can create a bash script containing the previous commands
 or inside a custom workspace (see below), it will be executed during the container's initialization. The 
 `juneberry/docker` directory contains a sample `container_start.sh` script.
 
+TODO: I think overview.md is probably a better home for this section.
 # Custom Workspaces
 
 Juneberry uses "workspaces" to house the user's model configurations, experiments, and all outputs, such as  
