@@ -33,13 +33,12 @@ Juneberry requires several directories to store its components, such as source c
 Tensorboard logs, and caches. The purpose of these directories is described in the 
 [Workspace and Experiment Overview](overview.md). 
 
-The `juneberry-example-workspace` isn't required for installation, but is a good example of a
-workspace and can be used for testing your installation and has some useful baseline models.
+While `juneberry-example-workspace` isn't required for your Juneberry installation, it serves as an example 
+workspace and contains useful baseline models which can be used to test your installation.
 
 Juneberry has a default structure that it knows how to work with. The structure can be customized, but for
-introductory purposes the default structure should be sufficient.
-To start, a single directory for the project should be created. 
-This directory is referred to as the **lab-root**.
+introductory purposes the default structure should be sufficient. To start, a single directory for the 
+project should be created. This directory is referred to as the **lab-root**.
 
 Inside the lab-root, the goal is to create sub-directories for the various Juneberry components.
 These sub-directories can be created manually, or via the `setup_lab.py` script located in the 
@@ -80,7 +79,7 @@ lab-root/
     cache/
     dataroot/
     juneberry/
-    juneberry-example-workspace
+    juneberry-example-workspace/
     tensorboard/
 ```
 # Juneberry with a Docker Container
@@ -125,9 +124,16 @@ used to change those files, and those modifications will be available inside the
 created by Juneberry inside the container such as models, log files, and plots will be available 
 outside the container after the container terminates, due to this relationship with the host filesystem.
 
-A sample script called `enter_juneberry_container` starts (by default) a **temporary** 'cpudev' container.
-It assumes the lab directory structure described above is assumed to be started from within the
+A sample script called `enter_juneberry_container` can be used to start a **temporary** container. By default, 
+this script starts a 'cpudev' container. The script assumes the lab directory structure described above in 
+['The Lab Structure'](getting_started.md#The-Lab-Structure), and offers two strategies for accommodating multiple 
+workspaces. 
+1) You may run the script from inside the workspace directory. In this situation the script chooses 
+the current directory as the workspace directory, and the parent of the workspace directory as the lab root.
 current workspace directory, since you can have multiple workspaces in your environment.
+2) You may run the script from lab root, and provide one argument. The argument provided to the script will 
+be interpreted as your desired workspace directory. As a result of how Docker interprets that directory, we advise 
+providing the absolute path to the desired workspace directory.
 
 For example, the following command will start an instance of the downloaded CPU-only container 
 from within the _workspace_ (i.e. juneberry-example-workspace) directory:
@@ -149,8 +155,8 @@ JUNEBERRY_CONTAINER=cmusei/juneberry:cudadev JUNEBERRY_GPUS=all juneberry/docker
 ## Using the Container
 
 Once inside the container, the user will find themselves in the `/workspace` directory by default. 
-While it is called "workspace" within the container, it is the workspace directory that was provided
-to the `enter_juneberry_container` either as the current working directory when started, or via
+The directory may be called "workspace" inside the container, but it maps to whichever workspace directory 
+was provided to the `enter_juneberry_container` script either by command line argument or via
 the `JUNEBERRY_WORKSPACE` override.
 
 There are a few more initialization tasks to complete before Juneberry is operational:

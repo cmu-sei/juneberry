@@ -39,18 +39,18 @@
 # JUNEBERRY_PROFILE_NAME    - The profile name
 
 # ==================================================================================================
-# Try to determine workspace and lab
+# In this section, attempt to determine workspace and lab.
 
-# We expect this script to be run from the desired workspace that is directory within the lab root.
-# Or, if an argument is provided then this script is executed within the current lab root
+# We expect this script to be run from the desired workspace directory within the lab root.
+# Or, if a workspace argument is provided, then this script is executed within the current lab root.
 
 if [ "$#" -eq 1 ]; then
-    # If one arg, then that is the workspace within the lab and PWD is the lab directory
+    # If one arg, then that is the workspace within the lab and PWD is the lab directory.
     echo "One arg"
     LAB="${PWD}"
     WORKSPACE="${LAB}/${1}"
 else
-    # If no args, then CWD is the workspace and the Lab is the parent
+    # If no args, then CWD is the workspace and the Lab is the parent.
     echo "No args"
     WORKSPACE="${PWD}"
     LAB="$(dirname ${WORKSPACE})"
@@ -58,8 +58,8 @@ fi
 
 # ==================================================================================================
 
-# If they specified a lab directory then use it as a basis for the lab structure.
-# NOTE: The works[ace doesn't change here.  But they can overrie later with JUNEBERRY_WORKSPACE of course
+# If they specified a lab directory, then use it as a basis for the lab structure.
+# NOTE: The workspace doesn't change here. But they can override later using JUNEBERRY_WORKSPACE.
 if [ ! -z ${JUNEBERRY_LAB} ]; then
     LAB=${JUNEBERRY_LAB}
 fi

@@ -10,11 +10,11 @@ like this:
 
 ```
 <lab>
-    juneberry/ - The cloned repo for tools, docs and support scripts
+    juneberry/ - The cloned repo for tools, docs, and support scripts
     dataroot/ - Where all the data assets are stored
     tensorboard/ - OPTIONAL - Where tensorboard outputs are stored
     cache/ - A place where we store platform cached data for PyTorch, TensorFlow, etc.
-    *workspace-directories* - e.g. juneberry-example-workspace
+    *workspace-directories*/ - e.g. juneberry-example-workspace
 ```
 
 This structure is preferred but not required. Sometimes, especially in larger deployments, it is important to store 
@@ -25,15 +25,16 @@ various configuration variables. Refer to the [Getting Started](getting_started.
 # Workspace (Required)
 
 Although Juneberry only recommends a common structure for its lab layout, a specific structure is **required** 
-for managing all the files in a workspace. The git repository at 
+for managing the files in a workspace. The git repository at 
 [https://github.com/cmu-sei/juneberry-example-workspace](https://github.com/cmu-sei/juneberry-example-workspace)
-is an example workspace with working models, data_specs and experiments. Even though 
-you can use this example workspace for testing your Juneberry installation, we recommend creating your own 
-workspace to manage your own models and experiments. Refer to the [Getting Started](getting_started.md) guide 
-for directions on how to create your own workspace.
+is an example workspace with working models, data_specs, and experiments. Even though 
+you can use this example workspace to test your Juneberry installation, we recommend creating a new  
+workspace to manage your own models and experiments. Refer to the 
+[Getting Started - Custom Workspace](getting_started.md#custom-workspaces) section for directions on how to create 
+your own workspace.
 
 While a workspace directory can have any name, it should be at the root of the lab and
-it **must** have the following layout:
+its contents **MUST** adhere to the following layout:
 
 ```
 <WORKSPACE_ROOT>/
