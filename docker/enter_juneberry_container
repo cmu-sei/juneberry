@@ -117,6 +117,9 @@ if [ ! -z ${JUNEBERRY_PROFILE_NAME} ]; then PROFILE_NAME=${JUNEBERRY_PROFILE_NAM
 # ===== Wrap them in the right docker format/switches
 JB="-v ${REPOSITORY}:/juneberry"
 if [ ! -z ${WORKSPACE} ]; then
+    if [ ${WORKSPACE:(-1)} == "/" ]; then
+        WORKSPACE=${WORKSPACE%?}  # Trims the last character from WORKSPACE (if it's a "/").
+    fi
     # Extract the workspace name so we can have that exact directory
     WS_NAME="${WORKSPACE##*/}"
     WS="-v ${WORKSPACE}:/${WS_NAME} -w /${WS_NAME}"
