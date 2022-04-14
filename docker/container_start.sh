@@ -11,3 +11,8 @@ source /juneberry/scripts/juneberry_completion.sh
 if [ "${HOST_UNAME}" != "Darwin" ]; then
   /juneberry/docker/set_user.sh
 fi
+
+# Install any worksapc code
+if [ -f "./setup.py" ]; then
+    pip install -e .
+fi

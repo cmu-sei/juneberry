@@ -18,7 +18,8 @@ like this:
     *workspace-directories*/ - e.g. juneberry-example-workspace
 ```
 
-This structure is preferred but not required. Sometimes, especially in larger deployments, it is important to store 
+This structure is preferred but not required. Many of the support tools are designed, by default, to work with
+this srructrion. However, especially in larger deployments, it is important to store 
 files in paths that could be on different storage devices. If a different lab structure is chosen then the directories 
 must be provided to the enter_juneberry_container script or directly to the Juneberry tools (e.g. jb_train) via the 
 various configuration variables. Refer to the [Getting Started](getting_started.md) guide for details.
@@ -31,7 +32,7 @@ for managing the files in a workspace. The git repository at
 is an example workspace with working models, data_specs, and experiments. Even though 
 you can use this example workspace to test your Juneberry installation, we recommend creating a new  
 workspace to manage your own models and experiments. Refer to the 
-[Getting Started - Custom Workspace](getting_started.md#custom-workspaces) section for directions on how to create 
+[Getting Started - Custom Workspace](getting_started.md#creating-workspaces) section for directions on how to create 
 your own workspace.
 
 While a workspace directory can have any name, it should be at the root of the lab and
@@ -50,13 +51,16 @@ its contents **MUST** adhere to the following layout:
         <experiment-name>
             config.json
             ... generated PyDoit files and outputs such as logs or trained models ARE PLACED here ...
-    <workspace package> - [OPTIONAL] Python code goes here and should be available for import
+    <workspace package> - (Optional) Python code goes here and should be available for import
         <subpackage>
-        
+    setup.py - (Optional) Needed if ther
         
 <DATA_ROOT>/
     ... store your input data for models in this directory ...
 ``` 
+
+In most cases each workspace will have some python code for defining the model and perhaps transforms
+or other plugins. In this case, each workspace should have package and corresponding setup.py file.
 
 Most Juneberry commands will assume the current working directory is the workspace. However, the workspace 
 directory path can be set via the `-w` command line switch or the `JUNEBERRY_WORKSPACE` environment
