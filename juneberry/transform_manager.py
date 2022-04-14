@@ -22,10 +22,9 @@
 #
 # ======================================================================================================================
 
-import inspect
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import juneberry.loader as loader
 import juneberry.utils as jb_utils

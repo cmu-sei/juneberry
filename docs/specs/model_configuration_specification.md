@@ -285,7 +285,7 @@ Each transform is an instance of a class that has a `__call__` method which acce
 image or tensor (with optional args) and an optional `__init__` method that accepts an 
 optional set of arguments. 
 The values to the `__call__` method are those that change on a per data element basis.
-The values to the `__init__` method come from an optional kwargs stanza in a condig.
+The values to the `__init__` method come from an optional kwargs stanza in a config.
 The plugin should follow the following structure:
 
 ```

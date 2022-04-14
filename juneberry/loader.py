@@ -86,11 +86,12 @@ def extract_kwarg_names(func):
     :return:
     """
     params = []
-    for i, (k,v) in enumerate(inspect.signature(func).parameters.items()):
-        if i != 0 and ( v.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or v.kind == inspect.Parameter.KEYWORD_ONLY):
+    for i, (k, v) in enumerate(inspect.signature(func).parameters.items()):
+        if i != 0 and (v.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or v.kind == inspect.Parameter.KEYWORD_ONLY):
             params.append(k)
 
     return params
+
 
 def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     """
