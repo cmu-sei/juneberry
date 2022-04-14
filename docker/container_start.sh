@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 
 # Setup juneberry
+echo "Installing Juneberry..."
 pip install -e /juneberry
 
 # Add in the bash completion
@@ -13,6 +14,7 @@ if [ "${HOST_UNAME}" != "Darwin" ]; then
 fi
 
 # Install any worksapc code
-if [ -f "./setup.py" ]; then
+if [ -e "./setup.py" ]; then
+    echo "Installing workspace..."
     pip install -e .
 fi
