@@ -114,8 +114,6 @@ For more details on the structure of experiment configs, refer to
 [experiment_configuration_specification.md](specs/experiment_configuration_specification.md) in the
 Juneberry documentation directory.
 
-TODO: I think getting_started.md is probably a better home for the next two sections (dataroot and tensorboard) 
-since that's more "lab layout" themed.
 # Data Root (`dataroot`) Directory
 
 The data root directory is where all the input data is stored. Juneberry interprets any paths in the dataset configs 
