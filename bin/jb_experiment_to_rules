@@ -25,8 +25,10 @@
 # Read the experiment config and splat it out to a graph.
 
 import argparse
+import json
 import logging
 from pathlib import Path
+from prodict import Prodict
 import sys
 
 from juneberry.config.model import ModelConfig
@@ -146,37 +148,41 @@ class RuleMaker:
 
     def add_reports(self):
 
+        if self.experiment_config.reports:
+
+            if not self.experiment_manager.experiment_reports_dir_path.exists():
+                self.experiment_manager.experiment_reports_dir_path.mkdir()
+
+            for idx, report in enumerate(self.experiment_config.reports):
+
+                if report.fqcn == ReportType.PLOT_ROC:
+                    self.add_plot_roc(report, idx)
+                elif report.fqcn == ReportType.PLOT_PR:
+                    self.add_plot_pr(report, idx)
+                elif report.fqcn == ReportType.SUMMARY:
+                    self.add_summary(report, idx)
+
+    def add_plot_pr(self, report: Report, idx: int):
+
+        report_json_name = f"report_{idx}.json"
+        report_json_path = self.experiment_manager.experiment_reports_dir_path / report_json_name
+        report_json_content = report
+
         inputs = []
         requirements = []
         outputs = []
 
-        workflow_components = (inputs, requirements, outputs)
-
-        for report in self.experiment_config.reports:
-
-            if report.fqcn == ReportType.PLOT_ROC:
-                report, workflow_components = self.add_plot_roc(report, workflow_components)
-            elif report.fqcn == ReportType.PLOT_PR:
-                report, workflow_components = self.add_plot_pr(report, workflow_components)
-            elif report.fqcn == ReportType.SUMMARY:
-                report, workflow_components = self.add_summary(report, workflow_components)
-
-        self.experiment_config.save(self.experiment_manager.get_experiment_config())
-        self.add_jb_report(workflow_components)
-
-    def add_plot_pr(self, report: Report, workflow_components: tuple):
-
-        inputs, requirements, outputs = workflow_components
-
         # If an output_dir was not provided in the kwargs, use the experiment directory.
         if "output_dir" not in report.kwargs:
-            report.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path)
+            report_json_content.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path)
         else:
             output_dir_path = Path(report.kwargs.output_dir)
 
             if self.experiment_manager.experiment_dir_path.resolve() not in output_dir_path.resolve().parents:
-                report.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path / output_dir_path)
-        outputs.append(report.kwargs.output_dir)
+                new_output_dir_str = str(self.experiment_manager.experiment_dir_path / output_dir_path)
+                report_json_content.kwargs.output_dir = new_output_dir_str
+
+        outputs.append(report_json_content.kwargs.output_dir)
 
         curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
         # Add all tests to the command.
@@ -191,30 +197,48 @@ class RuleMaker:
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        output_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png", "eval_metrics.csv"]
+        output_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
         for output_file in output_files:
-            output_str = str(Path(report.kwargs.output_dir, output_file))
+            output_str = str(Path(report_json_content.kwargs.output_dir, output_file))
             if output_str not in outputs:
                 outputs.append(output_str)
 
-        report.kwargs.curve_sources = curve_sources
+        report_json_content.kwargs.curve_sources = curve_sources
 
-        return report, (inputs, requirements, outputs)
+        json_content = {"reports": [report_json_content]}
 
-    def add_plot_roc(self, report: Report, workflow_components: tuple):
-        inputs, requirements, outputs = workflow_components
+        with open(report_json_path, 'w') as file:
+            json.dump(json_content, file, indent=4)
+        logger.info(f"Saved individual report JSON to {report_json_path}")
+
+        outputs.append(str(report_json_path))
+
+        workflow_components = (inputs, requirements, outputs)
+        self.add_workflow_rule(workflow_components, report_json_path)
+
+    def add_plot_roc(self, report: Report, idx: int):
+
+        report_json_name = f"report_{idx}.json"
+        report_json_path = self.experiment_manager.experiment_reports_dir_path / report_json_name
+        report_json_content = report
+
+        inputs = []
+        requirements = []
+        outputs = []
 
         if report.kwargs.output_filename:
             output_filepath = Path(report.kwargs.output_filename)
 
             if len(output_filepath.parents) == 1 and \
                output_filepath.parents != self.experiment_manager.experiment_dir_path.parents:
-                report.kwargs.output_filename = self.experiment_manager.experiment_dir_path / output_filepath
+                new_output_filename = self.experiment_manager.experiment_dir_path / output_filepath
+                report_json_content.kwargs.output_filename = new_output_filename
 
         else:
-            report.kwargs.output_filename = str(self.experiment_manager.experiment_dir_path / "ROC_curves.png")
+            default_output_filename = str(self.experiment_manager.experiment_dir_path / "ROC_curves.png")
+            report_json_content.kwargs.output_filename = default_output_filename
 
-        outputs.append(report.kwargs.output_filename)
+        outputs.append(report_json_content.kwargs.output_filename)
 
         curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
         # Accumulate all the tests (predictions) into one report
@@ -232,32 +256,47 @@ class RuleMaker:
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        report.kwargs.curve_sources = curve_sources
+        report_json_content.kwargs.curve_sources = curve_sources
 
-        return report, (inputs, requirements, outputs)
+        json_content = {"reports": [report_json_content]}
 
-    def add_summary(self, report: Report, workflow_components: tuple):
+        with open(report_json_path, 'w') as file:
+            json.dump(json_content, file, indent=4)
+        logger.info(f"Saved individual report JSON to {report_json_path}")
 
-        inputs, requirements, outputs = workflow_components
+        outputs.append(str(report_json_path))
+
+        workflow_components = (inputs, requirements, outputs)
+        self.add_workflow_rule(workflow_components, report_json_path)
+
+    def add_summary(self, report: Report, idx: int):
+
+        report_json_name = f"report_{idx}.json"
+        report_json_path = self.experiment_manager.experiment_reports_dir_path / report_json_name
+        report_json_content = report
+
+        inputs = []
+        requirements = []
+        outputs = []
 
         if report.kwargs.md_filename:
             md_path = Path(report.kwargs.md_filename)
 
             if len(md_path.parents) == 1 and md_path.parents != self.experiment_manager.experiment_dir_path.parents:
-                report.kwargs.md_filename = self.experiment_manager.experiment_dir_path / md_path
+                report_json_content.kwargs.md_filename = str(self.experiment_manager.experiment_dir_path / md_path)
 
         else:
-            report.kwargs.md_filename = str(self.experiment_manager.experiment_dir_path / "summary.md")
+            report_json_content.kwargs.md_filename = str(self.experiment_manager.experiment_dir_path / "summary.md")
 
-        outputs.append(report.kwargs.md_filename)
+        outputs.append(report_json_content.kwargs.md_filename)
 
         if report.kwargs.csv_filename:
             csv_path = Path(report.kwargs.csv_filename)
 
             if len(csv_path.parents) == 1:
-                report.kwargs.csv_filename = self.experiment_manager.experiment_dir_path / csv_path
+                report_json_content.kwargs.csv_filename = str(self.experiment_manager.experiment_dir_path / csv_path)
 
-            outputs.append(report.kwargs.csv_filename)
+            outputs.append(report_json_content.kwargs.csv_filename)
 
         metrics_files = report.kwargs.metrics_files if 'metrics_files' in report.kwargs else []
         for entry in self.tag_map.values():
@@ -266,43 +305,63 @@ class RuleMaker:
                 metrics_files.append(entry['metrics'])
             requirements.append(entry['id'])
 
-        report.kwargs.metrics_files = metrics_files
+        report_json_content.kwargs.metrics_files = metrics_files
 
         plot_files = report.kwargs.plot_files if 'plot_files' in report.kwargs else []
         # We need all the output file names. Depending on the report type, different plots may
         # get added to the summary file.
 
-        for r in self.experiment_config.reports:
+        for index, report in enumerate(self.experiment_config.reports):
+
+            if index == idx:
+                continue
+
             # Add ROC plots to the summary file, if necessary.
-            if r.fqcn == ReportType.PLOT_ROC:
-                plot_file = r.kwargs.output_filename
+            report_file_path = self.experiment_manager.experiment_reports_dir_path / f"report_{index}.json"
+            inputs.append(str(report_file_path))
+            with open(report_file_path, 'r') as file:
+                report_file_content = json.load(file)
+
+            report_prodict = Prodict.from_dict(report_file_content["reports"][0])
+            if report_prodict.fqcn == ReportType.PLOT_ROC:
+                plot_file = report_prodict.kwargs.output_filename
                 if plot_file not in plot_files:
-                    plot_files.append(r.kwargs.output_filename)
+                    plot_files.append(report_prodict.kwargs.output_filename)
 
             # Add PR plots to the summary file, if necessary.
-            elif r.fqcn == ReportType.PLOT_PR:
+            elif report_prodict.fqcn == ReportType.PLOT_PR:
+
                 # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
                 plot_filenames = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
 
                 for file_name in plot_filenames:
-                    plot_file = str(Path(r.kwargs.output_dir) / file_name)
+                    plot_file = str(Path(report_prodict.kwargs.output_dir) / file_name)
                     if plot_file not in plot_files:
                         plot_files.append(plot_file)
 
             else:
                 continue
 
-        report.kwargs.plot_files = plot_files
+        report_json_content.kwargs.plot_files = plot_files
 
-        return report, (inputs, requirements, outputs)
+        json_content = {"reports": [report_json_content]}
 
-    def add_jb_report(self, workflow_components: tuple):
+        with open(report_json_path, 'w') as file:
+            json.dump(json_content, file, indent=4)
+        logger.info(f"Saved individual report JSON to {report_json_path}")
+
+        outputs.append(str(report_json_path))
+
+        workflow_components = (inputs, requirements, outputs)
+        self.add_workflow_rule(workflow_components, report_json_path)
+
+    def add_workflow_rule(self, workflow_components: tuple, report_file_path: Path):
         inputs, requirements, outputs = workflow_components
 
         inputs = list(set(inputs))
         outputs = list(set(outputs))
 
-        command = [JB_REPORT_COMMAND, '-e', self.experiment_name]
+        command = [JB_REPORT_COMMAND, '-f', str(report_file_path)]
         doc = " ".join([str(x) for x in command])
 
         clean_extras = []

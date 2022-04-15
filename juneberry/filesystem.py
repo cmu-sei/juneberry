@@ -200,6 +200,7 @@ class ExperimentManager:
         self.experiment_dir_path = Path('experiments') / self.experiment_name
         self.experiment_model_dir_path = Path('models') / self.experiment_name
         self.experiment_log_dir_path = self.experiment_dir_path / "logs"
+        self.experiment_reports_dir_path = self.experiment_dir_path / "report_json_files"
 
         if not self.experiment_log_dir_path.exists():
             self.experiment_log_dir_path.mkdir(parents=True)
@@ -219,6 +220,10 @@ class ExperimentManager:
     def get_experiment_log_dir(self):
         """ :return: The path to the directory containing some of the logs generated during the experiment. """
         return self.experiment_log_dir_path
+
+    def get_experiment_reports_dir(self):
+        """ :return: The path to the directory containing some of the logs generated during the experiment. """
+        return self.experiment_reports_dir_path
 
     def get_experiment_config(self):
         """ :return: The relative path to the experiment's config file. """
