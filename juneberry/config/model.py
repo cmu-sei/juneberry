@@ -150,6 +150,7 @@ class ModelConfig(Prodict):
     platform: str
     preprocessors: List[Plugin]
     pytorch: PytorchOptions
+    reports: List[Plugin]
     seed: typing.Union[int, None]
     stopping_criteria: StoppingCriteria
     summary_info: Prodict

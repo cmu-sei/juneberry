@@ -24,30 +24,37 @@
     "reports": [
         {
             "description": "Builds PR plots for the dt2 model.",
-            "iou": 0.5,
-            "output_dir": "ut_val_dt2",
+            "fqcn": "juneberry.reporting.pr.PRCurve",
+            "kwargs": {
+                "iou": 0.5,
+                "output_dir": "ut_val_dt2"
+            },
             "tests": [
                 {
                     "tag": "ut_val_dt2"
                 }
-            ],
-            "type": "plot_pr"
+        ]
         },
         {
             "description": "Builds PR plots for the mmd model.",
-            "iou": 0.5,
-            "output_dir": "ut_val_mmd",
+            "fqcn": "juneberry.reporting.pr.PRCurve",
+            "kwargs": {
+                "iou": 0.5,
+                "output_dir": "ut_val_mmd"
+            },
             "tests": [
                 {
                     "tag": "ut_val_mmd"
                 }
-            ],
-            "type": "plot_pr"
+            ]
         },
         {
             "description": "Combines PR curves for both platforms on the same plot. Slight increase to IoU.",
-            "iou": 0.55,
-            "output_dir": "ut_val_combined",
+            "fqcn": "juneberry.reporting.pr.PRCurve",
+            "kwargs": {
+                "iou": 0.55,
+                "output_dir": "ut_val_combined"
+            },
             "tests": [
                 {
                     "tag": "ut_val_dt2"
@@ -55,16 +62,16 @@
                 {
                     "tag": "ut_val_mmd"
                 }
-            ],
-            "type": "plot_pr"
+            ]
         },
         {
-            "csv_name": "OD System Test Summary.csv",
-            "description": "Simple OD System Test Summary",
-            "output_name": "System OD Test Summary.md",
-            "type": "summary"
+            "description": "System OD Test Summary.md",
+            "fqcn": "juneberry.reporting.summary.Summary",
+            "kwargs": {
+                "csv_filename": "OD System Test Summary.csv",
+                "md_filename": "System OD Test Summary.md"
+            }
         }
-
     ],
-    "timestamp": "2020-06-10T08:29:00"
+    "timestamp": "2022-04-15T07:40:00"
 }

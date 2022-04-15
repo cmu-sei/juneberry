@@ -58,11 +58,6 @@ def main():
     # Set up logging.
     jbscripting.setup_logging_for_script(args)
 
-    # TODO: Reports should be able to come from a model config, experiment config, or just CLI arguments.
-    #  A new 'reports.json' may have been suggested as a possible alternative to a new stanza in existing configs.
-    #  I think each time the script runs, it should produce the results for ONE of the
-    #  options: experiment | model | fqcn
-
     report_list = None
 
     # Fetch the desired reports for the experiment and build each report.
@@ -81,6 +76,9 @@ def main():
         for report in report_list:
             report_obj = jb_report_utils.construct_report(report.fqcn, report.kwargs)
             report_obj.create_report()
+    else:
+        logger.error(f"No report stanzas were retrieved from the provided sources. Check the args provided "
+                     f"to jb_report and verify they contain one or more report stanzas.")
 
     logger.info(f"jb_report is done.")
 

@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import List
 
 from juneberry.config.experiment import ExperimentConfig
+from juneberry.config.model import ModelConfig
 from juneberry.config.report import ReportConfig
 import juneberry.filesystem as jbfs
 import juneberry.loader as jb_loader
@@ -46,8 +47,11 @@ def extract_experiment_reports(experiment_name: str):
     return experiment_config.reports
 
 
-def extract_model_reports():
-    pass
+def extract_model_reports(model_name: str):
+    model_manager = jbfs.ModelManager(model_name)
+    model_config = ModelConfig.load(model_manager.get_model_config())
+
+    return model_config.reports
 
 
 def extract_file_reports(file_list: List):
