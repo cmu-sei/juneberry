@@ -1,7 +1,6 @@
 Workspace and Experiment Overview
 ==========
 
-TODO: Does this section really add anything that hasn't already been explained in getting_started.md#Lab-Layout ? 
 # Lab Structure (Common)
 
 One of the core purposes of Juneberry is to manage all the inputs and output files associated
@@ -19,8 +18,8 @@ like this:
 ```
 
 This structure is preferred but not required. Many of the support tools are designed, by default, to work with
-this srructrion. However, especially in larger deployments, it is important to store 
-files in paths that could be on different storage devices. If a different lab structure is chosen then the directories 
+this structure. However, especially in larger deployments, circumstances may require you to store 
+files in locations on different storage devices. If a different lab structure is chosen, then the directories 
 must be provided to the enter_juneberry_container script or directly to the Juneberry tools (e.g. jb_train) via the 
 various configuration variables. Refer to the [Getting Started](getting_started.md) guide for details.
 
@@ -59,8 +58,8 @@ its contents **MUST** adhere to the following layout:
     ... store your input data for models in this directory ...
 ``` 
 
-In most cases each workspace will have some python code for defining the model and perhaps transforms
-or other plugins. In this case, each workspace should have package and corresponding setup.py file.
+In most cases, each workspace will have some python code for defining the model, and perhaps transforms
+or other plugins. In those situations, the workspace should have a package and corresponding setup.py file.
 
 Most Juneberry commands will assume the current working directory is the workspace. However, the workspace 
 directory path can be set via the `-w` command line switch or the `JUNEBERRY_WORKSPACE` environment
