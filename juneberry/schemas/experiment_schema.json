@@ -71,12 +71,13 @@
                 "anyOf": [
                     {
                         "properties": {
+                            "classes": { "type": "string"},
                             "description": { "type": "string"},
                             "fqcn": { "const": "juneberry.report.roc.ROCPlot" },
                             "kwargs": {
                                 "type": "object",
                                 "properties": {
-                                    "output_str": { "type": "string"},
+                                    "output_filename": { "type": "string"},
                                     "plot_title": { "type": "string"},
                                     "legend_scaling": { "type": "number" },
                                     "curve_sources": { "type": "object" },
@@ -133,8 +134,8 @@
                             "kwargs": {
                                 "type": "object",
                                 "properties": {
-                                    "md_str": { "type": "string"},
-                                    "csv_str": { "type": "string"},
+                                    "md_filename": { "type": "string"},
+                                    "csv_filename": { "type": "string"},
                                     "metrics_files": {
                                         "type": "array",
                                         "items": { "type": "string"}

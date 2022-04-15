@@ -58,8 +58,12 @@
         {
             "classes": "0,English_springer,482,491,church",
             "description": "Simple Unit Test Report",
-            "output_name": "System Test 1 ROC class 0,217,482,491,497.png",
-            "plot_title": "Test PyTorch vs TF - First 5 Classes",
+            "fqcn": "juneberry.reporting.roc.ROCPlot",
+            "kwargs": {
+                "output_filename": "System Test 1 ROC class 0,217,482,491,497.png",
+                "plot_title": "Test PyTorch vs TF - First 5 Classes",
+                "legend_font_size": 6
+            },
             "tests": [
                 {
                     "tag": "Test1"
@@ -67,13 +71,16 @@
                 {
                     "tag": "Test2"
                 }
-            ],
-            "type": "plot_roc"
+            ]
         },
         {
             "description": "Simple System Test Report",
-            "output_name": "System Test 1 ROC class 566,569,571.574,701.png",
-            "plot_title": "Test PyTorch vs TF - Next 5 Classes",
+            "fqcn": "juneberry.reporting.roc.ROCPlot",
+            "kwargs": {
+                "output_filename": "System Test 1 ROC class 566,569,571.574,701.png",
+                "plot_title": "Test PyTorch vs TF - Next 5 Classes",
+                "legend_font_size": 6
+            },
             "tests": [
                 {
                     "classes": "566,garbage_truck,571,golf_ball,701",
@@ -83,27 +90,31 @@
                     "classes": "566,garbage_truck,571,golf_ball,701",
                     "tag": "Test2"
                 }
-            ],
-            "type": "plot_roc"
+            ]
         },
         {
             "description": "Simple Binary Test",
-            "output_name": "Simple binary test ROC.png",
-            "plot_title": "System Test - Binary Test Results",
+            "fqcn": "juneberry.reporting.roc.ROCPlot",
+            "kwargs": {
+                "output_filename": "Simple binary test ROC.png",
+                "plot_title": "System Test - Binary Test Results",
+                "legend_font_size": 6
+            },
             "tests": [
                 {
                     "classes": "0",
                     "tag": "Test3"
                 }
-            ],
-            "type": "plot_roc"
+            ]
         },
         {
-            "csv_name": "System Test Summary.csv",
             "description": "Simple System Test Summary",
-            "output_name": "System Test Summary.md",
-            "type": "summary"
+            "fqcn": "juneberry.reporting.summary.Summary",
+            "kwargs": {
+                "csv_filename": "System Test Summary.csv",
+                "md_filename": "System Test Summary.md"
+            }
         }
     ],
-    "timestamp": "2020-06-10T08:29:00"
+    "timestamp": "2022-04-14T08:40:00"
 }

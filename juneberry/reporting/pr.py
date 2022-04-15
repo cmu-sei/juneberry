@@ -61,6 +61,10 @@ class PRCurve(Report):
         """
         logger.info(f"Starting to generate PR, PC, and RC curves...")
 
+        if self.curve_sources is None:
+            logger.error(f"No curve sources were provided. Nothing to add to the PR plots!")
+            return
+
         # Create empty MetricsPlots
         pr_plot = PrecisionRecallPlot()
         pc_plot = PrecisionConfidencePlot()

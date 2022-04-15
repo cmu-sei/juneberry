@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 class ReportType(str, Enum):
     PLOT_PR = 'juneberry.reporting.pr.PRCurve'
-    PLOT_ROC = 'juneberry.report.roc.ROCPlot'
+    PLOT_ROC = 'juneberry.reporting.roc.ROCPlot'
     SUMMARY = 'juneberry.reporting.summary.Summary'
     ALL_ROC = 'all_roc'
     ALL_PR = 'all_pr'

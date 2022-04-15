@@ -49,17 +49,17 @@ class Summary(Report):
          the Summary Report.
       3) (Optional) A CSV file summarizing the content in the 'Experiment Summary' table.
     """
-    def __init__(self, md_str: str = "", csv_str: str = "", metrics_files: List = None,
+    def __init__(self, md_filename: str = "", csv_filename: str = "", metrics_files: List = None,
                  plot_files: List = None):
-        super().__init__(output_str=md_str)
+        super().__init__(output_str=md_filename)
 
         # Determine where to save the output for this report.
         default_filename = "summary.md"
-        self.report_path = determine_report_path(self.output_dir, md_str, default_filename)
+        self.report_path = determine_report_path(self.output_dir, md_filename, default_filename)
         logger.info(f"Saving the report to {self.report_path}")
 
         # CSV mode is optional. If a CSV path was not provided, skip the CSV steps.
-        self.csv_path = None if csv_str == "" else Path(csv_str)
+        self.csv_path = None if csv_filename == "" else Path(csv_filename)
 
         # Store the two types of files to be included in the summary.
         self.metrics_files = metrics_files
@@ -210,7 +210,7 @@ class Summary(Report):
         for plot in self.plot_files:
             # Convert the plot str to a Path, determine the correct Path for the copy of the
             # plot that will be placed in the 'report_files' directory and perform the copy.
-            plot_path = Path(plot)
+            plot_path = Path(plot).resolve()
             dst_plot_path = self.report_files_path / plot_path.name
             copy(plot_path, dst_plot_path)
 
