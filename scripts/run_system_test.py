@@ -60,7 +60,7 @@ CLSFY_TEST_SET = [
         "imagenette_160x160_rgb_unit_test_pyt_resnet18",
         "data_sets/imagenette_unit_test.json",
         1.0,
-        0.49
+        0.47
     ],
     [
         "imagenette_224x224_rgb_unit_test_tf_resnet50",
@@ -91,7 +91,7 @@ OD_GPU_TEST_SET = [
         "data_sets/text_detect_val.json",
         0.92,
         #  Single GPU (9.3), 2 GPU (2.5), 4 GPU (2.0) in testing.
-        0.016
+        0.0159
     ]
 ]
 

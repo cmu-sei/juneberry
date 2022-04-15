@@ -44,12 +44,6 @@ class TabularDataset(EpochDataset):
         """
         super().__init__()
 
-        # If the transforms takes the extended set, use them all
-        self.extended_signature = False
-        if transforms is not None:
-            params = inspect.signature(transforms).parameters.keys()
-            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
-
         self.transforms = transforms
         for item in rows_labels:
             assert len(item) == 2
@@ -74,10 +68,8 @@ class TabularDataset(EpochDataset):
 
         if self.transforms is not None:
             row = row.copy()
-            if self.extended_signature:
-                image = self.transforms(item=row, index=index, epoch=self.epoch)
-            else:
-                row = self.transforms(row)
+            args = {'label': label, 'index': index, 'epoch': self.epoch}
+            row, label = self.transforms(row, **args)
 
         # They want a row as float
         row = np.array(row).astype(np.float32)
