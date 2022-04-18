@@ -4,65 +4,60 @@ Getting Started
 This document describes how to get started using Juneberry. The recommended installation method
 relies on a Juneberry Docker container. Juneberry can also be used from a virtual environment if
 necessary. Be aware that installation and management of all the supporting CUDA enabled packages
-can be a challenging task.
+can be a challenging task if you do it on your own.
 
 # The Basics
 
-Juneberry is a Python package that can be cloned from GitHub and installed using a normal
-installation process in a properly configured environment. 
+Fundamentally, Juneberry is just another Python package that can be cloned from GitHub and installed 
+into your environment using a normal Python installation process: 
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
 pip install juneberry
 ```
 
-**IMPORTANT**: Juneberry requires a lot of infrastructure (depending on platform) to actually run models,
-so in the vast majority of cases, a lot of other packages such as tensorflow, pytorch, detectron2, mmdetection 
-or onnx may need to be installed. While these can be installed with extras 
-(e.g. `pip install juneberry[tf]` - see `setup.py` for details), the dependencies are complex 
-and the ordering is challenging. The rest of this document explains how pre-configured Docker containers 
-can be used as experiment environments. An alternative method, describing how to construct a virtual environment 
-for Juneberry, will also be presented as an alternative to the Docker containers.
+**IMPORTANT**: Juneberry can require lots of infrastructure to actually run models, depending on which machine 
+learning platforms are involved. So in the vast majority of cases, a lot of other packages such as 
+tensorflow, pytorch, detectron2, mmdetection, or onnx may also need to be installed. While these additional 
+packages can be installed using pip "extras" (e.g. `pip install juneberry[tf]` - see `setup.py` for details), 
+the dependencies are complex and determining the correct installation order can be challenging. The rest of this 
+document explains how pre-configured Docker containers can be used as experiment environments. An alternative method, 
+describing how to construct a virtual environment for Juneberry, will also be presented as an alternative to the 
+Docker containers.
 
 # Preparation Steps
 
 ## Lab Layout
 
 Juneberry requires several directories to store its components, such as source code, data,
-Tensorboard logs, and caches. The purpose of these directories is described in the 
-[Workspace and Experiment Overview](overview.md). 
-
-Juneberry has a default structure that it knows how to work with. The structure can be customized, but for
-introductory purposes the default structure should be sufficient.
-To start, a single directory for the project should be created. This directory is referred to as the **lab-root**.
+Tensorboard logs, and caches. While the structure can be customized, the default structure should be sufficient 
+for getting started. The first step is to create a single directory for the project.
+This directory is referred to as the **lab-root**.
 
 Inside the lab-root, the goal is to create sub-directories for the various Juneberry components.
 These sub-directories can be created manually, or via the `setup_lab.py` script located in the 
 `scripts` directory.
 
+While the `juneberry-example-workspace` isn't required for a Juneberry installation, a workspace directory 
+of some sort **is** required by Juneberry. Inside `juneberry-example-workspace`, you'll find 
+sample models, datasets, and experiments which can be used to test your Juneberry installation. The rest of 
+this document assumes the example workspace has been installed.
+
+The lab structure is described in more detail in the [Workspace and Experiment Overview](overview.md). The details 
+in that document aren't required in order to just get started with Juneberry, but it would be a good 
+idea to review the information in that file at some point.
+
 ### Using setup_lab.py
 
-Inside the lab root, clone the Juneberry repository from GitHub, then use the `setup_lab.py` script 
-from inside the newly cloned repository to create the remaining sub-directories in the lab-root.
+Inside the lab-root, clone the "Juneberry" and "Juneberry Example Workspace" repositories from GitHub, 
+and then use the `setup_lab.py` script from inside the newly cloned Juneberry repository to create 
+the remaining sub-directories in the lab-root.
 
 ```shell script
 git clone https://github.com/cmu-sei/juneberry.git
+git clone https://github.com/cmu-sei/juneberry-example-workspace.git
 juneberry/scripts/setup_lab.py . 
 ```
-
-### Manually Creating the Lab Structure
-
-The following commands can be used to create the structure manually:
-
-```shell script
-git clone https://github.com/cmu-sei/juneberry.git
-mkdir cache
-mkdir dataroot
-mkdir tensorboard
-```
-
-NOTE: The cache directories are only needed for containers (recommended). Virtual environments
-do not need the cache directory.
 
 ### The Lab Structure
 
@@ -73,8 +68,10 @@ lab-root/
     cache/
     dataroot/
     juneberry/
+    juneberry-example-workspace/
     tensorboard/
 ```
+
 # Juneberry with a Docker Container
 
 This section describes how to run Juneberry using a Docker container.
@@ -117,35 +114,46 @@ used to change those files, and those modifications will be available inside the
 created by Juneberry inside the container such as models, log files, and plots will be available 
 outside the container after the container terminates, due to this relationship with the host filesystem.
 
-A sample script called `enter_juneberry_container` starts (by default) a **temporary** 'cpudev' container.
-It assumes the lab directory structure described above and must be called from that directory.
+A sample script called `enter_juneberry_container` can be used to start a **temporary** container. By default, 
+this script starts a 'cpudev' container. The script assumes the lab directory structure described above in 
+['The Lab Structure'](getting_started.md#The-Lab-Structure), and offers many strategies for specifying the  
+workspace. 
+1) Assuming the workspace is within the root of the lab, you may run the script from inside the workspace directory.
+In this situation the script chooses the current directory as the workspace directory and 
+the parent of the workspace directory as the lab-root.
+2) You may run the script from the lab-root and provide one argument. The argument provided to the script will 
+be interpreted as your desired workspace directory. As a result of how Docker interprets that directory, we advise 
+providing the full path to the desired workspace directory.
+3) Set the workspace using the `JUNEBERRY_WORKSPACE` environment variable to override the other values.
+4) Copy and modify the `enter_juneberry_container` as desired to accommodate different workspaces.
 
-For example, the following command will start an instance of the downloaded CPU-only container 
-from within the _lab-root_ directory:
+For example, the following command demonstrates option 1, which starts an instance of the downloaded 
+CPU-only container from inside the _workspace_ (i.e. juneberry-example-workspace) directory:
 
 ```shell script
-juneberry/docker/enter_juneberry_container
+../juneberry/docker/enter_juneberry_container
 ```
 
 The `enter_juneberry_container` script can be controlled via a wide variety of environment variables
 or can be copied elsewhere and modified.  
 See the contents of [enter_juneberry_container](../docker/enter_juneberry_container) for details.
 
-For example, to start the CUDA container with "all" GPUs using environment variables:
+This example demonstrates how to start the CUDA container with "all" GPUs using environment variables from 
+inside the desired workspace directory:
 
 ```shell script
-JUNEBERRY_CONTAINER=cmusei/juneberry:cudadev JUNEBERRY_GPUS=all juneberry/docker/enter_juneberry_container
+JUNEBERRY_CONTAINER=cmusei/juneberry:cudadev JUNEBERRY_GPUS=all ../juneberry/docker/enter_juneberry_container
 ```
 
 ## Using the Container
 
-Once inside the container, the user will find themselves in the `/juneberry` directory by default,
-or the workspace directory if one was specified.
+Once inside the container, the user will find themselves in their workspace directory by default. 
 There are a few more initialization tasks to complete before Juneberry is operational:
 
 * Install Juneberry (from a python package perspective)
 * Optional: Set up user ID mapping so outputs use proper user/group IDs.
 * Optional: Activate bash shell completion (if desired)
+* Optional: Install any packages from the workspace, assuming it has a setup.py.
 
 The following commands will achieve these tasks:
 
@@ -153,6 +161,7 @@ The following commands will achieve these tasks:
 pip install -e /juneberry
 /juneberry/scripts/set_user.sh
 source /juneberry/scripts/juneberry_completion.sh
+pip install -e .
 ```
 
 **NOTE:** These steps are required _every_ time the container is initialized because the files and scripts
@@ -173,9 +182,11 @@ you'll need to source the juneberry completion script every time you start the c
 
 ## Testing Your Installation
 
-After installing Juneberry, you can run the following training command to test your installation:
+After installing Juneberry and launching the container, you should find yourself inside the 
+`/juneberry-example-workspace` directory. From there, you can run the following training command to 
+test your installation:
 ```shell
-jb_train -w /juneberry tabular_multiclass_sample
+jb_train tabular_multiclass_sample
 ```
 
 This command will quickly train a small, basic tabular dataset. The test is successful if the final epoch 
@@ -183,28 +194,22 @@ reports a training accuracy of 97.58%.
 
 ## container_start.sh
 
-For convenience, users can create a bash script containing the previous commands and name the file 
-`container_start.sh`. When a script with that name is found inside the juneberry directory of the lab-root, 
-or inside a custom workspace (see below), it will be executed during the container's initialization. The 
+For convenience, users can create a bash script containing the startup commands and name the file 
+`container_start.sh`. When a script with that name is found inside the workspace directory, 
+it will be executed (technically it is `sourced`) during the container's initialization. The 
 `juneberry/docker` directory contains a sample `container_start.sh` script.
 
-# Custom Workspaces
+# Creating Workspaces
 
-Juneberry uses "workspaces" to house the user's model configurations, experiments, and all outputs, such as  
-trained models, log files, charts, and reports. The structure is described in the 
-[Workspace and Experiment Overview](overview.md). The Juneberry repository includes some sample models
-for testing the installation.
+As described above, Juneberry uses "workspaces" to house the user's model configurations, experiments, 
+and all outputs such as trained models, log files, charts, and reports. The `juneberry-example-workspace` 
+repository includes some sample models for testing the installation.
 
-When a user first enters a Juneberry container, they should find themselves inside the `/juneberry` directory 
-by default. However, the user can also choose another directory, known as a "custom workspace", to be the 
-default directory.
+The structure of a workspace is detailed in the [Workspace and Experiment Overview](overview.md), but again 
+these details aren't necessary to just get started with using Juneberry.
 
-To start the Juneberry container in a custom workspace use the `JUNEBERRY_WORKSPACE` environment variable
-or modify a copy of the `enter_juneberry_container` script.
-
-Workspaces require a particular layout as described in [Workspace and Experiment Overview](overview.md).
-The script `setup_workspace.py' from the 'scripts' directory can be used to initialize a new workspace.
-The following command creates a workspace "my-workspace" in the lab directory on the host system:
+The script `setup_workspace.py' from the 'scripts' directory can be used to properly initialize a new workspace 
+for you. The following command creates the workspace "my-workspace" in the lab directory on the host system:
 
 ```shell script
 juneberry/scripts/setup_workspace my-workspace
@@ -215,14 +220,6 @@ copy it into the new workspace.
 
 ```shell script
 cp junebery/docker/container_start.sh myworkspace/.
-```
-
-Once the custom workspace is created, either use the `JUNEBERRY_WORKSPACE` environment variable or
-modify a copy of the `enter_juneberry_container` script.  The following command uses a custom
-workspace:
-
-```shell script
-JUNEBERRY_WORKSPACE=my-workspace juneberry/docker/enter_juneberry_container
 ```
 
 # Configuring Juneberry paths
