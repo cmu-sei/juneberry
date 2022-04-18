@@ -394,14 +394,16 @@ class ClassifierTrainer(EpochTrainer):
 
             # Sample a single item from the input dataset.
             dataset = self.training_iterable.dataset
-            self.input_sample, label = dataset[0]
+            if (len(dataset) > 0):
+                self.input_sample, label = dataset[0]
 
-            # If the input sample is a numpy array, convert to a tensor.
-            if type(self.input_sample) == np.ndarray:
-                self.input_sample = torch.from_numpy(self.input_sample)
+                # If the input sample is a numpy array, convert to a tensor.
+                if type(self.input_sample) == np.ndarray:
+                    self.input_sample = torch.from_numpy(self.input_sample)
 
-            # Set the input sample as the data from the tensor and send it to a training device.
-            self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
+                # Set the input sample as the data from the tensor and send it to a training device.
+                self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
+
 
     def setup_model(self):
         logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "

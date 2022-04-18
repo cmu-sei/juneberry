@@ -280,7 +280,6 @@ class DatasetMarshal:
         self.merge_sources()
         if len(self.train) == 0:
             logger.error("Training dataset is length 0.")
-            sys.exit(1)
         if len(self.val) == 0:
             logger.warning("Validation dataset is length 0.")
         return self.train, self.val

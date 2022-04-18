@@ -108,6 +108,11 @@ class Detectron2Trainer(Trainer):
         for key in self.results_keys:
             self.output.results.update({key: []})
 
+        # NOTE: This is a custom path for DT2.  We know that DT2 puts the model file in the final
+        # OUTPUT directory, so we rename it out of there.
+        self.output_dir = self.model_manager.get_train_scratch_path()
+        self.final_model_path = self.output_dir / 'model_final.pth'
+
     def dry_run(self) -> None:
         self.node_setup()
         self.setup()
@@ -177,7 +182,7 @@ class Detectron2Trainer(Trainer):
 
         # train root outputs, then move everything later
         # cfg.OUTPUT_DIR = str(self.model_manager.get_train_root_dir())
-        cfg.OUTPUT_DIR = str(self.model_manager.get_train_scratch_path())
+        cfg.OUTPUT_DIR = str(self.output_dir)
 
         # Set our datasets to the ones we registered
         cfg.DATASETS.TRAIN = [dt2_data.TRAIN_DS_NAME]
@@ -260,7 +265,7 @@ class Detectron2Trainer(Trainer):
         # ==========
 
         # At minimum, the iterations must be GREATER than the last step
-        if cfg.SOLVER.MAX_ITER <= cfg.SOLVER.STEPS[1] + 1:
+        if cfg.SOLVER.MAX_ITER != 0 and cfg.SOLVER.MAX_ITER <= cfg.SOLVER.STEPS[1] + 1:
             logger.info("Adjusting MAX_ITER to be greater than the last solver step.")
             cfg.SOLVER.MAX_ITER = cfg.SOLVER.STEPS[1] + 2
 
@@ -301,6 +306,11 @@ class Detectron2Trainer(Trainer):
         cfg = self.cfg
         model = self.model
         resume = self.resume
+
+        # If we have no epochs, just save the model
+        if cfg.SOLVER.MAX_ITER == 0:
+            torch.save(self.model, self.final_model_path)
+            return
 
         # Establish the interval for logging the training metrics to console.
         interval = self.model_config.detectron2.metric_interval
@@ -409,11 +419,8 @@ class Detectron2Trainer(Trainer):
             logger.info(f"Only the rank 0 process is responsible for saving the model file.")
 
         else:
-            # NOTE: This is a custom path for DT2.  We know that DT2 puts the model file in the final
-            # OUTPUT directory, so we rename it out of there.
-            final_model_path = Path(self.cfg.OUTPUT_DIR) / 'model_final.pth'
-            logger.info(f"Renaming {final_model_path} to {self.model_manager.get_pytorch_model_path()}")
-            final_model_path.rename(self.model_manager.get_pytorch_model_path())
+            logger.info(f"Renaming {self.final_model_path} to {self.model_manager.get_pytorch_model_path()}")
+            self.final_model_path.rename(self.model_manager.get_pytorch_model_path())
 
             # Retrieve the metrics from the dt2 metrics log.
             self.extract_dt2_log_content(self.get_dt2_metrics_log())
