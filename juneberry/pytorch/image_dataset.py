@@ -58,12 +58,6 @@ class ImageDataset(EpochDataset):
         self.image_cache = {}
         self.no_paging = no_paging
 
-        # If the transforms takes the extended set, use them all
-        self.extended_signature = False
-        if transforms is not None:
-            params = inspect.signature(transforms).parameters.keys()
-            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
-
         # Filters out a warning associated with a known Pillow issue that occurs
         # when opening images.
         warnings.filterwarnings("ignore", "Corrupt EXIF data", UserWarning)
@@ -104,10 +98,8 @@ class ImageDataset(EpochDataset):
             image = Image.open(file_path)
 
         if self.transforms is not None:
-            if self.extended_signature:
-                image = self.transforms(item=image, index=index, epoch=self.epoch)
-            else:
-                image = self.transforms(image)
+            args = {'label': label, 'index': index, 'epoch': self.epoch}
+            image, label = self.transforms(image, **args)
 
         # We want to pass back a tensor, so convert if it wasn't already converted
         if not isinstance(image, Tensor):
