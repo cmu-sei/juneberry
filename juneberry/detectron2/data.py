@@ -49,7 +49,7 @@ import numpy as np
 from pathlib import Path
 import sys
 
-from detectron2.data import DatasetMapper
+from cornelius.detectron2.dataset_mapper import DatasetMapper
 from detectron2.data import transforms as T
 from detectron2.data.datasets import register_coco_instances
 from detectron2.data.transforms.augmentation import Augmentation
