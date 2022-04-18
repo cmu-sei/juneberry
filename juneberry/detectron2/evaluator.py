@@ -40,11 +40,11 @@ from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
 from juneberry.evaluation.evaluator import EvaluatorBase
-from juneberry.evaluation.utils import get_histogram, get_metrics
-
+from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_config, get_default_od_metrics_formatter
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.jb_logging import setup_logger as jb_setup_logger
 from juneberry.lab import Lab
+from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.pytorch.processing as processing
 
 logger = logging.getLogger(__name__)
@@ -192,9 +192,19 @@ class Evaluator(EvaluatorBase):
         det.rename(self.eval_dir_mgr.get_detections_path())
 
     def populate_metrics(self) -> None:
-        # TODO we're assuming we're getting COCO metrics and they're being returned
-        # in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
-        self.output.results.metrics = get_metrics(self.model_config, self.eval_dir_mgr)
+        """
+        Calculate metrics and populate the metrics output with the result.
+        :return: None
+        """
+        metrics_config = self.model_config.evaluation_metrics
+        metrics_formatter = self.model_config.evaluation_metrics_formatter
+
+        if not metrics_config:
+            metrics_config = get_default_od_metrics_config()
+            metrics_formatter = get_default_od_metrics_formatter()
+
+        metrics_mgr = MetricsManager(metrics_config, metrics_formatter)
+        self.output.results.metrics = metrics_mgr.call_with_eval_dir_manager(self.eval_dir_mgr)
 
     def format_evaluation(self) -> None:
         out = self.eval_dir_mgr.get_detections_anno_path()
@@ -220,3 +230,5 @@ class Evaluator(EvaluatorBase):
         # Save the eval output to file.
         logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_metrics_path()}")
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
+
+

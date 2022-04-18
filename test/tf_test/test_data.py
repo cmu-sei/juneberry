@@ -102,7 +102,7 @@ def test_dataset(tmp_path):
 
     from juneberry.config.model import ShapeHWC
     hwc = ShapeHWC(32, 32, 3)
-    image_ds = tf_data.TFImageDataSequence(data_list, 2, lambda x: x.resize((32, 32)), hwc)
+    image_ds = tf_data.TFImageDataSequence(data_list, 2, (lambda x, **args: (x.resize((32, 32)), args["label"])), hwc)
 
     for tmp_data, tmp_labels in image_ds:
         # print(f"data:{type(tmp_data)} shape:{tmp_data.shape} "

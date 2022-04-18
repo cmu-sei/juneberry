@@ -473,6 +473,8 @@ class AttackManager(ExperimentManager):
 
     def get_plugin_file(self, meta=False, disjoint=False):
         """
+        :param meta: Boolean that controls whether to return the 'meta' version of the
+        in_out_plugin or the 'private' directory version.
         :param disjoint: Boolean that controls whether to return the 'superset' (default) or
         'disjoint' version of the desired property.
         : return: The path to the Plugin file used to build the in_out datasets for the
@@ -683,6 +685,15 @@ class ModelManager:
         """
         dataset_arg = Path(dataset_path).stem if dataset_path else None
         return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
+
+    def iter_eval_dirs(self):
+        """
+        :return: A generator over the eval directory return eval dir managers.
+        """
+        eval_dir = Path(self.get_eval_root_dir())
+        for item in eval_dir.iterdir():
+            if item.is_dir():
+                yield EvalDirMgr(self.model_dir_path, self.model_platform, item.name)
 
     # ============ Misc ============
 

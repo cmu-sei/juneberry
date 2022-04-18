@@ -24,6 +24,7 @@
 
 import logging
 import sys
+from typing import Any
 
 import juneberry.loader as loader
 import juneberry.utils as jb_utils
@@ -54,53 +55,95 @@ class TransformManager:
             "kwargs": { <kwargs to be passed (expanded) to __init__ on construction> }
         }
     ]
+
+    We assume a call's signature where the first element is always the thing
+    to be transformed, and all other arguments are by name.  So
+    __call__(x, *, opt_1=None, opt2_=None, etc)
     ```
     """
 
     class Entry:
-        def __init__(self, fqcn: str, kwargs: dict = None):
+        def __init__(self, fqcn: str, kwargs: dict = None, opt_args: dict = None):
+            """
+            Initializes an entry which construct an instance with the kwargs and
+            optional args for the function.
+            :param fqcn: Fully Qualified Class Name
+            :param kwargs: The keyword args from the config
+            :param opt_args: Optional construction args
+            """
             self.fqcn = fqcn
             self.kwargs = kwargs
+
+            # The transform - Do NOT call this directly. Use the __call__ API.
             self.transform = None
+            self.extra_params = []
+
+            # Load the instance
+            logger.info(f"Constructing transform: {fqcn} with args: {kwargs}")
+            self.transform = loader.construct_instance(fqcn, kwargs, opt_args)
+
+            # Grab all the extra arguments so we can call it with those
+            self.extra_params = loader.extract_kwarg_names(self.transform)
+            logger.info(f"... wants extra params {self.extra_params}")
+
+        def __call__(self, obj: Any, **kwargs) -> Any:
+            if obj is None:
+                return None
+
+            # Prune down the big pile of kwargs to what they want
+            pruned_args = {}
+            for k in self.extra_params:
+                if k in kwargs:
+                    pruned_args[k] = kwargs[k]
+                else:
+                    logger.error(f"Failed to find arg '{k}' in kwargs. {kwargs} {self.extra_params}")
+                    raise RuntimeError("See log for details.")
+            # pruned_args = {k: kwargs[k] for k in self.extra_params}
+            return self.transform(obj, **pruned_args)
 
     def __init__(self, config: list, opt_args: dict = None):
         """
-        Initializer that takes the augmentations stanza as configuration
+        Initializer that takes the transform stanza as configuration
         :param config: A configuration list of dicts of name, args.
+        :param opt_args: A series of optional arguments to pass in during CONSTRUCTION.
         """
         self.config = []
 
+        # A set of all the optional arguments wanted by all the transforms for preflight verification
+        self.all_opt_args = set()
+
+        # TODO: Switch to prodict
         for i in config:
             if 'fqcn' not in i:
                 logger.error(f"Transform entry does not have required key 'fqcn' {i}")
                 sys.exit(-1)
 
-            entry = TransformManager.Entry(i['fqcn'], i.get('kwargs', None))
+            entry = TransformManager.Entry(i['fqcn'], i.get('kwargs', None), opt_args)
 
-            logger.info(f"Constructing transform: {entry.fqcn} with args: {entry.kwargs}")
-            entry.transform = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
+            # Keep a master list (set) of all the extra params wanted
+            self.all_opt_args.update(entry.extra_params)
 
             self.config.append(entry)
 
-    def __call__(self, obj):
+    def __call__(self, obj: Any, **kwargs) -> Any:
         """
         Performs all the transformations, in sequence, on the input and returns the last output.
+
         :param obj: The object to transform.
         :return: The transformed object.
         """
         for entry in self.config:
-            if obj is not None:
-                obj = entry.transform(obj)
+            obj = entry(obj, **kwargs)
 
         return obj
 
-    def transform(self, obj):
+    def transform(self, obj: Any, **kwargs) -> Any:
         """
         Deprecated API for transforming the object.  Use __call__(obj) instead.
         :param obj: The object to transform.
         :return: The transformed object.
         """
-        return self(obj)
+        return self(obj, **kwargs)
 
     def __len__(self) -> int:
         """
@@ -128,11 +171,62 @@ class TransformManager:
         return self.__str__()
 
 
+class LabeledTransformManager(TransformManager):
+    """
+    This transform manager understand that labels CAN BE returned along with the object.
+    Labels are passed in as an optional argument so they are placed into the proper spot,
+    which is usually the second argument. However, we assume correctly called label
+    not by position.
+    """
+
+    def __init__(self, config: list, opt_args: dict = None):
+        """
+        Initializer that takes the transform stanza as configuration
+        :param config: A configuration list of dicts of name, args.
+        :param opt_args: A series of optional arguments to pass in during CONSTRUCTION.
+        """
+        super().__init__(config, opt_args)
+
+    def __call__(self, obj, **kwargs):
+        """
+        Performs all the transformations, in sequence, on the input and returns the last output
+        along with the label.
+        In this version the label is required in the opt_args.
+        :param obj: The object to transform.
+        :return: The transformed object and final label
+        """
+        if 'label' not in kwargs:
+            logger.error("The LabeledTransformManager requires that 'label' be passed in as a kwarg.")
+            raise RuntimeError("See log for details.")
+
+        for entry in self.config:
+            retval = entry(obj, **kwargs)
+
+            # Unpack the return value. If a tuple we assume it is (object, label).  We do NOT
+            # do a list, because that could be real data.
+            if isinstance(retval, tuple):
+                if len(retval) != 2:
+                    logger.error(f"When running transform {entry.fqcn} received a tuple with length {len(retval)} "
+                                 f"when expected two values.")
+                    raise RuntimeError("See log for details.")
+
+                # Split the values and update the label
+                obj, label = retval
+                # print(f"GOT TWO RETURN VALUES {obj} {label}")
+                kwargs["label"] = label
+            else:
+                obj = retval
+
+        # We give back the object and accumulate label
+        return obj, kwargs['label']
+
+
 class StagedTransformManager:
     """
     A callable transform manager that manages the random seed state in a predictable fashion based
     on an initial seed state and the seed index.
     """
+
     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
         """
         Initialize the two stage manager with seeds and transforms for two stages.  The first
@@ -150,7 +244,14 @@ class StagedTransformManager:
         self.per_epoch_transform = per_epoch
         self.per_epoch_seed = per_epoch_seed
 
-    def __call__(self, item, index, epoch):
+    def __call__(self, item, **kwargs):
+        if 'index' not in kwargs or 'epoch' not in kwargs:
+            logger.error("The StagedTransformManager required 'index' and 'epoch' to be passed in as kwargs")
+            raise RuntimeError("See log for details.")
+
+        index = kwargs['index']
+        epoch = kwargs['epoch']
+
         # Capture the random state
         self.save_random_state()
 
@@ -167,6 +268,7 @@ class StagedTransformManager:
         # Restore the state
         self.restore_random_state()
 
+        # TODO: This is probably labeled!!!
         return item
 
     # Extension points
@@ -178,4 +280,3 @@ class StagedTransformManager:
 
     def set_seeds(self, seed):
         pass
-

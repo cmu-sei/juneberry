@@ -47,7 +47,7 @@ from juneberry.config.training_output import TrainingOutput
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
-from juneberry.transform_manager import TransformManager
+from juneberry.transform_manager import TransformManager, LabeledTransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -1271,7 +1271,7 @@ def load_path_label_manifest(filename, relative_to: Path = None):
 def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
                            opt_args: dict, stage_transform_class, eval_mode: bool):
     """
-    Constructs the appropriate transform manager for the this data.
+    Constructs the appropriate transform manager for this data.
     :param model_cfg: The model config.
     :param ds_cfg: The dataset config.
     :param set_size: The size of the data set.
@@ -1292,16 +1292,16 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
 
     if eval_mode:
         if model_cfg.evaluation_transforms is not None:
-            logger.info(f"Making transform manager from model config EVALUATION transforms.")
-            model_transforms = TransformManager(model_cfg.evaluation_transforms, opt_args)
+            logger.info(f"Making labeled transform manager from model config EVALUATION transforms.")
+            model_transforms = LabeledTransformManager(model_cfg.evaluation_transforms, opt_args)
     else:
         if model_cfg.training_transforms is not None:
-            logger.info(f"Making transform manager from model config TRAINING transforms.")
-            model_transforms = TransformManager(model_cfg.training_transforms, opt_args)
+            logger.info(f"Making labeled transform manager from model config TRAINING transforms.")
+            model_transforms = LabeledTransformManager(model_cfg.training_transforms, opt_args)
 
     if ds_cfg.data_transforms is not None:
-        logger.info(f"Making transform manager from DATASET transforms.")
-        ds_transforms = TransformManager(ds_cfg.data_transforms.transforms, opt_args)
+        logger.info(f"Making labeled transform manager from DATASET transforms.")
+        ds_transforms = LabeledTransformManager(ds_cfg.data_transforms.transforms, opt_args)
         if ds_cfg.data_transforms.seed is not None:
             data_seed = ds_cfg.data_transforms.seed
         else:

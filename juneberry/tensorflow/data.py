@@ -68,12 +68,7 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
         self.shape_hwc = shape_hwc
         # This give us floor, so we lose some of the last entries.  We could implement an oversample.
         self.len = len(self.data_list) // self.batch_size
-
-        self.extended_signature = False
         self.epoch = 0
-        if transforms is not None:
-            params = inspect.signature(transforms).parameters.keys()
-            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
 
     def __len__(self):
         return self.len
@@ -84,8 +79,9 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
         labels = []
 
         for i in range(start, start + self.batch_size):
-            images.append(self._load_image(i))
-            labels.append(self.data_list[i][1])
+            image, label = self._load_image(i)
+            images.append(image)
+            labels.append(label)
 
         # REMEMBER TensorFlow is all HWC
         np_images = np.array(images).reshape(-1, self.shape_hwc.height, self.shape_hwc.width, self.shape_hwc.channels)
@@ -100,12 +96,12 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
     def _load_image(self, index: int) -> Image:
         image = Image.open(self.data_list[index][0])
         image.load()
+        label = self.data_list[index][1]
         if self.transforms is not None:
-            if self.extended_signature:
-                image = self.transforms(image, index, self.epoch)
-            else:
-                image = self.transforms(image)
-        return np.array(image)
+            args = {'label': label, 'index': index, 'epoch': self.epoch}
+            image, label = self.transforms(image, **args)
+
+        return np.array(image), label
 
 
 #  _____                     __                        ____                               _
