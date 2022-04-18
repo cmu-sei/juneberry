@@ -232,11 +232,11 @@ class RuleMaker:
             if len(output_filepath.parents) == 1 and \
                output_filepath.parents != self.experiment_manager.experiment_dir_path.parents:
                 new_output_filename = self.experiment_manager.experiment_dir_path / output_filepath
-                report_json_content.kwargs.output_filename = new_output_filename
+                report_json_content.kwargs.output_filename = str(new_output_filename)
 
         else:
-            default_output_filename = str(self.experiment_manager.experiment_dir_path / "ROC_curves.png")
-            report_json_content.kwargs.output_filename = default_output_filename
+            default_output_filename = self.experiment_manager.experiment_dir_path / "ROC_curves.png"
+            report_json_content.kwargs.output_filename = str(default_output_filename)
 
         outputs.append(report_json_content.kwargs.output_filename)
 
