@@ -26,9 +26,8 @@ FROM nvcr.io/nvidia/pytorch:21.08-py3
 
 # ============ BASE PLATFORM ============
 
-# These are needed for opencv - not by default on some platforms
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet sudo \
+    && apt-get install -y libgl1-mesa-glx figlet sudo tmux vi nano emacs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
