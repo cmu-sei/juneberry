@@ -423,9 +423,9 @@ class Detectron2Trainer(Trainer):
             self.final_model_path.rename(self.model_manager.get_pytorch_model_path())
 
             # Retrieve the metrics from the dt2 metrics log.
-            self.extract_dt2_log_content(self.get_dt2_metrics_log())
-
-            plot_training_summary_chart(self.output, self.model_manager)
+            if self.model_config.epochs > 0:
+                self.extract_dt2_log_content(self.get_dt2_metrics_log())
+                plot_training_summary_chart(self.output, self.model_manager)
 
             # Compute the model hash.
             self.output.results.model_hash = generate_file_hash(self.model_manager.get_pytorch_model_path())
