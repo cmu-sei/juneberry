@@ -27,7 +27,7 @@ FROM nvcr.io/nvidia/pytorch:21.08-py3
 # ============ BASE PLATFORM ============
 
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet sudo tmux vi nano emacs \
+    && apt-get install -y libgl1-mesa-glx figlet sudo tmux vim emacs nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
