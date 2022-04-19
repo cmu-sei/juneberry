@@ -27,7 +27,8 @@ FROM nvcr.io/nvidia/pytorch:21.08-py3
 # ============ BASE PLATFORM ============
 
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet sudo tmux vim emacs nano \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libgl1-mesa-glx figlet sudo tzdata tmux vim emacs nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -63,7 +64,6 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 
 # ============ DETECTRON2 ============
 
-#RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git'
 RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
@@ -95,7 +95,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v11"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CUDA Development ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc; \
+    echo "figlet -w 120 CUDA - ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc; \
     echo "if [ -f ./container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING bash ./container_start.sh'"  >> /root/.bashrc; \
     echo "    source ./container_start.sh" >> /root/.bashrc; \
