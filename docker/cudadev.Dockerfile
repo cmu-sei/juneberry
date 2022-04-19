@@ -1,5 +1,27 @@
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-02.html
-# CUDA 11.2.0, Driver 460.27.04, Python 3.8.?, pytorch 1.8
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+#
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-08.html
+# CUDA 11.4.1, Driver 470 or later, Python 3.8.?, pytorch 1.10.0a0+3fd9dvf
 FROM nvcr.io/nvidia/pytorch:21.02-py3
 
 # ============ BASE PLATFORM ============
@@ -71,10 +93,10 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v10"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v11"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CUDA Development v10" >> /root/.bashrc; \
+    echo "figlet -w 120 CUDA Development ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc; \
     echo "if [ -f ./container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING bash ./container_start.sh'"  >> /root/.bashrc; \
     echo "    source ./container_start.sh" >> /root/.bashrc; \
