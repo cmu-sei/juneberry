@@ -108,7 +108,7 @@ class Detectron2Trainer(Trainer):
         for key in self.results_keys:
             self.output.results.update({key: []})
 
-        # NOTE: This is a custom path for DT2.  We know that DT2 puts the model file in the final
+        # NOTE: This is a custom path for DT2. We know that DT2 puts the model file in the final
         # OUTPUT directory, so we rename it out of there.
         self.output_dir = self.model_manager.get_train_scratch_path()
         self.final_model_path = self.output_dir / 'model_final.pth'

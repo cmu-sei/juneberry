@@ -245,14 +245,14 @@ class EpochTrainer(Trainer):
         # TODO: Should we just call dry run externally?
         self.do_dry_run = False
 
-        # Is the training done? Set to True to exit training loop.
-        self.done = False
-
         # Maximum number of epochs.  We may stop earlier if we meet other criteria
         self.max_epochs = model_config.epochs
 
         # A 1-based counter showing the current epoch. A value of zero means training has not begun.
         self.epoch = 0
+
+        # Is the training done? Set to True to exit training loop.
+        self.done = False if self.max_epochs > self.epoch else True
 
         # Iterables that provides batches (lists) of pairs of (data, targets) for training and evaluation.
         # These must be initialized during setup.

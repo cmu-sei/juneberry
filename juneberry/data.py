@@ -279,7 +279,7 @@ class DatasetMarshal:
         self.split()
         self.merge_sources()
         if len(self.train) == 0:
-            logger.error("Training dataset is length 0.")
+            logger.warning("Training dataset is length 0.")
         if len(self.val) == 0:
             logger.warning("Validation dataset is length 0.")
         return self.train, self.val
