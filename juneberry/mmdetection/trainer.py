@@ -28,6 +28,7 @@ from pathlib import Path
 import sys
 
 import hjson
+import torch
 
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
@@ -306,6 +307,11 @@ class MMDTrainer(Trainer):
         self.cfg = cfg
 
     def train(self) -> None:
+        # If not epochs, just save the model
+        if self.model_config.epochs == 0:
+            torch.save(self.model_config.epochs, self.model_manager.get_mmd_latest_model_path())
+            return
+
         # For now we just support multi-gpu single-process MMD with its use of DataParallel.
         # NOTE: If we ever decide to use the timestamp kwarg for train_detector, this will impact
         # get_mmd_out_log in filesystem.py. Refer to that method for more details.
@@ -325,9 +331,9 @@ class MMDTrainer(Trainer):
             src.resolve().rename(dst)
 
             # Retrieve the metrics from the mmd training log.
-            self.extract_mmd_log_content(self.get_mmd_out_log())
-
-            plot_training_summary_chart(self.output, self.model_manager)
+            if self.model_config.epochs > 0:
+                self.extract_mmd_log_content(self.get_mmd_out_log())
+                plot_training_summary_chart(self.output, self.model_manager)
 
             # Compute the model hash.
             self.output.results.model_hash = generate_file_hash(self.model_manager.get_pytorch_model_path())
