@@ -22,7 +22,7 @@
 #
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-08.html
 # CUDA 11.4.1, Driver 470 or later, Python 3.8.?, pytorch 1.10.0a0+3fd9dvf
-FROM nvcr.io/nvidia/pytorch:21.02-py3
+FROM nvcr.io/nvidia/pytorch:21.08-py3
 
 # ============ BASE PLATFORM ============
 
