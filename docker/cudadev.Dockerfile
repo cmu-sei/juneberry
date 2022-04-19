@@ -74,8 +74,8 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 ENV FORCE_CUDA="1"
 
 #RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
-RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.7
-#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.7 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
+RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8
+#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
 
 # Build MMDetection
 #RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
