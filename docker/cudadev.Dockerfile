@@ -65,7 +65,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 # ============ DETECTRON2 ============
 
 #RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git'
-RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
+RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
 
@@ -74,12 +74,12 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
 ENV FORCE_CUDA="1"
 
 #RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
-RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.3.17
-#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
+RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.7
+#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.7 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
 
 # Build MMDetection
 #RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
-RUN git clone --depth 1 --branch v2.18.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
+RUN git clone --depth 1 --branch v2.23.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
 WORKDIR /mmdetection
 RUN pip3 install -r requirements/build.txt
 RUN pip3 install -v -e .
