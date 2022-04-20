@@ -59,7 +59,12 @@ class Summary(Report):
         logger.info(f"Saving the report to {self.report_path}")
 
         # CSV mode is optional. If a CSV path was not provided, skip the CSV steps.
-        self.csv_path = None if csv_filename == "" else Path(csv_filename)
+        if csv_filename == "":
+            self.csv_path = None
+        else:
+            default_csv_filename = "summary.csv"
+            self.csv_path = determine_report_path(self.output_dir, csv_filename, default_csv_filename)
+            logger.info(f"Saving the summary CSV to {self.csv_path}")
 
         # Store the two types of files to be included in the summary.
         self.metrics_files = metrics_files
