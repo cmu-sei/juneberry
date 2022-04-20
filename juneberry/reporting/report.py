@@ -33,12 +33,20 @@ class Report:
     This is the base class for all reports.
     """
     def __init__(self, output_str: str = ""):
+        # If an empty output string was provided, set the output directory for the report to the
+        # current directory.
         if output_str == "":
             logger.warning(f"An output path for the report was not provided. Saving the report to the "
                            f"current working directory.")
             self.output_dir = Path.cwd()
         else:
+            # If a string was provided, first convert it to a Path.
             self.output_dir = Path(output_str)
+
+            # Now check the final component in the Path. If it contains a "." that means the final
+            # component contains a file extension. Therefore the provided output_str was for a file
+            # and not a directory. Therefore, the output_dir must be set to the parent directory of
+            # the file.
             if "." in self.output_dir.parts[-1]:
                 self.output_dir = self.output_dir.parent
 

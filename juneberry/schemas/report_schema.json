@@ -4,6 +4,7 @@
         "plugin_item": {
             "type": "object",
             "properties": {
+                "description": { "type": "string" },
                 "fqcn": { "type": "string" },
                 "kwargs": { "type": "object" }
             },

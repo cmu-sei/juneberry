@@ -59,9 +59,9 @@ class ReportConfig(Prodict):
     @staticmethod
     def load(data_path: str):
         """
-        Loads the config from the provided path, validate, and construct the config.
+        Load the config from the provided path, validate, and construct the config.
         :param data_path: Path to config.
-        :return: Loaded, validated and constructed object.
+        :return: Loaded, validated, and constructed object.
         """
         # Load the raw file.
         logger.info(f"Loading REPORT CONFIG from {data_path}")

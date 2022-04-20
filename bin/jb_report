@@ -47,10 +47,7 @@ def setup_args(parser) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='This script generates report files for models and experiments. '
-                                                 'ARGS NOTE: Any command line args that are not '
-                                                 'recognized as positional or optional args for jb_report will '
-                                                 'be passed to the --fqcn option, if it was provided.')
+    parser = argparse.ArgumentParser(description='This script generates report files for models and experiments.')
     setup_args(parser)
     jbscripting.setup_args(parser)
     args = parser.parse_args()
