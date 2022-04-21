@@ -13,9 +13,3 @@ if [ -e "./setup.py" ]; then
     pip install -e .
 fi
 
-# For non Darwin platforms setup the user
-# OSX Docker desktop already does this right
-if [ "${HOST_UNAME}" != "Darwin" ]; then
-  /juneberry/docker/set_user.sh
-fi
-
