@@ -3,19 +3,22 @@
 # ======================================================================================================================
 # Juneberry - General Release
 #
-# Copyright 2022 Carnegie Mellon University.
+# Copyright 2021 Carnegie Mellon University.
 #
-# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS" BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-# Released under a MIT (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see Copyright notice for non-US Government use and distribution.
-#
-# Carnegie Mellon® is registered in the U.S. Patent and Trademark Office by Carnegie Mellon University.
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
 # This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-# DM22-0044
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -164,7 +167,10 @@ class Detectron2Trainer(Trainer):
         cfg = self.cfg_settings_setup()
 
         # Finalizes the freezes, finalizes config and sets other arguments
+        # TODO: What all can we pass in as args to default?
         logger.info("Freezing and setting up model")
+        self.cfg = cfg
+        cfg.freeze()
         self.model_setup(cfg, args)
 
         # Set our own dataset mappers to deal with transforms
@@ -442,10 +448,6 @@ class Detectron2Trainer(Trainer):
         return cfg
 
     def model_setup(self, cfg, args):
-        # This finalizes the freezes, finalizes config and sets other arguments
-        # TODO: What all can we pass in as args to default?
-        self.cfg = cfg
-        cfg.freeze()
         default_setup(self.model_manager, cfg, args)
 
         # =======
