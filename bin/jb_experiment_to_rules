@@ -531,6 +531,12 @@ class RuleMaker:
         :return: Nothing
         """
 
+        # The "classes" and "tests" stanzas are not required in the Report's JSON file.
+        if "classes" in json_content:
+            json_content.pop("classes")
+        if "tests" in json_content:
+            json_content.pop("tests")
+
         # Format the contents of the JSON file correctly.
         json_content = {"reports": [json_content]}
 

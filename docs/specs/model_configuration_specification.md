@@ -77,6 +77,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
         "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>
     },
+    "reports": [ <array of Report plugins - see below ],
     "seed": <OPTIONAL integer seed value for controlling randomization>,
     "stopping_criteria": {
         "direction": <OPTIONAL direction of comparison.  Should be 'le' (default) or 'ge'.>,
@@ -681,6 +682,11 @@ Any provided accuracy score must take the parameters "y_pred" (array of predicte
 ### accuracy_args
 A dictionary of optional arguments to be passed to the accuracy function.
 
+## reports
+**OPTIONAL** An array of one or more Report Plugins, where each Plugin corresponds to a Juneberry Report 
+class. Refer to the [report config specification](report_configuration_specification.md) for more information 
+about Juneberry Report Plugins.
+
 ## seed
 Seed value to use when conducting Juneberry operations with this model. This seed 
 value will affect random operations, including numpy.random, and it will also be 
@@ -820,6 +826,7 @@ For **from_file**:
 
 # Version History
 
+* 0.4.0 - Updated to incorporate Reports.
 * 0.3.0 - Changed from platform/task to extensible trainer/evaluator.
 * 0.2.0 - Big conversion to snake case in Juneberry 0.4.
 
