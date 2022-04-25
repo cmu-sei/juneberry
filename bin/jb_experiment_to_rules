@@ -235,7 +235,7 @@ class RuleMaker:
         outputs.append(report_json_content.kwargs.output_dir)
 
         # Retrieve the desired curve sources for this Report, if any were provided.
-        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
+        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else []
 
         # According to the experiment config, a report must have a tests section in order to make sense.
         # So, loop through those tests and add the appropriate curve sources.
@@ -243,7 +243,12 @@ class RuleMaker:
             # Add the curve source to the dictionary, where the key is the name of the model, and the value
             # is the name of the dataset that the model evaluated. This model:dataset combination indicates
             # which evaluation data to use when generating these PR curves.
-            curve_sources[self.tag_map[test.tag]['model']] = self.tag_map[test.tag]['dataset']
+            model = self.tag_map[test.tag]['model']
+            dataset = self.tag_map[test.tag]['dataset']
+            curve_source = {"model": model, "dataset": dataset}
+            if curve_source not in curve_sources:
+                curve_sources.append(curve_source)
+            # curve_sources[self.tag_map[test.tag]['model']] = self.tag_map[test.tag]['dataset']
 
             # The presence of the metrics file indicates an evaluation has occurred for this
             # model / dataset combination. Since the PR curves can't be generated without the evaluation

@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+from prodict import Prodict
 
 from juneberry.config.plugin import Plugin
 from juneberry.filesystem import ModelManager
@@ -81,9 +82,10 @@ class PRCurve(Report):
         mm = metrics_manager.MetricsManager([metrics_config])
 
         # Add a curve to the figure for each model:eval_dataset pair in the curve sources.
-        for idx, (model, dataset) in enumerate(self.curve_sources.items()):
-            model_mgr = ModelManager(model)
-            eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset)
+        for idx, curve_source in enumerate(self.curve_sources):
+            curve_source = Prodict.from_dict(curve_source)
+            model_mgr = ModelManager(curve_source.model)
+            eval_dir_mgr = model_mgr.get_eval_dir_mgr(curve_source.dataset)
 
             metrics = mm.call_with_eval_dir_manager(eval_dir_mgr)[self.stats_fqcn]
 

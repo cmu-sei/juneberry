@@ -108,7 +108,16 @@
                                 "properties": {
                                     "output_dir": { "type": "string"},
                                     "iou": { "type": "number" },
-                                    "curve_sources": { "type": "object" },
+                                    "curve_sources": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "model": { "type": "string"},
+                                                "dataset": { "type": "string"}
+                                            }
+                                        }
+                                    },
                                     "tp_threshold": { "type": "number" },
                                     "stats_fqcn": { "type": "string"}
                                 }

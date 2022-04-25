@@ -8,7 +8,7 @@ schema has a unique behavior when compared to other Juneberry configuration file
 exist within its own configuration file OR be inserted into other schemas, such as model configs 
 or experiment configs.
 
-# Schema - Basic
+# Basic Report Schema
 The following schema applies to standalone ReportConfigs, or any "reports" stanzas that have been 
 inserted into model configs or experiment configs.
 ```
@@ -61,9 +61,9 @@ The PR Report type will generate Precision-Recall-Confidence plots.
         "tp_threshold": <A float indicating the true-positive threshold to use when calculating the 
                          curves in this report>,
         "stats_fqcn": <A string indicating which class to use in the Juneberry MetricsManager>,
-        "curve_sources": <A dictionary of key:value pairs, where each key corresponds to a trained model 
-                          and the value represents a dataset that was used to evaluate that model. A PR 
-                          curve will be added to the figures for each model:dataset pair.>
+        "curve_sources": <A list of dictionaries, where each dictionary in the list contains two keys: 
+                          "model" and "dataset". A PR curve will be added to each figure for each 
+                          dictionary in the list.>
     }
 }
 ```
@@ -141,9 +141,135 @@ The previous stanza could then be inserted into the "reports" list of a report c
 model config file, or an experiment config file.
 
 # Schema Adjustments in an Experiment Config
-**TODO**
-When a "reports" stanza is inserted into an experiment config, the Reports schema includes a few 
-additional fields which are exclusively used by Juneberry experiments. 
+When a "reports" stanza exits inside an experiment config, the schema and behavior of a particular 
+Report may vary slight from the schemas described above. This section will describe these differences 
+for each Report Type.
+
+There's a good chance that some filenames required by a particular report's schema may not be 
+known in advance of running the experiment. In these situations, a report stanza may omit certain 
+fields from the experiment config and rely on Juneberry to fill in the correct value(s) for the 
+field once those values are determined. This is especially common for the "curve_sources" field in 
+the ROC and PR Reports. When the pydoit rules for the experiment are generated, Juneberry will fill 
+in these fields based on the output filenames that were determined during rule generation.
+
+Although Juneberry will fill in some fields for a report stanza in an experiment config, these values 
+will never be written to experiment config itself, in order to preserve to original state of that config. 
+Instead, a sub-directory named 'report_json_files' will appear inside the experiment directory. That 
+directory will contain one or more JSON files, where each file contains an individual report stanza 
+from the "reports" stanza in the experiment config, augmented with any fields that were determined 
+during the creation of the pydoit rules for that Report type. Refer to the information in the next 
+four subsections for more information on possible augmentations for each Report type.
+
+Another unique schema behavior involving experiments relates to any fields where an output filename or 
+directory is requested. Since Juneberry has a strong desire to organize any experiment files inside 
+the appropriate experiment directory, any values for output filenames or directories are checked to verify 
+that they are inside the experiment's experiment directory. When the provided string indicates a file 
+or directory that is not inside the experiment's directory, then Juneberry will adjust the value such 
+that the file or directory will be located inside the experiment's directory. Like before, these adjustments 
+will not be reflected inside the experiment config, but you would be able to see them inside the 
+individual report JSON files that appear in the 'report_json_files' sub-directory of the experiment.
+
+## Experiment Config ROC Report Schema Differences
+An ROC Report stanza in an experiment config may have two types of schema differences: one for "tests" and 
+another for "classes". Both a related to the construction of the "curve_sources" field.
+
+"tests" are a way to indicate which model and eval dataset combination from the experiment's "models" 
+stanza should be included in the report. According to the 
+[experiment configuration specification](experiment_configuration_specification.md), a "test" identifies 
+which dataset to use when evaluating a model, and each test is identified by a unique filter. The "tests" 
+stanza in an experiment's ROC Report stanza is used to add particular model and eval dataset combinations 
+to the ROC report. The "tests" field is inserted as a peer to the 'fqcn' and 'kwargs' fields. Consider 
+the following example:
+
+```json
+{
+    "reports": {
+        "description": "",
+        "fqcn": "juneberry.reporting.roc.ROCPlot",
+        "kwargs": {
+            "output_filename": ""
+        },
+        "tests": [
+            {
+                "tag": "Tag 1"
+            },
+            {
+                "tag": "Tag 2"
+            }
+        ]
+    }
+}
+```
+
+This ROC report stanza will add two curve sources to the curve_sources field in the individual report 
+JSON that will be created for this experiment report: one for the model/eval dataset combination matching 
+"Tag 1" and one for the model/eval dataset combination matching "Tag 2".
+
+However, which model/eval dataset combination to use is not the only piece of information required for a 
+proper entry in the "curve_sources" field. A curve_source must also indicate which classes to use when 
+plotting ROC curves. This need is resolved by the introduction of a "classes" field to the schema. The 
+"classes" field may appear as a peer to the "tests" field, or as a field *inside* a test. If the "classes" 
+field appears in both locations, the "classes" field inside the test is chosen. Consider the following 
+example:
+
+```json
+{
+    "reports": {
+        "classes": "all",
+        "description": "",
+        "fqcn": "juneberry.reporting.roc.ROCPlot",
+        "kwargs": {
+            "output_filename": ""
+        },
+        "tests": [
+            {
+                "classes": "0,1,2",
+                "tag": "Tag 1"
+            },
+            {
+                "classes": "0,1,2",
+                "tag": "Tag 2"
+            }
+        ]
+    }
+}
+```
+
+Here you can see the "classes" field has been added to the schema in both possible locations. However, 
+the classes "0,1,2" will be chosen for the value in curve_sources because that location is given 
+higher priority.
+
+## Experiment Config PR Report Schema Differences
+A PR report stanza in an experiment config only has one potential new field in the schema, and it's the 
+"tests" field described in the [previous section](#Experiment Config ROC Report Schema Differences). The 
+purpose and functionality of the field is the same: it's to populate the 'curve_sources' field for the 
+PR Report with the correct model/eval dataset combinations. 
+
+## Experiment Config Summary Report Schema Differences
+The Summary Report schema differences in an experiment config don't include any new fields. Instead, 
+they're described best by the fields that might not be there: the 'metrics_files' and 'plot_files' 
+kwargs. The 'metrics_files' indicates which evaluation metrics to include in the Summary report, while 
+the 'plot_files' indicate any plots or figures to include in the summary. It's likely that both of these 
+categories will contain filenames that won't be known until experiment runtime. 
+
+As a result, the experiment rules generation process aims to append the metrics and plot files generated 
+during the experiment into the appropriate list. If any files appear in either list beforehand, the rule 
+generation process will augment the existing list(s) with the metrics and plot files produced during the 
+rules process. 
+
+For the additions to the 'metrics_files' list, the process will loop through the unique tags in the 
+experiment and add the metrics file for the model/eval_dataset combination to the list of metrics files.
+Additions to the 'plot_files' list are identified by looping through the lists of reports in the "reports" 
+stanza, identifying and reports that produce PR or ROC images, and then appending those results images into 
+the 'plot_files' list.
+
+## Experiment Config Custom Report Schema Differences
+When designing your own custom reports, the alternate schema behaviors described in the previous sections 
+will not apply to your report type without significant modifications to 
+[jb_experiment_to_rules](../../bin/jb_experiment_to_rules). Without making those modifications, it's best 
+to treat the inclusion of a custom report into your experiment as a strict follower of the
+[basic report schema](#Basic Report Schema), and not expect the experiment rules generation process to 
+auto-fill any missing fields for the custom report.
 
 # Schema Details
 This section provides more information about each of the fields in the basic Report schema.
@@ -269,25 +395,34 @@ This string provides an opportunity to use a custom class to calculate the metri
 default value for this class is "juneberry.metrics.metrics.Stats".
 
 #### curve_sources
-This dictionary contains key:value pairs that indicate which combinations of models and evaluation 
-datasets should be used to add curves to each Figure. Each key should be a string corresponding to 
-a model in the workspace, while each corresponding value should be a string equal to the name of a 
-dataset that was used to evaluate the model. 
+This array contains one or more dictionaries describing which combinations of models and evaluation 
+datasets should be used to add curves to each Figure. Each dictionary should contain a "model" key 
+indicating the model to use for the curve source and a "dataset" key indicating which evaluation 
+dataset to use along with the model to produce data for the curve.
 
 For example, a properly constructed 'curve_sources' field would look something like this:
 ```json
 {
-    "curve_sources": {
-        "model_1": "eval_dataset_1",
-        "model_1": "eval_dataset_2",
-        "model_2": "eval_dataset_1"
-    }
+    "curve_sources": [
+        {
+            "model": "model_1",
+            "dataset": "eval_dataset_1"
+        },
+        {
+            "model": "model_1",
+            "dataset": "eval_dataset_2"
+        },
+        {
+            "model": "model_2",
+            "dataset": "eval_dataset_1"
+        }
+    ]
 }
 ```
 
 In this example, each of the three PR Figures would contain 3 curves. Two curves would come from the 
-same model but different eval datasets, and the third curve would come from a different model evaluated 
-with one of the previous datasets.
+same model but different eval datasets. The third curve would come from a different model evaluated 
+using one of the previous datasets.
 
 ## Schema Details - Summary Report
 This section provides more information about each of the fields in the schema for a 
