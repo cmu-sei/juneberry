@@ -127,7 +127,6 @@ want the predictions script to perform classifications.
 **Optional** string that indicates which version of the model to use.
 
 ## reports
-
 **OPTIONAL** An array of one or more Plugins, where each Plugin corresponds to a Juneberry Report 
 class. Refer to the [report config specification](report_configuration_specification.md) for more information 
 about Juneberry Report Plugins.

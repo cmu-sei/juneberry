@@ -41,7 +41,7 @@ class PRCurve(Report):
       2) A Precision-Confidence plot, containing one or more curves.
       3) A Recall-Confidence plot, containing one or more curves.
     """
-    def __init__(self, output_dir: str = "", iou: float = 1.0, curve_sources: dict = None,
+    def __init__(self, output_dir: str = "", iou: float = 0.5, curve_sources: dict = None,
                  tp_threshold: float = 0.8, stats_fqcn: str = "juneberry.metrics.metrics.Stats"):
         super().__init__(output_str=output_dir)
 

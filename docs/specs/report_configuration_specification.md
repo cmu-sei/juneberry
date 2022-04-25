@@ -140,6 +140,11 @@ full report stanza would look something like this:
 The previous stanza could then be inserted into the "reports" list of a report config file, a 
 model config file, or an experiment config file.
 
+# Schema Adjustments in an Experiment Config
+**TODO**
+When a "reports" stanza is inserted into an experiment config, the Reports schema includes a few 
+additional fields which are exclusively used by Juneberry experiments. 
+
 # Schema Details
 This section provides more information about each of the fields in the basic Report schema.
 
@@ -151,8 +156,12 @@ described in the [Plugin Structure](#Plugin Structure) section.
 A human-readable description of the report.
 
 ### fqcn
+The fully qualified class name (fqcn) of the Report to build, e.g. 
+"**juneberry.reporting.summary.Summary**".
 
 ### kwargs
+A dictionary containing all the arguments to pass into the `__init__` method of the 
+Report class indicated in the 'fqcn' field.
 
 ## Schema Details - ROC Report
 This section provides more information about each of the fields in the schema for a 
@@ -162,21 +171,67 @@ ROC Report stanza.
 A human-readable description of the report.
 
 ### fqcn
+The fully qualified class name (fqcn) of the Report to build, which for a Juneberry 
+ROC Report should be equal to "**juneberry.reporting.roc.ROCPlot**".
 
 ### kwargs
+A dictionary containing all the arguments to pass into the `__init__` method of 
+**juneberry.reporting.roc.ROCPlot**.
 
 #### output_filename
+A string indicating the desired name for the output file. The output file is a figure 
+contain ROC curves, so typically this field will be a PNG file. When this field is not 
+provided, the ROC image will be placed in the current working directory using the 
+filename "ROC_curves.png". When this field is set to a directory, the ROC image will 
+be placed inside that directory using the filename "ROC_curves.png". 
 
 #### plot_title
-This string will be used for the title of the Figure in the ROC plot.
+This string will be used for the title of the Figure in the ROC plot. When this field 
+is not provided, the Report uses "ROC Curve(s)" for the figure title.
 
 #### legend_scaling
+A float that can be used to adjust the scale factor for the legend. When this field 
+is not provided, the Report uses 1.0 as the default value.
 
 #### legend_font_size
+This integer is used to control the fontsize of the text in the legend. When this field 
+is not provided, the Report uses 10 as the default value.
 
 #### line_width
+This integer controls the width of ROC curve lines in the figure. When this field is 
+not provided, the Report uses 2 as the default value.
 
 #### curve_sources
+This dictionary contains key:value pairs that indicate which evaluation data and classes 
+should be used to generate ROC curves for the figure. 
+
+A key should be a string indicating 
+a Juneberry Evaluation Output file (see the [Evaluation Output Specification](eval_output_specification.md)). 
+
+The corresponding value should be a string of classes in the evaluation data to produce ROC 
+curves for. The following examples illustrate various ways to construct the class string:
+ - 'all' - Plots an ROC curve for each class in the evaluation data.
+ - '0,1,2' - Plots three different ROC curves, one for class 0, one for class 1, and one for class 2.
+ - '0,dog,1' - Plots three different ROC curves, one for class 0, one for the 'dog' class (the Report 
+will look up the class string and convert to the correct integer class), and one for class 2.
+ - '0,1+2,3' - Plots three different ROC curves, one for class 0, one for class 1 and 2 data combined 
+into a single curve, and one for class 3.
+ - 'cat, 3+dog, 4' - Various combinations of the previous techniques are supported. The Report will 
+simply convert any strings to the corresponding integers and perform class combinations as requested.
+
+Therefore, a correctly constructed 'curve_sources' property would look something like this:
+```json
+{
+    "curve_sources": {
+        "models/example_model/eval/example_dataset/predictions.json": "0,1,2",
+        "models/example_model2/eval/example_dataset/predictions.json": "0,dog+cat,2"
+    }
+}
+```
+
+This set of curve sources would produce a Figure containing 6 ROC curves from 2 different models which 
+were evaluated using the same evaluation dataset. Each model provides the data for 3 curves. The 
+second curve from example_model2 will be a combined curve for the dog and cat classes.
 
 ## Schema Details - PR Report
 This section provides more information about each of the fields in the schema for a 
@@ -186,18 +241,53 @@ PR Report stanza.
 A human-readable description of the report.
 
 ### fqcn
+The fully qualified class name (fqcn) of the Report to build, which for a Juneberry 
+PR Report should be equal to "**juneberry.reporting.pr.PRCurve**".
 
 ### kwargs
+A dictionary containing all the arguments to pass into the `__init__` method of 
+**juneberry.reporting.pr.PRCurve**.
 
 #### output_dir
+A string indicating the desired output directory for the three images produced by this 
+Report type. When this field is not provided, the three images will be placed in the 
+current working directory. When this field is set to a filename, the output directory 
+will be set to the parent directory of that file. The filenames of the three images 
+that will appear in the output directory are "pr_curve.png", "pc_curve.png", and 
+"rc_curve.png".
 
 #### iou
+This float controls the iou threshold to use when generating the data for the curves. 
+When not provided, the default value for this field is 0.5.
 
 #### tp_threshold
+This float controls the true positive threshold to use when generating the data for 
+the curves. When not provided, the default value for this field is 0.8.
 
 #### stats_fqcn
+This string provides an opportunity to use a custom class to calculate the metrics. The 
+default value for this class is "juneberry.metrics.metrics.Stats".
 
 #### curve_sources
+This dictionary contains key:value pairs that indicate which combinations of models and evaluation 
+datasets should be used to add curves to each Figure. Each key should be a string corresponding to 
+a model in the workspace, while each corresponding value should be a string equal to the name of a 
+dataset that was used to evaluate the model. 
+
+For example, a properly constructed 'curve_sources' field would look something like this:
+```json
+{
+    "curve_sources": {
+        "model_1": "eval_dataset_1",
+        "model_1": "eval_dataset_2",
+        "model_2": "eval_dataset_1"
+    }
+}
+```
+
+In this example, each of the three PR Figures would contain 3 curves. Two curves would come from the 
+same model but different eval datasets, and the third curve would come from a different model evaluated 
+with one of the previous datasets.
 
 ## Schema Details - Summary Report
 This section provides more information about each of the fields in the schema for a 
@@ -207,15 +297,37 @@ Summary Report stanza.
 A human-readable description of the report.
 
 ### fqcn
+The fully qualified class name (fqcn) of the Report to build, which for a Juneberry 
+Summary Report should be equal to "**juneberry.reporting.summary.Summary**".
 
 ### kwargs
+A dictionary containing all the arguments to pass into the `__init__` method of 
+**juneberry.reporting.summary.Summary**.
 
 #### md_filename
-
-#### md_filename
+This string indicates the desired name for the output markdown file for the Summary Report. When this 
+string is not provided, the output markdown file will be placed in the current working directory 
+with the filename "summary.md". When a directory is provided in this field, the output markdown file 
+will be placed in that directory with the filename "summary.md". When this field is set to a filename, 
+then the Summary report will be saved to that file.
 
 #### csv_filename
+This string indicates that a CSV version of the Summary file is desired and what the corresponding 
+filename of that CSV file should be. If this key is omitted from the kwargs, then no CSV will be 
+generated. If this field is set to an empty string, then the Summary CSV will be placed in the 
+current working directory with the filename "summary.csv". If this field is set to a directory, 
+the output CSV file will be placed in that directory with the filename "summary.csv". When this 
+field is set to a filename, then the Summary CSV will be saved to that file.
 
 #### metrics_files
+This array of strings indicates which model metrics files should contribute data to the Summary 
+Report. A metrics file is an [evaluation output](eval_output_specification.md) file that does not 
+contain predictions data. Each string in this array should correspond to a metrics file to pull 
+summary data from. One row will be added to the Summary table for every metrics file in this array. 
+When a Summary CSV has been requested, each metrics file will contribute one line to the CSV.
 
 #### plot_files
+This array of strings indicates any plot files or figures that should be included in the Summary 
+Report markdown file. Any plot files included in this array will appear in the "Experiment Plots" 
+section which appears below the "Experiment summary" table in the Summary markdown file. The plot 
+files in this list do not contribute any information to the Summary CSV file.
