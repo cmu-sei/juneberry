@@ -60,6 +60,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
     tf2onnx \
     opencv-python==4.5.5.62 \
     tqdm \
+    adversarial-robustness-toolbox \
     pytest pylint
 
 # ============ DETECTRON2 ============
