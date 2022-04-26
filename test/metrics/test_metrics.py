@@ -125,8 +125,7 @@ def test_tide_metrics():
 
 
 def test_create_with_empty_annos():
-    with pytest.raises(ValueError):
-        _ = metrics_mgr_all(gt_no_annos_data, det_data)
+    assert(metrics_mgr_all(gt_no_annos_data, det_data)) == {}
 
 
 def test_prc_df():
