@@ -51,7 +51,8 @@ RUN pip install tensorflow==2.7.0 tensorflow-datasets==4.4.0
 # Some of these may No-Op because they are in the pytorch distribution
 # Some of these Juneberry may not need, but many tools do.
 # NOTE: We do NOT install pytorch as it comes in this nvidia base container
-RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
+RUN pip3 install adversarial-robustness-toolbox \
+    doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
     sklearn tensorboard \
     torch-summary\>=1.4.5 albumentations \
     pandas brambox pyyaml natsort \
@@ -60,7 +61,6 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
     tf2onnx \
     opencv-python==4.5.5.62 \
     tqdm \
-    adversarial-robustness-toolbox \
     pytest pylint
 
 # ============ DETECTRON2 ============
