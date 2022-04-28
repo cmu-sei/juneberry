@@ -90,19 +90,18 @@ class MetricsManager:
         :param det: Detections dict in COCO format
         :return: the metrics calculations in a dict
         """
-        if not anno:
-            logger.info("There are no annotations; cannot populate metrics output!")
-            raise ValueError
-
         results = {}
 
-        # For each metrics plugin we've created, use the annotations and
-        # detections to compute the metrics and add to our results.
-        for entry in self.metrics_entries:
-            results[entry.fqcn] = entry.metrics(anno, det)
+        if not anno["annotations"]:
+            logger.info("There are no annotations; cannot populate metrics output!")
+        else:
+            # For each metrics plugin we've created, use the annotations and
+            # detections to compute the metrics and add to our results.
+            for entry in self.metrics_entries:
+                results[entry.fqcn] = entry.metrics(anno, det)
 
-        if self.formatter:
-            results = self.formatter(results)
+            if self.formatter:
+                results = self.formatter(results)
 
         return results
 
