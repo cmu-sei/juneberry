@@ -31,7 +31,7 @@ from pathlib import Path
 from prodict import List, Prodict
 import sys
 
-from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportType
+from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig
 from juneberry.config.rule_list import RuleListBuilder
 from juneberry.filesystem import ExperimentManager, ModelManager
@@ -149,6 +149,15 @@ class RuleMaker:
         # Add Reports when the experiment config contains a "reports" stanza.
         if self.experiment_config.reports:
 
+            # These properties are used when a Summary Report is not the last Report
+            # in the list of Reports. Since the Summary Report relies on the existence of
+            # all other individual experiment Report JSON configs, the Summary Report
+            # MUST be LAST in the Reports sequence, so all those JSON configs have a
+            # chance to be created. These properties are used to revisit the Summary
+            # Report after all the individual Report configs are created.
+            redo_summary_flag = False
+            summary_idx = None
+
             # The goal is to create an individual report.json file for every report
             # listed in the reports stanza. All of these reports will be stored in
             # the 'report_json_files' sub-directory inside the experiment directory.
@@ -162,23 +171,38 @@ class RuleMaker:
 
                 # Add a properly formatted 'jb_report' rule to generate ROC curves
                 # when the report type matches the PLOT_ROC class.
-                if report.fqcn == ReportType.PLOT_ROC:
+                if report.fqcn == ReportFQCN.PLOT_ROC:
                     self.add_plot_roc(report, idx)
 
                 # Add a properly formatted 'jb_report' rule to generate PR curves
                 # when the report type matches the PLOT_PR class.
-                elif report.fqcn == ReportType.PLOT_PR:
+                elif report.fqcn == ReportFQCN.PLOT_PR:
                     self.add_plot_pr(report, idx)
 
                 # Add a properly formatted 'jb_report' rule to generate a summary
                 # report when the report type matches the SUMMARY class.
-                elif report.fqcn == ReportType.SUMMARY:
-                    self.add_summary(report, idx)
+                elif report.fqcn == ReportFQCN.SUMMARY:
+                    # Check if the Summary Report is last in the Reports list. If
+                    # it is, add the summary.
+                    if idx + 1 == len(self.experiment_config.reports):
+                        self.add_summary(report, idx)
+
+                    # If the Summary isn't the last Report in the list, then it'll need
+                    # to be revisited once all the individual Report JSON files have been
+                    # created. Set the flag and record the index of the Summary Report.
+                    else:
+                        redo_summary_flag = True
+                        summary_idx = idx
 
                 # For all other report FQCNs, follow the process for adding a
                 # generic report rule.
                 else:
                     self.add_generic_report(report, idx)
+
+            # If the flag to redo the Summary Report was triggered, redo the addition of
+            # the Summary Report using the proper index value.
+            if redo_summary_flag:
+                self.add_summary(self.experiment_config.reports[summary_idx], summary_idx)
 
     def add_plot_pr(self, report: Report, idx: int) -> None:
         """
@@ -407,7 +431,7 @@ class RuleMaker:
         outputs.append(report_json_content.kwargs.md_filename)
 
         # The CSV file is optional, so only adjust the filename (potentially) if a csv_filename was provided.
-        if report.kwargs.csv_filename:
+        if "csv_filename" in report.kwargs:
             # Convert the csv_filename from a string to a Path.
             csv_path = Path(report.kwargs.csv_filename)
 
@@ -462,13 +486,13 @@ class RuleMaker:
             report_prodict = Prodict.from_dict(report_file_content["reports"][0])
 
             # Add any ROC plots to the summary file, if necessary.
-            if report_prodict.fqcn == ReportType.PLOT_ROC:
+            if report_prodict.fqcn == ReportFQCN.PLOT_ROC:
                 plot_file = report_prodict.kwargs.output_filename
                 if plot_file not in plot_files:
                     plot_files.append(report_prodict.kwargs.output_filename)
 
             # Add any PR plots to the summary file, if necessary.
-            elif report_prodict.fqcn == ReportType.PLOT_PR:
+            elif report_prodict.fqcn == ReportFQCN.PLOT_PR:
 
                 # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
                 plot_filenames = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]

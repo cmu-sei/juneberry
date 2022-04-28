@@ -17,40 +17,36 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [ "all_pr", "all_roc", "plot_pr", "plot_roc", "summary" ]
-                    },
-                    "description": { "type": "string" },
-                    "test_tag": { "type": "string" },
                     "classes": { "type": "string" },
-                    "output_name": { "type": "string" },
-                    "iou": { "type": "number"}
+                    "description": { "type": "string" },
+                    "fqcn": { "type": "string" },
+                    "kwargs": {},
+                    "test_tag": { "type": "string" }
                 },
                 "required": [
-                    "type",
-                    "description"
+                    "description",
+                    "fqcn"
                 ],
                 "anyOf": [
                     {
-                        "properties": { "type": { "const": "plot_roc" } },
+                        "properties": { "fqcn": { "const": "juneberry.reporting.roc.ROCPlot" } },
                         "required": [ "test_tag", "classes" ]
                     },
                     {
-                        "properties": { "type": { "const": "summary" } },
-                        "required": [ "output_name" ]
+                        "properties": { "fqcn": { "const": "all_roc" } },
+                        "required": [ "test_tag", "classes" ]
                     },
                     {
-                        "properties": { "type": { "const": "all_roc" } },
+                        "properties": { "fqcn": { "const": "juneberry.reporting.pr.PRCurve" } },
+                        "required": [ "test_tag" ]
+                    },
+                    {
+                        "properties": { "fqcn": { "const": "all_pr" } },
+                        "required": [ "test_tag" ]
+                    },
+                    {
+                        "properties": { "fqcn": { "const": "juneberry.reporting.summary.Summary" } },
                         "required": [ ]
-                    },
-                    {
-                        "properties": { "type": { "const": "all_pr" } },
-                        "required": [ "iou" ]
-                    },
-                    {
-                        "properties": { "type": { "const": "plot_pr" } },
-                        "required": [ "iou", "test_tag" ]
                     }
                 ]
             }

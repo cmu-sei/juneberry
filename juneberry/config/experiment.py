@@ -35,7 +35,7 @@ import juneberry.filesystem as jbfs
 logger = logging.getLogger(__name__)
 
 
-class ReportType(str, Enum):
+class ReportFQCN(str, Enum):
     PLOT_PR = 'juneberry.reporting.pr.PRCurve'
     PLOT_ROC = 'juneberry.reporting.roc.ROCPlot'
     SUMMARY = 'juneberry.reporting.summary.Summary'
@@ -130,7 +130,7 @@ class ExperimentConfig(Prodict):
 
         # The reports should have a tests section to make sense and tags in those tests
         for i, report in enumerate(self.reports):
-            if report.fqcn == ReportType.PLOT_ROC or report.fqcn == ReportType.PLOT_PR:
+            if report.fqcn == ReportFQCN.PLOT_ROC or report.fqcn == ReportFQCN.PLOT_PR:
 
                 for test in report.tests:
                     if test.tag not in tag_set:
