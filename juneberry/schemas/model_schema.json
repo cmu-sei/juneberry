@@ -18,6 +18,7 @@
         "detectron2": {
             "type": "object",
             "properties": {
+                "dataset_mapper": { "$ref": "#/definitions/plugin_item" },
                 "disable_val_loss": { "type": "boolean" },
                 "metric_interval": { "type": "integer" },
                 "overrides": { "type": "array" },

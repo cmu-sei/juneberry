@@ -116,6 +116,7 @@ class PytorchOptions(Prodict):
 
 
 class Detectron2(Prodict):
+    dataset_mapper: Plugin
     enable_val_loss: bool
     metric_interval: int
     overrides: Prodict
