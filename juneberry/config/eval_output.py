@@ -47,6 +47,7 @@ class Metrics(Prodict):
     balanced_accuracy: float
     bbox: Any
     bbox_per_class: Any
+    summary: Any
     loss: float
 
 

@@ -262,8 +262,8 @@ class Evaluator(EvaluatorBase):
 
         # TODO these lines should be extracted into a populate_metrics method and called by
         #   the super evaluator.py. We can't do that here, the way we do for dt2.
-        # TODO we're assuming we're getting COCO metrics and they're being returned
-        #   in the expected "bbox"/"bbox_per_class" dict specified in eval_output.py
+        # TODO we're assuming we're getting COCO/STATS metrics and they're being returned
+        #   in the expected "bbox"/"bbox_per_class"/"stats" dict specified in eval_output.py
         metrics_config = self.model_config.evaluation_metrics
         metrics_formatter = self.model_config.evaluation_metrics_formatter
 

@@ -302,14 +302,24 @@ def get_default_od_metrics_config() -> List[Plugin]:
             "tqdm": False
         }
     }
-    return [Plugin.from_dict(default_metrics_config)]
+    default_summary_config = {
+        "fqcn": "juneberry.metrics.metrics.Summary",
+        "kwargs": {
+            "iou_threshold": 0.5,
+            "tp_threshold": 0.8
+        }
+    }
+    return [
+        Plugin.from_dict(default_metrics_config),
+        Plugin.from_dict(default_summary_config),
+    ]
 
 
 # TODO it would be better if this was in an OD-specific superclass of evaluator
 #   as a more general get_default_metrics_formatter
-def get_default_od_metrics_formatter() -> Dict:
+def get_default_od_metrics_formatter() -> Plugin:
     default_metrics_formatter = {
-        "fqcn": "juneberry.metrics.format.DefaultCocoFormatter",
+        "fqcn": "juneberry.metrics.format.DefaultFormatter",
         "kwargs": {
         }
     }

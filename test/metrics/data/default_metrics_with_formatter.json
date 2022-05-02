@@ -1,18 +1,18 @@
 {
     "evaluation_metrics": [
         {
-            "fqcn": "juneberry.metrics.metrics.Summary",
-            "kwargs": {
-                "iou_threshold": 0.5,
-                "tp_threshold": 0.8
-            }
-        },
-        {
             "fqcn": "juneberry.metrics.metrics.Coco",
             "kwargs": {
                 "iou_threshold": 0.5,
                 "max_det": 100,
                 "tqdm": false
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.metrics.Summary",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "tp_threshold": 0.8
             }
         },
         {
@@ -26,5 +26,10 @@
                 "tqdm": false
             }
         }
-    ]
+    ],
+    "evaluation_metrics_formatter": {
+        "fqcn": "juneberry.metrics.format.DefaultFormatter",
+        "kwargs": {
+        }
+    }
 }
