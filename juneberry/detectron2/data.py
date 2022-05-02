@@ -149,18 +149,22 @@ def create_mapper(cfg, dataset_mapper, transforms, is_train: bool) -> DatasetMap
         logger.info("Using custom dataset mapper to override Detectron2 dataset mapper")
         mapper_obj = jb_mapper_utils.construct_mapper(dataset_mapper.fqcn, dataset_mapper.kwargs)
         args = mapper_obj.from_config(cfg, is_train)
+        logger.info("Returning custom dataset mapper")
+        return mapper_obj
     else:
         logger.info("Using standard Detectron2 dataset mapper")
         args = DatasetMapper.from_config(cfg, is_train)
-        if transforms is not None and len(transforms) > 0:
-            mgr = TransformManager(transforms)
-            aug_list = args['augmentations']
-            for transform in mgr.get_transforms():
-                if isinstance(transform, Augmentation) or isinstance(transform, Transform):
-                    aug_list.append(transform)
-                else:
-                    adapter = TransformAdapter(transform)
-                    adapter.check_for_methods()
-                    aug_list.append(adapter)
 
+    if transforms is not None and len(transforms) > 0:
+        mgr = TransformManager(transforms)
+        aug_list = args['augmentations']
+        for transform in mgr.get_transforms():
+            if isinstance(transform, Augmentation) or isinstance(transform, Transform):
+                aug_list.append(transform)
+            else:
+                adapter = TransformAdapter(transform)
+                adapter.check_for_methods()
+                aug_list.append(adapter)
+
+    logger.info("Returning default detectron2 dataset mapper")
     return DatasetMapper(**args)

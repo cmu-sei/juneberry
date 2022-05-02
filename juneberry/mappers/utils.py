@@ -25,17 +25,17 @@
 import logging
 
 import juneberry.loader as jb_loader
-from detectron2.data import DatasetMapper
 
 logger = logging.getLogger(__name__)
 
-def construct_mapper(fqcn: str, kwargs: dict) -> DatasetMapper:
+def construct_mapper(fqcn: str, kwargs: dict):
     """
-    The purpose of this function is to construct an instance of a DatasetMapper using an
+    The purpose of this function is to construct an instance of a custom Dataset Mapper using an
     FQCN and some args.
     :param fqcn: A string indicating the fqcn of the Report to create.
     :param kwargs: A dictionary containing any args that should be passed to the
     function when building the report instance.
-    :return: The resulting DatasetMapper object.
+    :return: The resulting custom Dataset Mapper object.
     """
+    logger.info("Constructing instance for custom dataset mapper")
     return jb_loader.construct_instance(fqcn, kwargs)
