@@ -82,10 +82,10 @@ def main():
     pc_plot = PrecisionConfidencePlot()
     rc_plot = RecallConfidencePlot()
 
-    stats_fqcn = "juneberry.metrics.metrics.Stats"
+    summary_fqcn = "juneberry.metrics.metrics.Summary"
 
     metrics_config = Plugin.from_dict({
-        "fqcn": stats_fqcn,
+        "fqcn": summary_fqcn,
         "kwargs": {
             "iou_threshold": args.iou,
             "tp_threshold": 0.8
@@ -98,7 +98,7 @@ def main():
         model_mgr = jbfs.ModelManager(args.model[idx])
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(args.evalData[idx])
 
-        metrics = mm.call_with_eval_dir_manager(eval_dir_mgr)[stats_fqcn]
+        metrics = mm.call_with_eval_dir_manager(eval_dir_mgr)[summary_fqcn]
 
         model_name = model_mgr.model_name
         dataset_name = eval_dir_mgr.get_dir().stem
