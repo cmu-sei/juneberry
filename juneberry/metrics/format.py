@@ -45,33 +45,33 @@ class DefaultFormatter:
             "summary": {}
         }
 
-        result["bbox"]["mAP"] = round(coco_metrics["mAP_coco"], DECIMAL_PLACES)
-        result["bbox"]["mAP_50"] = round(coco_metrics["mAP_50"], DECIMAL_PLACES)
-        result["bbox"]["mAP_75"] = round(coco_metrics["mAP_75"], DECIMAL_PLACES)
-        result["bbox"]["mAP_s"] = round(coco_metrics["mAP_small"], DECIMAL_PLACES)
-        result["bbox"]["mAP_m"] = round(coco_metrics["mAP_medium"], DECIMAL_PLACES)
-        result["bbox"]["mAP_l"] = round(coco_metrics["mAP_large"], DECIMAL_PLACES)
+        result["bbox"]["mAP"] = coco_metrics["mAP_coco"]
+        result["bbox"]["mAP_50"] = coco_metrics["mAP_50"]
+        result["bbox"]["mAP_75"] = coco_metrics["mAP_75"]
+        result["bbox"]["mAP_s"] = coco_metrics["mAP_small"]
+        result["bbox"]["mAP_m"] = coco_metrics["mAP_medium"]
+        result["bbox"]["mAP_l"] = coco_metrics["mAP_large"]
 
-        result["bbox"]["mdAP_localisation"] = round(tide_metrics["mdAP_localisation"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_classification"] = round(tide_metrics["mdAP_classification"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_both"] = round(tide_metrics["mdAP_both"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_duplicate"] = round(tide_metrics["mdAP_duplicate"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_background"] = round(tide_metrics["mdAP_background"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_missed"] = round(tide_metrics["mdAP_missed"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_fp"] = round(tide_metrics["mdAP_fp"], DECIMAL_PLACES)
-        result["bbox"]["mdAP_fn"] = round(tide_metrics["mdAP_fn"], DECIMAL_PLACES)
+        result["bbox"]["mdAP_localisation"] = tide_metrics["mdAP_localisation"]
+        result["bbox"]["mdAP_classification"] = tide_metrics["mdAP_classification"]
+        result["bbox"]["mdAP_both"] = tide_metrics["mdAP_both"]
+        result["bbox"]["mdAP_duplicate"] = tide_metrics["mdAP_duplicate"]
+        result["bbox"]["mdAP_background"] = tide_metrics["mdAP_background"]
+        result["bbox"]["mdAP_missed"] = tide_metrics["mdAP_missed"]
+        result["bbox"]["mdAP_fp"] = tide_metrics["mdAP_fp"]
+        result["bbox"]["mdAP_fn"] = tide_metrics["mdAP_fn"]
 
         for key, value in coco_metrics.items():
             if not key.startswith("mAP"):
-                result["bbox_per_class"]["mAP_" + key] = round(value, DECIMAL_PLACES)
+                result["bbox_per_class"]["mAP_" + key] = value
 
-        result["summary"]["pr_auc"] = round(summary_metrics["pr_auc"], DECIMAL_PLACES)
-        result["summary"]["pc_auc"] = round(summary_metrics["pc_auc"], DECIMAL_PLACES)
-        result["summary"]["rc_auc"] = round(summary_metrics["rc_auc"], DECIMAL_PLACES)
-        result["summary"]["max_r"] = round(summary_metrics["max_r"], DECIMAL_PLACES)
-        result["summary"]["ap"] = round(summary_metrics["ap"], DECIMAL_PLACES)
-        result["summary"]["tp"] = round(summary_metrics["prediction_types"]["tp"], DECIMAL_PLACES)
-        result["summary"]["fp"] = round(summary_metrics["prediction_types"]["fp"], DECIMAL_PLACES)
-        result["summary"]["fn"] = round(summary_metrics["prediction_types"]["fn"], DECIMAL_PLACES)
+        result["summary"]["pr_auc"] = summary_metrics["pr_auc"]
+        result["summary"]["pc_auc"] = summary_metrics["pc_auc"]
+        result["summary"]["rc_auc"] = summary_metrics["rc_auc"]
+        result["summary"]["max_r"] = summary_metrics["max_r"]
+        result["summary"]["ap"] = summary_metrics["ap"]
+        result["summary"]["tp"] = summary_metrics["prediction_types"]["tp"]
+        result["summary"]["fp"] = summary_metrics["prediction_types"]["fp"]
+        result["summary"]["fn"] = summary_metrics["prediction_types"]["fn"]
 
         return result
