@@ -309,9 +309,22 @@ def get_default_od_metrics_config() -> List[Plugin]:
             "tp_threshold": 0.8
         }
     }
+    default_tide_config = {
+        "fqcn": "juneberry.metrics.metrics.Tide",
+        "kwargs": {
+            "pos_thresh": 0.5,
+            "bg_thresh": 0.5,
+            "max_det": 100,
+            "area_range_min": 0,
+            "area_range_max": 100000,
+            "tqdm": False
+        }
+    }
+
     return [
         Plugin.from_dict(default_metrics_config),
         Plugin.from_dict(default_summary_config),
+        Plugin.from_dict(default_tide_config),
     ]
 
 
