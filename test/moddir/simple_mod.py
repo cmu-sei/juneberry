@@ -36,6 +36,9 @@ class ClassWithInit:
     def __init__(self, name):
         self.name = name
 
+    def __call__(self):
+        return f"{self.name}"
+
     def get_name(self):
         return self.name
 
@@ -81,4 +84,12 @@ class LabeledTransformExample:
         return f"{arg} {opt1}", int(label) + 1
 
     def get_name(self):
-        return self.name
+        return self.nameF
+
+
+def transform_maker():
+    return lambda x: x + x
+
+
+def transform_maker_arg(y):
+    return lambda x: y + x
