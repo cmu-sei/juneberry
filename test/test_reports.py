@@ -472,7 +472,7 @@ class TestPRReport(TestCase):
 
         # Verify that the Report object reflects the default values for a PR Report.
         assert pr_report.output_dir == Path.cwd()
-        assert pr_report.iou == 1.0
+        assert pr_report.iou == 0.5
         assert pr_report.tp_threshold == 0.8
         assert pr_report.stats_fqcn == "juneberry.metrics.metrics.Stats"
         assert pr_report.curve_sources is None
