@@ -77,7 +77,7 @@ bin_scripts = [
 
 setuptools.setup(
     name='Juneberry',
-    version='0.5',
+    version='0.5a1',
     description='Juneberry Machine Learning Experiment Manager',
     packages=setuptools.find_packages(),
     install_requires=install_requires,

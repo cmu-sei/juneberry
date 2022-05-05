@@ -18,7 +18,7 @@ DOCKERFILE=${SCRIPT_DIR}/${1}.Dockerfile
 
 echo "Building: ${DOCKERFILE} into ${TARGET_TAG}"
 
-docker build \
+docker build --no-cache \
   --build-arg HTTP_PROXY=${HTTP_PROXY} \
   --build-arg http_proxy=${http_proxy} \
   --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
