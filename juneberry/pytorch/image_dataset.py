@@ -42,7 +42,7 @@ class ImageDataset(EpochDataset):
     Loads our data set for PyTorch from a list of entries of filename and labels and also allows on the fly
     transformation. This does not change the order of the images.
     """
-    def __init__(self, data_list: List[Tuple[str, int]], transforms=None, no_paging=False):
+    def __init__(self, data_list: List[Tuple[str, int]], transforms=None, no_paging=False, model=None):
         """
         Initializes our data set loader.
         :param data_list: The data.
@@ -57,6 +57,7 @@ class ImageDataset(EpochDataset):
         self.transforms = transforms
         self.image_cache = {}
         self.no_paging = no_paging
+        self.model = model
 
         # Filters out a warning associated with a known Pillow issue that occurs
         # when opening images.
@@ -98,7 +99,7 @@ class ImageDataset(EpochDataset):
             image = Image.open(file_path)
 
         if self.transforms is not None:
-            args = {'label': label, 'index': index, 'epoch': self.epoch}
+            args = {'label': label, 'index': index, 'epoch': self.epoch, 'model': self.model}
             image, label = self.transforms(image, **args)
 
         # We want to pass back a tensor, so convert if it wasn't already converted

@@ -221,6 +221,32 @@ class ReplaceFC:
         
         return model
 
+class Freeze:
+    """
+    Transform used to freeze a pre-trained model
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, model):
+        for param in model.parameters():
+            param.requires_grad = False
+        return model
+
+class AddPatch:
+
+    def __init__(self, shape):
+        self.patch = torch.zeros(shape, dtype=torch.float64, requires_grad=True)
+
+
+    def __call__(self, model):
+        model.register_parameter(name='patch', param=torch.nn.Parameter(self.patch))
+        # Add in a grad function so that this will "train" 
+        model._parameters['patch'] + 0
+        import pdb; pdb.set_trace()
+        return model
+
 
 class EmptyTransform:
     def __init__(self):

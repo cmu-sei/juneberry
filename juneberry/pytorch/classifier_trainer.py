@@ -146,8 +146,9 @@ class ClassifierTrainer(EpochTrainer):
         pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
         self.setup_hardware()
-        self.setup_data_loaders()
         self.setup_model()
+        self.setup_data_loaders()
+
 
         self.loss_function = pyt_utils.make_loss(self.pytorch_options, self.model, self.binary)
         self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
@@ -239,7 +240,7 @@ class ClassifierTrainer(EpochTrainer):
         # Unpack the results we returned on process batch
         loss, _ = results
 
-        self.optimizer.zero_grad()
+#        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
@@ -383,6 +384,7 @@ class ClassifierTrainer(EpochTrainer):
                 splitting_config=self.model_config.get_validation_split_config(),
                 preprocessors=TransformManager(self.model_config.preprocessors))
 
+            import pdb; pdb.set_trace()
             self.training_iterable, self.evaluation_iterable = \
                 pyt_data.make_training_data_loaders(self.lab,
                                                     self.dataset_config,
@@ -390,7 +392,8 @@ class ClassifierTrainer(EpochTrainer):
                                                     train_list,
                                                     val_list,
                                                     no_paging=self.no_paging,
-                                                    sampler_args=sampler_args)
+                                                    sampler_args=sampler_args,
+                                                    model=self.model)
 
             # Sample a single item from the input dataset.
             dataset = self.training_iterable.dataset

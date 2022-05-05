@@ -69,7 +69,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
 
 
 def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
-                               no_paging=False, collate_fn=None, sampler_args=None):
+                               no_paging=False, collate_fn=None, sampler_args=None, model=None):
     """
     Creates the appropriate data loaders from the training and validation data sets.
     :param lab: The Juneberry Lab in which this operation occurs.
@@ -87,13 +87,13 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     data_loader = make_data_loader(lab, ds_cfg, data_lst,
                                    make_transform_manager(model_cfg, ds_cfg, len(data_lst), opt_args, False),
                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn,
-                                   sampler_args=sampler_args)
+                                   sampler_args=sampler_args, model=model)
 
     logger.info("Constructing VALIDATION data loader.")
     opt_args = {'path_label_list': list(split_lst)}
     split_loader = make_data_loader(lab, ds_cfg, split_lst,
                                     make_transform_manager(model_cfg, ds_cfg, len(split_lst), opt_args, True),
-                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn)
+                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn, model=model)
 
     return data_loader, split_loader
 
@@ -120,7 +120,7 @@ def make_eval_data_loader(lab, dataset_config, model_config, data_lst, *,
 
 
 def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transform_manager, batch_size,
-                     *, no_paging=False, collate_fn=None, sampler_args=None):
+                     *, no_paging=False, collate_fn=None, sampler_args=None, model=None):
     """
     A convenience method to:
     1) Shuffle the data
@@ -138,12 +138,12 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
     """
 
     # Convenience function to wrap these
-    dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=no_paging)
+    dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=no_paging, model=model)
     # NOTE: We do not shuffle since the dataset conversion above already did
     return wrap_dataset_in_dataloader(lab, dataset, batch_size, collate_fn=collate_fn, sampler_args=sampler_args)
 
 
-def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transform_manager, *, no_paging=False):
+def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transform_manager, *, no_paging=False, model=None):
     """
     Wraps the data_list in a Juneberry specific custom pytorch dataset:
     1) Shuffle the data
@@ -160,7 +160,7 @@ def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transf
 
     if dataset_config.data_type == DataType.IMAGE and dataset_config.image_data.task_type == TaskType.CLASSIFICATION:
         logger.info(f"...constructing ImageDataset...")
-        dataset = ImageDataset(data_list, transform_manager, no_paging)
+        dataset = ImageDataset(data_list, transform_manager, no_paging, model=model)
 
     elif dataset_config.data_type == DataType.TABULAR:
         logger.info(f"...constructing TabularDataset...")
