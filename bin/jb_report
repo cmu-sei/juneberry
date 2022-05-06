@@ -63,7 +63,7 @@ def main():
 
     # Fetch the desired reports for the model and build each report.
     if args.model:
-        report_list = jb_report_utils.extract_model_reports()
+        report_list = jb_report_utils.extract_model_reports(args.model)
 
     # Build the desired report using the provided 'file'.
     if args.file:

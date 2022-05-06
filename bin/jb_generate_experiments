@@ -44,6 +44,30 @@ import juneberry.scripting as jbscripting
 logger = logging.getLogger("juneberry.jb_generate_experiments")
 
 
+def build_tests(models: list, in_report: Prodict, out_report: Plugin) -> list:
+    """
+    This function is responsible for populating a Report's 'tests' section when the
+    Report type is for a combined 'PR' or 'ROC' report.
+    :param models: A list of every model in the experiment.
+    :param in_report: A dictionary containing the parameters of the ROC | PR report we'd like to generate.
+    :param out_report: The current contents of the output Report, with everything filled out but the
+    'tests' section.
+    return: A list with a single element, the output report.
+    """
+
+    # Start with an empty list for the 'tests' section.
+    out_report.tests = []
+
+    # Loop through every model in the list, build an appropriately named test tag, and
+    # then append that test to the 'tests' section in the output Report.
+    for model in models:
+        test = {'tag': f"{in_report.test_tag}_{model}"}
+        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
+
+    # Return the output Report in the expected format.
+    return [out_report]
+
+
 def generate_combined_roc(in_report: Prodict, models: list) -> list:
     """
     This function is responsible for converting a report type of 'all_roc' into a 'plot_roc'
@@ -52,9 +76,6 @@ def generate_combined_roc(in_report: Prodict, models: list) -> list:
     :param models: A list of every model in the experiment.
     :return: A list containing a ROC report dictionary that defines the combined plot.
     """
-
-    # Start with an empty list
-    roc_report_list = []
 
     # Create a Plugin for the new Report and fill in some fields from the input Report.
     out_report = Plugin()
@@ -69,18 +90,11 @@ def generate_combined_roc(in_report: Prodict, models: list) -> list:
     out_report.kwargs.output_filename = f"{in_report.test_tag}_all_combined.png"
     out_report.kwargs.plot_title = f"ROC - All Tests Combined"
 
-    # Build an appropriate tag name for each model and add each one to the 'tests'
-    # property of the output Report.
-    out_report.tests = []
-    for model in models:
-        test = {'tag': f"{in_report.test_tag}_{model}"}
-        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
-
-    # Append the report to the list, log the results, and return the list.
-    roc_report_list.append(out_report)
+    # Use the 'build_tests' function to build an appropriate tag name for each model
+    # and add each one to the 'tests' property of the output Report. Log the Report
+    # that was created and return the Report.
     logger.info(f"Added 1 combined plot_roc report for tag '{in_report['test_tag']}' to the experiment config.")
-
-    return roc_report_list
+    return build_tests(models, in_report, out_report)
 
 
 def generate_roc_reports(in_report: Prodict, models: list) -> list:
@@ -130,8 +144,6 @@ def generate_combined_pr(in_report: Prodict, models: list) -> list:
     :param models: A list of every model in the experiment.
     :return: A list containing a PR report dictionary that defines the combined plot.
     """
-    # Start with an empty list.
-    pr_report_list = []
 
     # Build a new Plugin for the output Report and fill in some fields
     # from the input Report.
@@ -143,18 +155,11 @@ def generate_combined_pr(in_report: Prodict, models: list) -> list:
     # Set an appropriately named output directory based on the test tag.
     out_report.kwargs.output_dir = f"{in_report.test_tag}_all_combined"
 
-    # Build an appropriate tag name for each model and add each one to the 'tests'
-    # property of the output Report.
-    out_report.tests = []
-    for model in models:
-        test = {'tag': f"{in_report.test_tag}_{model}"}
-        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
-
-    # Append the output report to the list, log the results, and return the list.
-    pr_report_list.append(out_report)
+    # Use the 'build_tests' function to build an appropriate tag name for each model
+    # and add each one to the 'tests' property of the output Report. Log the Report
+    # that was created and return the Report.
     logger.info(f"Added 1 combined plot_PR report for tag '{in_report['test_tag']}' to the experiment config.")
-
-    return pr_report_list
+    return [build_tests(models, in_report, out_report)]
 
 
 def generate_pr_reports(in_report: Prodict, models: list) -> list:

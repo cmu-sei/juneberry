@@ -236,7 +236,7 @@ class ROCPlot(Report):
         # The '+' is also one of the characters used to split because the user may want to join two
         # (or more) classes in the same curve, i.e. 1+2+dog. We want to isolate any class strings and
         # replace those with the proper integer.
-        desired_classes_list = re.split(',|\+', desired_classes)
+        desired_classes_list = re.split(r'[,|+]', desired_classes)
 
         # Loop through every desired class in the list.
         for item in desired_classes_list:
