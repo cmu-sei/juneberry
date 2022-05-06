@@ -58,6 +58,7 @@ from detectron2.data.transforms import Transform
 from juneberry.config.dataset import DatasetConfig
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
+import juneberry.loader as loader
 from juneberry.transform_manager import TransformManager
 
 
@@ -165,9 +166,12 @@ def create_mapper(cfg, transforms, is_train: bool) -> DatasetMapper:
     """
     args = DatasetMapper.from_config(cfg, is_train)
     if transforms is not None and len(transforms) > 0:
-        mgr = TransformManager(transforms)
+        # Walk the transform list seeing what they are
         aug_list = args['augmentations']
-        for transform in mgr.get_transforms():
+        for entry in transforms:
+            # Construct the transform mapper directly.  Note, we do not support
+            # optional arguments when calling these transforms because dt2 doesn't do that.
+            transform = loader.construct_instance(entry.fcqn, entry.kwargs)
             if isinstance(transform, Augmentation) or isinstance(transform, Transform):
                 aug_list.append(transform)
             else:
