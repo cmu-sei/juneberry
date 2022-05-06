@@ -28,6 +28,10 @@ import sys
 
 import torch
 from torchsummary import summary
+import kornia 
+import numpy as np
+
+from torchvision.transforms import functional as F
 
 import juneberry.filesystem as jbfs
 
@@ -220,6 +224,81 @@ class ReplaceFC:
         setattr(model, self.fc_name, new_layer)
         
         return model
+
+class Freeze:
+    """
+    Transform used to freeze a pre-trained model
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, model):
+        for param in model.parameters():
+            param.requires_grad = False
+        return model
+
+class AddPatch:
+    def __init__(self, shape):
+        self.patch = LeftCornerPatch(shape)
+
+    def __call__(self, model):
+        model = torch.nn.Sequential( self.patch, model)
+        return model
+
+#class Preprocess(torch.nn.Module):
+#    """Module to perform pre-process using Kornia on torch tensors."""
+#
+#    def forward(self, x):
+#        import pdb; pdb.set_trace()
+#        x_tmp = np.array([x[,1,:],x[2,:],x[0,:]])  # HxWxC
+#        x_out = kornia.image_to_tensor(x_tmp, keepdim=True)  # CxHxW
+#        print(f"{x_tmp.shape} {x_out.shape}")
+#        
+#        return x_out.float() / 255.0
+
+class LeftCornerPatch(torch.nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.float, requires_grad=True))
+        self.bn = torch.nn.BatchNorm2d(3)
+        
+    def forward(self, x):
+        mean = self.patch.mean().cpu().detach().mean()
+        std = np.nan_to_num( self.patch.mean().cpu().detach().std(), nan=1 )
+        # print(f"PRE batch mean: {x.mean()} batch std: {x.std()} patch mean: {mean}, patch std: {std}")
+        # Normalize the patch the same way the data has been 
+        # self.patch = torch.nn.Parameter( F.normalize(self.patch, mean = (0.485, 0.456, 0.406), std = (0.229, 0.224, 0.225)) )
+        # self.patch = torch.nn.Parameter( F.normalize(self.patch, mean = mean, std = std ))
+        # print(f"POST batch mean: {x.mean()} batch std: {x.std()} patch mean: {self.patch.mean()}, patch std: {self.patch.std()}")
+
+        # apply patch
+        # import pdb; pdb.set_trace()
+        patched_x = x.clone()    
+        patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.bn( self.patch[None,:] )
+        return patched_x
+
+class DataAugmentation(torch.nn.Module):
+    """Module to perform data augmentation using Kornia on torch tensors."""
+
+    def __init__(self, apply_color_jitter: bool = False) -> None:
+        super().__init__()
+        self._apply_color_jitter = apply_color_jitter
+
+        self.transforms = torch.nn.Sequential(
+            kornia.augmentation.RandomHorizontalFlip(p=0.75),
+            kornia.augmentation.RandomChannelShuffle(p=0.75),
+            kornia.augmentation.RandomThinPlateSpline(p=0.75),
+        )
+
+        self.jitter = kornia.augmentation.ColorJitter(0.5, 0.5, 0.5, 0.5)
+
+    def forward(self, x):
+        x_out = self.transforms(x)  # BxCxHxW
+        if self._apply_color_jitter:
+            x_out = self.jitter(x_out)
+        return x_out
+
 
 
 class EmptyTransform:

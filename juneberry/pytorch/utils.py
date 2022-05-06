@@ -164,6 +164,19 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         model_path = model_manager.get_pytorch_model_path()
         torch.save(model.state_dict(), model_path)
 
+        logger.info(f"Saving patch as an image to {model_manager.get_pytorch_model_path()}.patch.png")
+
+        from PIL import Image
+        import numpy as np
+#        import pdb; pdb.set_trace()
+        patch_raw = model.state_dict()['0.patch'].cpu().permute(1,2,0)
+#        patch_raw = patch_raw * 
+        patch_out = np.array(patch_raw * 255  , dtype=np.uint8 ) 
+        patch_img = Image.fromarray(patch_out)
+        patch_img.save(f"{model_manager.get_pytorch_model_path()}.patch.png")
+
+        
+
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.

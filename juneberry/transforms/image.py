@@ -83,3 +83,12 @@ class ResizePad:
 
     def __call__(self, image):
         return iutils.resize_image(image, self.width, self.height, self.color)
+
+class ChangeAllLabelsTo:
+    def __init__(self, label):
+        self.label = label
+
+    def __call__(self, image, label):
+        #patch = model._parameters['patch']
+        #image[ 0:patch.shape[0] , 0:patch.shape[1], 0:patch.shape[2]] = patch
+        return( (image, self.label ))

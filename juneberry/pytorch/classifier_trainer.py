@@ -33,6 +33,8 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
+import kornia
+
 import juneberry
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
@@ -197,6 +199,7 @@ class ClassifierTrainer(EpochTrainer):
         # Move the data to the device
         local_batch, local_labels = data.to(self.device), targets.to(self.device)
 
+#        import pdb; pdb.set_trace()
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
@@ -239,6 +242,7 @@ class ClassifierTrainer(EpochTrainer):
         # Unpack the results we returned on process batch
         loss, _ = results
 
+#        import pdb; pdb.set_trace()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -409,8 +413,6 @@ class ClassifierTrainer(EpochTrainer):
                     f"with args: {self.model_config.model_architecture['args']} ...")
         self.model = pyt_utils.construct_model(self.model_config.model_architecture,
                                                self.dataset_config.num_model_classes)
-        # Save off a reference to the unwrapped model for saving
-        self.unwrapped_model = self.model
 
         previous_model, prev_model_version = self.model_config.get_previous_model()
         if previous_model is not None:
@@ -423,7 +425,10 @@ class ClassifierTrainer(EpochTrainer):
         # Apply model transforms
         if self.model_config.model_transforms is not None:
             transforms = TransformManager(self.model_config.model_transforms)
-            transforms.transform(self.model)
+            self.model = transforms.transform(self.model)
+
+        # Save off a reference to the unwrapped model for saving
+        self.unwrapped_model = self.model
 
         # Prepare the model for cuda and/or distributed use
         self.model = processing.prepare_model(self.distributed, self.num_gpus, self.gpu, self.model, self.device)
