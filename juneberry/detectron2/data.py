@@ -171,7 +171,7 @@ def create_mapper(cfg, transforms, is_train: bool) -> DatasetMapper:
         for entry in transforms:
             # Construct the transform mapper directly.  Note, we do not support
             # optional arguments when calling these transforms because dt2 doesn't do that.
-            transform = loader.construct_instance(entry.fcqn, entry.kwargs)
+            transform = loader.construct_instance(entry.fqcn, entry.kwargs)
             if isinstance(transform, Augmentation) or isinstance(transform, Transform):
                 aug_list.append(transform)
             else:
