@@ -137,6 +137,7 @@ class Evaluator(EvaluatorBase):
     def setup(self) -> None:
         jb_setup_logger(self.log_file_path, "", name="fvcore", level=logging.DEBUG)
         jb_setup_logger(self.log_file_path, "", name="detectron2", level=logging.DEBUG)
+        jb_setup_logger(self.log_file_path, "", name="brambox", level=logging.DEBUG)
 
     def obtain_dataset(self) -> None:
 
