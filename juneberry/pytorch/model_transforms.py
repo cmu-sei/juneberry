@@ -240,14 +240,6 @@ class Freeze:
             param.requires_grad = False
         return model
 
-class AddPatch:
-    def __init__(self, shape):
-        self.patch = LeftCornerPatch(shape)
-
-    def __call__(self, model):
-        model = torch.nn.Sequential( self.patch, model)
-        return model
-
 #class Preprocess(torch.nn.Module):
 #    """Module to perform pre-process using Kornia on torch tensors."""
 #
@@ -263,8 +255,12 @@ class TensorPatch(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
         # Note that torch.rand returns values between 0 and 1.
-        self.patch = torch.nn.Parameter(torch.ones(shape, dtype=torch.float, requires_grad=True) - 0.5 )
+        self.patch = torch.nn.Parameter(torch.zeros(shape, dtype=torch.float, requires_grad=True) )
         self.shape = shape
+
+        print(f"Init R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
+        print(f"Init G Patch min: {self.patch[1,:,:].min()} Patch max: {self.patch[1,:,:].max()}") 
+        print(f"Init B Patch min: {self.patch[2,:,:].min()} Patch max: {self.patch[2,:,:].max()}") 
         
     def clamp_to_zero_one_imagenet_norms(self):
         """
@@ -285,14 +281,22 @@ class TensorPatch(torch.nn.Module):
         x_g = x[1, :, :] * 0.224 + 0.456  
         x_b = x[2, :, :] * 0.225 + 0.406 
 
-        return (torch.stack([x_r, x_g, x_b]))
+        return (torch.stack([x_r, x_g, x_b]).clamp_(min=0, max=1))
 
     def save_patch(self, path):
+
         # Extra clamp to catch the last optimizer.step()
+        # N.B. This doesn't normally get called because of the evaluation forward pass.
+        # print(f"Pre-clamp R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
+        # print(f"Pre-clamp G Patch min: {self.patch[1,:,:].min()} Patch max: {self.patch[1,:,:].max()}") 
+        # print(f"Pre-clamp B Patch min: {self.patch[2,:,:].min()} Patch max: {self.patch[2,:,:].max()}") 
         self.clamp_to_zero_one_imagenet_norms()
 
         # Un-normalize back to [0,1)
         patch_zero_one =  self.un_normalize_imagenet_norms( self.patch.detach().cpu() )
+        print(f"R Patch min: {patch_zero_one[0,:,:].min()} Patch max: {patch_zero_one[0,:,:].max()}") 
+        print(f"G Patch min: {patch_zero_one[1,:,:].min()} Patch max: {patch_zero_one[1,:,:].max()}") 
+        print(f"B Patch min: {patch_zero_one[2,:,:].min()} Patch max: {patch_zero_one[2,:,:].max()}") 
 
         # Permute to PIL's channel last, order, stretch to [0,255), cast to a numpy uint8 array, and return as an image 
         patch_image = Image.fromarray( np.array(patch_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
@@ -312,7 +316,9 @@ class TopLeftPatch(torch.nn.Module):
     def forward(self, x):
         patched_x = x.clone()    
         # Note the none indexing of self.patch allows it to be applied across the whole batch
-        patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.patch(x)[None,:]
+        # import pdb; pdb.set_trace()
+        rgb_patch_by_batch = self.patch(x)[None,:]
+        patched_x[:, :, 0:self.patch.shape[1], 0:self.patch.shape[2]] = rgb_patch_by_batch
         return patched_x
 
 class ApplyPatch:
