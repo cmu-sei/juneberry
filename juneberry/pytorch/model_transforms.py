@@ -274,7 +274,7 @@ class TensorPatch(torch.nn.Module):
         """
         self.patch.data[0, :, :].clamp_(min=( 0 - 0.485 ) / 0.229, max=( 1 - 0.485 ) / 0.229)
         self.patch.data[1, :, :].clamp_(min=( 0 - 0.456 ) / 0.224, max=( 1 - 0.456 ) / 0.224)
-        self.patch.data[2, :, :].clamp_(min=( 0 - 0.406 ) / 0.225, max=( 0 - 0.406 ) / 0.225 )
+        self.patch.data[2, :, :].clamp_(min=( 0 - 0.406 ) / 0.225, max=( 1 - 0.406 ) / 0.225 )
 
     def un_normalize_imagenet_norms(self, x):
         x_r = x[0, :, :] * 0.229 + 0.485  
@@ -315,10 +315,8 @@ class TopLeftPatch(torch.nn.Module):
 
     def forward(self, x):
         patched_x = x.clone()    
-        # Note the none indexing of self.patch allows it to be applied across the whole batch
-        # import pdb; pdb.set_trace()
-        rgb_patch_by_batch = self.patch(x)[None,:]
-        patched_x[:, :, 0:self.patch.shape[1], 0:self.patch.shape[2]] = rgb_patch_by_batch
+        rgb_patch = self.patch(x)
+        patched_x[:, :, 0:self.patch.shape[1], 0:self.patch.shape[2]] = rgb_patch.repeat(x.shape[0],1,1,1)
         return patched_x
 
 class ApplyPatch:
