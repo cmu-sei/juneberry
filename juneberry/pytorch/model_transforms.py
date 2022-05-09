@@ -255,7 +255,9 @@ class TensorPatch(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
         # Note that torch.rand returns values between 0 and 1.
-        self.patch = torch.nn.Parameter(torch.zeros(shape, dtype=torch.float, requires_grad=True) )
+        #self.patch = torch.nn.Parameter( (torch.rand(shape, dtype=torch.float, requires_grad=True) )
+        # Try a standard normal as an init
+        self.patch = torch.nn.Parameter( torch.normal( mean=0, std=1, size=shape, requires_grad=True) )
         self.shape = shape
 
         print(f"Init R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
@@ -294,9 +296,9 @@ class TensorPatch(torch.nn.Module):
 
         # Un-normalize back to [0,1)
         patch_zero_one =  self.un_normalize_imagenet_norms( self.patch.detach().cpu() )
-        print(f"R Patch min: {patch_zero_one[0,:,:].min()} Patch max: {patch_zero_one[0,:,:].max()}") 
-        print(f"G Patch min: {patch_zero_one[1,:,:].min()} Patch max: {patch_zero_one[1,:,:].max()}") 
-        print(f"B Patch min: {patch_zero_one[2,:,:].min()} Patch max: {patch_zero_one[2,:,:].max()}") 
+        # print(f"R Patch min: {patch_zero_one[0,:,:].min()} Patch max: {patch_zero_one[0,:,:].max()}") 
+        # print(f"G Patch min: {patch_zero_one[1,:,:].min()} Patch max: {patch_zero_one[1,:,:].max()}") 
+        # print(f"B Patch min: {patch_zero_one[2,:,:].min()} Patch max: {patch_zero_one[2,:,:].max()}") 
 
         # Permute to PIL's channel last, order, stretch to [0,255), cast to a numpy uint8 array, and return as an image 
         patch_image = Image.fromarray( np.array(patch_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
@@ -317,6 +319,10 @@ class TopLeftPatch(torch.nn.Module):
         patched_x = x.clone()    
         rgb_patch = self.patch(x)
         patched_x[:, :, 0:self.patch.shape[1], 0:self.patch.shape[2]] = rgb_patch.repeat(x.shape[0],1,1,1)
+
+        #print(f"batch mean: {x.mean()} batch std: {x.std()}")
+        #print(f"patch mean: {self.patch.patch.mean()}, patch std: {self.patch.patch.std()}")
+
         return patched_x
 
 class ApplyPatch:
