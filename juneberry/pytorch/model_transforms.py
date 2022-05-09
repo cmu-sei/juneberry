@@ -31,6 +31,8 @@ from torchsummary import summary
 import kornia 
 import numpy as np
 
+from PIL import Image
+
 from torchvision.transforms import functional as F
 
 import juneberry.filesystem as jbfs
@@ -257,10 +259,74 @@ class AddPatch:
 #        
 #        return x_out.float() / 255.0
 
+class TensorPatch(torch.nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        # Note that torch.rand returns values between 0 and 1.
+        self.patch = torch.nn.Parameter(torch.ones(shape, dtype=torch.float, requires_grad=True) - 0.5 )
+        self.shape = shape
+        
+    def clamp_to_zero_one_imagenet_norms(self):
+        """
+        Note the standard ImageNet normalization is 
+            "mean": [ 0.485, 0.456, 0.406 ],
+            "std": [ 0.229, 0.224, 0.225]
+        So a tensor, normalized from 0 to 1 will have bounds for the first channel of 
+            ( 0 - 0.485 ) / 0.229 = -2.1179039301310043
+            ( 1 - 0.485 ) / 0.229 = 2.2489082969432315
+        and so on.
+        """
+        self.patch.data[0, :, :].clamp_(min=( 0 - 0.485 ) / 0.229, max=( 1 - 0.485 ) / 0.229)
+        self.patch.data[1, :, :].clamp_(min=( 0 - 0.456 ) / 0.224, max=( 1 - 0.456 ) / 0.224)
+        self.patch.data[2, :, :].clamp_(min=( 0 - 0.406 ) / 0.225, max=( 0 - 0.406 ) / 0.225 )
+
+    def un_normalize_imagenet_norms(self, x):
+        x_r = x[0, :, :] * 0.229 + 0.485  
+        x_g = x[1, :, :] * 0.224 + 0.456  
+        x_b = x[2, :, :] * 0.225 + 0.406 
+
+        return (torch.stack([x_r, x_g, x_b]))
+
+    def save_patch(self, path):
+        # Extra clamp to catch the last optimizer.step()
+        self.clamp_to_zero_one_imagenet_norms()
+
+        # Un-normalize back to [0,1)
+        patch_zero_one =  self.un_normalize_imagenet_norms( self.patch.detach().cpu() )
+
+        # Permute to PIL's channel last, order, stretch to [0,255), cast to a numpy uint8 array, and return as an image 
+        patch_image = Image.fromarray( np.array(patch_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
+
+        # Save the patch
+        patch_image.save(path)
+
+    def forward(self, x):
+        self.clamp_to_zero_one_imagenet_norms()
+        return(self.patch)
+
+class TopLeftPatch(torch.nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        self.patch = TensorPatch(shape)
+
+    def forward(self, x):
+        patched_x = x.clone()    
+        # Note the none indexing of self.patch allows it to be applied across the whole batch
+        patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.patch(x)[None,:]
+        return patched_x
+
+class ApplyPatch:
+    def __init__(self, shape):
+        self.patch = TopLeftPatch(shape)
+
+    def __call__(self, model):
+        model = torch.nn.Sequential( self.patch, model)
+        return model
+
 class LeftCornerPatch(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
-        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.uint8, requires_grad=True))
+        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.float, requires_grad=True))
         self.bn = torch.nn.BatchNorm2d(3)
         
     def forward(self, x):
