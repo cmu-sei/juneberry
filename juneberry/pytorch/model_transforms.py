@@ -260,7 +260,7 @@ class AddPatch:
 class LeftCornerPatch(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
-        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.float, requires_grad=True))
+        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.uint8, requires_grad=True))
         self.bn = torch.nn.BatchNorm2d(3)
         
     def forward(self, x):
@@ -274,6 +274,15 @@ class LeftCornerPatch(torch.nn.Module):
 
         # apply patch
         # import pdb; pdb.set_trace()
+
+        # This doensn't work
+        #patched_x = x.clone()    
+        #self.patch = torch.nn.Parameter(self.bn( self.patch[None,:]  )[0,:,:,:])
+        #patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.patch[None,:]
+
+
+
+        # This works
         patched_x = x.clone()    
         patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.bn( self.patch[None,:] )
         return patched_x
