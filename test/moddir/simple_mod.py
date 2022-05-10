@@ -84,7 +84,7 @@ class LabeledTransformExample:
         return f"{arg} {opt1}", int(label) + 1
 
     def get_name(self):
-        return self.nameF
+        return self.name
 
 
 def transform_maker():
