@@ -339,37 +339,44 @@ class BrownEtAlPatch(torch.nn.Module):
 
     def forward(self, x):
         # You have to copy the batch of images if you use subsetting to apply. Otherwise pytorch can't update the gradients
-        patched_x = x.clone() 
+        # patched_x = x.clone() 
 
         # Repeat the patch across the batches
         batch_patches = self.patch(x).repeat(x.shape[0],1,1,1)
+        # Add a constant to the patch so that the zero padding is no longer at the center of the image
+        batch_patches = batch_patches + 100
+
+        # Pick the random location to apply the patch
+        u_t = torch.randint(low=0, high=x.shape[2] - self.patch_shape[1], size=(1,), device = x.device)
+        v_t = torch.randint(low=0, high=x.shape[3] - self.patch_shape[2], size=(1,), device = x.device)
+
+        # Place the patch in a zero image 
+        padded_batch_patches = torch.zeros(x.shape, device = x.device)
+        padded_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
 
         # Scale every patch the same in a given batch
         # TODO: fix this
         scale = torch.rand(1, device = x.device) * (self.scale_max - self.scale_min) + self.scale_min
-        batch_patches = kornia.geometry.transform.scale(batch_patches, scale )
+        padded_batch_patches = kornia.geometry.transform.scale(padded_batch_patches, scale )
 
         # Pick the angle to rotate, and rotate the patches
         angles = torch.rand(x.shape[0], device = x.device) * (self.rotate_max - self.rotate_min) + self.rotate_min
-        batch_patches = kornia.geometry.rotate( batch_patches, angles )
+        padded_batch_patches = kornia.geometry.rotate( padded_batch_patches, angles)
 
-        # Pick the random location to apply the patch
-        # u_t = np.random.randint(low=0, high=x.shape[2] - self.patch_shape[1])
-        # v_t = np.random.randint(low=0, high=x.shape[3] - self.patch_shape[2])
-        u_t = torch.randint(low=0, high=x.shape[2] - self.patch_shape[1], size=(1,), device = x.device)
-        v_t = torch.randint(low=0, high=x.shape[3] - self.patch_shape[2], size=(1,), device = x.device)
+        # Generate a mask 
+        mask = (padded_batch_patches > 0).to(torch.uint8)
+        # Remove the constant
+        padded_batch_patches = padded_batch_patches - 100
 
-        masked_batch_patches = torch.zeros(x.shape, device = x.device)
-        masked_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
-        
         # Apply the patch as an overlay
-        patched_x = x * (1 - masked_batch_patches) + masked_batch_patches
+        patched_x = x * (1 - mask) + padded_batch_patches * (mask)
 
-#        for b in range(x.shape[0]):
-#            import pdb; pdb.set_trace()
-#            image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
-#            debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
-#            debug_image.save(f"{b}.png")
+        # import pdb; pdb.set_trace()
+        # for b in range(x.shape[0]):
+        #    print(b)
+        #    image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
+        #    debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
+        #    debug_image.save(f"{b}.png")
 
         return patched_x
 
