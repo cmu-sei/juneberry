@@ -325,6 +325,63 @@ class TopLeftPatch(torch.nn.Module):
 
         return patched_x
 
+
+class BrownEtAlPatch(torch.nn.Module):
+    def __init__(self, patch_shape, scale_max, scale_min, rotate_max, rotate_min):
+        super().__init__()
+        self.mask = torch.ones(patch_shape) 
+        self.patch = TensorPatch(patch_shape)
+        self.patch_shape = patch_shape
+        self.scale_max = scale_max
+        self.scale_min = scale_min
+        self.rotate_max = rotate_max
+        self.rotate_min = rotate_min
+
+    def forward(self, x):
+        # You have to copy the batch of images if you use subsetting to apply. Otherwise pytorch can't update the gradients
+        patched_x = x.clone() 
+
+        # Repeat the patch across the batches
+        batch_patches = self.patch(x).repeat(x.shape[0],1,1,1)
+
+        # Scale every patch the same in a given batch
+        # TODO: fix this
+        scale = torch.rand(1, device = x.device) * (self.scale_max - self.scale_min) + self.scale_min
+        batch_patches = kornia.geometry.transform.scale(batch_patches, scale )
+
+        # Pick the angle to rotate, and rotate the patches
+        angles = torch.rand(x.shape[0], device = x.device) * (self.rotate_max - self.rotate_min) + self.rotate_min
+        batch_patches = kornia.geometry.rotate( batch_patches, angles )
+
+        # Pick the random location to apply the patch
+        # u_t = np.random.randint(low=0, high=x.shape[2] - self.patch_shape[1])
+        # v_t = np.random.randint(low=0, high=x.shape[3] - self.patch_shape[2])
+        u_t = torch.randint(low=0, high=x.shape[2] - self.patch_shape[1], size=(1,), device = x.device)
+        v_t = torch.randint(low=0, high=x.shape[3] - self.patch_shape[2], size=(1,), device = x.device)
+
+        masked_batch_patches = torch.zeros(x.shape, device = x.device)
+        masked_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
+        
+        # Apply the patch as an overlay
+        patched_x = x * (1 - masked_batch_patches) + masked_batch_patches
+
+#        for b in range(x.shape[0]):
+#            import pdb; pdb.set_trace()
+#            image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
+#            debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
+#            debug_image.save(f"{b}.png")
+
+        return patched_x
+
+
+class ApplyBrownEtAlPatch:
+    def __init__(self, patch_shape, scale_max, scale_min, rotate_max, rotate_min):
+        self.patch = BrownEtAlPatch(patch_shape, scale_max, scale_min, rotate_max, rotate_min)
+    
+    def __call__(self, model):
+        model = torch.nn.Sequential( self.patch, model)
+        return model
+
 class ApplyPatch:
     def __init__(self, shape):
         self.patch = TopLeftPatch(shape)
@@ -332,36 +389,6 @@ class ApplyPatch:
     def __call__(self, model):
         model = torch.nn.Sequential( self.patch, model)
         return model
-
-class LeftCornerPatch(torch.nn.Module):
-    def __init__(self, shape):
-        super().__init__()
-        self.patch = torch.nn.Parameter(torch.rand(shape, dtype=torch.float, requires_grad=True))
-        self.bn = torch.nn.BatchNorm2d(3)
-        
-    def forward(self, x):
-        mean = self.patch.mean().cpu().detach().mean()
-        std = np.nan_to_num( self.patch.mean().cpu().detach().std(), nan=1 )
-        # print(f"PRE batch mean: {x.mean()} batch std: {x.std()} patch mean: {mean}, patch std: {std}")
-        # Normalize the patch the same way the data has been 
-        # self.patch = torch.nn.Parameter( F.normalize(self.patch, mean = (0.485, 0.456, 0.406), std = (0.229, 0.224, 0.225)) )
-        # self.patch = torch.nn.Parameter( F.normalize(self.patch, mean = mean, std = std ))
-        # print(f"POST batch mean: {x.mean()} batch std: {x.std()} patch mean: {self.patch.mean()}, patch std: {self.patch.std()}")
-
-        # apply patch
-        # import pdb; pdb.set_trace()
-
-        # This doensn't work
-        #patched_x = x.clone()    
-        #self.patch = torch.nn.Parameter(self.bn( self.patch[None,:]  )[0,:,:,:])
-        #patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.patch[None,:]
-
-
-
-        # This works
-        patched_x = x.clone()    
-        patched_x[:, 0:self.patch.shape[0] , 0:self.patch.shape[1], 0:self.patch.shape[2]] = self.bn( self.patch[None,:] )
-        return patched_x
 
 class DataAugmentation(torch.nn.Module):
     """Module to perform data augmentation using Kornia on torch tensors."""
