@@ -36,7 +36,6 @@ from detectron2.data.transforms import Transform
 from juneberry.config.dataset import DatasetConfig
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
-import juneberry.mappers.utils as jb_mapper_utils
 from juneberry.transform_manager import TransformManager
 
 
@@ -134,26 +133,15 @@ class TransformAdapter(T.Transform):
         pass
 
 
-def create_mapper(cfg, dataset_mapper, transforms, is_train: bool) -> DatasetMapper:
+def create_mapper(cfg, transforms, is_train: bool) -> DatasetMapper:
     """
     Creates a dataset mapper from the config including the provided transforms.
     :param cfg: The detectron2 config object
-    :param dataset_mapper: A string for the custom dataset mapper to use
     :param transforms: A list of transform objects
     :param is_train: True if training, false for testing
     :return: A new dataset mapper from the config with the augmentations.
     """
-
-    # Conditional to test and load a custom dataset mapper if it has been set in our cfg
-    if dataset_mapper is not None:
-        logger.info("Using custom dataset mapper to override Detectron2 dataset mapper")
-        mapper_obj = jb_mapper_utils.construct_mapper(dataset_mapper.fqcn, dataset_mapper.kwargs)
-        args = mapper_obj.from_config(cfg, is_train)
-    else:
-        logger.info("Using standard Detectron2 dataset mapper")
-        args = DatasetMapper.from_config(cfg, is_train)
-
-    aug_list = []
+    args = DatasetMapper.from_config(cfg, is_train)
     if transforms is not None and len(transforms) > 0:
         mgr = TransformManager(transforms)
         aug_list = args['augmentations']
@@ -165,11 +153,4 @@ def create_mapper(cfg, dataset_mapper, transforms, is_train: bool) -> DatasetMap
                 adapter.check_for_methods()
                 aug_list.append(adapter)
 
-    if dataset_mapper is not None:
-        args['augmentations'] = aug_list
-        mapper_obj = jb_mapper_utils.construct_mapper(dataset_mapper.fqcn, args)
-        logger.info("Returning custom dataset mapper")
-        return mapper_obj
-    else:
-        logger.info("Returning default detectron2 dataset mapper")
-        return DatasetMapper(**args)
+    return DatasetMapper(**args)

@@ -465,19 +465,16 @@ class Detectron2Trainer(Trainer):
 
     def dataset_mapper_setup(self):
         self.train_dataset_mapper = dt2_data.create_mapper(self.cfg,
-                                                           self.model_config.detectron2.dataset_mapper,
                                                            self.model_config.training_transforms,
                                                            True)
         if self.val_len > 0:
             self.test_dataset_mapper = dt2_data.create_mapper(self.cfg,
-                                                              self.model_config.detectron2.dataset_mapper,
                                                               self.model_config.evaluation_transforms,
                                                               False)
             # N.B. To calculate the validation loss, we need a training mapper, the test mappers remove the annotations
             #      required for calculating the FPN loss terms:
             #      https://detectron2.readthedocs.io/en/latest/_modules/detectron2/data/dataset_mapper.html#DatasetMapper.__init__
             self.val_dataset_mapper = dt2_data.create_mapper(self.cfg,
-                                                             self.model_config.detectron2.dataset_mapper,
                                                              self.model_config.evaluation_transforms,
                                                              True)
 
