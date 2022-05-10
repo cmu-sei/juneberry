@@ -1,5 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/cmu-sei/juneberry/main/juneberry/schemas/model_schema.json",
     "definitions": {
         "plugin_item": {
             "type": "object",
@@ -106,6 +107,26 @@
                 "optimizer_args": { "type": "object" }
             },
             "required": [ ]
+        },
+        "reports": {
+            "type": "array",
+            "items": {
+                "allOf": [{ "$ref": "https://raw.githubusercontent.com/cmu-sei/juneberry/main/juneberry/schemas/report_schema.json"}],
+                "properties": {
+                    "classes": { "type": "string"},
+                    "tests": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tag": { "type": "string" },
+                                        "classes": { "type": "string" }
+                                    },
+                                    "required": [ "tag" ]
+                                }
+                            }
+                }
+            }
         },
         "seed": { "type": "integer" },
         "stopping_criteria": {

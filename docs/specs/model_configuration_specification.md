@@ -683,9 +683,10 @@ Any provided accuracy score must take the parameters "y_pred" (array of predicte
 A dictionary of optional arguments to be passed to the accuracy function.
 
 ## reports
-**OPTIONAL** An array of one or more Report Plugins, where each Plugin corresponds to a Juneberry Report 
-class. Refer to the [report config specification](report_configuration_specification.md) for more information 
-about Juneberry Report Plugins.
+**OPTIONAL** An array of one or more Report Plugins, where each Plugin corresponds to a Juneberry 
+Report class, or a custom Report subclass based on the Juneberry Report base class. Refer to the 
+[report config specification](report_configuration_specification.md) for more information about 
+Juneberry Report Plugins.
 
 ## seed
 Seed value to use when conducting Juneberry operations with this model. This seed 

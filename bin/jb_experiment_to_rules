@@ -28,8 +28,9 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from prodict import List, Prodict
 import sys
+
+from prodict import Prodict
 
 from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig
@@ -547,7 +548,7 @@ class RuleMaker:
         self._finalize_report(report_json_content, report_json_path, inputs, requirements, outputs)
 
     def _finalize_report(self, json_content: dict, json_path: Path,
-                         inputs: List, requirements: List, outputs: List) -> None:
+                         inputs: list, requirements: list, outputs: list) -> None:
         """
         This method is responsible for performing the final steps required to write the individual
         report JSON file and workflow rule.

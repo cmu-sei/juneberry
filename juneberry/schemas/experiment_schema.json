@@ -1,5 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/cmu-sei/juneberry/main/juneberry/schemas/experiment_schema.json",
     "type": "object",
     "properties": {
         "description": { "type": "string" },
@@ -59,33 +60,10 @@
         "reports": {
             "type": "array",
             "items": {
-                "type": "object",
+                "allOf": [{ "$ref": "https://raw.githubusercontent.com/cmu-sei/juneberry/fd6afebc67bbd3853d09fa7625d847249289df57/juneberry/schemas/report_schema.json/$defs/report"}],
                 "properties": {
-                    "description": { "type": "string" },
-                    "fqcn": { "type": "string" },
-                    "kwargs": { "type": "object" }
-                },
-                "required": [
-                    "fqcn"
-                ],
-                "anyOf": [
-                    {
-                        "properties": {
-                            "classes": { "type": "string"},
-                            "description": { "type": "string"},
-                            "fqcn": { "const": "juneberry.report.roc.ROCPlot" },
-                            "kwargs": {
-                                "type": "object",
-                                "properties": {
-                                    "output_filename": { "type": "string"},
-                                    "plot_title": { "type": "string"},
-                                    "legend_scaling": { "type": "number" },
-                                    "curve_sources": { "type": "object" },
-                                    "line_width": { "type": "integer" },
-                                    "legend_font_size": { "type": "integer" }
-                                }
-                            },
-                            "tests": {
+                    "classes": { "type": "string"},
+                    "tests": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
@@ -96,88 +74,7 @@
                                     "required": [ "tag" ]
                                 }
                             }
-                        },
-                        "required": [ "description", "fqcn", "tests" ]
-                    },
-                    {
-                        "properties": {
-                            "description": { "type": "string"},
-                            "fqcn": { "const": "juneberry.reporting.pr.PRCurve" },
-                            "kwargs": {
-                                "type": "object",
-                                "properties": {
-                                    "output_dir": { "type": "string"},
-                                    "iou": { "type": "number" },
-                                    "curve_sources": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "model": { "type": "string"},
-                                                "dataset": { "type": "string"}
-                                            }
-                                        }
-                                    },
-                                    "tp_threshold": { "type": "number" },
-                                    "stats_fqcn": { "type": "string"}
-                                }
-                            },
-                            "tests": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "tag": { "type": "string" },
-                                        "classes": { "type": "string" }
-                                    },
-                                    "required": [ "tag" ]
-                                }
-                            }
-                        },
-                        "required": [ "description", "fqcn", "tests" ]
-                    },
-                    {
-                        "properties": {
-                            "description": { "type": "string"},
-                            "fqcn": { "const": "juneberry.reporting.summary.Summary" },
-                            "kwargs": {
-                                "type": "object",
-                                "properties": {
-                                    "md_filename": { "type": "string"},
-                                    "csv_filename": { "type": "string"},
-                                    "metrics_files": {
-                                        "type": "array",
-                                        "items": { "type": "string"}
-                                    },
-                                    "plot_files": {
-                                        "type": "array",
-                                        "items": { "type": "string"}
-                                    }
-                                }
-                            },
-                            "tests": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "tag": { "type": "string" },
-                                        "classes": { "type": "string" }
-                                    },
-                                    "required": [ "tag" ]
-                                }
-                            }
-                        },
-                        "required": [ "description", "fqcn", "tests" ]
-                    },
-                    {
-                        "properties": {
-                            "description": { "type": "string" },
-                            "fqcn": { "type": "string" },
-                            "kwargs": { "type": "object" }
-                        },
-                        "required": [ "description", "fqcn" ]
-                    }
-                ]
+                }
             }
         },
         "timestamp": { "type": "string" }

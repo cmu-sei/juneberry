@@ -3,13 +3,13 @@ Report Configuration Specification
 
 
 # Introduction
-This document describes the schema for the JSON formatted Juneberry Report configuration file. This 
-schema has a unique behavior when compared to other Juneberry configuration files, in that it may 
-exist within its own configuration file OR be inserted into other schemas, such as model configs 
-or experiment configs.
+This document describes the JSON format used in a Juneberry Report configuration file. Juneberry 
+Report configurations have a unique behavior when compared to other Juneberry configuration files, 
+in that it may exist within their own configuration file OR be inserted into other configuration files, 
+such as model configs or experiment configs.
 
-# Basic Report Schema
-The following schema applies to standalone ReportConfigs, or any "reports" stanzas that have been 
+# Basic Report Config Structure
+The following structure applies to standalone ReportConfigs, or any "reports" stanzas that have been 
 inserted into model configs or experiment configs.
 ```
 {
@@ -23,12 +23,12 @@ inserted into model configs or experiment configs.
 }
 ```
 
-## Report Specific Schemas
+## Report Specific Config Structures
 
-Juneberry includes a few built-in Report classes. This section describes the schemas for each 
+Juneberry includes a few built-in Report classes. This section describes the structure for each 
 of the available Report types.
 
-### Schema - ROC Report
+### ROC Report
 The ROC Report type uses model evaluation output data to generate a plot with one or more RoC curves.
 ```
 {
@@ -48,7 +48,7 @@ The ROC Report type uses model evaluation output data to generate a plot with on
 }
 ```
 
-### Schema - PR Report
+### PR Report
 The PR Report type will generate Precision-Recall-Confidence plots.
 ```
 {
@@ -68,7 +68,7 @@ The PR Report type will generate Precision-Recall-Confidence plots.
 }
 ```
 
-### Schema - Summary Report
+### Summary Report
 The Summary Report type will generate a simple markdown report (and optional CSV) that summarizes 
 model training and eval results, and displays or links to any training graphs and plots that were 
 produced.
@@ -89,7 +89,7 @@ produced.
 
 # Plugin Structure
 
-The Juneberry Report schema follows the same basic pattern as other Juneberry Plugins. A class is 
+The Juneberry Report structure follows the same basic pattern as other Juneberry Plugins. A class is 
 specified by its Fully Qualified Class Name (FQCN) and a dictionary of keyword arguments can be 
 passed in during construction. A Report Class is typically written with an init method and a 
 "create_report" method.
@@ -140,12 +140,12 @@ full report stanza would look something like this:
 The previous stanza could then be inserted into the "reports" list of a report config file, a 
 model config file, or an experiment config file.
 
-# Schema Adjustments in an Experiment Config
-When a "reports" stanza exits inside an experiment config, the schema and behavior of a particular 
-Report may vary slight from the schemas described above. This section will describe these differences 
+# Structure Adjustments in an Experiment Config
+When a "reports" stanza exits inside an experiment config, the structure and behavior of a particular 
+Report may vary slight from the structures described above. This section will describe these differences 
 for each Report Type.
 
-There's a good chance that some filenames required by a particular report's schema may not be 
+There's a good chance that some filenames required by a particular report's structure may not be 
 known in advance of running the experiment. In these situations, a report stanza may omit certain 
 fields from the experiment config and rely on Juneberry to fill in the correct value(s) for the 
 field once those values are determined. This is especially common for the "curve_sources" field in 
@@ -160,7 +160,7 @@ from the "reports" stanza in the experiment config, augmented with any fields th
 during the creation of the pydoit rules for that Report type. Refer to the information in the next 
 four subsections for more information on possible augmentations for each Report type.
 
-Another unique schema behavior involving experiments relates to any fields where an output filename or 
+Another unique Report structure behavior involving experiments relates to any fields where an output filename or 
 directory is requested. Since Juneberry has a strong desire to organize any experiment files inside 
 the appropriate experiment directory, any values for output filenames or directories are checked to verify 
 that they are inside the experiment's experiment directory. When the provided string indicates a file 
@@ -169,8 +169,8 @@ that the file or directory will be located inside the experiment's directory. Li
 will not be reflected inside the experiment config, but you would be able to see them inside the 
 individual report JSON files that appear in the 'report_json_files' sub-directory of the experiment.
 
-## Experiment Config ROC Report Schema Differences
-An ROC Report stanza in an experiment config may have two types of schema differences: one for "tests" and 
+## Experiment Config ROC Report Stanza Differences
+An ROC Report stanza in an experiment config may have two types of differences: one for "tests" and 
 another for "classes". Both a related to the construction of the "curve_sources" field.
 
 "tests" are a way to indicate which model and eval dataset combination from the experiment's "models" 
@@ -207,7 +207,7 @@ JSON that will be created for this experiment report: one for the model/eval dat
 
 However, which model/eval dataset combination to use is not the only piece of information required for a 
 proper entry in the "curve_sources" field. A curve_source must also indicate which classes to use when 
-plotting ROC curves. This need is resolved by the introduction of a "classes" field to the schema. The 
+plotting ROC curves. This need is resolved by the introduction of a "classes" field in the stanza. The 
 "classes" field may appear as a peer to the "tests" field, or as a field *inside* a test. If the "classes" 
 field appears in both locations, the "classes" field inside the test is chosen. Consider the following 
 example:
@@ -235,18 +235,18 @@ example:
 }
 ```
 
-Here you can see the "classes" field has been added to the schema in both possible locations. However, 
+Here you can see the "classes" field has been added to the Report in both possible locations. However, 
 the classes "0,1,2" will be chosen for the value in curve_sources because that location is given 
 higher priority.
 
-## Experiment Config PR Report Schema Differences
-A PR report stanza in an experiment config only has one potential new field in the schema, and it's the 
-"tests" field described in the [previous section](#Experiment Config ROC Report Schema Differences). The 
+## Experiment Config PR Report Stanza Differences
+A PR report stanza in an experiment config only has one potential new field in the stanza, and it's the 
+"tests" field described in the [previous section](#Experiment Config ROC Report Stanza Differences). The 
 purpose and functionality of the field is the same: it's to populate the 'curve_sources' field for the 
 PR Report with the correct model/eval dataset combinations. 
 
-## Experiment Config Summary Report Schema Differences
-The Summary Report schema differences in an experiment config don't include any new fields. Instead, 
+## Experiment Config Summary Report Stanza Differences
+The Summary Report stanza differences in an experiment config don't include any new fields. Instead, 
 they're described best by the fields that might not be there: the 'metrics_files' and 'plot_files' 
 kwargs. The 'metrics_files' indicates which evaluation metrics to include in the Summary report, while 
 the 'plot_files' indicate any plots or figures to include in the summary. It's likely that both of these 
@@ -263,16 +263,16 @@ Additions to the 'plot_files' list are identified by looping through the lists o
 stanza, identifying and reports that produce PR or ROC images, and then appending those results images into 
 the 'plot_files' list.
 
-## Experiment Config Custom Report Schema Differences
-When designing your own custom reports, the alternate schema behaviors described in the previous sections 
+## Experiment Config Custom Report Stanza Differences
+When designing your own custom reports, the alternate stanza behaviors described in the previous sections 
 will not apply to your report type without significant modifications to 
 [jb_experiment_to_rules](../../bin/jb_experiment_to_rules). Without making those modifications, it's best 
 to treat the inclusion of a custom report into your experiment as a strict follower of the
-[basic report schema](#Basic Report Schema), and not expect the experiment rules generation process to 
-auto-fill any missing fields for the custom report.
+[basic report config structure](#Basic Report Config Structure), and not expect the experiment rules generation 
+process to auto-fill any missing fields for the custom report.
 
-# Schema Details
-This section provides more information about each of the fields in the basic Report schema.
+# Details
+This section provides more information about each of the fields in the basic Report structure.
 
 ## reports
 A list of reports to produce, where each Report is represented by a single Report plugin as 
@@ -289,9 +289,8 @@ The fully qualified class name (fqcn) of the Report to build, e.g.
 A dictionary containing all the arguments to pass into the `__init__` method of the 
 Report class indicated in the 'fqcn' field.
 
-## Schema Details - ROC Report
-This section provides more information about each of the fields in the schema for a 
-ROC Report stanza.
+## Details - ROC Report
+This section provides more information about each of the fields in a ROC Report stanza.
 
 ### description
 A human-readable description of the report.
@@ -359,9 +358,8 @@ This set of curve sources would produce a Figure containing 6 ROC curves from 2 
 were evaluated using the same evaluation dataset. Each model provides the data for 3 curves. The 
 second curve from example_model2 will be a combined curve for the dog and cat classes.
 
-## Schema Details - PR Report
-This section provides more information about each of the fields in the schema for a 
-PR Report stanza.
+## Details - PR Report
+This section provides more information about each of the fields in a PR Report stanza.
 
 ### description
 A human-readable description of the report.
@@ -424,9 +422,8 @@ In this example, each of the three PR Figures would contain 3 curves. Two curves
 same model but different eval datasets. The third curve would come from a different model evaluated 
 using one of the previous datasets.
 
-## Schema Details - Summary Report
-This section provides more information about each of the fields in the schema for a 
-Summary Report stanza.
+## Details - Summary Report
+This section provides more information about each of the fields in a Summary Report stanza.
 
 ### description
 A human-readable description of the report.

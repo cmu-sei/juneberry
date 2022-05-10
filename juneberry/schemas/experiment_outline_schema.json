@@ -47,6 +47,10 @@
                     {
                         "properties": { "fqcn": { "const": "juneberry.reporting.summary.Summary" } },
                         "required": [ ]
+                    },
+                    {
+                        "properties": { "fqcn": { "type": "string" } },
+                        "required": [ ]
                     }
                 ]
             }

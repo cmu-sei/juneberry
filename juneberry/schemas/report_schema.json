@@ -1,20 +1,16 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
-    "$id": "https://raw.githubusercontent.com/cmu-sei/juneberry/main/juneberry/schemas/report_schema.json",
-    "type": "object",
-    "description": "A configuration for defining reports to be generated.",
-    "properties": {
-        "reports": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "description": { "type": "string" },
-                    "fqcn": { "type": "string" },
-                    "kwargs": { "type": "object" }
-                },
-                "required": [ "description", "fqcn" ],
-                "anyOf": [
+    "$id": "https://raw.githubusercontent.com/cmu-sei/juneberry/fd6afebc67bbd3853d09fa7625d847249289df57/juneberry/schemas/report_schema.json",
+    "$defs": {
+        "report": {
+            "type": "object",
+            "properties": {
+                "description": { "type": "string" },
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "description", "fqcn" ],
+            "anyOf": [
                     {
                         "properties": {
                             "description": { "type": "string"},
@@ -90,7 +86,14 @@
                         "required": [ "description", "fqcn" ]
                     }
                 ]
-            }
+        }
+    },
+    "type": "object",
+    "description": "A configuration for defining reports to be generated.",
+    "properties": {
+        "reports": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/report" }
         }
     },
     "required": [

@@ -37,13 +37,16 @@ def setup_args(parser) -> None:
     :param parser: The parser in which to add arguments.
     """
 
-    parser.add_argument('-e', '--experiment', help='Name of the experiment directory whose experiment config contains '
-                                                   'a reports stanza indicating which reports to build.')
-    parser.add_argument('-m', '--model', help='Name of the model directory whose model config contains a reports '
-                                              'stanza indicating which reports to build.')
-    parser.add_argument('-f', '--file', action='append', help='Name of one or more JSON files containing a reports '
-                                                              'stanza. These files do not need to be affiliated with a '
-                                                              'particular experiment or model.')
+    # The purpose of the group is to allow only one of either '-e', '-m', or '-f' to be provided.
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument('-e', '--experiment', help='Name of the experiment directory whose experiment config contains '
+                                                  'a reports stanza indicating which reports to build.')
+    group.add_argument('-m', '--model', help='Name of the model directory whose model config contains a reports '
+                                             'stanza indicating which reports to build.')
+    group.add_argument('-f', '--file', action='append', help='Name of one or more JSON files containing a reports '
+                                                             'stanza. These files do not need to be affiliated with a '
+                                                             'particular experiment or model.')
 
 
 def main():
