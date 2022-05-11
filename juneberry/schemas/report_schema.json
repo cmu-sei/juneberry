@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
-    "$id": "https://raw.githubusercontent.com/cmu-sei/juneberry/fd6afebc67bbd3853d09fa7625d847249289df57/juneberry/schemas/report_schema.json",
+    "$id": "report_schema.json",
     "$defs": {
         "report": {
             "type": "object",

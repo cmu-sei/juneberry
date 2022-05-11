@@ -37,6 +37,8 @@ from juneberry.reporting.utils import determine_report_path
 
 logger = logging.getLogger(__name__)
 
+REPORT_FILES_DIRNAME = "report_files"
+
 
 class Summary(Report):
     """
@@ -81,7 +83,7 @@ class Summary(Report):
         # Establish the 'report_files' directory, which is used to store copies of any images
         # that are found in the summary report.
         markdown_parent = self.report_path.parent
-        self.report_files_path = markdown_parent / "report_files"
+        self.report_files_path = markdown_parent / REPORT_FILES_DIRNAME
 
         # Create the `report_files` directory (and any parent directories) if it does not exist.
         if not self.report_files_path.exists():
@@ -167,15 +169,13 @@ class Summary(Report):
 
             # Assemble the table row and add it to the summary table.
 
-            # Accuracy metrics are formatted one way.
+            # Adjust the formatting if the metric value is an accuracy value.
             if self.metric == 'Accuracy' or self.metric == 'Balanced Accuracy':
-                output_file.write(f"{model_name} | {duration} | {eval_data_name} | {metric_value:.2%} | "
-                                  f"[Training Chart](./report_files/{model_name_str}_output.png)\n")
+                metric_value = f"{metric_value:.2%}"
 
-            # And mAP is formatted another way.
-            elif self.metric == 'mAP':
-                output_file.write(f"{model_name} | {duration} | {eval_data_name} | {metric_value} | "
-                                  f"[Training Chart](./report_files/{model_name_str}_output.png)\n")
+            # Write a row to the Summary table.
+            output_file.write(f"{model_name} | {duration} | {eval_data_name} | {metric_value} | "
+                              f"[Training Chart](./{REPORT_FILES_DIRNAME}/{model_name_str}_output.png)\n")
 
             # If a CSV was requested, format the row and write it to the CSV file.
             if csv_writer is not None:
@@ -221,7 +221,7 @@ class Summary(Report):
 
             # Write two lines to the markdown file for the current plot. Make sure to
             # use the Path of the plot file that's inside the 'report_files' directory.
-            output_file.write(f"![Plot Image](./report_files/{plot_path.name})\n")
+            output_file.write(f"![Plot Image](./{REPORT_FILES_DIRNAME}/{plot_path.name})\n")
             output_file.write(f"---\n")
 
     def _determine_shared_metric(self):

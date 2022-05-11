@@ -9,8 +9,10 @@ in that it may exist within their own configuration file OR be inserted into oth
 such as model configs or experiment configs.
 
 # Basic Report Config Structure
-The following structure applies to standalone ReportConfigs, or any "reports" stanzas that have been 
-inserted into model configs or experiment configs.
+The following structure represents the foundation of a "reports" stanza in any Juneberry config 
+file. You'll typically encounter this structure (without any extensions) in standalone Report config files, 
+as well as model config files. Other types of config files may layer additional extension points on top of 
+this structure.
 ```
 {
     "reports": [
@@ -18,6 +20,45 @@ inserted into model configs or experiment configs.
             "description": <Human readable description of this report>,
             "fqcn": <fully qualified name of a class that extends the juneberry.reporting.report base class>,
             "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
+        }
+    ]
+}
+```
+
+## Report Config Structure Extensions
+In certain types of config files, such as Experiment Outline configs and Experiment configs, the basic Report Config 
+structure was extended to include fields that were designed to be compatible with features that are specific 
+to those types of configs. The details of those extension points are outlined in this section.
+
+### Report Config Structure Extensions - Experiment Outline
+The following Report structure demonstrates a "reports" stanza in an Experiment Outline config. Each individual 
+report element combines the basic report structure, along with two additional fields: "classes" and "test_tag".
+```
+{
+    "reports": [
+        {
+            "classes": <OPTIONAL - used in plot ROC reports; comma separated classes to plot: e.g. 0,1,2,3,8,0+1,2+3>,
+            "description": <Human readable description of this report>,
+            "fqcn": <fully qualified name of a class that extends the juneberry.reporting.report base class>,
+            "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> },
+            "test_tag": <REQUIRED (for ROC or PR Report types) - A tag from the tests stanza in the experiment outline>,
+        }
+    ]
+}
+```
+
+### Report Config Structure Extensions - Experiments
+The following Report structure demonstrates a "reports" stanza in an Experiment config. Each individual 
+report element combines the basic report structure, along with two additional fields: "classes" and "tests".
+```
+{
+    "reports": [
+        {
+            "classes": <OPTIONAL - used in plot ROC reports; comma separated classes to plot: e.g. 0,1,2,3,8,0+1,2+3>,
+            "description": <Human readable description of this report>,
+            "fqcn": <fully qualified name of a class that extends the juneberry.reporting.report base class>,
+            "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> },
+            "tests": <REQUIRED (for ROC or PR Report types) - A tag from the tests stanza in the experiment outline>,
         }
     ]
 }
@@ -141,7 +182,7 @@ The previous stanza could then be inserted into the "reports" list of a report c
 model config file, or an experiment config file.
 
 # Structure Adjustments in an Experiment Config
-When a "reports" stanza exits inside an experiment config, the structure and behavior of a particular 
+When a "reports" stanza exists inside an experiment config, the structure and behavior of a particular 
 Report may vary slight from the structures described above. This section will describe these differences 
 for each Report Type.
 
@@ -149,7 +190,7 @@ There's a good chance that some filenames required by a particular report's stru
 known in advance of running the experiment. In these situations, a report stanza may omit certain 
 fields from the experiment config and rely on Juneberry to fill in the correct value(s) for the 
 field once those values are determined. This is especially common for the "curve_sources" field in 
-the ROC and PR Reports. When the pydoit rules for the experiment are generated, Juneberry will fill 
+the ROC and PR Reports. When generating the rules.json file for the experiment, Juneberry will fill 
 in these fields based on the output filenames that were determined during rule generation.
 
 Although Juneberry will fill in some fields for a report stanza in an experiment config, these values 
@@ -284,6 +325,31 @@ A human-readable description of the report.
 ### fqcn
 The fully qualified class name (fqcn) of the Report to build, e.g. 
 "**juneberry.reporting.summary.Summary**".
+
+## Details - Experiment Outline Extensions
+This section provides more information about each of the extension fields to the basic 
+Report structure that are specific to "reports" stanzas found in experiment outline configs.
+
+### classes
+A string used in a ROC Report indicating which classes to produce ROC curves 
+for on the ROC plot.
+
+### test_tag
+A string matching one of the tags in the 'tests' section of the experiment outline. A Report of 
+the type indicated by the 'fqcn' will be generated for every model/eval dataset combination that 
+matches this test tag. 
+
+## Details - Experiment Extensions
+This section provides more information about each of the extension fields to the basic 
+Report structure that are specific to "reports" stanzas found in experiment outline configs.
+
+### classes
+A string used in a ROC Report indicating which classes to produce ROC curves 
+for on the ROC plot.
+
+### tests
+A string which should match one of the tags in the experiment. The data from the indicated test will 
+be used to generate the report.
 
 ### kwargs
 A dictionary containing all the arguments to pass into the `__init__` method of the 

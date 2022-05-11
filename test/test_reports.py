@@ -386,6 +386,14 @@ class TestROCReport(TestCase):
     ROC Report type.
     """
 
+    @pytest.fixture(autouse=True)
+    def init_tmp_path(self, tmp_path):
+        """
+        The purpose of this function is to make the pytest tmp_path fixture available inside of
+        the unittest.TestCase.
+        """
+        self.tmp_path = tmp_path
+
     def test_report_init_defaults(self) -> None:
         """
         The purpose of this test is to exercise that an ROC Report will initialize
@@ -411,7 +419,7 @@ class TestROCReport(TestCase):
         "report_path" when a file is provided as the value for the "output_filename".
         """
         # Establish the values to test.
-        output_filename = "/test/test.png"
+        output_filename = f"{self.tmp_path}/test/test.png"
         plot_title = "Test Title"
         legend_scaling = 100.0
         line_width = 15
@@ -440,7 +448,7 @@ class TestROCReport(TestCase):
         "report_path" when a directory is provided as the value for the "output_filename".
         """
         # Establish a directory to test.
-        test_directory = "/test"
+        test_directory = str(self.tmp_path / "test")
 
         # Create a Report stanza for an ROC report using the test_directory.
         config_file_content = make_roc_report(output_filename=test_directory)
@@ -635,5 +643,5 @@ class TestSummaryReport(TestCase):
 
         # Verify that each row of the CSV file matches the expected values.
         assert row_list[0] == ['model', 'duration', 'eval_dataset', "{'Accuracy'}"]
-        assert row_list[1] == ['model_0', '10.0', 'config_0.json', '0.1']
-        assert row_list[2] == ['model_1', '20.0', 'config_1.json', '0.2']
+        assert row_list[1] == ['model_0', '10.0', 'config_0.json', '10.00%']
+        assert row_list[2] == ['model_1', '20.0', 'config_1.json', '20.00%']

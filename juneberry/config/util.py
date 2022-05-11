@@ -29,6 +29,7 @@ Common utilities used by config parsers and generators.
 import jsonschema
 import logging
 from pathlib import Path
+import pkg_resources
 import pkgutil
 from prodict import Prodict
 import sys
@@ -74,8 +75,13 @@ def validate_schema(data, schema_name, die_on_error=False):
     # TODO: Should this be routed through the jbfs load chokepoint?
     schema = hjson.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
 
+    # Set up a reference resolver to simplify how Juneberry schema files reference each other.
+    resource = pkg_resources.resource_filename('juneberry', f"schemas/{schema_name}")
+    schema_path = f"file:{resource}"
+    resolver = jsonschema.RefResolver(schema_path, schema)
+
     # While we are trying to use the latest, jsonschema seems to only have 7.
-    validator = jsonschema.Draft7Validator(schema)
+    validator = jsonschema.Draft7Validator(schema, resolver=resolver)
     error_count = 0
     for error in validator.iter_errors(data):
         logger.error(f"{error.message} at {list(error.path)}")

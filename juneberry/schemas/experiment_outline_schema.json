@@ -14,45 +14,10 @@
         },
         "reports": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "classes": { "type": "string" },
-                    "description": { "type": "string" },
-                    "fqcn": { "type": "string" },
-                    "kwargs": {},
-                    "test_tag": { "type": "string" }
-                },
-                "required": [
-                    "description",
-                    "fqcn"
-                ],
-                "anyOf": [
-                    {
-                        "properties": { "fqcn": { "const": "juneberry.reporting.roc.ROCPlot" } },
-                        "required": [ "test_tag", "classes" ]
-                    },
-                    {
-                        "properties": { "fqcn": { "const": "all_roc" } },
-                        "required": [ "test_tag", "classes" ]
-                    },
-                    {
-                        "properties": { "fqcn": { "const": "juneberry.reporting.pr.PRCurve" } },
-                        "required": [ "test_tag" ]
-                    },
-                    {
-                        "properties": { "fqcn": { "const": "all_pr" } },
-                        "required": [ "test_tag" ]
-                    },
-                    {
-                        "properties": { "fqcn": { "const": "juneberry.reporting.summary.Summary" } },
-                        "required": [ ]
-                    },
-                    {
-                        "properties": { "fqcn": { "type": "string" } },
-                        "required": [ ]
-                    }
-                ]
+            "items": { "$ref": "report_schema.json#/$defs/report"},
+            "properties": {
+                "classes": { "type": "string"},
+                "test_tag": { "type": "string" }
             }
         },
         "tests": {
