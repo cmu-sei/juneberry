@@ -58,7 +58,8 @@ from pathlib import Path
 
 
 @functools.lru_cache()
-def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_console=True, level=logging.INFO):
+def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_console=True, level=logging.INFO,
+                 log_filter=None):
     """Sets up the Juneberry logger. Appends necessary handlers."""
 
     # Fetch the logger by name, set its level, and make sure the changes don't propagate.
@@ -93,6 +94,10 @@ def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_con
         fh = logging.StreamHandler(_cached_log_stream(log_file))
         fh.setLevel(level)
         fh.setFormatter(formatter)
+
+        if log_filter:
+            fh.addFilter(log_filter())
+
         logger.addHandler(fh)
 
 
@@ -121,3 +126,17 @@ def log_banner(logger: Logger, msg, *, width=100, level=logging.INFO):
     logger.log(level, f"# {'=' * width}")
     logger.log(level, f"# {'=' * left} {msg} {'=' * right}")
     logger.log(level, f"# {'=' * width}")
+
+
+class RemoveDuplicatesFilter(logging.Filter):
+
+    def filter(self, record):
+        """
+        Remove adjacent duplicate records from the log.
+        :param record: a log record to examine for duplicates
+        :return: 0 if the message is the same as the previous message, 1 if it's different
+        """
+        if record.msg != getattr(self, "previous_msg", None):
+            self.previous_msg = record.msg
+            return 1
+        return 0
