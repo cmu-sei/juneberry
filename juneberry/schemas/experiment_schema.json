@@ -59,10 +59,11 @@
         },
         "reports": {
             "type": "array",
-            "items": { "$ref": "report_schema.json#/$defs/report"},
-            "properties": {
-                "classes": { "type": "string"},
-                "tests": {
+            "items": {
+                "allOf": [{ "$ref": "report_schema.json#/$defs/report"}],
+                "properties": {
+                    "classes": { "type": "string"},
+                    "tests": {
                                 "type": "array",
                                 "items": {
                                     "type": "object",
@@ -73,6 +74,7 @@
                                     "required": [ "tag" ]
                                 }
                             }
+                }
             }
         },
         "timestamp": { "type": "string" }

@@ -25,20 +25,18 @@
 """
 Unit tests for operations related to Juneberry Reports.
 """
-
-from argparse import Namespace
 import csv
 import json
+import os
 from pathlib import Path
+from unittest import TestCase
+
 from prodict import List, Prodict
 import pytest
-from unittest import TestCase
 
 from juneberry.config.report import ReportConfig
 from juneberry.reporting.report import Report
 import juneberry.reporting.utils as jb_report_utils
-from juneberry.scripting import setup_workspace
-
 from test_experiment_config import make_basic_config as make_experiment_config
 from test_model_config import make_basic_config as make_model_config
 
@@ -144,22 +142,6 @@ def make_summary_report(description: str = "", md_filename: str = "", csv_filena
 
     # Build and return the Summary Report stanza.
     return make_generic_report(description=description, fqcn="juneberry.reporting.summary.Summary", kwargs=kwargs_dict)
-
-
-def create_workspace_in_tmp_path(tmp_path) -> None:
-    """
-    This function is responsible for setting the Juneberry workspace to the temporary directory
-    created by pytest during a test invocation.
-    :param tmp_path: The temporary directory created by pytest during a test invocation.
-    :return: Nothing.
-    """
-    # Set up a Namespace with all of the workspace args needed to set the Juneberry workspace. The
-    # key args to set are using the tmp_path for the workspace, and silent mode to suppress log messages.
-    args = Namespace(workspace=tmp_path, dataRoot=None, tensorboard=None, silent=True, verbose=False,
-                     profileName=None, logDir=None)
-
-    # Setup the workspace using the desired args. A log file is not needed.
-    setup_workspace(args, log_file=None)
 
 
 def make_dummy_trained_model(index: int, tmp_path, accuracy_value: float = 0.5, duration: float = 10.0) -> None:
@@ -313,9 +295,8 @@ def test_experiment_reports(tmp_path):
     # A name for the "dummy" experiment in this test.
     experiment_name = "test_experiment"
 
-    # The workspace must be set to the temporary directory in order to retrieve the experiment
-    # config via the experiment name.
-    create_workspace_in_tmp_path(tmp_path)
+    # Change to the pytest temporary directory for this test.
+    os.chdir(tmp_path)
 
     # Create a sample experiment config using the function from the experiment config unit tests.
     exp_config = make_experiment_config()
@@ -357,9 +338,8 @@ def test_model_reports(tmp_path):
     # A name for the "dummy" model in this test.
     model_name = "test_model"
 
-    # The workspace must be set to the temporary directory in order to retrieve the model
-    # config via the model name.
-    create_workspace_in_tmp_path(tmp_path)
+    # Change to the pytest temporary directory for this test.
+    os.chdir(tmp_path)
 
     # Create a sample model config using the function from the model config unit tests. Add
     # a reports stanza to the model config.
@@ -602,9 +582,8 @@ class TestSummaryReport(TestCase):
         """
         The purpose of this test is to exercise the creation of a Summary Report.
         """
-        # Establish the Juneberry workspace as the temporary directory pytest creates for
-        # the invocation of this test.
-        create_workspace_in_tmp_path(self.tmp_path)
+        # Change to the pyest temporary directory for this test.
+        os.chdir(self.tmp_path)
 
         # The Summary Report pulls data from a metrics file and other output files from model
         # training. So create two model directories with dummy training data.

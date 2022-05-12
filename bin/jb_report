@@ -38,7 +38,7 @@ def setup_args(parser) -> None:
     """
 
     # The purpose of the group is to allow only one of either '-e', '-m', or '-f' to be provided.
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument('-e', '--experiment', help='Name of the experiment directory whose experiment config contains '
                                                   'a reports stanza indicating which reports to build.')

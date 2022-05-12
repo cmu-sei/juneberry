@@ -14,10 +14,12 @@
         },
         "reports": {
             "type": "array",
-            "items": { "$ref": "report_schema.json#/$defs/report"},
-            "properties": {
-                "classes": { "type": "string"},
-                "test_tag": { "type": "string" }
+            "items": {
+                "allOf": [{ "$ref": "report_schema.json#/$defs/report"}],
+                "properties": {
+                    "classes": { "type": "string"},
+                    "test_tag": { "type": "string" }
+                }
             }
         },
         "tests": {
