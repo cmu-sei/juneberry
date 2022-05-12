@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-__version__ = 0.4
+__version__ = "0.5a1"
 
 class Platforms(str, Enum):
     """ A list of different supported platforms """

@@ -199,8 +199,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             if not self.native:
                 out_model_filename.unlink()
 
-        logger.info("Generating summary plot...")
-        juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
+        if self.model_config.epochs > 0:
+            logger.info("Generating summary plot...")
+            juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
         self._serialize_results()
 
