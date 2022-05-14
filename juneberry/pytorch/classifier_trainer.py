@@ -200,6 +200,7 @@ class ClassifierTrainer(EpochTrainer):
         local_batch, local_labels = data.to(self.device), targets.to(self.device)
 
 #        import pdb; pdb.set_trace()
+#        print(local_labels)
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
@@ -242,10 +243,19 @@ class ClassifierTrainer(EpochTrainer):
         # Unpack the results we returned on process batch
         loss, _ = results
 
-#        import pdb; pdb.set_trace()
         self.optimizer.zero_grad()
+
+#        tmp = self.model.module[0].patch.patch.detach().clone()
         loss.backward()
+
+#        self.model.module[0].patch.patch.data =  self.model.module[0].patch.patch.data - 0.1 * self.model.module[0].patch.patch.grad.data.sign()
         self.optimizer.step()
+
+        # diff_tensor = tmp - self.model.module[0].patch.patch.data
+        # five_number_tensor = torch.quantile( diff_tensor.flatten(1), torch.tensor([0, 0.25, 0.5, 0.75, 1], device=diff_tensor.device), dim=1).permute(1,0)
+        # pixel_five_number_tensor = torch.stack( [ five_number_tensor[0] * 0.229 + 0.485 , five_number_tensor[1] * 0.224 + 0.456 , five_number_tensor[2] * 0.225 + 0.406 ] ) * 255
+        # print(five_number_tensor)
+        # print(pixel_five_number_tensor)
 
         if self.lr_scheduler is not None and self.lr_step_frequency == LRStepFrequency.BATCH:
             self.lr_scheduler.step()

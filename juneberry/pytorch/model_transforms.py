@@ -255,9 +255,9 @@ class TensorPatch(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
         # Note that torch.rand returns values between 0 and 1.
-        #self.patch = torch.nn.Parameter( (torch.rand(shape, dtype=torch.float, requires_grad=True) )
+        self.patch = torch.nn.Parameter( (torch.zeros(shape, dtype=torch.float, requires_grad=True) )) 
         # Try a standard normal as an init
-        self.patch = torch.nn.Parameter( torch.normal( mean=0, std=1, size=shape, requires_grad=True) )
+        # self.patch = torch.nn.Parameter( torch.normal( mean=0, std=1, size=shape, requires_grad=True) )
         self.shape = shape
 
         print(f"Init R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
@@ -325,12 +325,27 @@ class TopLeftPatch(torch.nn.Module):
 
         return patched_x
 
+def _circle_mask(shape, sharpness = 40):
+  """Return a circular mask of a given shape"""
+  assert shape[0] == shape[1], "circle_mask received a bad shape: " + shape
+
+  diameter = shape[0]  
+  x = np.linspace(-1, 1, diameter)
+  y = np.linspace(-1, 1, diameter)
+  xx, yy = np.meshgrid(x, y, sparse=True)
+  z = (xx**2 + yy**2) ** sharpness
+
+  mask = 1 - np.clip(z, -1, 1)
+  mask = np.expand_dims(mask, axis=2)
+  mask = np.broadcast_to(mask, shape).astype(np.float32)
+  return mask
+
 
 class BrownEtAlPatch(torch.nn.Module):
     def __init__(self, patch_shape, scale_max, scale_min, rotate_max, rotate_min):
         super().__init__()
-        self.mask = torch.ones(patch_shape) 
         self.patch = TensorPatch(patch_shape)
+        self.mask = torch.tensor( _circle_mask( shape = [patch_shape[1], patch_shape[2], patch_shape[0]])).permute(2,0,1)
         self.patch_shape = patch_shape
         self.scale_max = scale_max
         self.scale_min = scale_min
@@ -342,24 +357,38 @@ class BrownEtAlPatch(torch.nn.Module):
         # patched_x = x.clone() 
 
         # Repeat the patch across the batches
-        batch_patches = self.patch(x).repeat(x.shape[0],1,1,1)
+        batch_patches = (self.patch(x) * self.mask.to(device=x.device)).repeat(x.shape[0],1,1,1)
+
+        # Pick the scale
+        # NOTE: This is the same for all patches
+        scale = torch.rand(1, device = x.device) * (self.scale_max - self.scale_min) + self.scale_min
+        scale_patch_width = (self.patch_shape[1]*scale).to(int).item()
+        scale_patch_height = (self.patch_shape[2]*scale).to(int).item()
 
         # Pick the random location to apply the patch
-        u_t = torch.randint(low=0, high=x.shape[2] - self.patch_shape[1], size=(1,), device = x.device)
-        v_t = torch.randint(low=0, high=x.shape[3] - self.patch_shape[2], size=(1,), device = x.device)
+        if x.shape[2] - scale_patch_width > 0 and x.shape[3] - scale_patch_height > 0 :
+            u_t = torch.randint(low=0, high=x.shape[2] - scale_patch_width, size=(1,), device = x.device)
+            v_t = torch.randint(low=0, high=x.shape[3] - scale_patch_height, size=(1,), device = x.device)
+        else:
+            u_t = 0
+            v_t = 0
 
         # Place the patch in a zero image 
         padded_batch_patches = torch.zeros(x.shape, device = x.device)
-        padded_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
+        batch_patches = kornia.geometry.transform.resize(batch_patches, (scale_patch_width,scale_patch_height), align_corners=False)
+        padded_batch_patches[:, :, u_t:(u_t+scale_patch_width), v_t:(v_t+scale_patch_height)] = batch_patches
+        # print(f"{u_t} {v_t}")
+
+        #batch_patches = kornia.geometry.transform.scale(batch_patches, scale )
+        #padded_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
+
         # Generate the mask
         mask = torch.zeros(x.shape, device = x.device)
         mask_border = 3
-        small_ones = torch.ones([x.shape[0], x.shape[1], batch_patches.shape[2]-2*mask_border, batch_patches.shape[3]-2*mask_border], device = x.device)
-        mask[:, :, u_t+mask_border:(u_t+batch_patches.shape[2]-mask_border), v_t+mask_border:(v_t+batch_patches.shape[3]-mask_border)] = small_ones
+        small_ones = torch.ones([x.shape[0], x.shape[1], scale_patch_width-2*mask_border, scale_patch_height-2*mask_border], device = x.device)
+        mask[:, :, u_t+mask_border:(u_t+scale_patch_width-mask_border), v_t+mask_border:(v_t+scale_patch_height-mask_border)] = small_ones 
 
         # Scale every patch the same in a given batch
-        # TODO: fix this
-        scale = torch.rand(1, device = x.device) * (self.scale_max - self.scale_min) + self.scale_min
         padded_batch_patches = kornia.geometry.transform.scale(padded_batch_patches, scale )
         mask = kornia.geometry.transform.scale(mask, scale )
 
@@ -371,12 +400,13 @@ class BrownEtAlPatch(torch.nn.Module):
         # Apply the patch as an overlay
         patched_x = x * (1 - mask) + padded_batch_patches * (mask)
 
-#        import pdb; pdb.set_trace()
-#        for b in range(x.shape[0]):
-#            print(b)
-#            image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
-#            debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
-#            debug_image.save(f"{b}.png")
+        # TODO this doesn't look quite right
+        #import pdb; pdb.set_trace()
+        #for b in range(x.shape[0]):
+        #    print(b)
+        #    image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
+        #    debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) )
+        #    debug_image.save(f"{b}.png")
 
         return patched_x
 
