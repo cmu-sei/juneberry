@@ -15,44 +15,11 @@
         "reports": {
             "type": "array",
             "items": {
-                "type": "object",
+                "allOf": [{ "$ref": "report_schema.json#/$defs/report"}],
                 "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [ "all_pr", "all_roc", "plot_pr", "plot_roc", "summary" ]
-                    },
-                    "description": { "type": "string" },
-                    "test_tag": { "type": "string" },
-                    "classes": { "type": "string" },
-                    "output_name": { "type": "string" },
-                    "iou": { "type": "number"}
-                },
-                "required": [
-                    "type",
-                    "description"
-                ],
-                "anyOf": [
-                    {
-                        "properties": { "type": { "const": "plot_roc" } },
-                        "required": [ "test_tag", "classes" ]
-                    },
-                    {
-                        "properties": { "type": { "const": "summary" } },
-                        "required": [ "output_name" ]
-                    },
-                    {
-                        "properties": { "type": { "const": "all_roc" } },
-                        "required": [ ]
-                    },
-                    {
-                        "properties": { "type": { "const": "all_pr" } },
-                        "required": [ "iou" ]
-                    },
-                    {
-                        "properties": { "type": { "const": "plot_pr" } },
-                        "required": [ "iou", "test_tag" ]
-                    }
-                ]
+                    "classes": { "type": "string"},
+                    "test_tag": { "type": "string" }
+                }
             }
         },
         "tests": {

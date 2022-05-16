@@ -44,7 +44,7 @@ def run_plugin(plugin: str):
     json = load_json(plugin)
 
     if 'fqcn' not in json:
-        logger.error(f"Expected key 'fqcn' in target plugin JSON file was not found. EXITING.")
+        logger.error(f"Expected key 'fqcn' in target plugin JSON file was not found. Exiting.")
         sys.exit(-1)
 
     if 'kwargs' not in json:

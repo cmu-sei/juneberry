@@ -27,6 +27,7 @@ The specifications for these configuration files can be found in the `docs/specs
 * [Dataset Specification](specs/dataset_configuration_specification.md)
 * [Experiment Configuration Specification](specs/experiment_configuration_specification.md)
 * [Experiment Outline Specification](specs/experiment_outline_specification.md)
+* [Report Configuration Specification](specs/report_configuration_specification.md)
 
 See the directory `docs/specs` directory for the complete collection of specifications.
 

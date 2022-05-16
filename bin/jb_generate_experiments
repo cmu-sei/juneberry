@@ -28,21 +28,47 @@ import datetime
 import itertools
 import logging
 import os
+from prodict import Prodict
 import random
 import sys
 
 import juneberry.config.experiment as jb_experiment
-from juneberry.config.experiment import ExperimentConfig, ReportType
+from juneberry.config.experiment import ExperimentConfig, ReportFQCN
 import juneberry.config.experiment_outline as jb_exp_outline
 from juneberry.config.experiment_outline import ExperimentOutline
 from juneberry.config.model import ModelConfig
-import juneberry.filesystem as jbfs
+from juneberry.config.plugin import Plugin
+from juneberry.filesystem import ExperimentCreator, ModelManager, save_json
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_generate_experiments")
 
 
-def generate_combined_roc(in_report, models):
+def build_tests(models: list, in_report: Prodict, out_report: Plugin) -> list:
+    """
+    This function is responsible for populating a Report's 'tests' section when the
+    Report type is for a combined 'PR' or 'ROC' report.
+    :param models: A list of every model in the experiment.
+    :param in_report: A dictionary containing the parameters of the ROC | PR report we'd like to generate.
+    :param out_report: The current contents of the output Report, with everything filled out but the
+    'tests' section.
+    return: A list with a single element, the output report.
+    """
+
+    # Start with an empty list for the 'tests' section.
+    out_report.tests = []
+
+    # Loop through every model in the list, build an appropriately named test tag, and
+    # then append that test to the 'tests' section in the output Report.
+    for model in models:
+        test = {'tag': f"{in_report.test_tag}_{model}"}
+        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
+
+    # Return the output Report in the expected format.
+    return [out_report]
+
+
+def generate_combined_roc(in_report: Prodict, models: list) -> list:
     """
     This function is responsible for converting a report type of 'all_roc' into a 'plot_roc'
     that will plot all of the ROC curves for a particular test onto a single graph.
@@ -51,34 +77,27 @@ def generate_combined_roc(in_report, models):
     :return: A list containing a ROC report dictionary that defines the combined plot.
     """
 
-    # Start with an empty list
-    roc_report_list = []
+    # Create a Plugin for the new Report and fill in some fields from the input Report.
+    out_report = Plugin()
+    out_report.classes = in_report.classes
+    out_report.description = in_report.description
+    out_report.fqcn = ReportFQCN.PLOT_ROC.value
 
-    # Copy the report into our output format without the test_tag
-    as_dict = in_report.to_dict()
-    del as_dict['test_tag']
-    out_report = jb_experiment.Report.from_dict(as_dict)
+    # Retain the kwargs in the new Report if any were provided in the input Report.
+    out_report.kwargs = in_report.kwargs if in_report.kwargs is not None else {}
 
-    # Change the report type from "all" to "plot_roc" and derive the outputName
-    out_report.type = ReportType.PLOT_ROC.value
-    out_report.output_name = in_report.test_tag + "_all_combined.png"
-    out_report.plot_title = f"ROC - All Tests Combined"
+    # Add some kwargs that are specific to this type of Report.
+    out_report.kwargs.output_filename = f"{in_report.test_tag}_all_combined.png"
+    out_report.kwargs.plot_title = f"ROC - All Tests Combined"
 
-    # Now we're going to create a list of tests to include, one for each model
-    # in the experiment.
-    out_report.tests = []
-    for model in models:
-        test = {'tag': in_report.test_tag + "_" + model}
-        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
-
-    # Append the report to the list, log the results, and return
-    roc_report_list.append(out_report)
-    logger.info(f"Added 1 combined plot_roc report for {in_report['test_tag']} to the experiment config.")
-
-    return roc_report_list
+    # Use the 'build_tests' function to build an appropriate tag name for each model
+    # and add each one to the 'tests' property of the output Report. Log the Report
+    # that was created and return the Report.
+    logger.info(f"Added 1 combined plot_roc report for tag '{in_report['test_tag']}' to the experiment config.")
+    return build_tests(models, in_report, out_report)
 
 
-def generate_roc_reports(in_report, models):
+def generate_roc_reports(in_report: Prodict, models: list) -> list:
     """
     This function is responsible for taking a report of type 'plot_roc' and applying
     the desired report parameters to each possible model in the experiment.
@@ -90,26 +109,34 @@ def generate_roc_reports(in_report, models):
 
     # Loop over every model in the experiment
     for model in models:
-        # Copy the report into our output format
-        as_dict = in_report.to_dict()
-        del as_dict['test_tag']
-        out_report = jb_experiment.Report.from_dict(as_dict)
 
-        # Derive the correct tag name and outputName; add them to the dictionary
-        tag = in_report.test_tag + "_" + model
+        # Build a new Plugin for the output Report and fill in some fields
+        # from the input Report.
+        out_report = Plugin()
+        out_report.classes = in_report.classes
+        out_report.description = in_report.description
+        out_report.fqcn = in_report.fqcn
+        out_report.kwargs = in_report.kwargs if in_report.kwargs is not None else {}
+
+        # Generate an appropriate tag for each model and add it to the 'tests'
+        # property of the output report.
+        tag = f"{in_report.test_tag}_{model}"
         out_report.tests = [jb_experiment.ReportTest(tag=tag)]
-        out_report.output_name = in_report.test_tag + "_" + model + ".png"
-        out_report.plot_title = f"ROC - {model}"
+
+        # Set an appropriate output filename and plot title for each model.
+        out_report.kwargs.output_filename = f"{in_report.test_tag}_{model}.png"
+        out_report.kwargs.plot_title = f"ROC - {model}"
 
         # Append the dictionary to the list of reports
         roc_report_list.append(out_report)
 
-    logger.info(f"Added {len(roc_report_list)} plot_roc reports for {in_report['test_tag']} to the experiment config.")
+    logger.info(f"Added {len(roc_report_list)} plot_roc reports for tag '{in_report['test_tag']}' "
+                f"to the experiment config.")
 
     return roc_report_list
 
 
-def generate_combined_pr(in_report, models):
+def generate_combined_pr(in_report: Prodict, models: list) -> list:
     """
     This function is responsible for converting a report type of 'all_pr' into a 'plot_pr'
     that will plot all of the PR curves for a particular test onto a single graph.
@@ -117,33 +144,25 @@ def generate_combined_pr(in_report, models):
     :param models: A list of every model in the experiment.
     :return: A list containing a PR report dictionary that defines the combined plot.
     """
-    # Start with an empty list.
-    pr_report_list = []
 
-    # Copy the report into our output format without the test_tag.
-    as_dict = in_report.to_dict()
-    del as_dict['test_tag']
-    out_report = jb_experiment.Report.from_dict(as_dict)
+    # Build a new Plugin for the output Report and fill in some fields
+    # from the input Report.
+    out_report = Plugin()
+    out_report.description = in_report.description
+    out_report.fqcn = ReportFQCN.PLOT_PR.value
+    out_report.kwargs = in_report.kwargs if in_report is not None else {}
 
-    # Change the report type from "all" to "plot_pr" and derive the outputName.
-    out_report.type = ReportType.PLOT_PR.value
-    out_report.output_dir = in_report.test_tag + "_all_combined"
+    # Set an appropriately named output directory based on the test tag.
+    out_report.kwargs.output_dir = f"{in_report.test_tag}_all_combined"
 
-    # Now we're going to create a list of tests to include, one for each model
-    # in the experiment.
-    out_report.tests = []
-    for model in models:
-        test = {'tag': in_report.test_tag + "_" + model}
-        out_report.tests.append(jb_experiment.ReportTest.from_dict(test))
-
-    # Append the report to the list, log the results, and return.
-    pr_report_list.append(out_report)
-    logger.info(f"Added 1 combined plot_PR report for {in_report['test_tag']} to the experiment config.")
-
-    return pr_report_list
+    # Use the 'build_tests' function to build an appropriate tag name for each model
+    # and add each one to the 'tests' property of the output Report. Log the Report
+    # that was created and return the Report.
+    logger.info(f"Added 1 combined plot_PR report for tag '{in_report['test_tag']}' to the experiment config.")
+    return [build_tests(models, in_report, out_report)]
 
 
-def generate_pr_reports(in_report, models):
+def generate_pr_reports(in_report: Prodict, models: list) -> list:
     """
     This function is responsible for taking a report of type 'plot_pr' and applying
     the desired report parameters to each possible model in the experiment.
@@ -153,23 +172,35 @@ def generate_pr_reports(in_report, models):
     """
     pr_report_list = []
 
+    # Loop through every model in the model list.
     for model in models:
-        as_dict = in_report.to_dict()
-        del as_dict['test_tag']
-        out_report = jb_experiment.Report.from_dict(as_dict)
 
-        tag = in_report.test_tag + "_" + model
+        # Build a new Plugin for the output Report and fill in some fields
+        # from the input Report.
+        out_report = Plugin()
+        out_report.description = in_report.description
+        out_report.fqcn = in_report.fqcn
+        out_report.kwargs = in_report.kwargs if in_report.kwargs is not None else {}
+
+        # Generate an appropriate tag for each model and add it to the 'tests'
+        # property of the output report.
+        tag = f"{in_report.test_tag}_{model}"
         out_report.tests = [jb_experiment.ReportTest(tag=tag)]
-        out_report.output_dir = in_report.test_tag + " - " + model
 
+        # Set an appropriate output directory that's based on the tag and model name.
+        out_report.kwargs.output_dir = f"{in_report.test_tag}_{model}"
+
+        # Append the current output report to the list of PR Reports.
         pr_report_list.append(out_report)
 
-    logger.info(f"Added {len(pr_report_list)} plot_PR reports for {in_report['test_tag']} to the experiment config.")
+    # Log how many PR Reports were generated and return the list.
+    logger.info(f"Added {len(pr_report_list)} plot_PR reports for tag '{in_report['test_tag']}' "
+                f"to the experiment config.")
 
     return pr_report_list
 
 
-def generate_reports_list(outline, model_names):
+def generate_reports_list(outline: ExperimentOutline, model_names: list) -> list:
     """
     This function is responsible for generating the list of reports that will go into the
     experiment config.
@@ -184,41 +215,44 @@ def generate_reports_list(outline, model_names):
 
     # We need to work on a copy of the outline, otherwise any changes made will
     # propagate to subsequent models.
-    report_outline = deepcopy(outline.reports)
+    # report_outline = deepcopy(outline.reports)
+
+    outline_reports = outline.reports
 
     # Loop over every report in the report outline
-    for report in report_outline:
+    for report in outline_reports:
 
         # If the report is for a ROC plot, we want to generate a version of that
         # report for every model in the experiment.
-        if report.type == ReportType.PLOT_ROC:
+        if report.fqcn == ReportFQCN.PLOT_ROC:
             reports_list.extend(generate_roc_reports(report, model_names))
 
-        elif report.type == ReportType.ALL_ROC:
+        elif report.fqcn == ReportFQCN.ALL_ROC:
             reports_list.extend(generate_combined_roc(report, model_names))
 
-        elif report.type == ReportType.PLOT_PR:
+        elif report.fqcn == ReportFQCN.PLOT_PR:
             reports_list.extend(generate_pr_reports(report, model_names))
 
-        elif report.type == ReportType.ALL_PR:
+        elif report.fqcn == ReportFQCN.ALL_PR:
             reports_list.extend(generate_combined_pr(report, model_names))
 
         # If the report type is a summary , we only need one and can use the
         # parameters as-is.
-        elif report.type == ReportType.SUMMARY:
+        elif report.fqcn == ReportFQCN.SUMMARY:
             reports_list.append(report)
             logger.info(f"Added 1 summary report for this experiment.")
 
-        # Log an error if the report type is unrecognized.
+        # If the report fqcn wasn't recognized, add it as-is to the experiment config.
         else:
-            logger.error(f"Report type {report['type']} is invalid.")
+            reports_list.append(report)
+            logger.info(f"Added 1 report with 'fqcn' {report.fqcn} to the experiment config.")
 
     logger.info(f"Added {len(reports_list)} total reports to the experiment config.")
 
     return reports_list
 
 
-def generate_models_list(outline, experiment_name, model_names):
+def generate_models_list(outline: ExperimentOutline, experiment_name: str, model_names: list) -> list:
     """
     This function is responsible for generating the list of models that will go into the
     experiment config.
@@ -265,7 +299,8 @@ def generate_models_list(outline, experiment_name, model_names):
     return models_list
 
 
-def generate_experiment_config(experiment_creator, outline, experiment_name, model_names):
+def generate_experiment_config(experiment_creator: ExperimentCreator, outline: ExperimentOutline,
+                               experiment_name: str, model_names: list) -> None:
     """
     This function is responsible for producing the content that will go into the config.json
     for this experiment and then saving it to disk.
@@ -295,10 +330,8 @@ def generate_experiment_config(experiment_creator, outline, experiment_name, mod
 
     logger.info(f"Experiment config for {experiment_name} written to {exp_config_file}.")
 
-    return
 
-
-def get_combo_name(chosen: dict, possible_options: list):
+def get_combo_name(chosen: dict, possible_options: list) -> str:
     """
     This function is responsible for deriving the correct name of the combination
     based on which properties were selected. A combination name takes the form
@@ -339,7 +372,7 @@ def get_combo_name(chosen: dict, possible_options: list):
     return combo_name[:-1]
 
 
-def apply_nested_parameter(config: dict, parameter: str, value):
+def apply_nested_parameter(config: dict, parameter: str, value) -> dict:
     """
     This function is responsible for applying a variable to a nested parameter
     in a dictionary representation of a ModelConfig object. It works by traversing the
@@ -369,7 +402,7 @@ def apply_nested_parameter(config: dict, parameter: str, value):
     return config
 
 
-def apply_parameter(config: dict, parameter: str, value):
+def apply_parameter(config: dict, parameter: str, value) -> dict:
     """
     This function is responsible for applying the value of a variable to the
     appropriate parameter in a dictionary representation of a ModelConfig object. There are a few
@@ -406,7 +439,7 @@ def apply_parameter(config: dict, parameter: str, value):
     return config
 
 
-def check_combinations(variables, combos):
+def check_combinations(variables: list, combos: list) -> None:
     """
     The purpose of this function is to make sure that every combination generated by this outline
     made a selection from each possible variable.
@@ -461,7 +494,7 @@ def validate_variables(variables: list) -> None:
         sys.exit(-1)
 
 
-def generate_combinations(variables: list):
+def generate_combinations(variables: list) -> (list, list, list):
     """
     This functions is responsible for generating all possible combinations of variables
     that we want to apply to a ModelConfig.
@@ -492,7 +525,7 @@ def generate_combinations(variables: list):
     return every_variable_name, every_nickname_list, combinations
 
 
-def generate_model_configs(experiment_outline: ExperimentOutline):
+def generate_model_configs(experiment_outline: ExperimentOutline) -> list:
     """
     This function is responsible for producing the various combinations of
     ModelConfig objects and saving them to the appropriate JSON file.
@@ -502,7 +535,7 @@ def generate_model_configs(experiment_outline: ExperimentOutline):
     """
 
     # Load the baseline model config
-    model_manager = jbfs.ModelManager(experiment_outline.baseline_config, "")
+    model_manager = ModelManager(experiment_outline.baseline_config, "")
     baseline_config = ModelConfig.load(model_manager.get_model_config())
 
     # Now we're going to do some work with the variables in the experiment.
@@ -536,7 +569,7 @@ def generate_model_configs(experiment_outline: ExperimentOutline):
         # combo name for those changes, and create a model manager for this combo.
         config_changes = dict(zip(variable_names, combo))
         combo_name = get_combo_name(config_changes, variables)
-        model_manager = jbfs.ModelManager(os.path.join(experiment_outline.experiment_name, combo_name), "")
+        model_manager = ModelManager(os.path.join(experiment_outline.experiment_name, combo_name), "")
         model_dir = model_manager.get_model_dir()
 
         # Create the directory for this combination if it doesn't exist.
@@ -558,7 +591,7 @@ def generate_model_configs(experiment_outline: ExperimentOutline):
         new_config['summary_info'] = dict(zip(variable_nicknames, combo))
 
         # Save the modified ModelConfig to a JSON file in the appropriate directory.
-        jbfs.save_json(new_config, model_manager.get_model_config())
+        save_json(new_config, model_manager.get_model_config())
 
         # Add the name of the combo we created to the tracking list.
         model_names.append(combo_name)
@@ -585,7 +618,7 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
-    experiment_creator = jbfs.ExperimentCreator(args.experimentName)
+    experiment_creator = ExperimentCreator(args.experimentName)
 
     if args.dryrun:
         log_prefix = "<<DRY_RUN>> "

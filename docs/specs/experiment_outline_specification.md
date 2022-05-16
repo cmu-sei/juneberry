@@ -22,12 +22,11 @@ refer to the specifications for experiment configurations and model configuratio
     }
     "reports": [
         {
-            "type": <report type: [plot_roc | plot_pr | summary | all_roc | all_pr]>,
-            "description": <A brief description of this report>,
-            "test_tag": <REQUIRED, type must be plot_roc - A tag from the tests stanza above>,
             "classes": <OPTIONAL, type must be plot_roc - comma separated classes to plot: e.g. 0,1,2,3,8,0+1,2+3>,
-            "iou": <OPTIONAL, type must be plot_pr or all_pr - A float between 0.5 and 1.0>,
-            "output_name": <REQUIRED, type must be summary - filename for output file> 
+            "description": <A brief description of this report>,
+            "fqcn": <REQUIRED, FQCN of the Report class to use for this Report. Can also be "all_roc" or "all_pr".>,
+            "kwargs": <OPTIONAL, arguments to pass into the __init__ method of the Report FQCN.>,
+            "test_tag": <REQUIRED (for ROC or PR Report types) - A tag from the tests stanza above>
         }
     ],
     "tests": [
@@ -78,31 +77,36 @@ specification for details.
 ## reports
 A list of reports to produce when running the experiment.
 
-### type
-**REQUIRED** for any report. The report type to generate. We currently support "plot_roc" 
-(which invokes "jb_plot_roc"), "summary" (which invokes "jb_summary"), "plot_pr" (which 
-invokes "jb_plot_pr"), "all_roc" and "all_pr". The "all_roc" and "all_pr" plot types will 
-place every model for a given test on the same plot. 
+{
+    "classes": <OPTIONAL, used in ROC plots to indicate which classes to draw curves for
+                - should be a comma separated string of classes to plot: e.g. 0,1,'dog',3,8,0+1,2+3>,
+    "description": <A brief description of this report>,
+    "fqcn": <REQUIRED, FQCN of the Report class to use for this Report. Can also be "all_roc" or "all_pr".>,
+    "kwargs": <OPTIONAL, arguments to pass into the __init__ method of the Report FQCN.>,
+    "test_tag": <REQUIRED (for ROC or PR Report types) - A tag from the tests stanza above>
+}
+
+### classes
+*OPTIONAL* Used when the report type is "plot_roc" or "all_roc". Indicates which classes to produce 
+ROC curves for on the ROC plot.
 
 ### description
 **REQUIRED** for any report type. A brief, human-readable description of the report.
 
+### fqcn
+The fully qualified class name (fqcn) of the Report to build, e.g. 
+"**juneberry.reporting.summary.Summary**", or the strings "all_roc" or "all_pr". When 
+either of the "all_" strings is used, a curve for every model matching the given test 
+will be placed in the same Figure.
+
+### kwargs
+A dictionary containing the arguments to pass into the `__init__` method of the 
+Report class indicated in the 'fqcn' field.
+
 ### test_tag
-**REQUIRED** if the report type is "plot_roc". This should be a string that matches one of the 
-tags in the 'tests' section. For every model in the experiment, a ROC plot will be produced using 
-the test data from the tag matching the tag provided here.
-
-### classes
-*OPTIONAL* if the report type is "plot_roc". The list of classes to be extracted from the predictions 
-file for use in the ROC plot.
-
-### iou
-*OPTIONAL* if the report type is "plot_pr". This float value (expected to be between 0.5 and 1.0) is 
-provided to jb_plot_pr as the value for the iou argument.
-
-### output_name
-**REQUIRED** if the report type is "summary". This string will be the filename that should 
-be used when saving the summary report to the experiment directory.
+**REQUIRED** when the report 'fqcn' is for an ROC or PR report type. This should be a string 
+that matches one of the tags in the 'tests' section. A Report of the type indicated by the 'fqcn' 
+will be generated for every model/eval dataset combination that matches the test_tag. 
 
 ## tests
 A list of test sets to be run against each of the models in the experiment.

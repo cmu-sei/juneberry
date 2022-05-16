@@ -25,30 +25,29 @@
 # Read the experiment config and splat it out to a graph.
 
 import argparse
+import json
 import logging
 from pathlib import Path
 import sys
 
+from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig
-from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportType
+from juneberry.config.report import ReportConfig
 from juneberry.config.rule_list import RuleListBuilder
-import juneberry.filesystem as jbfs
-from juneberry.filesystem import ModelManager
+from juneberry.filesystem import ExperimentManager, ModelManager
 
 logger = logging.getLogger(__name__)
 
 JB_TRAIN_COMMAND = 'jb_train'
 JB_EVALUATE_COMMAND = 'jb_evaluate'
-JB_PLOT_PR_COMMAND = 'jb_plot_pr'
-JB_PLOT_ROC_COMMAND = 'jb_plot_roc'
-JB_SUMMARY_COMMAND = 'jb_summary_report'
+JB_REPORT_COMMAND = 'jb_report'
 
 
 class RuleMaker:
     def __init__(self, experiment_name):
         self.experiment_name = experiment_name
         self.tag_map = {}
-        self.experiment_manager = jbfs.ExperimentManager(self.experiment_name)
+        self.experiment_manager = ExperimentManager(self.experiment_name)
         self.experiment_config = ExperimentConfig.load(self.experiment_manager.get_experiment_config())
         self.builder = RuleListBuilder("")
 
@@ -66,7 +65,7 @@ class RuleMaker:
 
     def add_training(self):
         for model in self.experiment_config.models:
-            model_mgr = jbfs.ModelManager(model.name)
+            model_mgr = ModelManager(model.name)
             model_config = ModelConfig.load(model_mgr.get_model_config())
 
             # Training rules
@@ -106,7 +105,7 @@ class RuleMaker:
         self.tag_map = {}
 
         for model in self.experiment_config.models:
-            model_mgr = jbfs.ModelManager(model.name)
+            model_mgr = ModelManager(model.name)
 
             workflow = self.builder.get_workflow("main")
             """
@@ -146,139 +145,429 @@ class RuleMaker:
                     if test.filters:
                         self.add_filters(test.filters, model_mgr, test.dataset_path, cmd_id)
 
-    def add_reports(self):
-        for report in self.experiment_config.reports:
-            if report.type == ReportType.PLOT_ROC:
-                self.add_plot_roc(report)
-            elif report.type == ReportType.PLOT_PR:
-                self.add_plot_pr(report)
-            elif report.type == ReportType.SUMMARY:
-                self.add_summary(report)
+    def add_reports(self) -> None:
+        # Add Reports when the experiment config contains a "reports" stanza.
+        if self.experiment_config.reports:
 
-    def add_plot_pr(self, report: Report):
-        # Obtain the output directory as a string.
-        output_dir = str(self.experiment_manager.get_experiment_file(report.output_dir))
-        log_dir = str(self.experiment_manager.get_experiment_log_dir())
+            # The goal is to create an individual report.json file for every report
+            # listed in the reports stanza. All of these reports will be stored in
+            # the 'report_json_files' sub-directory inside the experiment directory.
+            # Detect if that sub-directory exists, and create it when it does not.
+            if not self.experiment_manager.experiment_reports_dir_path.exists():
+                self.experiment_manager.experiment_reports_dir_path.mkdir()
 
-        # Accumulate all the tests into one report.
+            # Loop through every report in the "reports" stanza. Skip any Summary Reports
+            # on this pass, so that all plot files get generated first.
+            for idx, report in enumerate(self.experiment_config.reports):
+
+                # If the current Report is a Summary, skip it for now.
+                if report.fqcn == ReportFQCN.SUMMARY:
+                    continue
+
+                # Use the idx to determine the filename for the individual JSON file that will contain
+                # ONLY the information for this report.
+                report_json_path = self.experiment_manager.get_experiment_report_file(idx)
+
+                # Add a properly formatted 'jb_report' rule to generate ROC curves
+                # when the report type matches the PLOT_ROC class.
+                if report.fqcn == ReportFQCN.PLOT_ROC:
+                    self.add_plot_roc(report, report_json_path)
+
+                # Add a properly formatted 'jb_report' rule to generate PR curves
+                # when the report type matches the PLOT_PR class.
+                elif report.fqcn == ReportFQCN.PLOT_PR:
+                    self.add_plot_pr(report, report_json_path)
+
+                # For all other report FQCNs, follow the process for adding a
+                # generic report rule.
+                else:
+                    self.add_generic_report(report, report_json_path)
+
+            # Loop through every report in the "reports" stanza again, only this time focus
+            # on producing any Summary Reports.
+            for idx, report in enumerate(self.experiment_config.reports):
+
+                # If the current Report is not a Summary, skip it.
+                if report.fqcn != ReportFQCN.SUMMARY:
+                    continue
+
+                # Use the idx to construct a unique filename for the individual JSON file that will contain
+                # ONLY the information for this report.
+                report_json_name = f"report_{idx}.json"
+                report_json_path = self.experiment_manager.experiment_reports_dir_path / report_json_name
+
+                self.add_summary(report, report_json_path)
+
+    def add_plot_pr(self, report: Report, report_json_path: Path) -> None:
+        """
+        This method is responsible for adding a rule to the workflow that will use the 'jb_report'
+        command to produce PR curves according to the conditions described in the report stanza.
+        :param report: One Report stanza from the list of reports described in the "reports" stanza
+        of the experiment config.
+        :param report_json_path: A Path indicating where to save the current JSON file.
+        :return: Nothing.
+        """
+
+        # Set up some lists to track some information for pydoit.
         inputs = []
         requirements = []
-        command = [JB_PLOT_PR_COMMAND, '--outputDir', output_dir, '--logDir', log_dir]
+        outputs = [str(report_json_path)]
 
-        # Retrieve the desired IoU value for the command.
-        if report.iou:
-            command.append(f'--iou')
-            command.append(report.iou)
+        # If an output_dir was not provided in the report's kwargs, use the experiment directory.
+        if "output_dir" not in report.kwargs:
+            logger.warning(f"An output_dir was not found in the kwargs of the {report.fqcn} report in the "
+                           f"experiment config. Setting the output_dir to the experiment dir.")
+            logger.warning(f"To avoid this warning in the future, add an output_dir to the kwargs of the {report.fqcn} "
+                           f"Report found in {self.experiment_manager.get_experiment_config()}")
+            report.kwargs.output_dir = str(self.experiment_manager.experiment_dir_path)
 
-        # Add all tests to the command.
+        # Otherwise attempt to use the "output_dir" provided in the config.
+        else:
+            # Convert the output_dir arg from a string to a Path.
+            output_dir_path = Path(report.kwargs.output_dir)
+
+            # No matter what output_dir the user provided via the config, we want to make sure their desired
+            # directory is inside the current experiment directory. So, resolve both Paths and then check if
+            # the experiment directory matches any of the parent directories for the user's desired output
+            # directory. If the desired output_dir doesn't appear to be inside the experiment dir, then adjust
+            # the output dir to be a sub-dir inside the experiment directory.
+            if self.experiment_manager.experiment_dir_path.resolve() not in output_dir_path.resolve().parents:
+                new_output_dir_str = str(self.experiment_manager.experiment_dir_path / output_dir_path)
+                report.kwargs.output_dir = new_output_dir_str
+                logger.warning(f"The desired output_dir in the {report.fqcn} report does not appear to be "
+                               f"inside the experiment directory. Adjusting the value for the output_dir to "
+                               f"{new_output_dir_str}")
+                logger.warning(f"To avoid this warning in the future, adjust the output_dir in the kwargs of the "
+                               f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()} so "
+                               f"that the output_dir is located inside {self.experiment_manager.experiment_dir_path}")
+
+        # The output_dir for this report is a product of this process, so add it to the list of outputs.
+        outputs.append(report.kwargs.output_dir)
+
+        # Retrieve the desired curve sources for this Report, if any were provided.
+        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else []
+
+        # According to the experiment config, a report must have a tests section in order to make sense.
+        # So, loop through those tests and add the appropriate curve sources.
         for test in report.tests:
+            # Add the curve source to the dictionary, where the key is the name of the model, and the value
+            # is the name of the dataset that the model evaluated. This model:dataset combination indicates
+            # which evaluation data to use when generating these PR curves.
+            model = self.tag_map[test.tag]['model']
+            dataset = self.tag_map[test.tag]['dataset']
+            curve_source = {"model": model, "dataset": dataset}
+            if curve_source not in curve_sources:
+                curve_sources.append(curve_source)
+            # curve_sources[self.tag_map[test.tag]['model']] = self.tag_map[test.tag]['dataset']
 
             # The presence of the metrics file indicates an evaluation has occurred for this
-            # model / dataset combination.
-            predictions_file = str(self.tag_map[test.tag]['metrics'])
-            inputs.append(predictions_file)
-
-            # Add the model and eval dataset arguments to the command.
-            command.append('-m')
-            command.append(str(self.tag_map[test.tag]['model']))
-            command.append('-e')
-            command.append(str(self.tag_map[test.tag]['dataset']))
+            # model / dataset combination. Since the PR curves can't be generated without the evaluation
+            # data, then this file should be treated as an input for this task in the workflow.
+            metrics_file = str(self.tag_map[test.tag]['metrics'])
+            inputs.append(metrics_file)
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        outputs = [Path(output_dir, "pr_curve.png"), Path(output_dir, "pc_curve.png"),
-                   Path(output_dir, "rc_curve.png"), Path(output_dir, "eval_metrics.csv")]
+        # The result of this report will produce 3 PNG files with different figures. Those files must
+        # be tracked as outputs of this rule.
+        output_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
+        for output_file in output_files:
+            # Construct the Path in the output_dir for this particular output file and then convert
+            # it to a string so it can be written to the rules file. Add the string to the list of outputs.
+            output_str = str(Path(report.kwargs.output_dir, output_file))
+            outputs.append(output_str)
 
-        doc = " ".join([str(x) for x in command])
-        clean_extras = []
-        workflow = self.builder.get_workflow("main")
-        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+        # If any changes were made to the curve_sources, the content for the JSON file should reflect
+        # those changes.
+        report.kwargs.curve_sources = curve_sources
 
-    def add_plot_roc(self, report: Report):
+        # Create the individual JSON file for this report and add the rule to the workflow.
+        self._finalize_report(report, report_json_path, inputs, requirements, outputs)
 
-        # Everything gets put into one output
-        output_path = str(self.experiment_manager.get_experiment_file(report.output_name))
-        log_dir = str(self.experiment_manager.get_experiment_log_dir())
+    def add_plot_roc(self, report: Report, report_json_path: Path) -> None:
+        """
+        This method is responsible for adding a rule to the workflow that will use the 'jb_report'
+        command to produce ROC curves according to the conditions described in the report stanza.
+        :param report: One Report stanza from the list of reports described in the "reports" stanza
+        of the experiment config.
+        :param report_json_path: A Path indicating where to save the current JSON file.
+        :return: Nothing.
+        """
 
-        # Accumulate all the tests (predictions) into one report
+        # Set up some lists to track some information for pydoit.
         inputs = []
         requirements = []
-        command = [JB_PLOT_ROC_COMMAND, output_path, "--logDir", log_dir]
+        outputs = [str(report_json_path)]
+
+        # If an output_filename was not provided in the report's kwargs, use the experiment directory and
+        # a default filename.
+        if "output_filename" not in report.kwargs:
+            logger.warning(f"An output_filename was not found in the kwargs of the {report.fqcn} report in "
+                           f"the experiment config. Setting the output_filename to the default.")
+            default_output_filename = self.experiment_manager.experiment_dir_path / "ROC_curves.png"
+            logger.warning(f"  Setting 'output_filename' to {default_output_filename}")
+            report.kwargs.output_filename = str(default_output_filename)
+            logger.warning(f"To avoid this warning in the future, add an output_filename to the kwargs in "
+                           f"the {report.fqcn} Report found in {self.experiment_manager.get_experiment_config()}")
+
+        # Otherwise attempt to use the "output_filename" provided in the config.
+        else:
+            # Convert the output_filename from a string to a Path.
+            output_filename_path = Path(report.kwargs.output_filename)
+
+            # Check if the desired output_filename is inside the experiment directory. If it is not,
+            # then place the experiment directory at the root of the desired output_filename and use
+            # that new Path as the output_filename.
+            if self.experiment_manager.experiment_dir_path.resolve() not in output_filename_path.resolve().parents:
+                new_output_filename = self.experiment_manager.experiment_dir_path / output_filename_path
+                report.kwargs.output_filename = str(new_output_filename)
+
+        # The output_filename for this report is a product of this process, so add it to the list of outputs.
+        outputs.append(report.kwargs.output_filename)
+
+        # Retrieve the desired curve sources for this Report, if any were provided.
+        curve_sources = report.kwargs.curve_sources if "curve_sources" in report.kwargs else {}
+
+        # Accumulate all the tests (predictions) into one report.
         for test in report.tests:
             predictions_file = str(self.tag_map[test.tag]['filename'])
-            inputs.append(predictions_file)
 
-            command.append('-f')
-            command.append(predictions_file)
-            command.append('-c')
+            # The desired classes for the ROC curve can come from two places: inside the
+            # test itself or a 'classes' field in the report stanza. The field inside the
+            # test itself has priority.
             if test.classes:
-                command.append(test.classes)
+                classes = test.classes
             else:
-                command.append(report.classes)
+                if report.classes:
+                    classes = report.classes
+                # If no classes were specified, then just plot all known classes.
+                else:
+                    classes = "all"
+
+            # Add the 'prediction_file:desired_classes' combo to the curve sources. Since the
+            # predictions file needs to exist in order to produce this ROC curve, count it as an input.
+            curve_sources[predictions_file] = classes
+            inputs.append(predictions_file)
 
             requirements.append(self.tag_map[test.tag]['id'])
 
-        if report.plot_title:
-            command.append('--title')
-            command.append(report.plot_title)
+        # If any changes were made to the curve_sources, the content for the JSON file should reflect
+        # those changes.
+        report.kwargs.curve_sources = curve_sources
 
-        outputs = [output_path]
+        # Create the individual JSON file for this report and add the rule to the workflow.
+        self._finalize_report(report, report_json_path, inputs, requirements, outputs)
 
-        doc = " ".join([str(x) for x in command])
-        clean_extras = []
-        workflow = self.builder.get_workflow("main")
-        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
-
-    def add_summary(self, report: Report):
-
+    def add_summary(self, report: Report, report_json_path: Path) -> None:
+        """
+        This method is responsible for adding a rule to the workflow that will use the 'jb_report'
+        command to produce a Summary Report according to the conditions described in the report stanza.
+        :param report: One Report stanza from the list of reports described in the "reports" stanza
+        of the experiment config.
+        :param report_json_path: A Path indicating where to save the current JSON file.
+        :return: Nothing.
+        """
+        # Set up some lists to track some information for pydoit.
         inputs = []
         requirements = []
+        outputs = [str(report_json_path)]
 
-        output_path = self.experiment_manager.get_experiment_file(report.output_name)
-        outputs = [output_path]
+        # If an md_filename was not provided in the report's kwargs, use the experiment directory and
+        # a default filename.
+        if "md_filename" not in report.kwargs:
+            logger.warning(f"An md_filename was not found in the kwargs of the {report.fqcn} report "
+                           f"in the experiment config. Setting the output_filename to the default.")
+            default_md_filename = self.experiment_manager.experiment_dir_path / "summary.md"
+            logger.warning(f"  Setting 'output_filename' to {default_md_filename}")
+            report.kwargs.output_filename = str(default_md_filename)
+            logger.warning(f"To avoid this warning in the future, add an md_filename to the kwargs in the "
+                           f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()}")
 
-        command = [JB_SUMMARY_COMMAND, output_path]
-        if report.csv_name:
-            csv_path = self.experiment_manager.get_experiment_file(report.csv_name)
-            command.extend(['--csvFilename', csv_path])
-            outputs.append(str(csv_path))
-            log_dir = self.experiment_manager.get_experiment_log_dir()
-            command.extend(['--logDir', log_dir])
-            outputs.append(str(log_dir / "log_jb_summary_report.txt"))
+        # Otherwise attempt to use the "md_filename" provided in the config.
+        else:
+            # Convert the md_filename from a string to a Path.
+            md_filename_path = Path(report.kwargs.md_filename)
 
+            # Check if the desired md_filename is inside the experiment directory. If it is not,
+            # then place the experiment directory at the root of the desired md_filename and use
+            # that new Path as the md_filename.
+            if self.experiment_manager.experiment_dir_path.resolve() not in md_filename_path.resolve().parents:
+                new_md_filename = self.experiment_manager.experiment_dir_path / md_filename_path
+                logger.warning(f"The desired md_filename did not appear to be in the experiment directory. "
+                               f"Adjusting the value for md_filename to {new_md_filename}")
+                report.kwargs.md_filename = str(new_md_filename)
+                logger.warning(f"To avoid this warning in the future, adjust the md_filename in the kwargs of the "
+                               f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()} so "
+                               f"that the md_filename is located inside {self.experiment_manager.experiment_dir_path}")
+
+        # The md_filename for this report is a product of this process, so add it to the list of outputs.
+        outputs.append(report.kwargs.md_filename)
+
+        # The CSV file is optional, so only adjust the filename (potentially) if a csv_filename was provided.
+        if "csv_filename" in report.kwargs:
+            # Convert the csv_filename from a string to a Path.
+            csv_path = Path(report.kwargs.csv_filename)
+
+            # Check if the desired csv_filename is inside the experiment directory. If it is not,
+            # then place the experiment directory at the root of the desired csv_filename and use
+            # that new Path as the csv_filename.
+            if self.experiment_manager.experiment_dir_path.resolve() not in csv_path.resolve().parents:
+                new_csv_filename_path = self.experiment_manager.experiment_dir_path / csv_path
+                logger.warning(f"The desired csv_filename did not appear to be in the experiment directory. "
+                               f"Adjusting the value for csv_filename to {new_csv_filename_path}")
+                report.kwargs.csv_filename = str(new_csv_filename_path)
+                logger.warning(f"To avoid this warning in the future, adjust the csv_filename in the kwargs of the "
+                               f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()} so "
+                               f"that the csv_filename is located inside {self.experiment_manager.experiment_dir_path}")
+
+            # The csv_filename for this report is a product of this process, so add it to the list of outputs.
+            outputs.append(report.kwargs.csv_filename)
+
+        # Retrieve the desired metrics files to include in this Report, if any were provided.
+        metrics_files = report.kwargs.metrics_files if 'metrics_files' in report.kwargs else []
+
+        # Loop through the test tags, add any metrics files to the list of inputs, and if the metrics file
+        # isn't represented in the summary, add it there as well.
         for entry in self.tag_map.values():
-            command.append('-f')
-            command.append(entry['metrics'])
             inputs.append(entry['metrics'])
+            if entry['metrics'] not in metrics_files:
+                metrics_files.append(entry['metrics'])
             requirements.append(entry['id'])
 
-        # We need all the output file names. Depending on the report type, different plots may
-        # get added to the summary file.
-        for r in self.experiment_config.reports:
+        # If any changes were made to the metrics_files, the content for the JSON file should reflect
+        # those changes.
+        report.kwargs.metrics_files = metrics_files
 
-            # Add ROC plots to the summary file, if necessary.
-            if r.type == ReportType.PLOT_ROC:
-                command.append('-pf')
-                command.append(r.output_name)
-                inputs.append(self.experiment_manager.experiment_dir_path / r.output_name)
+        # Follow a similar process for the plot files to include in the summary. Start by retrieving any
+        # plot files specified in the report stanza.
+        plot_files = report.kwargs.plot_files if 'plot_files' in report.kwargs else []
 
-            # Add PR plots to the summary file, if necessary.
-            elif r.type == ReportType.PLOT_PR:
+        # Next, look through all of the Reports listed in the experiment config and add any plot files created
+        # there to the summary. Depending on the report type, different plots may get added to the summary file.
+        for index, report_stanza in enumerate(self.experiment_config.reports):
+
+            # Summary reports don't produce plot files, so any Summary Reports can skip this process.
+            if report_stanza.fqcn == ReportFQCN.SUMMARY:
+                continue
+
+            # Determine the filename for this report's individual report.json file stored in the experiment
+            # directory. Load the contents of that JSON file.
+            report_file_path = self.experiment_manager.get_experiment_report_file(index)
+            inputs.append(str(report_file_path))
+
+            # Load the individual Report file and fetch (what should be) the only Report in the "reports" list.
+            report_config = ReportConfig.load(report_file_path)
+            current_report = report_config.reports[0]
+
+            # Add any ROC plots to the summary file, if necessary.
+            if current_report.fqcn == ReportFQCN.PLOT_ROC:
+                plot_file = current_report.kwargs.output_filename
+                if plot_file not in plot_files:
+                    plot_files.append(current_report.kwargs.output_filename)
+
+            # Add any PR plots to the summary file, if necessary.
+            elif current_report.fqcn == ReportFQCN.PLOT_PR:
 
                 # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
-                plot_files = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
+                plot_filenames = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
 
-                for file in plot_files:
-                    command.append('-pf')
-                    command.append(f"{r.output_dir}/{file}")
-                    inputs.append(self.experiment_manager.experiment_dir_path / r.output_dir / file)
+                for file_name in plot_filenames:
+                    plot_file = str(Path(current_report.kwargs.output_dir) / file_name)
+                    if plot_file not in plot_files:
+                        plot_files.append(plot_file)
 
+            # This is where you could do some work to include plot_files from other Report types, but
+            # for now just continue on if the Report's fqcn is unfamiliar.
             else:
                 continue
 
+        # If any changes were made to the plot_files, the content for the JSON file should reflect
+        # those changes.
+        report.kwargs.plot_files = plot_files
+
+        # Create the individual JSON file for this report and add the rule to the workflow.
+        self._finalize_report(report, report_json_path, inputs, requirements, outputs)
+
+    def add_generic_report(self, report: Report, report_json_path: Path) -> None:
+        """
+        This method is responsible for adding a rule to the workflow for all other report
+        types that don't have a specific method defined for adding their workflow rules. The
+        downside of this method is that due to the unknown nature of the report's inputs and
+        outputs, those aspects of the report rule are difficult to fill out with any accuracy.
+        :param report: One Report stanza from the list of reports described in the "reports" stanza
+        of the experiment config. The 'fqcn' in this stanza will not match any of the known Report types.
+        :param report_json_path: A Path indicating where to save the current JSON file.
+        :return: Nothing.
+        """
+        # Set up some lists to track some information for pydoit.
+        inputs = []
+        requirements = []
+        outputs = [str(report_json_path)]
+
+        # Create the individual JSON file for this report and add the rule to the workflow.
+        self._finalize_report(report, report_json_path, inputs, requirements, outputs)
+
+    def _finalize_report(self, json_content: dict, json_path: Path,
+                         inputs: list, requirements: list, outputs: list) -> None:
+        """
+        This method is responsible for performing the final steps required to write the individual
+        report JSON file and workflow rule.
+        :param json_content: A dictionary corresponding to a single Report stanza. This content is to
+        be written the the individual report.json file.
+        :param json_path: The Path indicating where to save the current JSON file.
+        :param inputs: The list of any input files for this workflow rule.
+        :param requirements: The list of any requirement rules for this workflow rule
+        :param outputs: The list of output files generated by this rule.
+        :return: Nothing
+        """
+
+        # The "classes" and "tests" stanzas are not required in the Report's JSON file.
+        if "classes" in json_content:
+            json_content.pop("classes")
+        if "tests" in json_content:
+            json_content.pop("tests")
+
+        # Format the contents of the JSON file correctly.
+        json_content = {"reports": [json_content]}
+
+        # Open the JSON file for writing and dump the content.
+        with open(json_path, 'w') as file:
+            json.dump(json_content, file, indent=4)
+        logger.info(f"Saved individual report JSON to {json_path}")
+
+        # Add the newly created JSON file to the list of outputs for this rule.
+        outputs.append(str(json_path))
+
+        # Group the lists into a tuple since that's the format the next method expects.
+        workflow_components = (inputs, requirements, outputs)
+
+        # Add the workflow rule.
+        self.add_workflow_rule(workflow_components, json_path)
+
+    def add_workflow_rule(self, workflow_components: tuple, report_file_path: Path) -> None:
+        """
+        This method is responsible for adding a rule to the workflow. The rule will run jb_report using an
+        individual report.json file.
+        :param workflow_components: A tuple of the form (inputs, requirements, outputs) where each component is
+        a list.
+        :param report_file_path: The Path to the individual report JSON file to be executed by 'jb_report'.
+        :return: Nothing.
+        """
+        # Separate the workflow_components tuple into the individual lists.
+        inputs, requirements, outputs = workflow_components
+
+        # Remove any duplicate entries in the lists of inputs and outputs.
+        inputs = list(set(inputs))
+        outputs = list(set(outputs))
+
+        # Build the command and doc string.
+        experiment_log_dir = self.experiment_manager.experiment_log_dir_path
+        command = [JB_REPORT_COMMAND, '-f', str(report_file_path), '-l', str(experiment_log_dir)]
         doc = " ".join([str(x) for x in command])
+
         clean_extras = []
 
+        # Get the workflow and add the rule.
         workflow = self.builder.get_workflow("main")
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
@@ -345,7 +634,7 @@ def main():
     args = parser.parse_args()
 
     maker = RuleMaker(args.experimentName)
-    experiment_manager = jbfs.ExperimentManager(args.experimentName)
+    experiment_manager = ExperimentManager(args.experimentName)
     maker.save(experiment_manager.get_experiment_rules())
 
     logger.info(f"jb_experiment_to_rules is done.")

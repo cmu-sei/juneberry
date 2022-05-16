@@ -31,6 +31,7 @@ import random
 import sys
 import typing
 
+from juneberry.config.plugin import Plugin
 import juneberry.config.util as conf_utils
 from juneberry.config.workspace import LabProfile
 import juneberry.filesystem as jbfs
@@ -55,17 +56,6 @@ class SplittingAlgo(str, Enum):
     RANDOM_FRACTION = 'random_fraction'
     TENSORFLOW = "tensorflow"
     TORCHVISION = 'torchvision'
-
-
-# TODO: Switch to plugin
-class TransformEntry(Prodict):
-    fqcn: str
-    kwargs: Prodict
-
-
-class Plugin(Prodict):
-    fqcn: str
-    kwargs: Prodict
 
 
 class ModelArchitecture(Prodict):
@@ -146,8 +136,8 @@ class ModelConfig(Prodict):
     epochs: int
     evaluation_metrics: List[Plugin]
     evaluation_metrics_formatter: Plugin
-    evaluation_transforms: List[TransformEntry]
-    evaluation_target_transforms: List[TransformEntry]
+    evaluation_transforms: List[Plugin]
+    evaluation_target_transforms: List[Plugin]
     evaluator: Plugin
     file_path: Path
     format_version: str
@@ -156,10 +146,11 @@ class ModelConfig(Prodict):
     # TODO: Define mmdetection
     mmdetection: Prodict
     model_architecture: ModelArchitecture
-    model_transforms: List[TransformEntry]
+    model_transforms: List[Plugin]
     platform: str
-    preprocessors: List[TransformEntry]
+    preprocessors: List[Plugin]
     pytorch: PytorchOptions
+    reports: List[Plugin]
     seed: typing.Union[int, None]
     stopping_criteria: StoppingCriteria
     summary_info: Prodict
@@ -168,8 +159,8 @@ class ModelConfig(Prodict):
     timestamp: str
     trainer: Plugin
     training_dataset_config_path: str
-    training_transforms: List[TransformEntry]
-    training_target_transforms: List[TransformEntry]
+    training_transforms: List[Plugin]
+    training_target_transforms: List[Plugin]
     validation: Validation
 
     def init(self) -> None:
