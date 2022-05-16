@@ -310,12 +310,12 @@ def test_experiment_reports(tmp_path):
 
     # The ExperimentConfig will throw an error when it is loaded if the model directory
     # does not exist, so create a fake model directory inside the workspace.
-    model_dir_path = tmp_path / "models/imagenette_160x160_rgb_unit_test_pyt_resnet18"
+    model_dir_path = tmp_path / "models/tabular_binary_sample"
     model_dir_path.mkdir(parents=True)
 
     # The ExperimentConfig will throw an error when it is loaded if the training dataset
     # does not exist, so create a fake dataset config inside the workspace.
-    dataset_config_path = tmp_path / "data_sets/imagenette_unit_test.json"
+    dataset_config_path = tmp_path / "data_sets/train_data_config.json"
     dataset_config_path.parent.mkdir(parents=True)
     dataset_config_path.touch()
 

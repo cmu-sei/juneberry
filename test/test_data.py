@@ -38,6 +38,7 @@ from juneberry.filesystem import ModelManager
 
 from test_coco_utils import make_sample_coco
 import test_model_config
+import testing_utils
 
 
 def make_data():
@@ -800,41 +801,46 @@ def mock_load_tabular_data(mc):
         return ['tab_train'], []
 
 
-def test_get_label_mapping():
-    # Binary sample files
-    model_name = "tabular_binary_sample"
-    model_manager = ModelManager(model_name)
-    model_config = ModelConfig.load(model_manager.get_model_config())
-    train_config = DatasetConfig.load("models/tabular_binary_sample/train_data_config.json")
-    test_labels = {0: "outer", 1: "inner"}
-    test_stanza = {"0": "outer", "1": "inner"}
+def test_get_label_mapping(tmp_path):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
 
-    assert isinstance(jb_data.convert_dict(test_stanza), dict)
+        # Binary sample files
+        model_name = "tabular_binary_sample"
+        model_manager = ModelManager(model_name)
+        model_config = ModelConfig.load(model_manager.get_model_config())
+        train_config = DatasetConfig.load("data_sets/train_data_config.json")
+        test_labels = {0: "outer", 1: "inner"}
+        test_stanza = {"0": "outer", "1": "inner"}
 
-    # Unit tests
-    test_source = "training dataset config via model config via model manager"
-    func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
-    TestCase().assertDictEqual(func_labels, test_labels)
-    assert test_source == func_source
+        assert isinstance(jb_data.convert_dict(test_stanza), dict)
 
-    # TODO: write a unit test for the training output case
+        # Unit tests
+        test_source = "training dataset config via model config via model manager"
+        func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
+        TestCase().assertDictEqual(func_labels, test_labels)
+        assert test_source == func_source
 
-    func_labels = jb_data.get_label_mapping(model_config=model_config, show_source=True)
-    assert func_labels is None
+        # TODO: write a unit test for the training output case
 
-    test_source = "training dataset config"
-    func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
-    TestCase().assertDictEqual(func_labels, test_labels)
-    assert test_source == func_source
+        func_labels = jb_data.get_label_mapping(model_config=model_config, show_source=True)
+        assert func_labels is None
 
-    test_source = "training dataset config"
-    func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
-                                                         show_source=True)
-    TestCase().assertDictEqual(func_labels, test_labels)
-    assert test_source == func_source
+        test_source = "training dataset config"
+        func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
+        TestCase().assertDictEqual(func_labels, test_labels)
+        assert test_source == func_source
 
-    func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
-    TestCase().assertDictEqual(func_labels, test_labels)
+        test_source = "training dataset config"
+        func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
+                                                             show_source=True)
+        TestCase().assertDictEqual(func_labels, test_labels)
+        assert test_source == func_source
+
+        func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
+        TestCase().assertDictEqual(func_labels, test_labels)
 
 
 def make_sample_manifest(manifest_path, category_list):
@@ -856,84 +862,90 @@ def make_sample_manifest(manifest_path, category_list):
 
 
 def test_get_category_list(monkeypatch, tmp_path):
-    # Grab args
-    model_name = "text_detect/dt2/ut"
-    model_manager = ModelManager(model_name)
-    train_config = DatasetConfig.load("data_sets/text_detect_val.json")
-    data_root = Path(tmp_path)
-    test_list_1 = [{'id': 0, 'name': 'HINDI'},
-                   {'id': 1, 'name': 'ENGLISH'},
-                   {'id': 2, 'name': 'OTHER'}]
-    test_list_2 = [{'id': 0, 'name': 'zero'},
-                   {'id': 1, 'name': 'one'},
-                   {'id': 2, 'name': 'two'},
-                   {'id': 3, 'name': 'three'}]
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_dt2_workspace(tmp_path)
 
-    # Make sample manifest files (if not instantiated already)
-    train_manifest_path = model_manager.get_training_data_manifest_path()
-    temp_train_manifest = make_sample_manifest(train_manifest_path, test_list_1)
-    val_manifest_path = model_manager.get_validation_data_manifest_path()
-    temp_val_manifest = make_sample_manifest(val_manifest_path, test_list_1)
+        # Grab args
+        model_name = "text_detect/dt2/ut"
+        model_manager = ModelManager(model_name)
+        train_config = DatasetConfig.load("data_sets/text_detect_val.json")
+        data_root = Path(tmp_path)
+        test_list_1 = [{'id': 0, 'name': 'HINDI'},
+                       {'id': 1, 'name': 'ENGLISH'},
+                       {'id': 2, 'name': 'OTHER'}]
+        test_list_2 = [{'id': 0, 'name': 'zero'},
+                       {'id': 1, 'name': 'one'},
+                       {'id': 2, 'name': 'two'},
+                       {'id': 3, 'name': 'three'}]
 
-    # Make sample coco data file
-    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
-    coco_data = make_sample_coco([], [])
-    coco_path = Path(data_root / 'detectron2-text-detection/val/')
-    Path(coco_path).mkdir(parents=True, exist_ok=True)
-    with open(coco_path / 'coco_annotations.json', 'w') as json_file:
-        json.dump(coco_data, json_file)
+        # Make sample manifest files (if not instantiated already)
+        train_manifest_path = model_manager.get_training_data_manifest_path()
+        temp_train_manifest = make_sample_manifest(train_manifest_path, test_list_1)
+        val_manifest_path = model_manager.get_validation_data_manifest_path()
+        temp_val_manifest = make_sample_manifest(val_manifest_path, test_list_1)
 
-    # Test DatasetConfig case
-    with TestCase().assertLogs(level='WARNING') as cm:
+        # Make sample coco data file
+        monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
+        coco_data = make_sample_coco([], [])
+        coco_path = Path(data_root / 'detectron2-text-detection/val/')
+        Path(coco_path).mkdir(parents=True, exist_ok=True)
+        with open(coco_path / 'coco_annotations.json', 'w') as json_file:
+            json.dump(coco_data, json_file)
+
+        # Test DatasetConfig case
+        with TestCase().assertLogs(level='WARNING') as cm:
+            category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
+                                                              train_config=train_config,
+                                                              data_root=data_root,
+                                                              show_source=True)
+        assert test_list_2 == category_list
+        assert source == "train config"
+
+        # Check for warning message
+        TestCase().assertIn(
+            "WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
+            cm.output[0])
+
+        # Test manifest case
         category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
+                                                          model_manager=model_manager,
                                                           train_config=train_config,
                                                           data_root=data_root,
                                                           show_source=True)
-    assert test_list_2 == category_list
-    assert source == "train config"
+        assert test_list_1 == category_list
+        assert source == "train manifest"
 
-    # Check for warning message
-    TestCase().assertIn("WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
-                        cm.output[0])
+        # Test no mappings case
+        try:
+            jb_data.get_category_list(eval_manifest_path=Path(""))
+            assert False
+        except SystemExit:
+            assert True
 
-    # Test manifest case
-    category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
-                                                      model_manager=model_manager,
-                                                      train_config=train_config,
-                                                      data_root=data_root,
-                                                      show_source=True)
-    assert test_list_1 == category_list
-    assert source == "train manifest"
-
-    # Test no mappings case
-    try:
-        jb_data.get_category_list(eval_manifest_path=Path(""))
-        assert False
-    except SystemExit:
-        assert True
-
-    # Test ModelConfig function
-    model_config = test_model_config.make_basic_config()
-    model_config["preprocessors"] = [{"fqcn": "juneberry.transforms.metadata_preprocessors.ObjectRelabel",
-                                      "kwargs": {
-                                          "key": "orig",
-                                          "labels": {
-                                              "0": "HINDI",
-                                              "1": "ENGLISH",
-                                              "2": "OTHER"
+        # Test ModelConfig function
+        model_config = test_model_config.make_basic_config()
+        model_config["preprocessors"] = [{"fqcn": "juneberry.transforms.metadata_preprocessors.ObjectRelabel",
+                                          "kwargs": {
+                                              "key": "orig",
+                                              "labels": {
+                                                  "0": "HINDI",
+                                                  "1": "ENGLISH",
+                                                  "2": "OTHER"
+                                              }
                                           }
-                                      }
-                                      }]
+                                          }]
 
-    model_config_path = Path(tmp_path, "config.json")
-    with open(model_config_path, 'w') as out_file:
-        json.dump(model_config, out_file, indent=4)
-    category_list = jb_data.categories_in_model_config(model_config_path=model_config_path)
+        model_config_path = Path(tmp_path, "config.json")
+        with open(model_config_path, 'w') as out_file:
+            json.dump(model_config, out_file, indent=4)
+        category_list = jb_data.categories_in_model_config(model_config_path=model_config_path)
 
-    assert test_list_1 == category_list
+        assert test_list_1 == category_list
 
-    # Remove sample manifests from filesystem
-    if temp_train_manifest:
-        train_manifest_path.unlink()
-    if temp_val_manifest:
-        val_manifest_path.unlink()
+        # Remove sample manifests from filesystem
+        if temp_train_manifest:
+            train_manifest_path.unlink()
+        if temp_val_manifest:
+            val_manifest_path.unlink()

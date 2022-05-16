@@ -24,7 +24,11 @@
 
 import unittest
 
+import pytest
+
 from juneberry.config.experiment import ExperimentConfig
+
+import testing_utils
 
 
 def make_basic_config():
@@ -32,11 +36,11 @@ def make_basic_config():
         "description": "simple description",
         "models": [
             {
-                "name": "imagenette_160x160_rgb_unit_test_pyt_resnet18",
+                "name": "tabular_binary_sample",
                 "tests": [
                     {
                         "tag": "pyt50",
-                        "dataset_path": "data_sets/imagenette_unit_test.json",
+                        "dataset_path": "data_sets/train_data_config.json",
                         "classify": 3
                     }
                 ]
@@ -64,68 +68,91 @@ def make_basic_config():
     # the version changes.
 
 
-def test_config_basics():
-    config = make_basic_config()
+# TODO: Refactor for maintenance
 
-    # Most of the real functionality is in the checks
-    exp_conf = ExperimentConfig.construct(config)
-    assert len(config['models']) == len(exp_conf['models'])
-    assert len(config['reports']) == len(exp_conf['reports'])
+def test_config_basics(tmp_path):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
+        config = make_basic_config()
+
+        # Most of the real functionality is in the checks
+        exp_conf = ExperimentConfig.construct(config)
+        assert len(config['models']) == len(exp_conf['models'])
+        assert len(config['reports']) == len(exp_conf['reports'])
 
 
-class TestFormatErrors(unittest.TestCase):
+def test_models_missing(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
 
-    def assert_error(self, cm, message, count=2):
-        # Normally we have 3 errors. One for the actual and then 2 complaining about the invalid
-        # print(cm.output)
-        self.assertEqual(len(cm.output), count)
-        self.assertIn("ERROR:juneberry", cm.output[0])
-        self.assertIn(message, cm.output[0])
-
-    # def test_version(self):
-    #     config = make_basic_config()
-    #     config['formatVersion'] = "0.0.0"
-    #
-    #     with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
-    #         ExperimentConfig.construct(config)
-    #     self.assert_error(log, "does not match latest version", 1)
-
-    def test_models_missing(self):
         config = make_basic_config()
         del config['models']
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "'models' is a required property", 3)
+        assert caplog.records[0].levelname == "ERROR"
+        assert "'models' is a required property at []" in caplog.text
 
-    def test_models_non_zero(self):
+
+def test_models_non_zero(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['models'] = []
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "is too short at ['models']", 3)
 
-    def test_model_bad_name(self):
+        assert "is too short at ['models']" in caplog.text
+
+
+def test_model_bad_name(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['models'][0]['name'] = "bad name"
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "Model not found")
 
-    def test_model_duplicate_tag(self):
+        assert "Model not found" in caplog.text
+
+
+def test_model_duplicate_tag(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['models'][0]['tests'].append({
             "tag": "pyt50",
             "dataset_path": "data_sets/imagenette_unit_test.json",
         })
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "Found duplicate tag")
 
-    def test_model_duplicate_tag_2(self):
+        assert "Found duplicate tag" in caplog.text
+
+
+def test_model_duplicate_tag_2(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['models'].append({
             "name": "tabular_binary_sample",
@@ -137,22 +164,37 @@ class TestFormatErrors(unittest.TestCase):
             ]
         })
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "Found duplicate tag")
 
-    def test_model_bad_dataset_path(self):
+        assert "Found duplicate tag" in caplog.text
+
+
+def test_model_bad_dataset_path(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['models'][0]['tests'][0]['dataset_path'] = "bad name"
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "Dataset not found")
 
-    def test_report_bad_tag(self):
+        assert "Dataset not found" in caplog.text
+
+
+def test_report_bad_tag(tmp_path, caplog):
+    with testing_utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
+        testing_utils.setup_test_workspace(tmp_path)
+        testing_utils.make_tabular_workspace(tmp_path)
+
         config = make_basic_config()
         config['reports'][0]['tests'][0]['tag'] = "wrong tag"
 
-        with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
+        with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        self.assert_error(log, "Unknown report tag")
+
+        assert "Unknown report tag" in caplog.text
