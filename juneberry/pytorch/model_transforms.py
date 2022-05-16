@@ -294,6 +294,22 @@ class PatchLayer(torch.nn.Module):
         self.patch = patch
         self.forward_counter = 0 
 
+        self.degree_max = 0
+        self.degree_min = 0
+        if 'degree_range' in patch_transforms:
+            self.degree_min = patch_transforms['degree_range'][0] 
+            self.degree_max = patch_transforms['degree_range'][1]
+
+        self.scale_min = 1
+        self.scale_max = 1
+        if 'scale_range' in patch_transforms:
+            self.scale_min = patch_transforms['scale_range'][0] 
+            self.scale_max = patch_transforms['scale_range'][1]
+
+        self.translate_proportion = 0
+        if 'translate_proportion' in patch_transforms:
+            self.translate_proportion = patch_transforms['translate_proportion']
+
     def cat_four(self,x):
         return( torch.cat( ( torch.cat([ x[0], x[1] ], 1 ),  torch.cat([ x[2], x[3] ], 1 ) ), 2)  )
 
@@ -328,11 +344,11 @@ class PatchLayer(torch.nn.Module):
         # self.save_debug_images(patch,'patch')
         # self.save_debug_images(mask,'mask')
 
-        # Why does this have to be created on the forward pass to work? 
+        # Why do these have to be created on the forward pass to work? 
         self.patch_transforms = kornia.augmentation.container.AugmentationSequential( 
-            kornia.augmentation.RandomAffine( degrees=(-22.5, 22.5), scale = (0.1, 1) ),
-            kornia.augmentation.RandomCrop( size=(224,224), pad_if_needed=True, cropping_mode='resample'),
-            kornia.augmentation.RandomAffine( degrees=0, translate=(.5,.5)),
+            kornia.augmentation.RandomAffine( degrees=(self.degree_min, self.degree_max), scale = (self.scale_min, self.scale_max) ),
+            kornia.augmentation.RandomCrop( size=(x.shape[2], x.shape[3]), pad_if_needed=True, cropping_mode='resample'),
+            kornia.augmentation.RandomAffine( degrees=0, translate=(self.translate_proportion,self.translate_proportion)),
             data_keys=["input", "mask"]
         )
 
@@ -355,8 +371,9 @@ class PatchLayer(torch.nn.Module):
         # Apply the patch to the batch
         x = x * (1 - mask) + patch * mask
 
-        if self.forward_counter % (10 * 2) == 0 :
-            self.save_debug_images(x, f"patched-x")
+        if self.forward_counter % (100 * 2) == 0 :
+            with torch.no_grad():
+                self.save_debug_images(x, f"patched-x")
 
         # Tranform the patched images
         x = self.image_transforms(x)
@@ -364,15 +381,16 @@ class PatchLayer(torch.nn.Module):
         return( x )
 
 class ApplyPatchLayer:
-    def __init__(self, patch, patch_transforms = None, image_transforms = None):
+    def __init__(self, patch, patch_transforms, image_transforms = None):
 
+        #import pdb; pdb.set_trace()
         if 'shape' in patch and 'mask' in patch: 
             self.patch = PILPatch(patch['shape'], patch['mask'])
         else :
             raise RuntimeError(f"Shape and mask must be keys of patch. Got patch = {patch}")
 
         # Note: weird error if AugmentationSequential not created inside nn.Module
-        self.patch_layer = PatchLayer(self.patch)
+        self.patch_layer = PatchLayer(self.patch,patch_transforms,image_transforms)
 
     def __call__(self, model):
         model = torch.nn.Sequential( self.patch_layer, model)
