@@ -22,8 +22,6 @@
 #
 # ======================================================================================================================
 
-import unittest
-
 import pytest
 
 from juneberry.config.experiment import ExperimentConfig
