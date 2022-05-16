@@ -203,7 +203,8 @@ class LogModelSummary:
     def __call__(self, model):
         orig = sys.stdout
         sys.stdout.write = logger.info
-        summary(model, self.image_shape)
+        with torch.no_grad():
+            summary(model, self.image_shape)
         sys.stdout = orig
         return model
 
@@ -250,6 +251,133 @@ class Freeze:
 #        print(f"{x_tmp.shape} {x_out.shape}")
 #        
 #        return x_out.float() / 255.0
+
+class PILPatch(torch.nn.Module):
+    def __init__(self, shape, mask = 'circle'):
+        super().__init__()
+        # Init as a gray patch 
+        self.patch = torch.nn.Parameter( (torch.ones(shape, dtype=torch.float, requires_grad=True))* 0.5 )
+
+        if mask is None:
+            mask = torch.ones(shape) 
+        elif mask == 'circle':
+            mask = torch.tensor( _circle_mask( shape = [shape[1], shape[2], shape[0]])).permute(2,0,1) 
+        else:
+            raise RuntimeError(f"Mask type {mask} not yet implemented.")
+
+        # Note, this creates self.mask
+        self.register_buffer('mask', mask)
+
+    def clamp_to_valid_image(self):
+        self.patch.clamp(min=0, max=1)
+
+    def save_patch(self, path):
+        self.clamp_to_valid_image()
+        # Permute to PIL's channel last, order, cast to a numpy uint8 array, and return as a instance of a PIL Image 
+        patch_image = Image.fromarray( np.array( (self.patch * self.mask).detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
+
+        # Save the patch
+        patch_image.save(path)
+
+    def forward(self, x):
+        # Clamp the patch
+        self.clamp_to_valid_image()
+        # Repeat the patch and mask across the batches of x and return
+        batched_patch = (self.patch * self.mask).repeat( x.shape[0], 1, 1, 1)
+        batched_mask = (self.mask).repeat( x.shape[0], 1, 1, 1)
+
+        return( batched_patch , batched_mask)
+
+class PatchLayer(torch.nn.Module):
+    def __init__(self, patch, patch_transforms=None, image_transforms=None):
+        super().__init__()
+        self.patch = patch
+        self.forward_counter = 0 
+
+    def cat_four(self,x):
+        return( torch.cat( ( torch.cat([ x[0], x[1] ], 1 ),  torch.cat([ x[2], x[3] ], 1 ) ), 2)  )
+
+    def save_debug_images(self, x, name="batch "):
+        if x.shape[0] >= 16:
+            quad0 = self.cat_four( x[0:4] )
+            quad1 = self.cat_four( x[4:8] )
+            quad2 = self.cat_four( x[8:12] )
+            quad3 = self.cat_four( x[12:16] )
+
+            four_quads = self.cat_four( torch.stack( (quad0, quad1, quad2, quad3)) )
+
+            debug_image = Image.fromarray( np.array( four_quads.detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
+            debug_image.save(f"{name}-four-quads.png")
+        else: 
+            for b in range(min(x.shape[0],16)):
+                print(b)
+                debug_image = Image.fromarray( np.array( x[b].detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
+                debug_image.save(f"{name}-{b}.png")
+
+
+    def forward(self, x):
+        self.forward_counter = self.forward_counter + 1
+
+        # Grab the current patch, replicated across the batches of x
+
+        # import pdb; pdb.set_trace()
+        # self.save_debug_images(x,'x')
+
+
+        patch, mask = self.patch(x)
+        # self.save_debug_images(patch,'patch')
+        # self.save_debug_images(mask,'mask')
+
+        # Why does this have to be created on the forward pass to work? 
+        self.patch_transforms = kornia.augmentation.container.AugmentationSequential( 
+            kornia.augmentation.RandomAffine( degrees=(-22.5, 22.5), scale = (0.1, 1) ),
+            kornia.augmentation.RandomCrop( size=(224,224), pad_if_needed=True, cropping_mode='resample'),
+            kornia.augmentation.RandomAffine( degrees=0, translate=(.5,.5)),
+            data_keys=["input", "mask"]
+        )
+
+        self.image_transforms = kornia.augmentation.container.AugmentationSequential(
+            kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.tensor( (0.229, 0.224, 0.225)))
+        )
+
+        # Transform the patches and mask (each element of a batch should have different transforms)
+        patch, mask = self.patch_transforms(patch, mask)
+
+        # self.save_debug_images(patch,'patch-transformed')
+        # self.save_debug_images(mask,'mask-transformed')
+
+        # TODO play with this to remove border
+        # scale_mask = kornia.augmentation.container.AugmentationSequential(
+        #     kornia.augmentation.RandomAffine(  degrees=0, scale=(.95,.95))
+        # )
+        # mask = scale_mask( mask )
+
+        # Apply the patch to the batch
+        x = x * (1 - mask) + patch * mask
+
+        if self.forward_counter % (10 * 2) == 0 :
+            self.save_debug_images(x, f"patched-x")
+
+        # Tranform the patched images
+        x = self.image_transforms(x)
+
+        return( x )
+
+class ApplyPatchLayer:
+    def __init__(self, patch, patch_transforms = None, image_transforms = None):
+
+        if 'shape' in patch and 'mask' in patch: 
+            self.patch = PILPatch(patch['shape'], patch['mask'])
+        else :
+            raise RuntimeError(f"Shape and mask must be keys of patch. Got patch = {patch}")
+
+        # Note: weird error if AugmentationSequential not created inside nn.Module
+        self.patch_layer = PatchLayer(self.patch)
+
+    def __call__(self, model):
+        model = torch.nn.Sequential( self.patch_layer, model)
+        return model
+
 
 class TensorPatch(torch.nn.Module):
     def __init__(self, shape):
