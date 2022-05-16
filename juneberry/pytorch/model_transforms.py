@@ -241,22 +241,12 @@ class Freeze:
             param.requires_grad = False
         return model
 
-#class Preprocess(torch.nn.Module):
-#    """Module to perform pre-process using Kornia on torch tensors."""
-#
-#    def forward(self, x):
-#        import pdb; pdb.set_trace()
-#        x_tmp = np.array([x[,1,:],x[2,:],x[0,:]])  # HxWxC
-#        x_out = kornia.image_to_tensor(x_tmp, keepdim=True)  # CxHxW
-#        print(f"{x_tmp.shape} {x_out.shape}")
-#        
-#        return x_out.float() / 255.0
-
 class PILPatch(torch.nn.Module):
     def __init__(self, shape, mask = 'circle'):
         super().__init__()
         # Init as a gray patch 
         self.patch = torch.nn.Parameter( (torch.ones(shape, dtype=torch.float, requires_grad=True))* 0.5 )
+        self.model_path = None
 
         if mask is None:
             mask = torch.ones(shape) 
@@ -271,13 +261,14 @@ class PILPatch(torch.nn.Module):
     def clamp_to_valid_image(self):
         self.patch.clamp(min=0, max=1)
 
-    def save_patch(self, path):
+    def save_patch(self, model_path, filename):
         self.clamp_to_valid_image()
+        self.model_path = model_path
         # Permute to PIL's channel last, order, cast to a numpy uint8 array, and return as a instance of a PIL Image 
         patch_image = Image.fromarray( np.array( (self.patch * self.mask).detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
 
         # Save the patch
-        patch_image.save(path)
+        patch_image.save(f"{model_path}.{filename}")
 
     def forward(self, x):
         # Clamp the patch
@@ -292,7 +283,6 @@ class PatchLayer(torch.nn.Module):
     def __init__(self, patch, patch_transforms=None, image_transforms=None):
         super().__init__()
         self.patch = patch
-        self.forward_counter = 0 
 
         self.degree_max = 0
         self.degree_min = 0
@@ -310,10 +300,15 @@ class PatchLayer(torch.nn.Module):
         if 'translate_proportion' in patch_transforms:
             self.translate_proportion = patch_transforms['translate_proportion']
 
+        self.forward_counter = 0 
+        self.debug_interval = None
+        if 'debug' in patch_transforms:
+            self.debug_interval = patch_transforms['debug']['interval']
+
     def cat_four(self,x):
         return( torch.cat( ( torch.cat([ x[0], x[1] ], 1 ),  torch.cat([ x[2], x[3] ], 1 ) ), 2)  )
 
-    def save_debug_images(self, x, name="batch "):
+    def save_debug_images(self, x, path, name="batch "):
         if x.shape[0] >= 16:
             quad0 = self.cat_four( x[0:4] )
             quad1 = self.cat_four( x[4:8] )
@@ -323,35 +318,28 @@ class PatchLayer(torch.nn.Module):
             four_quads = self.cat_four( torch.stack( (quad0, quad1, quad2, quad3)) )
 
             debug_image = Image.fromarray( np.array( four_quads.detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
-            debug_image.save(f"{name}-four-quads.png")
+            debug_image.save(f"{path}.{name}-four-quads.png")
         else: 
             for b in range(min(x.shape[0],16)):
                 print(b)
                 debug_image = Image.fromarray( np.array( x[b].detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
-                debug_image.save(f"{name}-{b}.png")
+                debug_image.save(f"{path}.{name}.{b}.png")
 
 
     def forward(self, x):
         self.forward_counter = self.forward_counter + 1
 
         # Grab the current patch, replicated across the batches of x
-
-        # import pdb; pdb.set_trace()
-        # self.save_debug_images(x,'x')
-
-
         patch, mask = self.patch(x)
-        # self.save_debug_images(patch,'patch')
-        # self.save_debug_images(mask,'mask')
 
-        # Why do these have to be created on the forward pass to work? 
+        # Define the transforms
+        # TODO: Why do these have to be created on the forward pass to work? 
         self.patch_transforms = kornia.augmentation.container.AugmentationSequential( 
             kornia.augmentation.RandomAffine( degrees=(self.degree_min, self.degree_max), scale = (self.scale_min, self.scale_max) ),
             kornia.augmentation.RandomCrop( size=(x.shape[2], x.shape[3]), pad_if_needed=True, cropping_mode='resample'),
             kornia.augmentation.RandomAffine( degrees=0, translate=(self.translate_proportion,self.translate_proportion)),
             data_keys=["input", "mask"]
         )
-
         self.image_transforms = kornia.augmentation.container.AugmentationSequential(
             kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.tensor( (0.229, 0.224, 0.225)))
         )
@@ -359,21 +347,12 @@ class PatchLayer(torch.nn.Module):
         # Transform the patches and mask (each element of a batch should have different transforms)
         patch, mask = self.patch_transforms(patch, mask)
 
-        # self.save_debug_images(patch,'patch-transformed')
-        # self.save_debug_images(mask,'mask-transformed')
-
-        # TODO play with this to remove border
-        # scale_mask = kornia.augmentation.container.AugmentationSequential(
-        #     kornia.augmentation.RandomAffine(  degrees=0, scale=(.95,.95))
-        # )
-        # mask = scale_mask( mask )
-
         # Apply the patch to the batch
         x = x * (1 - mask) + patch * mask
 
-        if self.forward_counter % (100 * 2) == 0 :
+        if self.debug_interval is not None and self.forward_counter % (self.debug_interval * 2) == 0 :
             with torch.no_grad():
-                self.save_debug_images(x, f"patched-x")
+                self.save_debug_images(x, self.patch.model_path, "patched-x")
 
         # Tranform the patched images
         x = self.image_transforms(x)
@@ -383,7 +362,6 @@ class PatchLayer(torch.nn.Module):
 class ApplyPatchLayer:
     def __init__(self, patch, patch_transforms, image_transforms = None):
 
-        #import pdb; pdb.set_trace()
         if 'shape' in patch and 'mask' in patch: 
             self.patch = PILPatch(patch['shape'], patch['mask'])
         else :
@@ -395,81 +373,6 @@ class ApplyPatchLayer:
     def __call__(self, model):
         model = torch.nn.Sequential( self.patch_layer, model)
         return model
-
-
-class TensorPatch(torch.nn.Module):
-    def __init__(self, shape):
-        super().__init__()
-        # Note that torch.rand returns values between 0 and 1.
-        self.patch = torch.nn.Parameter( (torch.zeros(shape, dtype=torch.float, requires_grad=True) )) 
-        # Try a standard normal as an init
-        # self.patch = torch.nn.Parameter( torch.normal( mean=0, std=1, size=shape, requires_grad=True) )
-        self.shape = shape
-
-        print(f"Init R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
-        print(f"Init G Patch min: {self.patch[1,:,:].min()} Patch max: {self.patch[1,:,:].max()}") 
-        print(f"Init B Patch min: {self.patch[2,:,:].min()} Patch max: {self.patch[2,:,:].max()}") 
-        
-    def clamp_to_zero_one_imagenet_norms(self):
-        """
-        Note the standard ImageNet normalization is 
-            "mean": [ 0.485, 0.456, 0.406 ],
-            "std": [ 0.229, 0.224, 0.225]
-        So a tensor, normalized from 0 to 1 will have bounds for the first channel of 
-            ( 0 - 0.485 ) / 0.229 = -2.1179039301310043
-            ( 1 - 0.485 ) / 0.229 = 2.2489082969432315
-        and so on.
-        """
-        self.patch.data[0, :, :].clamp_(min=( 0 - 0.485 ) / 0.229, max=( 1 - 0.485 ) / 0.229)
-        self.patch.data[1, :, :].clamp_(min=( 0 - 0.456 ) / 0.224, max=( 1 - 0.456 ) / 0.224)
-        self.patch.data[2, :, :].clamp_(min=( 0 - 0.406 ) / 0.225, max=( 1 - 0.406 ) / 0.225 )
-
-    def un_normalize_imagenet_norms(self, x):
-        x_r = x[0, :, :] * 0.229 + 0.485  
-        x_g = x[1, :, :] * 0.224 + 0.456  
-        x_b = x[2, :, :] * 0.225 + 0.406 
-
-        return (torch.stack([x_r, x_g, x_b]).clamp_(min=0, max=1))
-
-    def save_patch(self, path):
-
-        # Extra clamp to catch the last optimizer.step()
-        # N.B. This doesn't normally get called because of the evaluation forward pass.
-        # print(f"Pre-clamp R Patch min: {self.patch[0,:,:].min()} Patch max: {self.patch[0,:,:].max()}") 
-        # print(f"Pre-clamp G Patch min: {self.patch[1,:,:].min()} Patch max: {self.patch[1,:,:].max()}") 
-        # print(f"Pre-clamp B Patch min: {self.patch[2,:,:].min()} Patch max: {self.patch[2,:,:].max()}") 
-        self.clamp_to_zero_one_imagenet_norms()
-
-        # Un-normalize back to [0,1)
-        patch_zero_one =  self.un_normalize_imagenet_norms( self.patch.detach().cpu() )
-        # print(f"R Patch min: {patch_zero_one[0,:,:].min()} Patch max: {patch_zero_one[0,:,:].max()}") 
-        # print(f"G Patch min: {patch_zero_one[1,:,:].min()} Patch max: {patch_zero_one[1,:,:].max()}") 
-        # print(f"B Patch min: {patch_zero_one[2,:,:].min()} Patch max: {patch_zero_one[2,:,:].max()}") 
-
-        # Permute to PIL's channel last, order, stretch to [0,255), cast to a numpy uint8 array, and return as an image 
-        patch_image = Image.fromarray( np.array(patch_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) ) 
-
-        # Save the patch
-        patch_image.save(path)
-
-    def forward(self, x):
-        self.clamp_to_zero_one_imagenet_norms()
-        return(self.patch)
-
-class TopLeftPatch(torch.nn.Module):
-    def __init__(self, shape):
-        super().__init__()
-        self.patch = TensorPatch(shape)
-
-    def forward(self, x):
-        patched_x = x.clone()    
-        rgb_patch = self.patch(x)
-        patched_x[:, :, 0:self.patch.shape[1], 0:self.patch.shape[2]] = rgb_patch.repeat(x.shape[0],1,1,1)
-
-        #print(f"batch mean: {x.mean()} batch std: {x.std()}")
-        #print(f"patch mean: {self.patch.patch.mean()}, patch std: {self.patch.patch.std()}")
-
-        return patched_x
 
 def _circle_mask(shape, sharpness = 40):
   """Return a circular mask of a given shape"""
@@ -486,116 +389,6 @@ def _circle_mask(shape, sharpness = 40):
   mask = np.broadcast_to(mask, shape).astype(np.float32)
   return mask
 
-
-class BrownEtAlPatch(torch.nn.Module):
-    def __init__(self, patch_shape, scale_max, scale_min, rotate_max, rotate_min):
-        super().__init__()
-        self.patch = TensorPatch(patch_shape)
-        self.mask = torch.tensor( _circle_mask( shape = [patch_shape[1], patch_shape[2], patch_shape[0]])).permute(2,0,1)
-        self.patch_shape = patch_shape
-        self.scale_max = scale_max
-        self.scale_min = scale_min
-        self.rotate_max = rotate_max
-        self.rotate_min = rotate_min
-
-    def forward(self, x):
-        # You have to copy the batch of images if you use subsetting to apply. Otherwise pytorch can't update the gradients
-        # patched_x = x.clone() 
-
-        # Repeat the patch across the batches
-        batch_patches = (self.patch(x) * self.mask.to(device=x.device)).repeat(x.shape[0],1,1,1)
-
-        # Pick the scale
-        # NOTE: This is the same for all patches
-        scale = torch.rand(1, device = x.device) * (self.scale_max - self.scale_min) + self.scale_min
-        scale_patch_width = (self.patch_shape[1]*scale).to(int).item()
-        scale_patch_height = (self.patch_shape[2]*scale).to(int).item()
-
-        # Pick the random location to apply the patch
-        if x.shape[2] - scale_patch_width > 0 and x.shape[3] - scale_patch_height > 0 :
-            u_t = torch.randint(low=0, high=x.shape[2] - scale_patch_width, size=(1,), device = x.device)
-            v_t = torch.randint(low=0, high=x.shape[3] - scale_patch_height, size=(1,), device = x.device)
-        else:
-            u_t = 0
-            v_t = 0
-
-        # Place the patch in a zero image 
-        padded_batch_patches = torch.zeros(x.shape, device = x.device)
-        batch_patches = kornia.geometry.transform.resize(batch_patches, (scale_patch_width,scale_patch_height), align_corners=False)
-        padded_batch_patches[:, :, u_t:(u_t+scale_patch_width), v_t:(v_t+scale_patch_height)] = batch_patches
-        # print(f"{u_t} {v_t}")
-
-        #batch_patches = kornia.geometry.transform.scale(batch_patches, scale )
-        #padded_batch_patches[:, :, u_t:(u_t+batch_patches.shape[2]), v_t:(v_t+batch_patches.shape[3])] = batch_patches
-
-        # Generate the mask
-        mask = torch.zeros(x.shape, device = x.device)
-        mask_border = 3
-        small_ones = torch.ones([x.shape[0], x.shape[1], scale_patch_width-2*mask_border, scale_patch_height-2*mask_border], device = x.device)
-        mask[:, :, u_t+mask_border:(u_t+scale_patch_width-mask_border), v_t+mask_border:(v_t+scale_patch_height-mask_border)] = small_ones 
-
-        # Scale every patch the same in a given batch
-        padded_batch_patches = kornia.geometry.transform.scale(padded_batch_patches, scale )
-        mask = kornia.geometry.transform.scale(mask, scale )
-
-        # Pick the angle to rotate, and rotate the patches
-        angles = torch.rand(x.shape[0], device = x.device) * (self.rotate_max - self.rotate_min) + self.rotate_min
-        padded_batch_patches = kornia.geometry.rotate( padded_batch_patches, angles)
-        mask = kornia.geometry.rotate( mask, angles)
-
-        # Apply the patch as an overlay
-        patched_x = x * (1 - mask) + padded_batch_patches * (mask)
-
-        # TODO this doesn't look quite right
-        #import pdb; pdb.set_trace()
-        #for b in range(x.shape[0]):
-        #    print(b)
-        #    image_zero_one =  self.patch.un_normalize_imagenet_norms( patched_x[b].detach().cpu() )
-        #    debug_image = Image.fromarray( np.array(image_zero_one.permute(1,2,0) * 255  , dtype=np.uint8 ) )
-        #    debug_image.save(f"{b}.png")
-
-        return patched_x
-
-
-class ApplyBrownEtAlPatch:
-    def __init__(self, patch_shape, scale_max, scale_min, rotate_max, rotate_min):
-        self.patch = BrownEtAlPatch(patch_shape, scale_max, scale_min, rotate_max, rotate_min)
-    
-    def __call__(self, model):
-        model = torch.nn.Sequential( self.patch, model)
-        return model
-
-class ApplyPatch:
-    def __init__(self, shape):
-        self.patch = TopLeftPatch(shape)
-
-    def __call__(self, model):
-        model = torch.nn.Sequential( self.patch, model)
-        return model
-
-class DataAugmentation(torch.nn.Module):
-    """Module to perform data augmentation using Kornia on torch tensors."""
-
-    def __init__(self, apply_color_jitter: bool = False) -> None:
-        super().__init__()
-        self._apply_color_jitter = apply_color_jitter
-
-        self.transforms = torch.nn.Sequential(
-            kornia.augmentation.RandomHorizontalFlip(p=0.75),
-            kornia.augmentation.RandomChannelShuffle(p=0.75),
-            kornia.augmentation.RandomThinPlateSpline(p=0.75),
-        )
-
-        self.jitter = kornia.augmentation.ColorJitter(0.5, 0.5, 0.5, 0.5)
-
-    def forward(self, x):
-        x_out = self.transforms(x)  # BxCxHxW
-        if self._apply_color_jitter:
-            x_out = self.jitter(x_out)
-        return x_out
-
-
-
 class EmptyTransform:
     def __init__(self):
         pass
@@ -605,7 +398,6 @@ class EmptyTransform:
 
 
 # Utilities
-
 def _ensure_list(args):
     if args is None:
         return None

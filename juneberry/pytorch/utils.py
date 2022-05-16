@@ -167,7 +167,7 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         # If there is a patch, save it
         for module in model.modules():
             if hasattr(module, 'save_patch'):
-                module.save_patch(f"{model_manager.get_pytorch_model_path()}.patch.png")
+                module.save_patch(model_manager.get_pytorch_model_path(), "patch.png")
 
 
     # Save the model in ONNX format.
