@@ -1,4 +1,4 @@
-#! /usr/bin/
+#! /usr/bin/env python3
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -28,7 +28,8 @@ def binary_function(a, b):
 
 
 class MyClass:
-    def unary(self, a):
+    @staticmethod
+    def unary(a):
         return f"a is {a}"
 
 

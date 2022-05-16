@@ -25,12 +25,11 @@
 import logging
 import importlib
 import inspect
-import types
 
 logger = logging.getLogger(__name__)
 
 
-def takes_args(method, param_names:list) -> bool:
+def takes_args(method, param_names: list) -> bool:
     """
     Determines if the method takes all the parameter name.
     :param method: The method to check
@@ -41,6 +40,7 @@ def takes_args(method, param_names:list) -> bool:
     for param_name in param_names:
         if param_name not in params:
             return False
+
 
 def add_optional_args(kwargs: dict, optional_kwargs: dict, method) -> None:
     """
@@ -104,11 +104,11 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     """
 
     # IMPORTANT
-    # While we prefer a class with an __init__ method and an __call__ method we can
-    # actually accept a callable that returns a callable.  NOTE: We do NOT look directly
-    # at the signature of the __init__ method becuase for functions this gives us the
-    # wrong signature.  So the signature of the direct callable works for both.
-    # NOTE We don't actually check that the returns/constructed thing is a callable
+    # While we prefer a class with an __init__ method and a __call__ method, we can
+    # actually accept a callable that returns a callable. NOTE: We do NOT look directly
+    # at the signature of the __init__ method because for functions this gives us the
+    # wrong signature. So the signature of the direct callable works for both.
+    # NOTE: We don't actually check that the returns/constructed thing is a callable
     # or has any particular signature.
 
     path_parts = fq_name.split(".")

@@ -123,7 +123,7 @@ class TestConstructFunction(unittest.TestCase):
         assert (my_instance is not None)
         self.assertEqual(my_instance(2), 4)
 
-    def test_no_arg(self):
+    def test_with_arg(self):
         my_instance = construct_instance('moddir.simple_mod.transform_maker_arg', {'y': 6})
         assert (my_instance is not None)
         self.assertEqual(my_instance(2), 8)
