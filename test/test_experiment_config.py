@@ -26,7 +26,7 @@ import pytest
 
 from juneberry.config.experiment import ExperimentConfig
 
-import testing_utils
+import utils
 
 
 def make_basic_config():
@@ -69,10 +69,10 @@ def make_basic_config():
 # TODO: Refactor for maintenance
 
 def test_config_basics(tmp_path):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
 
@@ -83,10 +83,10 @@ def test_config_basics(tmp_path):
 
 
 def test_models_missing(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         del config['models']
@@ -98,10 +98,10 @@ def test_models_missing(tmp_path, caplog):
 
 
 def test_models_non_zero(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['models'] = []
@@ -113,10 +113,10 @@ def test_models_non_zero(tmp_path, caplog):
 
 
 def test_model_bad_name(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['models'][0]['name'] = "bad name"
@@ -128,10 +128,10 @@ def test_model_bad_name(tmp_path, caplog):
 
 
 def test_model_duplicate_tag(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['models'][0]['tests'].append({
@@ -146,10 +146,10 @@ def test_model_duplicate_tag(tmp_path, caplog):
 
 
 def test_model_duplicate_tag_2(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['models'].append({
@@ -169,10 +169,10 @@ def test_model_duplicate_tag_2(tmp_path, caplog):
 
 
 def test_model_bad_dataset_path(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['models'][0]['tests'][0]['dataset_path'] = "bad name"
@@ -184,10 +184,10 @@ def test_model_bad_dataset_path(tmp_path, caplog):
 
 
 def test_report_bad_tag(tmp_path, caplog):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         config = make_basic_config()
         config['reports'][0]['tests'][0]['tag'] = "wrong tag"

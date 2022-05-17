@@ -582,7 +582,7 @@ class TestSummaryReport(TestCase):
         """
         The purpose of this test is to exercise the creation of a Summary Report.
         """
-        # Change to the pyest temporary directory for this test.
+        # Change to the pytest temporary directory for this test.
         os.chdir(self.tmp_path)
 
         # The Summary Report pulls data from a metrics file and other output files from model

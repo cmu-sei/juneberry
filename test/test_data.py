@@ -38,7 +38,7 @@ from juneberry.filesystem import ModelManager
 
 from test_coco_utils import make_sample_coco
 import test_model_config
-import testing_utils
+import utils
 
 
 def make_data():
@@ -802,10 +802,10 @@ def mock_load_tabular_data(mc):
 
 
 def test_get_label_mapping(tmp_path):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_tabular_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_tabular_workspace(tmp_path)
 
         # Binary sample files
         model_name = "tabular_binary_sample"
@@ -833,11 +833,15 @@ def test_get_label_mapping(tmp_path):
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
 
+        # Now include a model_config with no label mapping and confirm the label mapping still
+        # comes from the training dataset config.
         test_source = "training dataset config"
         func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
                                                              show_source=True)
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
+
+        # TODO: Write a test for retrieving the label mapping from a model config that contains a label mapping.
 
         func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
         TestCase().assertDictEqual(func_labels, test_labels)
@@ -862,10 +866,10 @@ def make_sample_manifest(manifest_path, category_list):
 
 
 def test_get_category_list(monkeypatch, tmp_path):
-    with testing_utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed.  We need to have a better approach.
-        testing_utils.setup_test_workspace(tmp_path)
-        testing_utils.make_dt2_workspace(tmp_path)
+    with utils.set_directory(tmp_path):
+        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
+        utils.setup_test_workspace(tmp_path)
+        utils.make_dt2_workspace(tmp_path)
 
         # Grab args
         model_name = "text_detect/dt2/ut"
@@ -894,7 +898,7 @@ def test_get_category_list(monkeypatch, tmp_path):
         with open(coco_path / 'coco_annotations.json', 'w') as json_file:
             json.dump(coco_data, json_file)
 
-        # Test DatasetConfig case
+        # Train config case
         with TestCase().assertLogs(level='WARNING') as cm:
             category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                               train_config=train_config,
@@ -908,7 +912,7 @@ def test_get_category_list(monkeypatch, tmp_path):
             "WARNING:juneberry.data:The evaluation category list does not match that of the eval_manifest:",
             cm.output[0])
 
-        # Test manifest case
+        # Train manifest case
         category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                           model_manager=model_manager,
                                                           train_config=train_config,

@@ -46,6 +46,7 @@ def set_directory(path: Path):
     finally:
         os.chdir(origin)
 
+
 tabular_model_config = {
     'batch_size': 1024,
     'description': 'Sample config for unit testing',
@@ -156,16 +157,16 @@ text_detect_dataset_config = {
 
 def setup_test_workspace(tmp_path) -> None:
     """
-    Creates a test workspace *structure* within tmp_path
+    Creates a test workspace *structure* within tmp_path.
     :param tmp_path: Path to where to setup the temporary workspace.
-    :return: Nothing
+    :return: Nothing.
     """
     ws_path = Path(tmp_path)
     model_dir_path = ws_path / "models"
     tbs_dir_path = model_dir_path / "tabular_binary_sample"
     tbs_dir_path.mkdir(parents=True)
 
-    dt_conf_path = ws_path / "models" / "text_detect" / "dt2" / "ut"
+    dt_conf_path = model_dir_path / "text_detect" / "dt2" / "ut"
     dt_conf_path.mkdir(parents=True)
 
     data_sets_path = ws_path / "data_sets"
@@ -175,8 +176,8 @@ def setup_test_workspace(tmp_path) -> None:
 def make_tabular_workspace(tmp_path) -> None:
     """
     Creates a sample model config and dataset config for the tabular model.
-    :param tmp_path: Path to workspace directory
-    :return: Nothing
+    :param tmp_path: Path to workspace directory.
+    :return: Nothing.
     """
     ws_path = Path(tmp_path)
     model_conf_path = ws_path / "models" / "tabular_binary_sample" / "config.json"
@@ -191,8 +192,8 @@ def make_tabular_workspace(tmp_path) -> None:
 def make_dt2_workspace(tmp_path) -> None:
     """
     Creates a sample model config and dataset config for the detectron2 text detection model.
-    :param tmp_path: Path to workspace directory
-    :return: Nothing
+    :param tmp_path: Path to workspace directory.
+    :return: Nothing.
     """
     ws_path = Path(tmp_path)
 
