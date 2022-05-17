@@ -171,7 +171,7 @@ class Detectron2Trainer(Trainer):
         logger.info("Getting training settings from configuration file")
         cfg = self.cfg_settings_setup()
 
-        # Finalizes the freezes, finalizes config and sets other arguments
+        # This finalizes the freezes, finalizes config and sets other arguments
         # TODO: What all can we pass in as args to default?
         logger.info("Freezing and setting up model")
         self.cfg = cfg
