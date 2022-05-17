@@ -79,6 +79,9 @@ def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_con
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
+        if log_filter:
+            ch.addFilter(log_filter())
+
     # Set up logging to file.
     if log_file is not None:
 
