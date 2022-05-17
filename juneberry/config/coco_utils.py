@@ -425,7 +425,11 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
 
         # Draw the boxes on the image
         with Image.open(img_file) as file:
-            img = file.convert('RGB')
+            # Conditional to check what type of data we are working with
+            if not (file.mode == "I;16" or file.mode == "I"):
+                img = file.convert('RGB')
+            else:
+                img = file.convert('I')
         draw = ImageDraw.Draw(img)
 
         # colorblind palette: https://davidmathlogic.com/colorblind  IBM version
