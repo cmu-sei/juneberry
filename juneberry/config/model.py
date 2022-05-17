@@ -103,6 +103,10 @@ class PytorchOptions(Prodict):
     lr_step_frequency: str
     optimizer_args: Prodict
     optimizer_fn: str
+    strict: bool
+
+    def init(self):
+        self.strict = True
 
 
 class Detectron2(Prodict):
