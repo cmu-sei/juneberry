@@ -167,119 +167,11 @@ class Detectron2Trainer(Trainer):
             logger.warning(f"The model config contains model transforms, however the detectron2 trainer does not "
                            f"currently support model transforms. Ignoring the requested model transforms.")
 
-<<<<<<< HEAD
-        # Get a basic config
-        cfg = get_cfg()
-
-        # Build the basis from the model zoo, full config, etc.
-        self._load_config_from_module(cfg)
-        self._overlay_supplements(cfg)
-
-        # Set some basic properties from our model config.
-        cfg.SEED = self.model_config.seed
-
-        # We can do a local model file if we need.
-        # cfg.MODEL.WEIGHTS = "model_final_280758.pkl"
-
-        # train root outputs, then move everything later
-        # cfg.OUTPUT_DIR = str(self.model_manager.get_train_root_dir())
-        cfg.OUTPUT_DIR = str(self.output_dir)
-
-        # Set our datasets to the ones we registered
-        cfg.DATASETS.TRAIN = [dt2_data.TRAIN_DS_NAME]
-        if self.val_len > 0:
-            cfg.DATASETS.TEST = [dt2_data.VAL_DS_NAME]
-
-        # The num classes should be the same
-        cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
-
-        if self.num_gpus == 0:
-            cfg.MODEL.DEVICE = "cpu"
-
-        cfg.DATALOADER.NUM_WORKERS = self.lab.profile.num_workers
-
-        # =====================================================================
-        # In JB the user specifies the number of epochs. An epoch is ONE complete pass through the data
-        # in a set of batches. At the end we perform a validation at the end of each epoch.
-        # A batch is how many images that will be processed _in aggregate_ before doing a model update.
-        # Many of the solver properties are scaled (up or down) when we change GPUS.
-
-        # Juneberry does things in terms of epochs not iterations.  Iterations are batch so use that.
-        cfg.SOLVER.IMS_PER_BATCH = self.model_config.batch_size
-
-        # In JB the user wants to get through the all the images some number of times.
-        self.iter_per_epoch = math.ceil(self.train_len / cfg.SOLVER.IMS_PER_BATCH)
-        cfg.SOLVER.MAX_ITER = self.model_config.epochs * self.iter_per_epoch
-
-        # We want our warmup to be in terms of epochs, default of 1
-        cfg.SOLVER.WARMUP_ITERS = self.iter_per_epoch * 1
-
-        # Set it to some reasonable range
-        # Detectron2 COCO-Detection/faster_rcnn_R_50_FPN_3x/137849458/model_final_280758.pkl uses
-        #  MAX_ITER: 270000;   STEPS: [ 210000, 250000 ] ->  [ 0.7777778,  0.9259259 ] of iterations
-        cfg.SOLVER.STEPS = [math.ceil(cfg.SOLVER.MAX_ITER * 3 / 4.0), math.ceil(cfg.SOLVER.MAX_ITER * 9 / 10.0)]
-
-        # Set a default learning rate for this reference world size
-        # TODO: We should have a general purpose model config for this
-        # Default for 1 GPU; according to https://github.com/facebookresearch/detectron2/blob/master/GETTING_STARTED.md
-        cfg.SOLVER.BASE_LR = .0025
-
-        # We want to evaluate after every epoch.
-        # TODO: Add "validate every N epochs" type config
-        if self.val_len > 0:
-            cfg.TEST.EVAL_PERIOD = self.iter_per_epoch
-        else:
-            cfg.TEST.EVAL_PERIOD = 0
-        cfg.SOLVER.CHECKPOINT_PERIOD = self.iter_per_epoch
-
-        # ===============================================
-        # Okay, we need to scale everything based on GPUs. We use detectron2 to scale everything.
-        # TODO: Add Reference World Size concept
-        # For now, hard code it to 1, given the learning rate of 0.0025
-        cfg.SOLVER.REFERENCE_WORLD_SIZE = 1
-
-        # IMS_PER_BATCH: 16
-        # BASE_LR: 0.1
-        # REFERENCE_WORLD_SIZE: 8
-        # MAX_ITER: 5000
-        # STEPS: (4000,)
-        # CHECKPOINT_PERIOD: 1000
-
-        # =================================================================
-
-        # Now, let the user override anything they want BEFORE we scale. We want to scale what they add too.
-        # They can, of course stop the scaling by setting REFERENCE_WORLD_SIZE to zero.
-        if hasattr(self.model_config, "detectron2"):
-            if "overrides" in self.model_config.detectron2:
-                cfg.merge_from_list(self.model_config.detectron2['overrides'])
-
-        # =================================================================
-        # Now scale it it to our number of gpus.  This call scales all these based on the new
-        # set of workers IF current REFERENCE_WORLD_SIZE is NOT zero.
-        # NOTE: If we are cpu we don't change anything.  We get what they provided.
-        # TODO: Should this be pluggable?
-        if cfg.SOLVER.REFERENCE_WORLD_SIZE != 0 and self.num_gpus != 0:
-            logger.info(f"Scaling config. REFERENCE_WORLD_SIZE original={cfg.SOLVER.REFERENCE_WORLD_SIZE}, "
-                        f"new={self.num_gpus}")
-            cfg = DefaultTrainer.auto_scale_workers(cfg, self.num_gpus)
-
-        # ==========
-
-        # At minimum, the iterations must be GREATER than the last step
-        if cfg.SOLVER.MAX_ITER != 0 and cfg.SOLVER.MAX_ITER <= cfg.SOLVER.STEPS[1] + 1:
-            logger.info("Adjusting MAX_ITER to be greater than the last solver step.")
-            cfg.SOLVER.MAX_ITER = cfg.SOLVER.STEPS[1] + 2
-
-        # ==========
-
-        # This finalizes the freezes, finalizes config and sets other arguments
-=======
         # Get training settings from config
         logger.info("Getting training settings from configuration file")
         cfg = self.cfg_settings_setup()
 
         # Finalizes the freezes, finalizes config and sets other arguments
->>>>>>> feature/JB-412-custom-dataset-mapper
         # TODO: What all can we pass in as args to default?
         logger.info("Freezing and setting up model")
         self.cfg = cfg
