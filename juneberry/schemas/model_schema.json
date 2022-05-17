@@ -1,5 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "model_schema.json",
     "definitions": {
         "plugin_item": {
             "type": "object",
@@ -106,6 +107,10 @@
                 "optimizer_args": { "type": "object" }
             },
             "required": [ ]
+        },
+        "reports": {
+            "type": "array",
+            "items": { "$ref": "report_schema.json#/$defs/report"}
         },
         "seed": { "type": "integer" },
         "stopping_criteria": {
