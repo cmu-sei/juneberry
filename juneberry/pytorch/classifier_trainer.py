@@ -409,9 +409,8 @@ class ClassifierTrainer(EpochTrainer):
                     f"with args: {self.model_config.model_architecture['args']} ...")
         self.model = pyt_utils.construct_model(self.model_config.model_architecture,
                                                self.dataset_config.num_model_classes)
-        # Save off a reference to the unwrapped model for saving
-        self.unwrapped_model = self.model
 
+        # If this model is based off another model, then load its weights.
         previous_model, prev_model_version = self.model_config.get_previous_model()
         if previous_model is not None:
             logger.info(f"Loading weights from previous model: {previous_model}, version: {prev_model_version}")
@@ -420,12 +419,15 @@ class ClassifierTrainer(EpochTrainer):
 
             pyt_utils.load_weights_from_model(prev_model_manager, self.model, self.model_config.pytorch.strict)
 
-        # Apply model transforms
+        # Apply model transforms.
         if self.model_config.model_transforms is not None:
             transforms = TransformManager(self.model_config.model_transforms)
-            transforms.transform(self.model)
+            self.model = transforms.transform(self.model)
 
-        # Prepare the model for cuda and/or distributed use
+        # Save off a reference to the unwrapped model for saving.
+        self.unwrapped_model = self.model
+
+        # Prepare the model for cuda and/or distributed use.
         self.model = processing.prepare_model(self.distributed, self.num_gpus, self.gpu, self.model, self.device)
         self.show_memory_summary(True)
 
