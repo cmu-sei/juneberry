@@ -27,6 +27,7 @@ import copy
 from datetime import datetime as dt
 import json
 import logging
+import numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw
 from random import shuffle as rand_shuffle
@@ -429,7 +430,10 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
             if not (file.mode == "I;16" or file.mode == "I"):
                 img = file.convert('RGB')
             else:
-                img = file.convert('I')
+                # We need to take PIL image and normalize it again.
+                img = np.array(file)
+                norm = (img.astype(np.float32)) * 255.0 / (img.max())
+                img = Image.fromarray(norm).convert('RGB')
         draw = ImageDraw.Draw(img)
 
         # colorblind palette: https://davidmathlogic.com/colorblind  IBM version
