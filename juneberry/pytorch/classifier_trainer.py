@@ -418,7 +418,7 @@ class ClassifierTrainer(EpochTrainer):
 
             prev_model_manager = jbfs.ModelManager(previous_model, prev_model_version)
 
-            pyt_utils.load_weights_from_model(prev_model_manager, self.model)
+            pyt_utils.load_weights_from_model(prev_model_manager, self.model, self.model_config.pytorch.strict)
 
         # Apply model transforms
         if self.model_config.model_transforms is not None:
