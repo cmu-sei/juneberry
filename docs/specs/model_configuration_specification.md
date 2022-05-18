@@ -621,7 +621,7 @@ A dictionary of optional arguments to be passed to the accuracy function.
 ### accuracy_fn
 **Optional:** A fully qualified accuracy function. When not specified, sklearn.metrics.accuracy_score is used.
 Any provided accuracy score must take the parameters "y_pred" (array of predicted classes) and 
-"y_true" an array of true classes.
+"y_true" (array of true classes).
 
 ### deterministic
 This boolean controls two options that need to be set in order for deterministic 
@@ -684,7 +684,7 @@ during `__init__`.
 is called every epoch. To update the frequency every batch, set this property to "batch".
 
 ### strict
-**OPTIONAL** Boolean that indicates whether models should be loaded as strict. Default to True.
+**OPTIONAL** Boolean that indicates whether models should be loaded as strict. Defaults to True.
 
 ## reports
 **OPTIONAL** An array of one or more Report Plugins, where each Plugin corresponds to a Juneberry 
@@ -773,7 +773,7 @@ Keyword args to be provided to the optimizer_fn function during construction.
 **Optional:** Timestamp (ISO format) indicating when the config was last modified.
 
 ## trainer
-The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.trainer.Trainer`.
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.trainer.Trainer`.
 Juneberry has a variety of built-in trainers for the following platforms.  The built-in trainers require
 no additional kwargs.
 
