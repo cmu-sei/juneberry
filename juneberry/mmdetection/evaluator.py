@@ -97,7 +97,8 @@ class Evaluator(EvaluatorBase):
 
     def setup(self) -> None:
         jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
-        jb_setup_logger(self.log_file_path, "", name="brambox", level=logging.DEBUG, log_filter=RemoveDuplicatesFilter)
+        jb_setup_logger(self.log_file_path, "", name="brambox", level=logging.DEBUG,
+                        log_filter_class=RemoveDuplicatesFilter)
 
         # Setup working dir to save files and logs.
         logger.info(f"Using working directory of: {self.working_dir}")

@@ -58,9 +58,23 @@ from pathlib import Path
 
 
 @functools.lru_cache()
-def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_console=True, level=logging.INFO,
-                 log_filter=None):
-    """Sets up the Juneberry logger. Appends necessary handlers."""
+def setup_logger(log_file: Path,
+                 log_prefix: str,
+                 dist_rank: int = 0,
+                 name: str = "juneberry",
+                 log_to_console: bool = True,
+                 level: int = logging.INFO,
+                 log_filter_class: logging.Filter = None):
+    """
+    Sets up the Juneberry logger. Appends necessary handlers.
+    :param log_file: the file to log messages to
+    :param log_prefix: prefix appended to log messages
+    :param dist_rank: process rank ??
+    :param name: logger name
+    :param log_to_console: log messages to console as well as file
+    :param level: log level for this logger
+    :param log_filter_class: subclass of logging.Filter for filtering log messages
+    """
 
     # Fetch the logger by name, set its level, and make sure the changes don't propagate.
     logger = logging.getLogger(name)
@@ -79,8 +93,9 @@ def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_con
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
-        if log_filter:
-            ch.addFilter(log_filter())
+        # If we were given a log filter class, add an instance of the filter to the console stream handler.
+        if log_filter_class:
+            ch.addFilter(log_filter_class())
 
     # Set up logging to file.
     if log_file is not None:
@@ -98,8 +113,9 @@ def setup_logger(log_file, log_prefix, dist_rank=0, name="juneberry", log_to_con
         fh.setLevel(level)
         fh.setFormatter(formatter)
 
-        if log_filter:
-            fh.addFilter(log_filter())
+        # If we were given a log filter class, add an instance of the filter to the file stream handler.
+        if log_filter_class:
+            fh.addFilter(log_filter_class())
 
         logger.addHandler(fh)
 
@@ -132,14 +148,19 @@ def log_banner(logger: Logger, msg, *, width=100, level=logging.INFO):
 
 
 class RemoveDuplicatesFilter(logging.Filter):
+    """A subclass of logging.Filter that filters out adjacent duplicate lines."""
+
+    def __init__(self):
+        super().__init__()
+        self.previous_msg = None
 
     def filter(self, record):
         """
-        Remove adjacent duplicate records from the log.
-        :param record: a log record to examine for duplicates
+        Filter an incoming duplicate record if it's the same as the previous record.
+        :param record: the next incoming log record.
         :return: 0 if the message is the same as the previous message, 1 if it's different
         """
-        if record.msg != getattr(self, "previous_msg", None):
+        if record.msg != self.previous_msg:
             self.previous_msg = record.msg
             return 1
         return 0
