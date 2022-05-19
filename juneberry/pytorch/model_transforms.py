@@ -318,7 +318,7 @@ class PatchLayer(torch.nn.Module):
             four_quads = self.cat_four( torch.stack( (quad0, quad1, quad2, quad3)) )
 
             debug_image = Image.fromarray( np.array( four_quads.detach().cpu().permute(1,2,0) * 255, dtype=np.uint8 ) ) 
-            debug_image.save(f"{path}.{name}-four-quads.png")
+            debug_image.save(f"{path}.{self.debug_interval}.{name}-four-quads.png")
         else: 
             for b in range(min(x.shape[0],16)):
                 print(b)
@@ -341,6 +341,7 @@ class PatchLayer(torch.nn.Module):
             data_keys=["input", "mask"]
         )
         self.image_transforms = kornia.augmentation.container.AugmentationSequential(
+            #kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.ones(3)) #std=torch.tensor( (0.229, 0.224, 0.225)))
             kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.tensor( (0.229, 0.224, 0.225)))
         )
 
@@ -359,6 +360,20 @@ class PatchLayer(torch.nn.Module):
 
         return( x )
 
+class EvalTail(torch.nn.Module):
+    def __init__(self, trainable_model, eval_model):
+        super().__init__()
+        self.trainable_model = trainable_model
+        self.eval_model = eval_model 
+    
+    def forward(self, x):
+        x = self.trainable_model(x)
+        self.eval_model.eval()
+        x = self.eval_model(x)
+        
+        return(x)
+
+
 class ApplyPatchLayer:
     def __init__(self, patch, patch_transforms, image_transforms = None):
 
@@ -371,7 +386,7 @@ class ApplyPatchLayer:
         self.patch_layer = PatchLayer(self.patch,patch_transforms,image_transforms)
 
     def __call__(self, model):
-        model = torch.nn.Sequential( self.patch_layer, model)
+        model = EvalTail( self.patch_layer, model)
         return model
 
 def _circle_mask(shape, sharpness = 40):

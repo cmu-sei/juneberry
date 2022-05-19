@@ -423,6 +423,13 @@ class EpochTrainer(Trainer):
         label = "train" if train else "eval"
         metrics = self.start_epoch_phase(train)
 
+        # Before we get the party started, find the learning rate
+        # from torch_lr_finder import LRFinder
+        # lr_finder = LRFinder(self.model, self.optimizer, self.loss_function, device="cuda")
+        # lr_finder.range_test(data_iterable, start_lr=0.001, end_lr=1000, num_iter=1000)
+        # lr_finder.plot()
+        # lr_finder.reset()
+
         # Process each batch
         with self.timer(label):
             try:
