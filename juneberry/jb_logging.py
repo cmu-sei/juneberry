@@ -150,17 +150,13 @@ def log_banner(logger: Logger, msg, *, width=100, level=logging.INFO):
 class RemoveDuplicatesFilter(logging.Filter):
     """A subclass of logging.Filter that filters out adjacent duplicate lines."""
 
-    def __init__(self):
-        super().__init__()
-        self.previous_msg = None
-
     def filter(self, record):
         """
-        Filter an incoming duplicate record if it's the same as the previous record.
-        :param record: the next incoming log record.
+        Filter an incoming record if it's the same as the previous record.
+        :param record: the next incoming log record
         :return: 0 if the message is the same as the previous message, 1 if it's different
         """
-        if record.msg != self.previous_msg:
+        if record.msg != getattr(self, "previous_msg", None):
             self.previous_msg = record.msg
             return 1
         return 0
