@@ -259,7 +259,7 @@ class PILPatch(torch.nn.Module):
         self.register_buffer('mask', mask)
 
     def clamp_to_valid_image(self):
-        self.patch.clamp(min=0, max=1)
+        self.patch.data.clamp_(min=0, max=1)
 
     def save_patch(self, model_path, filename):
         self.clamp_to_valid_image()
@@ -341,7 +341,6 @@ class PatchLayer(torch.nn.Module):
             data_keys=["input", "mask"]
         )
         self.image_transforms = kornia.augmentation.container.AugmentationSequential(
-            #kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.ones(3)) #std=torch.tensor( (0.229, 0.224, 0.225)))
             kornia.augmentation.Normalize( mean=torch.tensor( (0.485, 0.456, 0.406) ), std=torch.tensor( (0.229, 0.224, 0.225)))
         )
 
