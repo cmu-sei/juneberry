@@ -29,7 +29,7 @@ import inspect
 logger = logging.getLogger(__name__)
 
 
-def takes_args(method, param_names:list) -> bool:
+def takes_args(method, param_names: list) -> bool:
     """
     Determines if the method takes all the parameter name.
     :param method: The method to check
@@ -40,6 +40,7 @@ def takes_args(method, param_names:list) -> bool:
     for param_name in param_names:
         if param_name not in params:
             return False
+
 
 def add_optional_args(kwargs: dict, optional_kwargs: dict, method) -> None:
     """
@@ -102,24 +103,33 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     :param optional_kwargs: A set of additional kwargs to add IF in the __init__ signature.
     """
 
-    class_data = fq_name.split(".")
-    module_path = ".".join(class_data[:-1])
-    class_str = class_data[-1]
+    # IMPORTANT
+    # While we prefer a class with an __init__ method and a __call__ method, we can
+    # actually accept a callable that returns a callable. NOTE: We do NOT look directly
+    # at the signature of the __init__ method because for functions this gives us the
+    # wrong signature. So the signature of the direct callable works for both.
+    # NOTE: We don't actually check that the returns/constructed thing is a callable
+    # or has any particular signature.
+
+    path_parts = fq_name.split(".")
+    module_path = ".".join(path_parts[:-1])
+    leaf_part = path_parts[-1]
 
     if kwargs is None:
         kwargs = {}
     else:
         kwargs = dict(kwargs)
 
+    # Load the thing that makes the other callable
     module = importlib.import_module(module_path)
-    class_obj = getattr(module, class_str)
-    init_method = getattr(class_obj, "__init__")
+    direct_callable = getattr(module, leaf_part)
 
-    # Get all the parameter names from the signature of the constructor
+    # Get all the parameter names from the signature of the callable
     # and then add any optional kwargs if in the signature
-    add_optional_args(kwargs, optional_kwargs, init_method)
+    add_optional_args(kwargs, optional_kwargs, direct_callable)
 
-    return class_obj(**kwargs)
+    # Call the callable and get the callable
+    return direct_callable(**kwargs)
 
 
 def verify_parameters(code, kwargs, err_message):

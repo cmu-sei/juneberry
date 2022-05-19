@@ -27,11 +27,11 @@ import datetime
 from enum import Enum
 import logging
 from pathlib import Path
+from prodict import Prodict, List
 import random
 import sys
 
-from prodict import Prodict, List
-
+from juneberry.config.plugin import Plugin
 import juneberry.config.util as conf_utils
 import juneberry.filesystem as jbfs
 
@@ -61,11 +61,6 @@ class SamplingAlgo(str, Enum):
 
 
 SamplingConfig = namedtuple('SamplingType', 'algo args randomizer')
-
-
-class Plugin(Prodict):
-    fqcn: str
-    kwargs: Prodict
 
 
 class ImagesSource(Prodict):
