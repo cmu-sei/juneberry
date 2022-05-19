@@ -1,0 +1,87 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+
+import juneberry.reporting.utils as jb_report_utils
+import juneberry.scripting as jbscripting
+
+logger = logging.getLogger("juneberry.jb_report")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+
+    # The purpose of the group is to allow only one of either '-e', '-m', or '-f' to be provided.
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument('-e', '--experiment', help='Name of the experiment directory whose experiment config contains '
+                                                  'a reports stanza indicating which reports to build.')
+    group.add_argument('-m', '--model', help='Name of the model directory whose model config contains a reports '
+                                             'stanza indicating which reports to build.')
+    group.add_argument('-f', '--file', action='append', help='Name of one or more JSON files containing a reports '
+                                                             'stanza. These files do not need to be affiliated with a '
+                                                             'particular experiment or model.')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='This script generates report files for models and experiments.')
+    setup_args(parser)
+    jbscripting.setup_args(parser)
+    args = parser.parse_args()
+
+    # Set up logging.
+    jbscripting.setup_logging_for_script(args)
+
+    report_list = None
+
+    # Fetch the desired reports for the experiment and build each report.
+    if args.experiment:
+        report_list = jb_report_utils.extract_experiment_reports(args.experiment)
+
+    # Fetch the desired reports for the model and build each report.
+    if args.model:
+        report_list = jb_report_utils.extract_model_reports(args.model)
+
+    # Build the desired report using the provided 'file'.
+    if args.file:
+        report_list = jb_report_utils.extract_file_reports(args.file)
+
+    if report_list is not None:
+        for report in report_list:
+            report_obj = jb_report_utils.construct_report(report.fqcn, report.kwargs)
+            report_obj.create_report()
+    else:
+        logger.error(f"No report stanzas were retrieved from the provided sources. Check the args provided "
+                     f"to jb_report and verify they contain one or more report stanzas.")
+
+    logger.info(f"jb_report is done.")
+
+
+if __name__ == "__main__":
+    main()

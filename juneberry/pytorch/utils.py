@@ -172,27 +172,29 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 
-def load_model(model_path, model) -> None:
+def load_model(model_path, model, strict: bool) -> None:
     """
     Loads the model weights from the model directory using our model naming scheme and format.
     :param model_path: The model directory.
     :param model: The model file into which to load the model weights.
+    :param strict: A boolean indicating if PyTorch should be 'strict' when loading the model.
     """
-    model.load_state_dict(torch.load(str(model_path)), strict=False)
+    model.load_state_dict(torch.load(str(model_path)), strict=strict)
     model.eval()
 
 
-def load_weights_from_model(model_manager, model) -> None:
+def load_weights_from_model(model_manager, model, strict: bool) -> None:
     """
     Loads the model weights from the model directory using our model naming scheme and format.
     :param model_manager: The model manager responsible for the model containing the desired weights.
     :param model: The model file into which to load the model weights.
+    :param strict: A boolean indicating if PyTorch should be 'strict' when loading the model.
     """
     model_path = model_manager.get_pytorch_model_path()
     if Path(model_path).exists():
-        model.load_state_dict(torch.load(str(model_path)), strict=False)
+        model.load_state_dict(torch.load(str(model_path)), strict=strict)
     else:
-        logger.error(f"Model path {model_path} does not exist! EXITING.")
+        logger.error(f"Model path {model_path} does not exist! Exiting.")
         sys.exit(-1)
 
 

@@ -1,0 +1,102 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "report_schema.json",
+    "$defs": {
+        "report": {
+            "type": "object",
+            "properties": {
+                "description": { "type": "string" },
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "description", "fqcn" ],
+            "anyOf": [
+                    {
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.report.roc.ROCPlot" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "output_filename": { "type": "string"},
+                                    "plot_title": { "type": "string"},
+                                    "legend_scaling": { "type": "number" },
+                                    "curve_sources": { "type": "object" },
+                                    "line_width": { "type": "integer" },
+                                    "legend_font_size": { "type": "integer" }
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn" ]
+                    },
+                    {
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.reporting.pr.PRCurve" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "output_dir": { "type": "string"},
+                                    "iou": { "type": "number" },
+                                    "curve_sources": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "model": { "type": "string"},
+                                                "dataset": { "type": "string"}
+                                            }
+                                        }
+                                    },
+                                    "tp_threshold": { "type": "number" },
+                                    "stats_fqcn": { "type": "string"}
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn" ]
+                    },
+                    {
+                        "properties": {
+                            "description": { "type": "string"},
+                            "fqcn": { "const": "juneberry.reporting.summary.Summary" },
+                            "kwargs": {
+                                "type": "object",
+                                "properties": {
+                                    "md_filename": { "type": "string"},
+                                    "csv_filename": { "type": "string"},
+                                    "metrics_files": {
+                                        "type": "array",
+                                        "items": { "type": "string"}
+                                    },
+                                    "plot_files": {
+                                        "type": "array",
+                                        "items": { "type": "string"}
+                                    }
+                                }
+                            }
+                        },
+                        "required": [ "description", "fqcn" ]
+                    },
+                    {
+                        "properties": {
+                            "description": { "type": "string" },
+                            "fqcn": { "type": "string" },
+                            "kwargs": { "type": "object" }
+                        },
+                        "required": [ "description", "fqcn" ]
+                    }
+                ]
+        }
+    },
+    "type": "object",
+    "description": "A configuration for defining reports to be generated.",
+    "properties": {
+        "reports": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/report" }
+        }
+    },
+    "required": [
+        "reports"
+    ]
+}
