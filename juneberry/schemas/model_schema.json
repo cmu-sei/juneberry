@@ -1,5 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "model_schema.json",
     "definitions": {
         "plugin_item": {
             "type": "object",
@@ -103,9 +104,14 @@
                     "enum": [ "epoch", "batch" ]
                 },
                 "optimizer_fn": { "type": "string" },
-                "optimizer_args": { "type": "object" }
+                "optimizer_args": { "type": "object" },
+                "strict": { "type": "boolean" }
             },
             "required": [ ]
+        },
+        "reports": {
+            "type": "array",
+            "items": { "$ref": "report_schema.json#/$defs/report" }
         },
         "seed": { "type": "integer" },
         "stopping_criteria": {

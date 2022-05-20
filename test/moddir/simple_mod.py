@@ -1,4 +1,4 @@
-#! /usr/bin/
+#! /usr/bin/env python3
 
 # ======================================================================================================================
 # Juneberry - General Release
@@ -28,13 +28,17 @@ def binary_function(a, b):
 
 
 class MyClass:
-    def unary(self, a):
+    @staticmethod
+    def unary(a):
         return f"a is {a}"
 
 
 class ClassWithInit:
     def __init__(self, name):
         self.name = name
+
+    def __call__(self):
+        return f"{self.name}"
 
     def get_name(self):
         return self.name
@@ -82,3 +86,11 @@ class LabeledTransformExample:
 
     def get_name(self):
         return self.name
+
+
+def transform_maker():
+    return lambda x: x + x
+
+
+def transform_maker_arg(y):
+    return lambda x: y + x

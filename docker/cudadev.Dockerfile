@@ -1,12 +1,34 @@
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-02.html
-# CUDA 11.2.0, Driver 460.27.04, Python 3.8.?, pytorch 1.8
-FROM nvcr.io/nvidia/pytorch:21.02-py3
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+#
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-08.html
+# CUDA 11.4.1, Driver 470 or later, Python 3.8.?, pytorch 1.10.0a0+3fd9dvf
+FROM nvcr.io/nvidia/pytorch:21.08-py3
 
 # ============ BASE PLATFORM ============
 
-# These are needed for opencv - not by default on some platforms
 RUN apt-get update \
-    && apt-get install -y libgl1-mesa-glx figlet sudo \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libgl1-mesa-glx figlet sudo tzdata tmux vim emacs nano \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,7 +51,9 @@ RUN pip install tensorflow==2.7.0 tensorflow-datasets==4.4.0
 # Some of these may No-Op because they are in the pytorch distribution
 # Some of these Juneberry may not need, but many tools do.
 # NOTE: We do NOT install pytorch as it comes in this nvidia base container
-RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
+RUN pip3 install llvmlite==0.38.0 --ignore-installed
+RUN pip3 install adversarial-robustness-toolbox \
+    doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
     sklearn tensorboard \
     torch-summary\>=1.4.5 albumentations \
     pandas brambox pyyaml natsort \
@@ -42,8 +66,7 @@ RUN pip3 install doit numpy pycocotools matplotlib pillow prodict hjson jsonsche
 
 # ============ DETECTRON2 ============
 
-#RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git'
-RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
+RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
 
@@ -52,12 +75,12 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.5'
 ENV FORCE_CUDA="1"
 
 #RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
-RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.3.17
-#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.3.17 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
+RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8
+#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
 
 # Build MMDetection
 #RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
-RUN git clone --depth 1 --branch v2.18.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
+RUN git clone --depth 1 --branch v2.23.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
 WORKDIR /mmdetection
 RUN pip3 install -r requirements/build.txt
 RUN pip3 install -v -e .
@@ -71,12 +94,14 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v10"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v11"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
-    echo "figlet -w 120 CUDA Development v10" >> /root/.bashrc; \
+    echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
+    echo "alias jb_setup='pip install -e /juneberry; pip install -e .; source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
     echo "if [ -f ./container_start.sh ]; then" >> /root/.bashrc; \
     echo "    echo 'SOURCING bash ./container_start.sh'"  >> /root/.bashrc; \
     echo "    source ./container_start.sh" >> /root/.bashrc; \
-    echo "fi" >> /root/.bashrc
+    echo "fi" >> /root/.bashrc; \
+    echo "figlet -w 120 CUDA - ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc
 

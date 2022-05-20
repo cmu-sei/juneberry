@@ -42,22 +42,7 @@ and the generation of some number of reports from aggregates of the test results
             "version": <OPTIONAL - which version of the model to use>,
         }
     ],
-    "reports": [
-        {
-            "description": <human readable description of this report>,
-            "type": <report type: [plot_roc | plot_pr | summary],
-            "classes": <default classes - used if not specified per test>,
-            "tests": [
-                {
-                    "tag": <tag from test stanza above>,
-                    "classes": <comma separated classes to extract: e.g. 0,1,2,3,8,0+1,2+3>
-                }
-            ],
-            "output_name": <filename for output file>,
-            "csv_name": <For summary optional tag to write table to csv file>,
-            "plot_title": <Title to use for ROC plot figure>
-        }        
-    ],
+    "reports": [ <array of Report plugins - see below ],
     "timestamp": <optional ISO time stamp for when this was generated>
 }
 ```
@@ -142,90 +127,12 @@ want the predictions script to perform classifications.
 **Optional** string that indicates which version of the model to use.
 
 ## reports
-A list of reports to produce. (See [Report Specifications](#Report Specifications) for details on each.)
-
-### description
-A human-readable description of the report.
-
-### type
-The report type to generate. We currently support "plot_roc" which invokes "jb_plot_roc", "plot_pr" which 
-invokes "jb_plot_pr", and "summary" which invokes "jb_summary".
-
-### classes
-The default list of classes to be extracted from the predictions file to be used in the plot.
-Each test can specify classes to override this default value.
-
-### plot_title
-When the report type is "plot_roc", this string will be used for the title of the Figure for 
-the ROC plot.
-
-### tests
-A lists of test sets to be aggregated into this report.
-
-#### tag
-This refers to the 'tag' field in the lists of tests described above in the tests sections.
-This is a simple a convenient way to refer to the above tests. 
-
-#### classes
-Optional list of classes to be used from this test set.  This overrides the classes field at the
-root if this stanza.
-
-### output
-The base name of the output provided to the report generator.
+**OPTIONAL** An array of one or more Plugins, where each Plugin corresponds to a Juneberry Report 
+class. Refer to the [report config specification](report_configuration_specification.md) for more information 
+about Juneberry Report Plugins.
 
 ## timestamp
 **Optional** Time stamp (ISO format with 0 microseconds) for when this file was last updated.
-
-
-# Report Specifications
-
-## ROC Plot
-```
-{
-    "description": <human readable description of this report>,
-    "type": "plot_roc",
-    "classes": <default classes - used if not specified per test>,
-    "tests": [
-        "tag": <tag from test stanza above>,
-        "classes": <comma separated classes to extract: e.g. 0,1,2,3,8,0+1,2+3>
-    ]
-    "output_name": <filename for output file>,
-    "plot_title": <Title to use for ROC plot figure>
-}
-```
-
-ROC Plot will generate a RoC curve plot for the specified tests and classes based on model test output.
-
-
-## PR Plot
-```
-{
-    "description": <human readable description of this report>,
-    "iou": <IoU threshold to use for determining whether to count a detection as a true positive>,
-    "output_dir": <filename for output file>,
-    "tests": [
-        "tag": <tag from test stanza above>
-    ],
-    "type": "plot_pr",
-}
-```
-
-PR Plot will generate PR plots for the specified tests.
-
-
-## Summary
-```
-{
-    "description": <human readable description of this report>,
-    "type": "summary"
-    "output_name": <filename for output file>,
-    "csv_name": <optional tag to write table to csv file>
-} 
-```
-
-Summary will generate a simple markdown report that summarizes all model and prediction values and displays or 
-links to any training graphs and plots that were produced as part of the experiment process.
-
 
 # Version History
 
