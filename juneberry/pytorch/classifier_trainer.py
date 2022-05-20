@@ -33,8 +33,6 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
-import kornia
-
 import juneberry
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
@@ -199,8 +197,6 @@ class ClassifierTrainer(EpochTrainer):
         # Move the data to the device
         local_batch, local_labels = data.to(self.device), targets.to(self.device)
 
-#        import pdb; pdb.set_trace()
-#        print(local_labels)
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
@@ -245,7 +241,6 @@ class ClassifierTrainer(EpochTrainer):
 
         self.optimizer.zero_grad()
         loss.backward()
-
         self.optimizer.step()
 
         if self.lr_scheduler is not None and self.lr_step_frequency == LRStepFrequency.BATCH:
