@@ -25,16 +25,17 @@
 from collections import defaultdict, namedtuple
 import copy
 from datetime import datetime as dt
-import json
 import logging
 from pathlib import Path
-from PIL import Image, ImageDraw
 from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
+
+import numpy as np
+from PIL import Image, ImageDraw
+
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.coco_anno import CocoAnnotations
-
 import juneberry.filesystem as jbfs
 
 logger = logging.getLogger(__name__)
@@ -416,16 +417,23 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
 
         logger.info(f"Attempting to draw boxes on {img_file}")
 
-        # Grab the associated bounding boxes and labels
+        # Grab the associated bounding boxes and labels.
         bbox_labels = [{"bbox": x.bbox, "category_id": x.category_id, "category": legend[x.category_id],
                         "score": x.score, } for x in coco.annotations if x.image_id == image_id]
 
         box_str = "bounding box" if len(bbox_labels) else "bounding boxes"
         logger.info(f"    Adding {len(bbox_labels)} {box_str} to the above image.")
 
-        # Draw the boxes on the image
+        # Draw the boxes on the image.
         with Image.open(img_file) as file:
-            img = file.convert('RGB')
+            # Conditional to check what type of data we are working with.
+            if not (file.mode == "I;16" or file.mode == "I"):
+                img = file.convert('RGB')
+            else:
+                # We need to take the PIL image and normalize it again.
+                img = np.array(file)
+                norm = (img.astype(np.float32)) * 255.0 / (img.max())
+                img = Image.fromarray(norm).convert('RGB')
         draw = ImageDraw.Draw(img)
 
         # colorblind palette: https://davidmathlogic.com/colorblind  IBM version

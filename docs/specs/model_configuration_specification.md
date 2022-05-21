@@ -67,15 +67,16 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
                  Currently supported platforms: ["detectron2", "mmdetection", "pytorch", "pytorch_privacy", tensorflow"]>,
     "preprocessors": [ <array of plugins - see below> ],
     "pytorch": {
-        "loss_fn": <FQCN of a loss function: e.g. torch.nn.CrossEntropyLoss>,
-        "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
-        "optimizer_fn": <FQCN of an optimizer: e.g. torch.optim.SGD>,
-        "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
-        "lr_schedule_fn": <FQCN of a learning rate scheduler: e.g. torch.optim.lr_scheduler.MultiStepLR>,
-        "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
-        "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn.>,
+        "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>,
         "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
-        "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>
+        "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
+        "loss_fn": <FQCN of a loss function: e.g. torch.nn.CrossEntropyLoss>,
+        "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
+        "lr_schedule_fn": <FQCN of a learning rate scheduler: e.g. torch.optim.lr_scheduler.MultiStepLR>,
+        "lr_step_frequency": <OPTIONAL string value of "epoch" (default) or "batch" for when to 'step()' the optimizer_fn.>,
+        "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
+        "optimizer_fn": <FQCN of an optimizer: e.g. torch.optim.SGD>,
+        "strict": <OPTIONAL When loading a model, should we use strict flag. Default is true.>
     },
     "reports": [ <array of Report plugins - see below ],
     "seed": <OPTIONAL integer seed value for controlling randomization>,
@@ -614,10 +615,21 @@ See **evaluation_transforms** for a discussion of how the class is loaded and kw
 ## pytorch
 Specific parameters for the PyTorch model compilation.
 
+### accuracy_args
+A dictionary of optional arguments to be passed to the accuracy function.
+
+### accuracy_fn
+**Optional:** A fully qualified accuracy function. When not specified, sklearn.metrics.accuracy_score is used.
+Any provided accuracy score must take the parameters "y_pred" (array of predicted classes) and 
+"y_true" (array of true classes).
+
 ### deterministic
 This boolean controls two options that need to be set in order for deterministic 
 operation to occur when running PyTorch on a GPU. Setting this to `true` will help with 
 GPU reproducibility. There may be a performance impact when enabling this option.
+
+### loss_args
+Keyword args to be provided to the loss function.
 
 ### loss_fn
 The name of a PyTorch loss function such as "torch.nn.CrossEntropyLoss." These are
@@ -625,22 +637,12 @@ dynamically found so any loss function can be supplied.  However, no adapting is
 so the loss function must be appropriate for the model. See PyTorch documentation
 for details on selecting loss functions.
 
-### loss_args
-Keyword args to be provided to the loss function.
+### optimizer_args
+Keyword args to be provided to the optimizer_fn function.
 
 ### optimizer_fn
 The name of a pytorch optimizer_fn such as "torch.optim.SGD." Note, these
 are not dynamically found, but identified by string name comparison.
-
-### optimizer_args
-Keyword args to be provided to the optimizer_fn function.
-
-### lr_schedule_fn
-A string that indicates which type of PyTorch lr_scheduler to use. Juneberry currently supports 
-the CyclicLR, StepLR, MultiStepLR, LambdaLR, or a fully qualified name of a class that
-extends the pytorch LRScheduler, such as torch.optim.lr_scheduler.CyclicLR. Any class specified
-is automatically provided the "optimizer_fn" and, if desired, the "epochs" (with those parameter names) 
-during `__init__`.
 
 ### lr_schedule_args
 A dictionary of arguments used by the lr_scheduler. The number and type of arguments 
@@ -670,17 +672,19 @@ class <MyLearningRateFunctionObject>:
 For subclasses of torch.optim.lr_scheduler._LRScheduler, the first two arguments to __init__
 (the optimizer_fn and epochs) will be provided by Juneberry.
 
+### lr_schedule_fn
+A string that indicates which type of PyTorch lr_scheduler to use. Juneberry currently supports 
+the CyclicLR, StepLR, MultiStepLR, LambdaLR, or a fully qualified name of a class that
+extends the pytorch LRScheduler, such as torch.optim.lr_scheduler.CyclicLR. Any class specified
+is automatically provided the "optimizer_fn" and, if desired, the "epochs" (with those parameter names) 
+during `__init__`.
+
 ### lr_step_frequency
 **OPTIONAL** This indicates how often we update (step) the learning rate scheduler. By default `step()` 
 is called every epoch. To update the frequency every batch, set this property to "batch".
 
-### accuracy_fn
-**Optional:** A fully qualified accuracy function. When not specified, sklearn.metrics.accuracy_score is used.
-Any provided accuracy score must take the parameters "y_pred" (array of predicted classes) and 
-"y_true" an array of true classes.
-
-### accuracy_args
-A dictionary of optional arguments to be passed to the accuracy function.
+### strict
+**OPTIONAL** Boolean that indicates whether models should be loaded as strict. Defaults to True.
 
 ## reports
 **OPTIONAL** An array of one or more Report Plugins, where each Plugin corresponds to a Juneberry 
@@ -769,7 +773,7 @@ Keyword args to be provided to the optimizer_fn function during construction.
 **Optional:** Timestamp (ISO format) indicating when the config was last modified.
 
 ## trainer
-The fully qualified class name (fqcn) and optional kwargs to a class class that extends `juneberry.trainer.Trainer`.
+The fully qualified class name (fqcn) and optional kwargs to a class that extends `juneberry.trainer.Trainer`.
 Juneberry has a variety of built-in trainers for the following platforms.  The built-in trainers require
 no additional kwargs.
 

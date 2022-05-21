@@ -223,7 +223,7 @@ class Evaluator(EvaluatorBase):
 
         # Load the weights into the model.
         logger.info(f"Loading model weights...")
-        pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model)
+        pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model, self.model_config.pytorch.strict)
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

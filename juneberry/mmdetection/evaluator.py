@@ -52,7 +52,7 @@ from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_config, get_default_od_metrics_formatter
 import juneberry.filesystem as jbfs
 from juneberry.filesystem import EvalDirMgr, ModelManager
-from juneberry.jb_logging import setup_logger as jb_setup_logger
+from juneberry.jb_logging import setup_logger as jb_setup_logger, RemoveDuplicatesFilter
 from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.mmdetection.utils as mmd_utils
@@ -97,6 +97,8 @@ class Evaluator(EvaluatorBase):
 
     def setup(self) -> None:
         jb_setup_logger(self.log_file_path, "", name="mmdet", level=logging.DEBUG)
+        jb_setup_logger(self.log_file_path, "", name="brambox", level=logging.DEBUG,
+                        log_filter_class=RemoveDuplicatesFilter)
 
         # Setup working dir to save files and logs.
         logger.info(f"Using working directory of: {self.working_dir}")
