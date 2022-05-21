@@ -114,12 +114,13 @@ class Tide:
         return self.tide.mdAP.to_dict()
 
 
-class Stats:
+class Summary:
+
     def __init__(self,
                  iou_threshold,
                  tp_threshold) -> None:
         """
-        Initialize a Stats metrics object using annotations and detections files in
+        Initialize a Summary metrics object using annotations and detections files in
         COCO JSON format.
         :param iou_threshold: The iou threshold
         :param tp_threshold: The tp threshold
