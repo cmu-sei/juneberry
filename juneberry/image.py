@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -362,3 +340,97 @@ def load_prepare_images_np(data: List[Tuple[str, int]], size_wh: Tuple[int, int]
     """
     images, labels = load_prepare_images(data, size_wh, colorspace)
     return make_np_arrays(images, labels, size_wh, colorspace)
+
+
+def rotate_image(src_image: Image, rotation_degrees: int) -> Image:
+    """
+    :param src_image: The image receiving the rotation.
+    :param rotation_degrees: The maximum amount of rotation in degrees (negative and postivite) to apply to the imaeg.
+    :return:
+    """
+    rotation_amount = randint(-rotation, rotation)
+    logging.debug(f"Rotating the image by {rotation_amount} degrees.")
+    return src_image.rotate(rotation_amount, expand=True)
+
+
+def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur=0):
+    """
+    This function is responsible for applying transformations to the provided image.
+    :param src_image: The image receiving the transformations.
+    :param scale_range: Tuple indicating the min/max values to use for scaling with 1.0 being none.
+    :param rotation: The maximum amount of rotation in degrees (negative and postivite) to apply to the imaeg.
+    :param blur: The maximum radius to use when applying Gaussian blur to the image.
+    :return: The transformed image.
+    """
+
+    # When a maxBlur value is provided, it is treated as the ceiling for the amount to use for the radius in
+    # a Gaussian blur. If the value is zero, then no blur is applied.
+    # TODO Refactor out
+    if blur:
+        blur_radius = randint(0, blur)
+        logging.debug(f"Applying Gaussian blur to the image using radius {blur_radius}.")
+        src_image = src_image.filter(ImageFilter.GaussianBlur(blur_radius))
+
+    # When a scale range is provided, a random scale value between scale_range[0] and scale_range[1] is chosen
+    # for the amount by which to scale the patch. Scale values less than 1.0 will shrink the patch, while scale
+    # values greater than 1 will increase the size of the patch.
+    # TODO Refactor out
+    if scale_range != (None, None) and scale_range != (1.0, 1.0):
+        logging.debug(f"Scaling the image size...")
+        patch_width, patch_height = src_image.size
+        logging.debug(f"...original dimensions: width = {patch_width}, height = {patch_height}")
+
+        scale = round(uniform(scale_range[0], scale_range[1]), 1)
+        logging.debug(f"...applying a scale factor of {scale} to the patch.")
+        src_image = src_image.resize((int(patch_width * scale), int(patch_height * scale)), Image.ANTIALIAS)
+
+        patch_width, patch_height = src_image.size
+        logging.debug(f"...new image dimensions: width = {patch_width}, height = {patch_height}")
+
+    # When a rotation value is provided, this transform will randomly select a value between
+    # -rotationAmount and +rotationAmount and apply that rotation to the patch image. The
+    # "expand" argument ensures that the patch will not be trimmed if the rotation causes pixels
+    # to fall outside of the original dimensions of the image.
+    if rotation:
+        src_image = rotate_image(src_image, rotation)
+
+    return src_image
+
+
+def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> (int, int):
+    """
+    Randomly computes an position inside the target box which will fit the entirety
+    of the source box without clipping.
+    :param src_size_wh: The size of the source box to insert
+    :param target_box_wh: The size of the destination region
+    :return:
+    """
+
+    # Make a "reduced" are so we can compute left top. (xy)
+    max_x = target_box_wh[0] - src_size_wh[0]
+    max_y = target_box_wh[1] - src_size_wh[1]
+
+    # Find a value in the range
+    if randomizer is None:
+        randomizer = random
+
+    x = randomizer.randint(0, max_x)
+    y = randomizer.randint(0, max_y)
+
+    return x, y
+
+
+def insert_image_at_position(src_image, inserted_image, position_xy):
+    """
+    Inserts the image into the image at the specified position.
+    :param src_image: The image in which to place to patch.
+    :param patch_image: The image to insert.
+    :param position_xy: The position at which to insert the image.
+    :return The modified source image.
+    """
+
+    # The third argument here is a mask parameter.  Assuming the patch came from the generator,
+    # it is an RGBA image so the mask will be the alpha channel of the patch.
+    src_image.paste(inserted_image, position_xy, patch_image)
+
+    return src_image

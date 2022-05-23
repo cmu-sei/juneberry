@@ -26,6 +26,9 @@
 A set of general image conversions.
 """
 
+import copy
+from PIL import Image
+
 import juneberry.image as iutils
 
 
@@ -64,13 +67,20 @@ class ResizePad:
 
 
 class Watermark:
-    def __init__(self, patch_path, size):
-        # Load the patch and set size
-        #
-        pass
+    def __init__(self, watermark_path, min_scale=1.0, max_scale=1.0, rotation=0, blur=0):
+        self.watermark = Image.open(watermark_path)
+        self.min_scale = min_scale
+        self.min_scale = max_scale
+        self.rotation = rotation
+        self.blur = blur
 
     def __call__(self, image):
-        # Call the guts of the patch injector
-        # iutils.watermark(image, self.patch)
-        return image
+        # Copy the watermark so we can munge it
+        tmp_img: Image = copy.copy(self.watermark)
 
+        # Transform watermark
+        tmp_img = iutils.transform_image(tmp_img, (self.min_scale, self.max_scale), self.rotation, self.blur)
+
+        # Insert at a random location
+        x, y = iutils.make_random_insert_position(tmp_img.size, image.size)
+        return iutils.insert_image_at_position(image, tmp_img, (x, y))
