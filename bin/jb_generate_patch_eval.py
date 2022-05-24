@@ -101,6 +101,9 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
     curve_names = []
     series_list = []
     for patch_name in patches_dir.iterdir():
+        if patch_name.name.startswith("."):
+            continue
+
         curve_names.append(patch_name.stem)
         eval_series = []
         for size in sizes:
