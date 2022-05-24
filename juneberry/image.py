@@ -420,19 +420,21 @@ def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> 
     return x, y
 
 
-def insert_watermark_at_position(image, watermark, position_xy):
+def insert_watermark_at_position(image: Image, watermark: Image, position_xy):
     """
-    Inserts the watermark into the image at the specified position. The watermark must contain an
-    alpha channel that is the mask of the image.
+    Inserts the watermark into the image at the specified position. If the watermark
+    is an RGBA image, then it is also passed in as the mask.
     :param image: The image in which to place to watermark.
-    :param watermark: The RGBA watermark.
+    :param watermark: The watermark.
     :param position_xy: The position at which to insert the watermark.
     :return The modified image.
     """
 
     # The third argument here is a mask parameter.
     # It is an RGBA image so the mask will be the alpha channel of the patch.
-    #image.paste(watermark, position_xy, watermark)
-    image.paste(watermark, position_xy)
+    if watermark.mode == "RGBA":
+        image.paste(watermark, position_xy, watermark)
+    else:
+        image.paste(watermark, position_xy)
 
     return image
