@@ -95,10 +95,10 @@ def assemble_curves(model_mgr: ModelManager, eval_names: list, target_class: int
 def format_plot(x_values, curves, curve_names, x_title, y_title, output_dir):
     for idx, curve in enumerate(curves):
         plt.plot(x_values, curve, label = curve_names[idx])
-    plt.ylabel(x_title)
-    plt.xlabel(y_title)
+    plt.ylabel(y_title)
+    plt.xlabel(x_title)
     plt.legend()
-    plt.savefig(str(Path(output_dir) / "compare_plot.png"))
+    plt.savefig(str(Path(output_dir) / "variation_plot.png"))
 
 
 class VariationCurve(Report):
