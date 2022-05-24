@@ -31,7 +31,7 @@ import numpy as np
 import random
 import warnings
 
-from PIL import Image
+from PIL import Image, ImageFilter
 from PIL import ImageOps
 from typing import List, Tuple
 
@@ -367,7 +367,7 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
     # a Gaussian blur. If the value is zero, then no blur is applied.
     # TODO Refactor out
     if blur:
-        blur_radius = randint(0, blur)
+        blur_radius = random.randint(0, blur)
         logging.debug(f"Applying Gaussian blur to the image using radius {blur_radius}.")
         src_image = src_image.filter(ImageFilter.GaussianBlur(blur_radius))
 
@@ -380,7 +380,7 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
         patch_width, patch_height = src_image.size
         logging.debug(f"...original dimensions: width = {patch_width}, height = {patch_height}")
 
-        scale = round(uniform(scale_range[0], scale_range[1]), 1)
+        scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
         logging.debug(f"...applying a scale factor of {scale} to the patch.")
         src_image = src_image.resize((int(patch_width * scale), int(patch_height * scale)), Image.ANTIALIAS)
 
@@ -420,17 +420,19 @@ def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> 
     return x, y
 
 
-def insert_image_at_position(src_image, inserted_image, position_xy):
+def insert_watermark_at_position(image, watermark, position_xy):
     """
-    Inserts the image into the image at the specified position.
-    :param src_image: The image in which to place to patch.
-    :param patch_image: The image to insert.
-    :param position_xy: The position at which to insert the image.
-    :return The modified source image.
+    Inserts the watermark into the image at the specified position. The watermark must contain an
+    alpha channel that is the mask of the image.
+    :param image: The image in which to place to watermark.
+    :param watermark: The RGBA watermark.
+    :param position_xy: The position at which to insert the watermark.
+    :return The modified image.
     """
 
-    # The third argument here is a mask parameter.  Assuming the patch came from the generator,
-    # it is an RGBA image so the mask will be the alpha channel of the patch.
-    src_image.paste(inserted_image, position_xy, patch_image)
+    # The third argument here is a mask parameter.
+    # It is an RGBA image so the mask will be the alpha channel of the patch.
+    #image.paste(watermark, position_xy, watermark)
+    image.paste(watermark, position_xy)
 
-    return src_image
+    return image

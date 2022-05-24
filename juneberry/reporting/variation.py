@@ -23,16 +23,15 @@
 # ======================================================================================================================
 
 import logging
-from prodict import Prodict
-
-from juneberry.config.plugin import Plugin
-from juneberry.config.eval_output import EvaluationOutput, Metrics, Results
-from juneberry.filesystem import ModelManager, EvalDirMgr
-import juneberry.metrics.metrics_manager as metrics_manager
-from juneberry.reporting.report import Report
-import juneberry.pytorch.utils as pyutils
+from pathlib import Path
 
 from matplotlib import pyplot as plt
+import numpy as np
+
+from juneberry.config.eval_output import EvaluationOutput
+from juneberry.filesystem import ModelManager, EvalDirMgr
+from juneberry.reporting.report import Report
+
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +84,12 @@ def assemble_curves(model_mgr: ModelManager, eval_names: list, target_class: int
             predictions: EvaluationOutput = EvaluationOutput.load(eval_dir_mgr.get_predictions_path())
 
             # Convert the raw values to numpy arrays for the utility function
-            y_score = np.asarray(prediction_file_content.results.predictions)
+            y_score = np.asarray(predictions.results.predictions)
 
             # Add the accuracy value for this target class
             curve.append(compute_accuracy_one_class(y_score, target_class))
         curves.append(curve)
-    return curve
+    return curves
 
 
 def format_plot(x_values, curves, curve_names, x_title, y_title, output_dir):

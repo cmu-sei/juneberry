@@ -70,7 +70,7 @@ class Watermark:
     def __init__(self, watermark_path, min_scale=1.0, max_scale=1.0, rotation=0, blur=0):
         self.watermark = Image.open(watermark_path)
         self.min_scale = min_scale
-        self.min_scale = max_scale
+        self.max_scale = max_scale
         self.rotation = rotation
         self.blur = blur
 
@@ -83,4 +83,4 @@ class Watermark:
 
         # Insert at a random location
         x, y = iutils.make_random_insert_position(tmp_img.size, image.size)
-        return iutils.insert_image_at_position(image, tmp_img, (x, y))
+        return iutils.insert_watermark_at_position(image, tmp_img, (x, y))

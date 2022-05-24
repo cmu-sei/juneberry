@@ -57,7 +57,7 @@ import juneberry.scripting as jbscripting
 logger = logging.getLogger("juneberry.jb_generate_patch_eval")
 
 
-def make_set_name(patch_name, size) -> str:
+def make_variation_name(patch_name, size) -> str:
     str_size = f"{int(size)}d{int((size % 1) * 10000)}"
     return f"{patch_name}_{str_size}"
 
@@ -66,7 +66,7 @@ def make_dataset_path(experiment_name, patch_name, size) -> Path:
     exp_mgr = ExperimentManager(experiment_name)
     datasets_dir = exp_mgr.experiment_dir_path / "data_sets"
 
-    return datasets_dir / f"{make_set_name(patch_name, size)}.json"
+    return datasets_dir / f"{make_variation_name(patch_name, size)}.json"
 
 
 def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size):
@@ -110,7 +110,7 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
             make_patch_dataset(base_config, dataset_path, str(patch_path), size)
 
             # Add a test
-            tag = f"{patch_name.stem}_{size}"
+            tag = make_variation_name(patch_name.stem, size)
             eval_series.append(tag)
             test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
             report_test_list.append(ReportTest(tag=tag))
@@ -119,13 +119,13 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
     # Now, assempble an experiment config and save it
     exp_config = ExperimentConfig()
     exp_config.description = "Patch evaluation experiment"
-    exp_model = Model(name=model_name, tests=test_list)
+    exp_config.format_version = "0.2.0"
     exp_config.models = [Model(name=model_name, tests=test_list)]
 
     # Make the reports stanza
     # TODO: The tool plots a bunch of eval metrics but just for that target
     report = Report(description="",
-                    fqcn="juneberry.reporting.variation.VariationCurves",
+                    fqcn="juneberry.reporting.variation.VariationCurve",
                     kwargs={
                         'model_name': model_name,
                         'curve_names': curve_names,
@@ -158,7 +158,7 @@ def main():
     # TODO: We don't need all the workspace/profile bits (do we?) because we just work within the experiment directory
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-    sizes = [0.1 * x for x in range(1, 11)]
+    sizes = [round(0.1 * x, 1) for x in range(1, 11)]
     generate_experiment(args.experimentName,
                         args.modelName,
                         sizes,
