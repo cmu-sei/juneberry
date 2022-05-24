@@ -415,8 +415,9 @@ def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> 
         randomizer = random
 
     if max_x < 0 or max_y < 0:
-        print(f"Asked to compute random position for {src_size_wh} {target_box_wh} and"
-              f"and max_x or max_y is less than zero. max_x={max_x}, max_y={max_y}")
+        print(f"Asked to compute random position for watermark:{src_size_wh} "
+              f"target:{target_box_wh} and max_x or max_y is less than zero. "
+              f"max_x={max_x}, max_y={max_y}")
         raise RuntimeError("Watermark larger than target image.")
     x = randomizer.randint(0, max_x)
     y = randomizer.randint(0, max_y)
