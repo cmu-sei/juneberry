@@ -160,6 +160,11 @@ notation ensures that if lrSchedule A is chosen for the model config, then it wi
 Args group 1 (and never Args group 2). Additionally, if lrSchedule B gets chosen, then Args group 2 must 
 be used (and never Args group 1).
 
+When the value for a particular parameter is an array, you can use brackets "[]" to target a specific 
+element in that array to be a variable. For example, a config field of `training_transforms[1].kwargs.size` 
+would look inside the model config for a parameter named "training_transforms", take the first element inside 
+that array, and vary the "kwargs.size" property of that element.
+
 ### vals
 This key should be a list of the vals you would like to assign to the variable. The correct type for 
 the elements in this list will depend on the parameter specified in the config_field. Integers, strings, 
