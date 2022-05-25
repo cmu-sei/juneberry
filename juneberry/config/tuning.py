@@ -22,4 +22,17 @@
 #
 # ======================================================================================================================
 
+import logging
+
+from prodict import Prodict
+
+logger = logging.getLogger(__name__)
+
+
 # TODO
+class TuningConfig(Prodict):
+    pass
+
+    @staticmethod
+    def load(data_path: str):
+        pass

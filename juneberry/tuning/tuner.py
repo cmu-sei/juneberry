@@ -24,6 +24,11 @@
 
 import logging
 
+from juneberry.config.model import ModelConfig
+from juneberry.config.plugin import Plugin
+from juneberry.config.tuning import TuningConfig
+import juneberry.loader as jb_loader
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,13 +36,20 @@ class Tuner:
 
     def __init__(self, model_name: str, tuning_config_name: str):
         self.model_name = model_name
+        self.model_config = ModelConfig.load(self.model_name)
+
         self.tuning_config_name = tuning_config_name
+        self.tuning_config = TuningConfig.load(self.tuning_config_name)
 
         # Attributes derived from the tuning config.
 
         # This will be a dictionary that defines which hyperparameters will be adjusted,
         # as well as what values are possible for each adjustment.
         self.search_space = None
+
+        # The search algo is responsible for suggesting hyperparameter configurations out of
+        # the search space.
+        self.search_algo = None
 
         # This scheduler is used during the tuning run to determine when to stop a trial
         # of hyperparameters early if they're not performing well.
@@ -73,6 +85,7 @@ class Tuner:
 
     def setup_tuning_parameters(self):
         pass
+
         # TODO: This is responsible for extracting the tuning parameters from the tuning config.
 
         #    TODO: Extract the search_space from the tuning config.
@@ -85,6 +98,15 @@ class Tuner:
 
         #    TODO: Extract the metric (str), mode (str), and scope (str). Set reasonable defaults
         #     if they're not present in the tuning config.
+
+        #    TODO: Extract the search algorithm for the search space. Set a reasonable default if
+        #     it's not present in the tuning config.
+        self.build_search_algo(self.tuning_config.search_algorithm)
+
+    def build_search_algo(self, algo_dict: Plugin):
+        # TODO: This is responsible for constructing the search algorithm to be used during the tuning run.
+        #  Ultimately this will looks something like:
+        self.search_algo = jb_loader.construct_instance(algo_dict.fqcn, algo_dict.kwargs)
 
     def setup_model(self):
         pass
@@ -124,6 +146,7 @@ class Tuner:
         #     tune_with_parameters(self.train_fn),
         #     resources_per_trial=self.trial_resources,
         #     config=self.search_space,
+        #     search_alg=self.search_algo,
         #     metric=self.metric,
         #     mode=self.mode,
         #     num_samples=self.num_samples,
