@@ -462,7 +462,7 @@ class TestPRReport(TestCase):
         assert pr_report.output_dir == Path.cwd()
         assert pr_report.iou == 0.5
         assert pr_report.tp_threshold == 0.8
-        assert pr_report.stats_fqcn == "juneberry.metrics.metrics.Stats"
+        assert pr_report.stats_fqcn == "juneberry.metrics.metrics.Summary"
         assert pr_report.curve_sources is None
 
     def test_report_init_values(self):
@@ -475,7 +475,7 @@ class TestPRReport(TestCase):
         iou = 0.5
         curve_sources = {"key": "value"}
         tp_threshold = 0.5
-        stats_fqcn = "metrics.Stats"
+        stats_fqcn = "metrics.Summary"
 
         # Create a Report stanza for a PR report using the desired values.
         config_file_content = make_pr_report(output_dir=output_dir, iou=iou, curve_sources=curve_sources,

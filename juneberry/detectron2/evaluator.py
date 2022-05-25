@@ -42,7 +42,7 @@ import juneberry.detectron2.data as dt2_data
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_config, get_default_od_metrics_formatter
 from juneberry.filesystem import EvalDirMgr, ModelManager
-from juneberry.jb_logging import setup_logger as jb_setup_logger
+from juneberry.jb_logging import setup_logger as jb_setup_logger, RemoveDuplicatesFilter
 from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.pytorch.processing as processing
@@ -137,6 +137,8 @@ class Evaluator(EvaluatorBase):
     def setup(self) -> None:
         jb_setup_logger(self.log_file_path, "", name="fvcore", level=logging.DEBUG)
         jb_setup_logger(self.log_file_path, "", name="detectron2", level=logging.DEBUG)
+        jb_setup_logger(self.log_file_path, "", name="brambox", level=logging.DEBUG,
+                        log_filter_class=RemoveDuplicatesFilter)
 
     def obtain_dataset(self) -> None:
 
