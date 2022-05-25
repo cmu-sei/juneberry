@@ -26,31 +26,35 @@ import copy
 import argparse
 import logging
 from pathlib import Path
-import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.experiment import ExperimentConfig, Model, ModelTest, Report, ReportTest
-import juneberry.filesystem as jbfs
-from juneberry.filesystem import ExperimentManager, ModelManager
+from juneberry.filesystem import ExperimentManager
 
 import juneberry.scripting as jbscripting
 
 # DESIGN
-# We asssume the following layout
+# We assume the following layout
+#
 # experiments/
 #   <experiment-name>/
 #     patches/
 #     base_data_set.json
 #
-# We make
+# We make:
+#
 # experiments/
 #   <experiment-name>/
 #     data_sets/
+#        <path_name>_<size>.json
 # models/
 #   <model-name>
 #     evals
 #       <patch_name>_<size>/
 #         metrics.json
+#
+# The patches can be any set of images.
+# The base_data_set.json is a data_set file that contains a juneberry.transforms.image.Watermark stanza.
 #
 # DESIGN
 
@@ -69,20 +73,42 @@ def make_dataset_path(experiment_name, patch_name, size) -> Path:
     return datasets_dir / f"{make_variation_name(patch_name, size)}.json"
 
 
+def validate_base_config(base_config: DatasetConfig):
+    for transform in base_config.data_transforms.transforms:
+        # If we found one, then this is valid.
+        if transform.fqcn == "juneberry.transforms.image.Watermark":
+            return
+
+    # If we got this far, then the base config did NOT contain a watermark transform.
+    # This is an error. Give them a hint and exit.
+    logger.error("Failed to find watermark transform in data transforms list."
+                 "Expected to find something like this the base_data_set.json:"
+                 '"data_transforms": {'
+                 '    "transforms": ['
+                 '        {'
+                 '            "fqcn": "juneberry.transforms.image.Watermark",'
+                 '            "kwargs": {  }'
+                 '        }'
+                 '    ]'
+                 '}'
+                 )
+    raise RuntimeError("Missing 'juneberry.transforms.image.Watermark' in data_transforms.")
+
+
 def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size):
     # Copy the config, adjust the patch_path, size and save
     new_config: DatasetConfig = copy.deepcopy(base_config)
     for transform in new_config.data_transforms.transforms:
-        # TODO: Add warning if we don't find one
         if transform.fqcn == "juneberry.transforms.image.Watermark":
             transform.kwargs['watermark_path'] = patch_path
             transform.kwargs['min_scale'] = size
             transform.kwargs['max_scale'] = size
+            continue
     logger.info(f"Saving dataset config to {dest_path}")
-    new_config.save(dest_path)
+    new_config.save(str(dest_path))
 
 
-def generate_experiment(experiment_name, model_name, sizes, target_class) -> list:
+def generate_experiment(experiment_name, model_name, sizes, target_class) -> None:
     # This function walks the patches directory abd create a dataset file for each patch and size pair.
     # So, when done, there should be patches X sizes files in the datasets directory.
 
@@ -94,6 +120,7 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
 
     # Load the base dataset config
     base_config = DatasetConfig.load(exp_mgr.experiment_dir_path / "base_data_set.json")
+    validate_base_config(base_config)
 
     # Make a new dataset config with the updated size for each patch/size combo
     test_list = []
@@ -101,32 +128,34 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
     curve_names = []
     series_list = []
     for patch_name in patches_dir.iterdir():
-        if patch_name.name.startswith("."):
-            continue
+        suffix = patch_name.suffix.lower()
+        if suffix == ".png" or suffix == ".jpg" or suffix == ".tif":
+            curve_names.append(patch_name.stem)
+            eval_series = []
+            for size in sizes:
+                # Make a patch dataset
+                dataset_path = make_dataset_path(experiment_name, patch_name.stem, size)
+                patch_path = patches_dir / patch_name.name
+                make_patch_dataset(base_config, dataset_path, str(patch_path), size)
 
-        curve_names.append(patch_name.stem)
-        eval_series = []
-        for size in sizes:
-            # Make a patch dataset
-            dataset_path = make_dataset_path(experiment_name, patch_name.stem, size)
-            patch_path = patches_dir / patch_name.name
-            make_patch_dataset(base_config, dataset_path, str(patch_path), size)
+                # Add a test stanza
+                tag = make_variation_name(patch_name.stem, size)
+                eval_series.append(tag)
+                test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
+                report_test_list.append(ReportTest(tag=tag))
 
-            # Add a test
-            tag = make_variation_name(patch_name.stem, size)
-            eval_series.append(tag)
-            test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
-            report_test_list.append(ReportTest(tag=tag))
-        series_list.append(eval_series)
+            # Add the entires series of the evaluations to the series list for the report later
+            series_list.append(eval_series)
 
-    # Now, assempble an experiment config and save it
+    # Assemble an experiment config
     exp_config = ExperimentConfig()
     exp_config.description = "Patch evaluation experiment"
     exp_config.format_version = "0.2.0"
+
+    # Add the model stanza with all the tests
     exp_config.models = [Model(name=model_name, tests=test_list)]
 
-    # Make the reports stanza
-    # TODO: The tool plots a bunch of eval metrics but just for that target
+    # Add the reports stanza
     report = Report(description="",
                     fqcn="juneberry.reporting.variation.VariationCurve",
                     kwargs={
@@ -141,8 +170,6 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
                     },
                     tests=report_test_list)
     exp_config.reports = [report]
-
-    # model_name, eval_names, target_class, x_title, x_labels, y_title, output_dir
 
     # Save the config out.
     logger.info(f"Saving experiment config to: {exp_mgr.get_experiment_config()}")
@@ -159,10 +186,13 @@ def main():
     parser.add_argument('targetClass', type=int, help="The target class to evaluate.")
     args = parser.parse_args()
 
-    # TODO: We don't need all the workspace/profile bits (do we?) because we just work within the experiment directory
+    # We only need basic logging setup.
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
+    # For now, we do ten sizes at from 10% to 100%. We shoud probably allow switches for this
     sizes = [round(0.1 * x, 1) for x in range(1, 11)]
+
+    # Generate the dataset configs and experiment config
     generate_experiment(args.experimentName,
                         args.modelName,
                         sizes,

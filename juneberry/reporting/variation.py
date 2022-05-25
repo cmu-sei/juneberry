@@ -63,7 +63,7 @@ def compute_accuracy_one_class(y_scores_np, target_class):
     # Convert continuous predictions to the highest entry which is the predicted class
     outputs = np.argmax(y_scores_np, axis=1)
 
-    # Find how many we ended up in the target class
+    # Find how many ended up in the target class
     correct = np.sum(outputs == target_class)
 
     return correct / len(outputs)
