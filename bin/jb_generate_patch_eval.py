@@ -134,9 +134,9 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> lis
                         'curve_names': curve_names,
                         'eval_names': series_list,
                         'target_class': target_class,
-                        'x_title': "X Title",
+                        'x_label': "Attack as % of image size",
                         'x_values': sizes,
-                        'y_title': "Y Title",
+                        'y_label': "Attack Success Rate",
                         'output_dir': str(exp_mgr.experiment_dir_path)
                     },
                     tests=report_test_list)

@@ -107,7 +107,7 @@ class VariationCurve(Report):
     is varied (x-axis) and the y-axis is the appropriate metric such as loss.
     """
 
-    def __init__(self, *, model_name, curve_names, eval_names, target_class, x_title, x_values, y_title,
+    def __init__(self, *, model_name, curve_names, eval_names, target_class, x_label, x_values, y_label,
                  output_dir: str = ""):
         super().__init__(output_dir)
 
@@ -115,9 +115,9 @@ class VariationCurve(Report):
         self.curve_names = curve_names
         self.eval_names = eval_names
         self.target_class = target_class
-        self.x_title = x_title
+        self.x_label = x_label
         self.x_values = x_values
-        self.y_title = y_title
+        self.y_label = y_label
 
         # Safety checks
         # The number of x_labels should match number of files
@@ -134,4 +134,4 @@ class VariationCurve(Report):
         curves = assemble_curves(mmgr, self.eval_names, self.target_class)
 
         # Format the plot
-        format_plot(self.x_values, curves, self.curve_names, self.x_title, self.y_title, self.output_dir)
+        format_plot(self.x_values, curves, self.curve_names, self.x_label, self.y_label, self.output_dir)
