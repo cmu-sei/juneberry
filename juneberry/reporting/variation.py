@@ -24,6 +24,7 @@
 
 import logging
 from pathlib import Path
+import sys
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -124,8 +125,8 @@ class VariationCurve(Report):
         for series in eval_names:
             if len(series) != len(x_values):
                 logger.error(f"There are {len(x_values)} and we expected that many entries in series: {series}. "
-                             f"Exiting")
-                raise RuntimeError("Series length does not match numbeer of x_labels")
+                             f"**Exiting**")
+                sys.exit(-1)
 
     def create_report(self) -> None:
         mmgr = ModelManager(self.model_name)

@@ -26,6 +26,7 @@ import copy
 import argparse
 import logging
 from pathlib import Path
+import sys
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.experiment import ExperimentConfig, Model, ModelTest, Report, ReportTest
@@ -92,7 +93,7 @@ def validate_base_config(base_config: DatasetConfig):
                  '    ]'
                  '}'
                  )
-    raise RuntimeError("Missing 'juneberry.transforms.image.Watermark' in data_transforms.")
+    sys.exit(-1)
 
 
 def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size):
