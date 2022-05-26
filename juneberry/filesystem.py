@@ -679,6 +679,10 @@ class ModelManager:
         """ :return: Path to a directory for 'scratch' outputs from training. """
         return self.get_train_root_dir() / "scratch"
 
+    def get_tuning_checkpoint_dir(self) -> Path:
+        """ :return: Path to a directory containing model checkpoints from hyperparameter tuning. """
+        return self.get_train_root_dir() / "tuning_checkpoints"
+
     # ============ Evaluation ============
 
     def get_eval_dir_mgr(self, dataset_path: str = None) -> EvalDirMgr:
