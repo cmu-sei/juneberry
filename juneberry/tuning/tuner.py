@@ -36,7 +36,8 @@ class Tuner:
 
     def __init__(self, model_name: str, tuning_config_name: str):
         self.model_name = model_name
-        self.model_config = ModelConfig.load(self.model_name)
+        self.baseline_model_config = ModelConfig.load(self.model_name)
+        self.trial_model_config = None
 
         self.tuning_config_name = tuning_config_name
         self.tuning_config = TuningConfig.load(self.tuning_config_name)
@@ -62,26 +63,11 @@ class Tuner:
         self.num_samples = None
         self.scope = None
 
-        # Attributes derived from the model config.
-
-        # Attributes related to model training.
-        self.training_data = None
-        self.validation_data = None
-        self.train_fn = None
-
-        # Attributes related to model evaluation.
-        self.evaluation_data = None
-        self.eval_fn = None
-
         # Attribute to capture the best tuning result.
         self.best_result = None
 
         # Methods for setting attributes.
         self.setup_tuning_parameters()
-        self.setup_model()
-        self.setup_data()
-        self.setup_training()
-        self.setup_evaluation()
 
     def setup_tuning_parameters(self):
         pass
@@ -108,34 +94,12 @@ class Tuner:
         #  Ultimately this will looks something like:
         self.search_algo = jb_loader.construct_instance(algo_dict.fqcn, algo_dict.kwargs)
 
-    def setup_model(self):
-        pass
-        # TODO: This is responsible for setting up the model to be tuned. Start with reading the model config.
-        #  This may be very closely coupled to the 'setup_training' method below. It may be possible to rely
-        #  on most trainer's 'setup_model' method to a certain extent.
-        #
-        #    TODO: The model architecture must also be set up. It may have tunable properties, so this should
-        #     happen after self.search_space is known.
+    def train_fn(self, config):
+        # This will substitute the current set of hyperparameters for the trial into the baseline config.
+        self.trial_model_config = self.baseline_model_config.adjust_attributes(config)
 
-    def setup_data(self):
-        pass
-        # TODO: This is responsible for setting up the training_data, validation_data, and evaluation_data.
-
-    def setup_training(self):
-        pass
-        # TODO: This sets up the training loop used by the tuning run.
-
-        #    TODO: Build the correct trainer.
-        #    TODO: Set the correct train_fn. The train_fn may look a lot like trainer.train(), but it
-        #     will probably need to end with a tune.report() call which captures metrics (loss,
-        #     accuracy, etc.) from the current trial.
-
-    def setup_evaluation(self):
-        pass
-        # TODO: This sets up the evaluation loop used by the "best" model.
-
-        #    TODO: Build the correct evaluator.
-        #    TODO: Set the correct eval_fn.
+        # Now that we have a new model config, eventually we want to get to a spot where we can do a
+        # trainer.train_model()
 
     def tune(self):
         pass
@@ -153,7 +117,7 @@ class Tuner:
         #     scheduler=self.scheduler
         # )
         #
-        # TODO: Once the tuning is complete, you fetch the best trial and perform an eval.
+        # TODO: Once the tuning is complete, store the best result.
         # self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
 
     # TODO: Better name for this method.
@@ -161,7 +125,5 @@ class Tuner:
         pass
 
         # TODO: Once a tuning run is complete, there are various things that can be done with
-        #  the tuning result. Those would be done here. Maybe the tuning config specifies the course
-        #  of action somehow? Do we spit out a model config with the best parameters?
-        # self.eval_fn(best_trial)
+        #  the best tuning result. This is where we'd do something with self.best_result.
     
