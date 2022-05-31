@@ -1,3 +1,36 @@
 {
-    "TODO": "TODO"
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "model_schema.json",
+    "definitions": {
+        "plugin_item": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "fqcn" ]
+        }
+    },
+    "type": "object",
+    "description": "A configuration for tuning hyperparameters in a Juneberry model.",
+    "properties": {
+        "search_algorithm": { "$ref": "#/definitions/plugin_item" },
+        "search_space": { "type":  "object" },
+        "scheduler": { "$ref": "#/definitions/plugin_item" },
+        "trial_resources": {
+            "type": "object",
+            "properties": {
+                "cpu": { "type": "integer" },
+                "gpu": { "type": "integer" }
+            }
+        },
+        "tuning_parameters": {
+            "type": "object",
+            "properties": {
+                "metric": { "type": "string" },
+                "mode": { "type": "string" },
+                "scope": { "type": "string" }
+            }
+        }
+    }
 }

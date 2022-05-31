@@ -23,16 +23,73 @@
 # ======================================================================================================================
 
 import logging
+import sys
 
 from prodict import Prodict
+
+from juneberry.config.plugin import Plugin
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
 
-# TODO
+class TrialResources(Prodict):
+    cpu: int
+    gpu: int
+
+    def init(self):
+        self.cpu = 1
+        self.gpu = 0
+
+
+class TuningParameters(Prodict):
+    metric: str
+    mode: str
+    scope: str
+
+    def init(self):
+        self.metric = 'loss'
+        self.mode = 'min'
+        self.scope = 'last'
+
+
 class TuningConfig(Prodict):
-    pass
+    FORMAT_VERSION = '0.1.0'
+    SCHEMA_NAME = 'tuning_schema.json'
+    search_algorithm: Plugin
+    search_space: Prodict
+    scheduler: Plugin
+    trial_resources: TrialResources
+    tuning_parameters: TuningParameters
+
+    @staticmethod
+    def construct(data: dict, file_path: str = None):
+        """
+        Load, validate, and construct a Tuning config object.
+        :param data: The data to use to construct the object.
+        :param file_path: Optional path to a file that may have been loaded. Used for logging.
+        :return: A constructed and validated object.
+        """
+        # Validate
+        if not jb_conf_utils.validate_schema(data, TuningConfig.SCHEMA_NAME):
+            logger.error(f"Validation errors in TuningConfig from {file_path}. See log. Exiting.")
+            sys.exit(-1)
+
+        # Finally, construct the object and do a final value cleanup
+        tuning_config = TuningConfig.from_dict(data)
+        return tuning_config
 
     @staticmethod
     def load(data_path: str):
-        pass
+        """
+        Loads the config from the provided path, validates, and constructs the config.
+        :param data_path: Path to config.
+        :return: Loaded, validated and constructed object.
+        """
+        # Load the raw file.
+        logger.info(f"Loading TUNING CONFIG from {data_path}")
+        data = jb_fs.load_file(data_path)
+
+        # Validate and construct the model.
+        return TuningConfig.construct(data, data_path)
