@@ -187,6 +187,7 @@ def load_model(model_path, model, strict: bool) -> None:
     """
     model.load_state_dict(torch.load(str(model_path)), strict=strict)
     model.eval()
+    return model
 
 
 def load_weights_from_model(model_manager, model, strict: bool) -> None:

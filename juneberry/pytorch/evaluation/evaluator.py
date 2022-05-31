@@ -216,14 +216,14 @@ class Evaluator(EvaluatorBase):
         logger.info(f"Checking for model transforms...")
         if self.model_config.model_transforms is not None:
             transforms = TransformManager(self.model_config.model_transforms)
-            transforms.transform(self.model)
+            self.model = transforms.transform(self.model)
             logger.info(f"Successfully applied transforms to the model.")
         else:
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
         # Load the weights into the model.
         logger.info(f"Loading model weights...")
-        pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model, self.model_config.pytorch.strict)
+        self.model = pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model, self.model_config.pytorch.strict)
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:
