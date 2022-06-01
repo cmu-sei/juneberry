@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+from pathlib import Path
 import sys
 
 from prodict import Prodict
@@ -37,10 +38,6 @@ logger = logging.getLogger(__name__)
 class TrialResources(Prodict):
     cpu: int
     gpu: int
-
-    def init(self):
-        self.cpu = 1
-        self.gpu = 0
 
 
 class TuningParameters(Prodict):
@@ -57,11 +54,33 @@ class TuningParameters(Prodict):
 class TuningConfig(Prodict):
     FORMAT_VERSION = '0.1.0'
     SCHEMA_NAME = 'tuning_schema.json'
-    search_algorithm: Plugin
-    search_space: Prodict
+    description: str
+    file_path: Path
+    sample_quantity: int
     scheduler: Plugin
+    search_algorithm: Plugin
+    search_space: dict
+    timestamp: str
     trial_resources: TrialResources
     tuning_parameters: TuningParameters
+
+    def init(self) -> None:
+        pass
+
+    def _finish_init(self, file_path: str = None):
+        self.file_path = Path(file_path) if file_path is not None else None
+
+        if self.trial_resources is None:
+            self.trial_resources = TrialResources()
+
+        if self.trial_resources.gpu is None:
+            self.trial_resources.gpu = 0
+
+        if self.trial_resources.cpu is None:
+            self.trial_resources.cpu = 1 if self.trial_resources.gpu == 0 else 0
+
+        if self.tuning_parameters is None:
+            self.tuning_parameters = TuningParameters()
 
     @staticmethod
     def construct(data: dict, file_path: str = None):
@@ -78,6 +97,7 @@ class TuningConfig(Prodict):
 
         # Finally, construct the object and do a final value cleanup
         tuning_config = TuningConfig.from_dict(data)
+        tuning_config._finish_init(file_path)
         return tuning_config
 
     @staticmethod
@@ -88,7 +108,7 @@ class TuningConfig(Prodict):
         :return: Loaded, validated and constructed object.
         """
         # Load the raw file.
-        logger.info(f"Loading TUNING CONFIG from {data_path}")
+        logger.info(f"Loading TuningConfig from {data_path}")
         data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.

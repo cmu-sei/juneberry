@@ -26,7 +26,6 @@ import logging
 
 from ray import tune
 
-from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
 from juneberry.config.tuning import TuningConfig
 import juneberry.filesystem as jb_fs
@@ -37,10 +36,10 @@ logger = logging.getLogger(__name__)
 
 class Tuner:
 
-    def __init__(self, model_name: str, tuning_config_name: str):
+    def __init__(self, model_name: str, tuning_config_name: str, lab):
         self.model_name = model_name
         self.model_manager = jb_fs.ModelManager(self.model_name)
-        self.baseline_model_config = ModelConfig.load(self.model_name)
+        self.baseline_model_config = lab.load_model_config(self.model_name)
         self.trial_model_config = None
 
         self.tuning_config_name = tuning_config_name
@@ -61,7 +60,7 @@ class Tuner:
         self.scheduler = None
 
         # Some more properties from the tuning config.
-        self.trial_resources = None
+        self.trial_resources = self.tuning_config.trial_resources
         self.metric = None
         self.mode = None
         self.num_samples = None
@@ -75,51 +74,78 @@ class Tuner:
         self._setup_tuning_parameters()
 
     def _setup_tuning_parameters(self):
-        pass
+        """
+        This appears to be working properly.
+        :return:
+        """
+        # Extract the search_space from the tuning config.
+        self._build_search_space(self.tuning_config.search_space)
 
-        # TODO: This is responsible for extracting the tuning parameters from the tuning config.
+        # Set various tuning parameters.
+        self.metric = self.tuning_config.tuning_parameters.metric
+        self.mode = self.tuning_config.tuning_parameters.mode
+        self.num_samples = self.tuning_config.sample_quantity
+        self.scope = self.tuning_config.tuning_parameters.scope
 
-        #    TODO: Extract the search_space from the tuning config.
-
-        #    TODO: Extract the scheduler from the tuning config and then build a scheduler.
+        # Extract the scheduler from the tuning config and then build the desired scheduler.
         self._build_scheduler(self.tuning_config.scheduler)
 
-        #    TODO: Extract the trial resources from the tuning config. Set reasonable defaults
-        #     if they're not present in the tuning config. Trial resources are the machine resources
-        #     to allocate per trial. Defaults to 1 CPU and 0 GPUs.
-
-        #    TODO: Extract the metric (str), mode (str), and scope (str). Set reasonable defaults
-        #     if they're not present in the tuning config.
-        #       metric - Metric to optimize. Should be reported with tune.report()
-        #       mode - Either 'min' or 'max'. Determines whether the objective is to 'min' or 'max'
-        #         the metric attribute.
-        #       scope - One of [all, last, avg, last-5-avg, last-10-avg]. Indicates how to calculate
-        #         a trial's score for the metric. 'last' looks at the final reported metric value for
-        #         the trial. 'all' would look at the metric value reported after every step (epoch?)
-        #         and choose the min/max out of all those values. avgs are averages across N steps.
-
-        #    TODO: Extract the search algorithm for the search space. Set a reasonable default if
-        #     it's not present in the tuning config.
+        # Extract the search algorithm for the search space and then build it.
         self._build_search_algo(self.tuning_config.search_algorithm)
 
+    def _build_search_space(self, search_space_dict: dict):
+        """
+        This appears to be working properly.
+        :param search_space_dict:
+        :return:
+        """
+        search_space = {}
+
+        for key, plugin in search_space_dict.items():
+            search_space[key] = jb_loader.construct_instance(plugin.fqcn, plugin.kwargs)
+
+        self.search_space = search_space
+
     def _build_scheduler(self, scheduler_dict: Plugin):
-        # TODO: This is responsible for constructing the search algorithm to be used during the tuning run.
-        #  Ultimately this will looks something like:
+        """
+        This appears to be working properly.
+        :param scheduler_dict:
+        :return:
+        """
 
         # All schedulers in Ray Tune will need the 'self.metric' and 'self.mode' in order to make
         # decisions about terminating bad trials, altering parameters in a running trial, etc.
+        logger.info(f"Constructing tuning scheduler using fqcn: {scheduler_dict.fqcn}")
 
+        if "metric" in scheduler_dict.kwargs:
+            logger.warning(f"The scheduler does not need a 'metric' parameter since the 'metric' arg is "
+                           f"passed to tune.run(). Remove the 'metric' kwarg from the 'scheduler' section "
+                           f"in '{self.tuning_config_name}' to eliminate this warning.")
+            scheduler_dict.kwargs.pop("metric")
+
+        if "mode" in scheduler_dict.kwargs:
+            logger.warning(f"The scheduler does not need a 'mode' parameter since the 'mode' arg is "
+                           f"passed to tune.run(). Remove the 'mode' kwarg from the 'scheduler' section "
+                           f"in '{self.tuning_config_name}' to eliminate this warning.")
+            scheduler_dict.kwargs.pop("mode")
+
+        logger.info(f"  kwargs for tuning scheduler: {scheduler_dict.kwargs}")
         self.scheduler = jb_loader.construct_instance(scheduler_dict.fqcn, scheduler_dict.kwargs)
+        logger.info(f"  Tuning scheduler built!")
 
     def _build_search_algo(self, algo_dict: Plugin):
-        # TODO: This is responsible for constructing the search algorithm to be used during the tuning run.
-        #  Ultimately this will looks something like:
+        logger.info(f"Constructing tuning search_algo using fqcn: {algo_dict.fqcn}")
+        logger.info(f"  kwargs for tuning search_algo: {algo_dict.kwargs}")
         self.search_algo = jb_loader.construct_instance(algo_dict.fqcn, algo_dict.kwargs)
+        logger.info(f"  Tuning search_algo built!")
 
     def _train_fn(self, config, checkpoint_dir=None):
+        # TODO: Lots of work here...the real "meat" of the problem. May need to refactor various Juneberry
+        #  components.
         # Ray Tune runs this function on a separate thread in a Ray actor process.
 
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
+        """ The model config substitution process (line below) appears to be working as expected."""
         self.trial_model_config = self.baseline_model_config.adjust_attributes(config)
 
         # Now that we have a new model config, eventually we want to get to a spot where we can do a
@@ -157,20 +183,17 @@ class Tuner:
         #   tune.report(metric=metrics.metric)
 
     def tune(self):
-        pass
-
         # TODO: Perform the tuning run.
-
-        # result = tune.run(
-        #     tune_with_parameters(self._train_fn),
-        #     resources_per_trial=self.trial_resources,
-        #     config=self.search_space,
-        #     search_alg=self.search_algo,
-        #     metric=self.metric,
-        #     mode=self.mode,
-        #     num_samples=self.num_samples,
-        #     scheduler=self.scheduler
-        # )
+        result = tune.run(
+            tune.with_parameters(self._train_fn),
+            resources_per_trial=self.trial_resources,
+            config=self.search_space,
+            search_alg=self.search_algo,
+            metric=self.metric,
+            mode=self.mode,
+            num_samples=self.num_samples,
+            scheduler=self.scheduler
+        )
         #
         # TODO: Once the tuning is complete, store the best result.
         # self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
