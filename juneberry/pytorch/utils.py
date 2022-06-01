@@ -435,8 +435,25 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     # Reset the random seed so we get different images each dry run
     random.seed()
 
-    # Loop through each batch and sample an image
-    img_shape = None
+    # Grab the selected batches
+    if num_batches > quantity: 
+        sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
+
+        for step, (data, targets) in enumerate(data_loader):
+            if step in sel_batches:
+                img = transforms.ToPILImage()(data[0])
+                # Save the image
+                img.save(str(img_path / f"{step}.png"))
+        
+        logger.info(f'{quantity} sample images saved to {img_path}')
+
+    else: 
+        logger.info("Dry run takes the first image from randomly selected batches. It requires quantity < number of batches. No ouptut produced.")
+
+        # iterate once to grab the shape
+        (data,targets) = next(iter(data_loader))
+
+    """
     for x in range(min(num_batches, quantity) + 1):
 
         # Get the next batch of images
@@ -455,6 +472,8 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     logger.info(f'{min(num_batches, quantity) + 1} sample images saved to {img_path}')
     return img_shape
 
+    """
+    return data.shape
 
 def invoke_evaluator_method(evaluator, module_name: str):
     """

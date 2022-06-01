@@ -79,6 +79,17 @@ class Evaluator(EvaluatorBase):
     def dry_run(self) -> None:
         self.setup()
         self.obtain_dataset()
+
+        # Write out a few dry run images
+        if self.eval_dataset_config.is_image_type():
+            import pathlib
+            dryrun_path = pathlib.Path( self.eval_dir_mgr.get_predictions_path() ).parent / "dryrun_imgs"
+
+            logger.info(f"Writing 5 dry_run images to {dryrun_path}.")
+
+            # Save some sample images to verify augmentations
+            image_shape = pyt_utils.generate_sample_images(self.eval_loader, 5, dryrun_path)
+
         self.obtain_model()
 
         logger.info(f"Dryrun complete.")

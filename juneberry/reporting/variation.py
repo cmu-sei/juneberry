@@ -81,6 +81,7 @@ def assemble_curves(model_mgr: ModelManager, eval_names: list, target_class: int
     for series_list in eval_names:
         curve = []
         for eval_name in series_list:
+            print(eval_name)
             eval_dir_mgr: EvalDirMgr = model_mgr.get_eval_dir_mgr(eval_name)
             predictions: EvaluationOutput = EvaluationOutput.load(eval_dir_mgr.get_predictions_path())
 

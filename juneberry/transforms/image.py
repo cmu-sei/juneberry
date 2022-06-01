@@ -26,8 +26,11 @@
 A set of general image conversions.
 """
 
-import copy
+#import copy
 from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 
 import juneberry.image as iutils
 
@@ -84,7 +87,7 @@ class Watermark:
 
     def __call__(self, image):
         # Copy the watermark so we can munge it
-        tmp_img: Image = copy.copy(self.watermark)
+        tmp_img: Image = self.watermark.copy()
 
         # Transform watermark
         tmp_img = iutils.transform_image(tmp_img, (self.min_scale, self.max_scale), self.rotation, self.blur)

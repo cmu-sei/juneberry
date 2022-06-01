@@ -687,7 +687,9 @@ class ModelManager:
         :param dataset_path: The path to the dataset file.
         :return: An EvalDirMgr object.
         """
+        # TODO: WHY STEM? Because otherwise it gets crazy
         dataset_arg = Path(dataset_path).stem if dataset_path else None
+        # dataset_arg = Path(dataset_path) if dataset_path else None
         return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
 
     def iter_eval_dirs(self):
