@@ -353,11 +353,16 @@ def get_combo_name(chosen: dict, possible_options: list) -> str:
 
     # For each key in the combination to be implemented
     for key in chosen:
+        # The modded key is necessary to account for cases where the target variable is a
+        # particular element in an array.
+        modded_key = None
+        if "[" in key:
+            modded_key = str(key).split("[")[0]
 
         # Locate the variable in the list
         option: jb_exp_outline.Variable
         for option in possible_options:
-            if option.config_field == key:
+            if option.config_field == key or option.config_field == modded_key:
 
                 # Add the nickname in the combo_name if there is one
                 if option.nickname:
@@ -391,8 +396,18 @@ def apply_nested_parameter(config: dict, parameter: str, value) -> dict:
 
     # Traverse the dictionary, stopping at the final component.
     for component in components[:-1]:
+
+        # If there's a bracket in the component name, that indicates a particular element of
+        # an array is being targeted. The steps to set the cur_key are a little different in
+        # this case to account for the targeted element in the array.
+        if "[" in component:
+            idx = int(component.split("[")[1].split("]")[0])
+            component = component.split("[")[0]
+            cur_key = cur_key[component][idx]
+            continue
+
         if not isinstance(cur_key, dict) or component not in cur_key:
-            logger.error(f"Failed to find '{parameter}' in config. Check parameter validity. EXITING")
+            logger.error(f"Failed to find '{parameter}' in config. Check parameter validity. Exiting.")
             sys.exit(-1)
         cur_key = cur_key[component]
 
@@ -428,7 +443,8 @@ def apply_parameter(config: dict, parameter: str, value) -> dict:
             config = apply_parameter(config, component, value[component])
 
     # "Dot notation" is how we handle nested parameters. We'll call a separate function to handle that.
-    elif "." in parameter:
+    # "Bracket notation" can also be handled by this same nested process.
+    elif "." or "[" in parameter:
         config = apply_nested_parameter(config, parameter, value)
 
     # If the parameter isn't grouped or nested, it's "normal" so we can set it just like it's a
@@ -490,7 +506,7 @@ def validate_variables(variables: list) -> None:
 
     if error_count > 0:
         error_str = "error" if error_count == 1 else "errors"
-        logger.error(f"Found {error_count} {error_str} when validating variables. EXITING.")
+        logger.error(f"Found {error_count} {error_str} when validating variables. Exiting.")
         sys.exit(-1)
 
 
