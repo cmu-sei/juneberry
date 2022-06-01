@@ -23,24 +23,23 @@
 # ======================================================================================================================
 
 # =================================================================================================
-# WARNING: These containers and scripts create containers with NO SECURITY PRACTICES, such as
+# WARNING: These images and scripts create containers with NO SECURITY PRACTICES, such as
 # separate user accounts, unprivileged users, etc.
 #
 # USE AT YOUR OWN RISK
 # =================================================================================================
 
-# This script provides a starting point for creating your own container launcher.  If you layout
-# follows the basic Juneberry lab layoyt then this script should basically work as-is.
+# This script provides a starting point for creating your own container launcher. If your layout
+# follows the basic Juneberry lab layout, then this script should basically work as-is.
 #
 # Run this script from inside your workspace of choice.
 
 WS=${PWD}
-LAB=${WS}/..
+LAB="$(dirname "$WS")"
 CACHE="${LAB}/cache"
 docker run -it --rm --network=host --ipc=host --name ${USER} \
-    -env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy \
+    --env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --env NO_PROXY --env no_proxy \
     -e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER}) -e HOST_UNAME=$(uname) \
-    --gpus all \
     -v ${WS}:/workspace -w /workspace \
     -v ${LAB}/juneberry:/juneberry \
     -v ${LAB}/dataroot:/dataroot:ro \
