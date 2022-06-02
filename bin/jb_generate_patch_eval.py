@@ -128,7 +128,7 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> Non
     report_test_list = []
     curve_names = []
     series_list = []
-    for patch_name in patches_dir.iterdir():
+    for patch_name in sorted(list(patches_dir.iterdir())):
         suffix = patch_name.suffix.lower()
         if suffix == ".png" or suffix == ".jpg" or suffix == ".tif":
             curve_names.append(patch_name.stem)
