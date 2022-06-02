@@ -416,6 +416,12 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
     sys.stdout = orig
 
 
+def un_normalize_imagenet_norms(x):
+    x_r = x[0, :, :] * 0.229 + 0.485  
+    x_g = x[1, :, :] * 0.224 + 0.456  
+    x_b = x[2, :, :] * 0.225 + 0.406 
+    return (torch.stack([x_r, x_g, x_b]))
+
 def generate_sample_images(data_loader, quantity, img_path: Path):
     """
     This function will save some quantity of images from a data iterable.
@@ -433,15 +439,19 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     num_batches = len(data_loader)
 
     # Reset the random seed so we get different images each dry run
-    random.seed()
+    # random.seed()
 
     # Grab the selected batches
     if num_batches > quantity: 
+        # Forks the RNG, so that when you return, the RNG is reset to the state that it was previously in.
+        torch.random.fork_rng()
+        torch.random.seed()
+
         sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
 
         for step, (data, targets) in enumerate(data_loader):
             if step in sel_batches:
-                img = transforms.ToPILImage()(data[0])
+                img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
                 # Save the image
                 img.save(str(img_path / f"{step}.png"))
         

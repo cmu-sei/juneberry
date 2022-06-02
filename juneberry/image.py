@@ -382,7 +382,7 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
 
         scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
         logging.debug(f"...applying a scale factor of {scale} to the patch.")
-        src_image = src_image.resize((int(patch_width * scale), int(patch_height * scale)), Image.ANTIALIAS)
+        src_image = src_image.resize((int(patch_width * np.sqrt(scale)), int(patch_height * np.sqrt(scale))), Image.ANTIALIAS)
 
         patch_width, patch_height = src_image.size
         logging.debug(f"...new image dimensions: width = {patch_width}, height = {patch_height}")
@@ -435,12 +435,14 @@ def insert_watermark_at_position(image: Image, watermark: Image, position_xy):
     :param position_xy: The position at which to insert the watermark.
     :return The modified image.
     """
+    tmp_image = image.copy()
+    tmp_watermark = watermark.copy()
 
     # The third argument here is a mask parameter.
     # It is an RGBA image so the mask will be the alpha channel of the patch.
     if watermark.mode == "RGBA":
-        image.paste(watermark, position_xy, watermark)
+        tmp_image.paste(tmp_watermark, position_xy, tmp_watermark)
     else:
-        image.paste(watermark, position_xy)
+        tmp_image.paste(tmp_watermark, position_xy)
 
-    return image
+    return tmp_image
