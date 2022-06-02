@@ -417,6 +417,7 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
 
 
 def un_normalize_imagenet_norms(x):
+    # TODO: Generalize to arbitrary values and numbers of channels 
     x_r = x[0, :, :] * 0.229 + 0.485  
     x_g = x[1, :, :] * 0.224 + 0.456  
     x_b = x[2, :, :] * 0.225 + 0.406 
@@ -438,19 +439,18 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     # Calculate the max number of batches
     num_batches = len(data_loader)
 
-    # Reset the random seed so we get different images each dry run
-    # random.seed()
-
     # Grab the selected batches
     if num_batches > quantity: 
         # Forks the RNG, so that when you return, the RNG is reset to the state that it was previously in.
         torch.random.fork_rng()
+        # Generate a new seed
         torch.random.seed()
 
         sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
 
         for step, (data, targets) in enumerate(data_loader):
             if step in sel_batches:
+                # TODO: Dive into the config to pull out whatever normalization is used, instead of just assuming the magic ImageNet numbers
                 img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
                 # Save the image
                 img.save(str(img_path / f"{step}.png"))
@@ -458,31 +458,11 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
         logger.info(f'{quantity} sample images saved to {img_path}')
 
     else: 
-        logger.info("Dry run takes the first image from randomly selected batches. It requires quantity < number of batches. No ouptut produced.")
+        logger.info("Dry run takes the first image from randomly selected batches. It requires number of requested images ({quantity}) < number of batches ({num_batches}). No ouptut produced.")
 
         # iterate once to grab the shape
         (data,targets) = next(iter(data_loader))
 
-    """
-    for x in range(min(num_batches, quantity) + 1):
-
-        # Get the next batch of images
-        images, labels = next(iter(data_loader))
-
-        if img_shape is None:
-            img_shape = images[0].shape
-
-        # Pick an image in the batch at random
-        rand_idx = random.randrange(0, len(images))
-        img = transforms.ToPILImage()(images[rand_idx])
-
-        # Save the image
-        img.save(str(img_path / f"{x}.png"))
-
-    logger.info(f'{min(num_batches, quantity) + 1} sample images saved to {img_path}')
-    return img_shape
-
-    """
     return data.shape
 
 def invoke_evaluator_method(evaluator, module_name: str):

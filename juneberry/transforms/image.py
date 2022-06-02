@@ -26,12 +26,7 @@
 A set of general image conversions.
 """
 
-#import copy
 from PIL import Image
-#from PIL import ImageFile
-#ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-
 import juneberry.image as iutils
 
 
@@ -73,13 +68,12 @@ class ChangeAllLabelsTo:
         self.label = label
 
     def __call__(self, image, label):
-        #patch = model._parameters['patch']
-        #image[ 0:patch.shape[0] , 0:patch.shape[1], 0:patch.shape[2]] = patch
         return( (image, self.label ))
 
 class Watermark:
     def __init__(self, watermark_path, min_scale=1.0, max_scale=1.0, rotation=0, blur=0):
-        self.watermark = Image.open(watermark_path).copy()
+        # NOTE: Opening is lazy we need to force loading with load()
+        self.watermark = Image.open(watermark_path).load()
         self.min_scale = min_scale
         self.max_scale = max_scale
         self.rotation = rotation
@@ -88,14 +82,12 @@ class Watermark:
     def __call__(self, image):
         # Copy the watermark so we can munge it        
         tmp_img: Image = self.watermark.copy()
-        # Copy the image so we don't end up with weird cropping errors
-        image_copy: Image = image.copy()
 
         # Transform watermark
         tmp_img = iutils.transform_image(tmp_img, (self.min_scale, self.max_scale), self.rotation, self.blur)
 
         # Insert at a random location
-        x, y = iutils.make_random_insert_position(tmp_img.size, image_copy.size)
-        image_copy = iutils.insert_watermark_at_position(image_copy, tmp_img, (x, y))
+        x, y = iutils.make_random_insert_position(tmp_img.size, image.size)
+        image = iutils.insert_watermark_at_position(image, tmp_img, (x, y))
 
-        return image_copy
+        return image

@@ -357,7 +357,7 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
     """
     This function is responsible for applying transformations to the provided image.
     :param src_image: The image receiving the transformations.
-    :param scale_range: Tuple indicating the min/max values to use for scaling with 1.0 being none.
+    :param scale_range: Tuple indicating the min/max values to use for scaling the area of the patch with 1.0 being none.
     :param rotation: The maximum amount of rotation in degrees (negative and postivite) to apply to the imaeg.
     :param blur: The maximum radius to use when applying Gaussian blur to the image.
     :return: The transformed image.
@@ -372,20 +372,20 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
         src_image = src_image.filter(ImageFilter.GaussianBlur(blur_radius))
 
     # When a scale range is provided, a random scale value between scale_range[0] and scale_range[1] is chosen
-    # for the amount by which to scale the patch. Scale values less than 1.0 will shrink the patch, while scale
+    # for the amount by which to scale the patch's area. Scale values less than 1.0 will shrink the patch, while scale
     # values greater than 1 will increase the size of the patch.
     # TODO Refactor out
     if scale_range != (None, None) and scale_range != (1.0, 1.0):
         logging.debug(f"Scaling the image size...")
         patch_width, patch_height = src_image.size
-        logging.debug(f"...original dimensions: width = {patch_width}, height = {patch_height}")
+        logging.debug(f"...original dimensions: width = {patch_width}, height = {patch_height}, area = {patch_width * patch_height}")
 
         scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
-        logging.debug(f"...applying a scale factor of {scale} to the patch.")
+        logging.debug(f"...applying a scale factor of {scale} to the area of the patch.")
         src_image = src_image.resize((int(patch_width * np.sqrt(scale)), int(patch_height * np.sqrt(scale))), Image.ANTIALIAS)
 
         patch_width, patch_height = src_image.size
-        logging.debug(f"...new image dimensions: width = {patch_width}, height = {patch_height}")
+        logging.debug(f"...new image dimensions: width = {patch_width}, height = {patch_height}, area = {patch_width * patch_height}")
 
     # When a rotation value is provided, this transform will randomly select a value between
     # -rotationAmount and +rotationAmount and apply that rotation to the patch image. The
@@ -435,14 +435,12 @@ def insert_watermark_at_position(image: Image, watermark: Image, position_xy):
     :param position_xy: The position at which to insert the watermark.
     :return The modified image.
     """
-    tmp_image = image.copy()
-    tmp_watermark = watermark.copy()
 
     # The third argument here is a mask parameter.
     # It is an RGBA image so the mask will be the alpha channel of the patch.
     if watermark.mode == "RGBA":
-        tmp_image.paste(tmp_watermark, position_xy, tmp_watermark)
+        image.paste(watermark, position_xy, watermark)
     else:
-        tmp_image.paste(tmp_watermark, position_xy)
+        image.paste(watermark, position_xy)
 
-    return tmp_image
+    return image
