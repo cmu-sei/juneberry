@@ -38,6 +38,9 @@ import os
 from pathlib import Path
 import socket
 import sys
+import gzip
+import yaml
+import toml
 
 from juneberry import Platforms
 
@@ -146,17 +149,15 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
     elif ext == '.hjson':
         with open(path, 'w') as hjson_file:
             hjson.dump(data, hjson_file, indent=indent, default=json_cleaner, sort_keys=True)
-
-    # TODO: implement file handlers for these formats.
     elif ext in {'.gzip', '.gz'}:
-        logger.error('TODO: handle gzip extensions.')
-        sys.exit(-1)
+        with open(path, 'w') as gzip_file:
+            gzip_file.write(gzip.compress(data))
     elif ext in {'.yaml', '.yml'}:
-        logger.error('TODO: handle YAML extensions.')
-        sys.exit(-1)
+        with open(path, 'w') as yaml_file:
+            yaml.dump(data, yaml_file)
     elif ext in {'.toml', '.tml'}:
-        logger.error('TODO: handle TOML extensions.')
-        sys.exit(-1)
+        with open(path, 'w') as toml_file:
+            toml.dump(data, toml_file)
     else:
         logger.error(f'Unsupported file extension {ext}')
         sys.exit(-1)
@@ -174,17 +175,15 @@ def load_file(path: str):
             # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
             with open(path, 'rb') as in_file:
                 return hjson.load(in_file)
-
-        # TODO: implement file handlers for these formats.
         elif ext in {'.gzip', '.gz'}:
-            logger.error('TODO: handle gzip extensions.')
-            sys.exit(-1)
+            with gzip.open(path, 'rb') as in_file:
+                return in_file.read()
         elif ext in {'.yaml', '.yml'}:
-            logger.error('TODO: handle YAML extensions.')
-            sys.exit(-1)
+            with open(path, 'rb') as in_file:
+                return yaml.load(in_file)
         elif ext in {'.toml', '.tml'}:
-            logger.error('TODO: handle TOML extensions.')
-            sys.exit(-1)
+            with open(path, 'rb') as in_file:
+                return toml.load(in_file)
         else:
             logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)

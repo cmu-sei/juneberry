@@ -207,4 +207,70 @@ def test_json_cleaner():
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
 
+def test_save_file():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
 
+    path = cwd / "test_save_file.json"
+    assert not path.exists()
+    jbfs.save_file(data, path)
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
+
+    path = cwd / "test_save_file.hjson"
+    assert not path.exists()
+    jbfs.save_file(data, path)
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
+
+    path = cwd / "test_save_file.gzip"
+    assert not path.exists()
+    jbfs.save_file(data, path)
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
+
+    path = cwd / "test_save_file.yaml"
+    assert not path.exists()
+    jbfs.save_file(data, path)
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
+
+    path = cwd / "test_save_file.toml"
+    assert not path.exists()
+    jbfs.save_file(data, path)
+    assert path.exists()
+    path.unlink()
+    assert not path.exists()
+
+def test_load_file():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+
+    path = cwd / "test_save_file.json"
+    jbfs.save_file(data, path)
+    assert json.dump(data) == jbfs.load_file(path)
+    path.unlink()
+
+    path = cwd / "test_save_file.hjson"
+    jbfs.save_file(data, path)
+    assert hjson.dump(data) == jbfs.load_file(path)
+    path.unlink()
+
+    path = cwd / "test_save_file.gzip"
+    jbfs.save_file(data, path)
+    assert data == jbfs.load_file(path)
+    path.unlink()
+
+    path = cwd / "test_save_file.yaml"
+    jbfs.save_file(data, path)
+    assert yaml.dump(data) == jbfs.load_file(path)
+    path.unlink()
+
+    path = cwd / "test_save_file.toml"
+    jbfs.save_file(data, path)
+    assert toml.dump(data) == jbfs.load_file(path)
+    path.unlink()
