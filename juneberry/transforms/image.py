@@ -91,3 +91,4 @@ class Watermark:
         image = iutils.insert_watermark_at_position(image, tmp_img, (x, y))
 
         return image
+        
