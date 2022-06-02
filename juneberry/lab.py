@@ -121,12 +121,14 @@ class Lab:
         return jbfs.ModelManager(model_name, model_version)
 
     # Setup commands
-    def setup_lab_profile(self, *, model_name: str = None, model_config: ModelConfig = None) -> None:
+    def setup_lab_profile(self, *, model_name: str = None, model_config: ModelConfig = None,
+                          num_gpus: int = None) -> None:
         """
         When the lab is used for a specific model/model config, this adjusts the values in the
         lab based on that model.
         :param model_name: The name of the model.
         :param model_config: Optional loaded model config with potential overrides.
+        :param num_gpus: Integer indicating the number of GPUs to use.
         :return: None
         """
         self.profile = self.load_lab_profile(model_name)
@@ -134,6 +136,9 @@ class Lab:
             for k, v in model_config.lab_profile.items():
                 if v is not None:
                     self.profile[k] = model_config.lab_profile[k]
+
+        if num_gpus is not None:
+            self.profile.num_gpus = num_gpus
 
     # Convenience loaders
 

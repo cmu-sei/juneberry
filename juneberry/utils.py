@@ -27,11 +27,12 @@ General utilities.
 """
 
 import logging
-import numpy as np
 from pathlib import Path
 import random
 import re
 import sys
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -215,12 +216,7 @@ def show_list(rhs, indent=0) -> None:
 # |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
 
 
-
 def wrap_seed(seed: int):
     """ :return: A numerically wraps the seed if it exceeds the maximum value. """
     # Some system has a maximum value of 32 bits
     return seed & 0xFFFFFFFF
-
-
-
-

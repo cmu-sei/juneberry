@@ -60,7 +60,7 @@ from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.trainer import Trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 

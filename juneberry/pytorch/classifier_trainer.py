@@ -45,7 +45,7 @@ import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 import juneberry.tensorboard as jbtb
-from juneberry.trainer import EpochTrainer
+from juneberry.training.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)

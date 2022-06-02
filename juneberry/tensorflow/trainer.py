@@ -43,12 +43,12 @@ import juneberry.plotting
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
-import juneberry.trainer
+import juneberry.training.trainer
 
 logger = logging.getLogger(__name__)
 
 
-class ClassifierTrainer(juneberry.trainer.Trainer):
+class ClassifierTrainer(juneberry.training.trainer.Trainer):
     def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig,
                  dataset_config: DatasetConfig, log_level):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)

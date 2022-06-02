@@ -27,8 +27,8 @@ import logging
 import sys
 
 import juneberry.filesystem as jbfs
-import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
+import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger("juneberry.jb_train")
 
@@ -57,20 +57,6 @@ def setup_args(parser) -> None:
                              'from the last checkpoint.')
 
 
-def setup_opt_args(args: argparse.Namespace):
-    """
-    Set up optional args from the command line.
-    :param args: A Namespace object built from the attributes parsed out of the command line.
-    """
-    opt_args = {}
-    opt_arg_keys = ['resume']
-    for key in opt_arg_keys:
-        if key in vars(args):
-            opt_args[key] = vars(args)[key]
-
-    return opt_args
-
-
 def main():
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
@@ -84,29 +70,14 @@ def main():
     model_manager = jbfs.ModelManager(args.modelName)
     model_manager.setup()
 
-    # Use the config file to set up the workspace, data and logging
-    log_prefix = ""
-    log_file = model_manager.get_training_log()
-    if args.dryrun:
-        log_prefix = "<<DRY_RUN>> "
-        log_file = model_manager.get_training_dryrun_log_path()
-    lab = jbscripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix, model_name=model_name,
-                                             banner_msg=">>> Juneberry Trainer <<<")
-
-    # Convert the verbose argument to the corresponding logging level.
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-
-    # Kick off the logging
-    logger.info(f"Beginning training with model: {model_name}")
+    lab = jb_training_utils.setup_training_logging_and_lab(args, model_manager, args.dryrun)
 
     # Load the config files, check and aggregate configuration options
-    logger.info(f"Loading model config for model {model_name} files...")
+    logger.info(f"Loading model config for model: {model_name}")
     model_config = lab.load_model_config(model_name)
 
     # Set up the lab profile
-    lab.setup_lab_profile(model_name=model_name, model_config=model_config)
-    if args.num_gpus is not None:
-        lab.profile.num_gpus = args.num_gpus
+    lab.setup_lab_profile(model_name=model_name, model_config=model_config, num_gpus=args.num_gpus)
     logger.info(f"Using lab profile: {lab.profile}")
 
     # Now load the dataset
@@ -115,72 +86,16 @@ def main():
 
     # TODO: Reimplement no_paging via lab profile
 
-    # Backward compatible map of task and platform name to class to load
-    task_platform_map = {
-        "classification": {
-            "pytorch": "juneberry.pytorch.classifier_trainer.ClassifierTrainer",
-            "pytorch_privacy": "juneberry.pytorch.privacy.classifier_trainer.PrivacyTrainer",
-            "tensorflow": "juneberry.tensorflow.trainer.ClassifierTrainer",
-            "tfgloro": "juneberry.tensorflow.trainer.ClassifierTrainer"
-        },
-        "objectDetection": {
-            "detectron2": "juneberry.detectron2.trainer.Detectron2Trainer",
-            "mmdetection": "juneberry.mmdetection.trainer.MMDTrainer"
-        }
-    }
-
-    if model_config.trainer is not None:
-        kw_args = model_config.trainer.kwargs
-        if kw_args is None:
-            kw_args = {}
-        fqcn = model_config.trainer.fqcn
-    else:
-        # Dig through our map of tasks and platforms
-        if model_config.task not in task_platform_map:
-            logger.error(f"We do not support the task '{model_config.task}'. "
-                         f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
-            sys.exit(-1)
-        else:
-            task_set = task_platform_map[model_config.task]
-            if model_config.platform not in task_set:
-                logger.error(
-                    f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
-                    f"Supported platforms: {list(task_set.keys())}. Exiting.")
-                sys.exit(-1)
-            fqcn = task_platform_map[model_config.task][model_config.platform]
-        kw_args = {}
-        logger.warning("Found deprecated platform/task configuration for loading trainer. "
-                       "Consider updating the model config to use the trainer stanza.")
-        logger.warning('"trainer": {')
-        logger.warning(f'    "fqcn": "{fqcn}"')
-        logger.warning('}')
-
-    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
-    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
+    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config']
+    reqd_args_dict = {}
     for arg in reqd_args:
-        if arg not in kw_args:
-            kw_args[arg] = locals()[arg]
+        reqd_args_dict[arg] = locals()[arg]
 
-    # Construct optional args that trainers may take.
-    opt_args = setup_opt_args(args)
-
-    # Construct the trainer
-    logger.info(f"Instantiating trainer: {fqcn}")
-    trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
+    trainer = jb_training_utils.build_trainer(model_config, args, reqd_args_dict)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
-
-    # Set the output format for the trainer.
-    trainer.onnx = args.onnx
-    trainer.native = not args.skipNative
-
-    # If no output format was set, choose the native format by default even if
-    # the user requested it to be skipped.
-    if not (trainer.onnx or trainer.native):
-        logger.warning(f"An output format was not set. Choosing the native format.")
-        trainer.native = True
 
     if args.dryrun:
         trainer.dry_run()

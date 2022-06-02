@@ -40,10 +40,11 @@ class Tuner:
         self.model_name = model_name
         self.model_manager = jb_fs.ModelManager(self.model_name)
         self.baseline_model_config = lab.load_model_config(self.model_name)
-        self.trial_model_config = None
 
         self.tuning_config_name = tuning_config_name
         self.tuning_config = TuningConfig.load(self.tuning_config_name)
+
+        self.lab = lab
 
         # Attributes derived from the tuning config.
 
@@ -61,31 +62,25 @@ class Tuner:
 
         # Some more properties from the tuning config.
         self.trial_resources = self.tuning_config.trial_resources
-        self.metric = None
-        self.mode = None
-        self.num_samples = None
-        self.scope = None
-        self.checkpoint_interval = 1
+        self.metric = self.tuning_config.tuning_parameters.metric
+        self.mode = self.tuning_config.tuning_parameters.mode
+        self.num_samples = self.tuning_config.sample_quantity
+        self.scope = self.tuning_config.tuning_parameters.scope
+        self.checkpoint_interval = self.tuning_config.tuning_parameters.checkpoint_interval
 
         # Attribute to capture the best tuning result.
         self.best_result = None
 
         # Methods for setting attributes.
-        self._setup_tuning_parameters()
+        self._build_tuning_components()
 
-    def _setup_tuning_parameters(self):
+    def _build_tuning_components(self):
         """
         This appears to be working properly.
         :return:
         """
         # Extract the search_space from the tuning config.
         self._build_search_space(self.tuning_config.search_space)
-
-        # Set various tuning parameters.
-        self.metric = self.tuning_config.tuning_parameters.metric
-        self.mode = self.tuning_config.tuning_parameters.mode
-        self.num_samples = self.tuning_config.sample_quantity
-        self.scope = self.tuning_config.tuning_parameters.scope
 
         # Extract the scheduler from the tuning config and then build the desired scheduler.
         self._build_scheduler(self.tuning_config.scheduler)
@@ -146,7 +141,16 @@ class Tuner:
 
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
         """ The model config substitution process (line below) appears to be working as expected."""
-        self.trial_model_config = self.baseline_model_config.adjust_attributes(config)
+        trial_model_config = self.baseline_model_config.adjust_attributes(config)
+        trial_dataset_config = self.lab.load_dataset_config(trial_model_config.training_dataset_config_path)
+
+        # load_model_config
+        # training_prep
+        #   possibly_load_from_checkpoint
+        # per_epoch_metrics = trainer.train_an_epoch()
+        # tune.report(metric=per_epoch_metrics[self.metric])
+
+
 
         # Now that we have a new model config, eventually we want to get to a spot where we can do a
         # trainer.train_model()
@@ -192,7 +196,8 @@ class Tuner:
             metric=self.metric,
             mode=self.mode,
             num_samples=self.num_samples,
-            scheduler=self.scheduler
+            scheduler=self.scheduler,
+            local_dir=str(self.model_manager.get_tuning_dir())
         )
         #
         # TODO: Once the tuning is complete, store the best result.

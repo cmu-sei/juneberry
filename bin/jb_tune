@@ -25,6 +25,7 @@
 import argparse
 import logging
 
+from juneberry.lab import Lab
 import juneberry.scripting as jb_scripting
 import juneberry.tuning.tuner as jb_tuner
 
@@ -52,8 +53,8 @@ def main():
     jb_scripting.setup_args(parser)
     args = parser.parse_args()
 
-    lab = jb_scripting.setup_for_single_model(args, log_file=None, log_prefix="",
-                                              model_name=args.modelName, banner_msg=">>> Juneberry Tuner <<<")
+    lab_args = jb_scripting.resolve_lab_args(args)
+    lab = Lab(**lab_args)
 
     # TODO: Pass in the model arg, the tuning arg, and then tune the model using the tuning config.
     tuner = jb_tuner.Tuner(args.modelName, args.tuningConfig, lab)

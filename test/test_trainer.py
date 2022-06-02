@@ -36,7 +36,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
 from juneberry.lab import Lab
-from juneberry.trainer import EpochTrainer
+from juneberry.training.trainer import EpochTrainer
 
 import test_data_set
 import test_model_config

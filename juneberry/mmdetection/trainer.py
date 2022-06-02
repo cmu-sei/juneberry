@@ -47,7 +47,7 @@ from juneberry.lab import Lab
 import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.trainer import Trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 

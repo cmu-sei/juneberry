@@ -41,11 +41,13 @@ class TrialResources(Prodict):
 
 
 class TuningParameters(Prodict):
+    checkpoint_interval: int
     metric: str
     mode: str
     scope: str
 
     def init(self):
+        self.checkpoint_interval = 1
         self.metric = 'loss'
         self.mode = 'min'
         self.scope = 'last'
