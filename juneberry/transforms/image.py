@@ -73,7 +73,7 @@ class ChangeAllLabelsTo:
 class Watermark:
     def __init__(self, watermark_path, min_scale=1.0, max_scale=1.0, rotation=0, blur=0):
         # NOTE: Opening is lazy we need to force loading with load()
-        self.watermark = Image.open(watermark_path).load()
+        self.watermark = Image.open(watermark_path).copy()
         self.min_scale = min_scale
         self.max_scale = max_scale
         self.rotation = rotation
@@ -91,4 +91,3 @@ class Watermark:
         image = iutils.insert_watermark_at_position(image, tmp_img, (x, y))
 
         return image
-        
