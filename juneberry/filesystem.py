@@ -43,6 +43,8 @@ import gzip
 import yaml
 from yaml import Loader, Dumper
 import toml
+from contextlib import contextmanager
+
 
 from juneberry import Platforms
 
@@ -119,7 +121,7 @@ def save_hjson(data, json_path, *, indent: int = 4) -> None:
     :param indent: The indent spacing to use; with a default of 4.
     :return: None
     """
-    with open(json_path, "w") as json_file:
+    with open_file(json_path, "wt") as json_file:
         hjson.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 
@@ -133,7 +135,7 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
     :param indent: The indent spacing to use; with a default of 4.
     :return: None
     """
-    with open(json_path, "w") as json_file:
+    with open_file(json_path, "wt") as json_file:
         json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
 def save_yaml(data, yaml_path) -> None:
@@ -143,7 +145,7 @@ def save_yaml(data, yaml_path) -> None:
     :param toml_path: The path to save the data to.
     :return: None
     """
-    with open(yaml_path, 'w') as yaml_file:
+    with open_file(yaml_path, 'wt') as yaml_file:
         yaml.dump(data, yaml_file, Dumper=Dumper)
 
 def save_toml(data, toml_path) -> None:
@@ -153,37 +155,25 @@ def save_toml(data, toml_path) -> None:
     :param toml_path: The path to save the data to.
     :return: None
     """
-    with open(toml_path, 'w') as toml_file:
+    with open_file(toml_path, 'wt') as toml_file:
         toml.dump(data, toml_file)
-
-def save_gzip(data, gzip_path, indent: int = 4) -> None:
-    """
-    Save the data to the specified path (string or Path) in GZIP format.
-    :param data: The data to save.
-    :param gzip_path: The path to save the data to.
-    :param indent: The indent spacing to use; with a default of 4.
-    :return: None
-    """
-    suffixes = Path(gzip_path).suffixes
-    if len(suffixes) < 2:
-        logger.error(f'Compression file extensions must include file type. Ex:"my_file.json.gz"')
-        sys.exit(-1)
-
-    format = suffixes[-2].lower()
-    with gzip.GzipFile(gzip_path, 'w') as gzip_file:
-        if format == '.json':
-            gzip_file.write(json.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
-        elif format == '.hjson':
-            gzip_file.write(hjson.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
-        elif format in {'.yaml', '.yml'}:
-            gzip_file.write(yaml.dump(data).encode('utf-8'))
-        elif format in {'.toml', '.tml'}:
-            gzip_file.write(toml.dumps(data).encode('utf-8'))
-        else:
-            logger.error(f'Unsupported file type {format} for this compression type {suffixes[-1]}')
-            sys.exit(-1)
   
-
+@contextmanager
+def open_file(path, mode='r'):
+    """
+    Opens files using file handlers according to the file extension. The base case is to use the python default 'open'.
+    :param path: Path to the file to be opened 
+    :param mode: Mode to open the file
+    :yield: file object
+    """
+    ext = Path(path).suffix.lower()
+    if ext in {'.gzip', '.gz'}:
+        with gzip.open(path, mode) as f:
+            yield f
+    else:
+        with open(path, mode) as f:
+            yield f
+    
 
 def save_file(data, path: str, *, indent: int = 4) -> None:
     """
@@ -192,13 +182,12 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
     :param indent: The indent spacing to use; with a default of 4.
     :return: None
     """
-    ext = Path(path).suffix.lower()
+    exts = Path(path).suffixes
+    ext = exts[0].lower() # the file type should be the left most of the suffixes
     if ext == '.json':
         save_json(data, path)
     elif ext == '.hjson':
         save_hjson(data, path)
-    elif ext in {'.gzip', '.gz'}:
-        save_gzip(data, path, indent)
     elif ext in {'.yaml', '.yml'}:
         save_yaml(data, path)
     elif ext in {'.toml', '.tml'}:
@@ -208,29 +197,6 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
         sys.exit(-1)
 
 
-def load_gzip(gzip_path):
-    """
-    Loads the file from the specified file path for GZIP file extensions.
-    :param path: The path to the file to load.
-    :return:
-    """
-    suffixes = Path(gzip_path).suffixes
-    if len(suffixes) < 2:
-        logger.error(f'Compression file extensions must include file type. Ex:"my_file.json.gz"')
-        sys.exit(-1)
-
-    format = suffixes[-2].lower()
-    with gzip.open(gzip_path, 'rb') as in_file:
-        if format in {'.json', '.hjson'}:
-            return hjson.loads(in_file.read())
-        elif format in {'.yaml', '.yml'}:
-            return yaml.load(in_file.read(), Loader=Loader)
-        elif format in {'.toml', '.tml'}:
-            return toml.loads(in_file.read())
-        else:
-            logger.error(f'Unsupported file type {format} for this compression type {suffixes[-1]}')
-            sys.exit(-1)
-
 def load_file(path: str):
     """
     Loads the file from the specified file path.
@@ -238,24 +204,31 @@ def load_file(path: str):
     :return:
     """
     if Path(path).exists():
-        ext = Path(path).suffix.lower()
+        exts = Path(path).suffixes
+        ext = exts[0].lower() # the file type should be the left most of the suffixes
         if ext in {'.json', '.hjson'}:
             # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
-            with open(path, 'rb') as in_file:
-                return hjson.load(in_file)
-        elif ext in {'.gzip', '.gz'}:
-            return load_gzip(path)
+            with open_file(path, "rt") as f:
+                return hjson.load(f)
         elif ext in {'.yaml', '.yml'}:
-            with open(path, 'rb') as in_file:
-                return yaml.load(in_file, Loader=Loader)
+            with open_file(path, 'rt') as f:
+                return yaml.load(f, Loader=Loader)
         elif ext in {'.toml', '.tml'}:
-            return toml.load(path)
+            return toml.load(path)  
         else:
             logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)
     else:
-        logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
-        sys.exit(-1)
+        p = Path(path)
+        more_ext = list(p.parent.glob(p.name + '*'))  # looks for file with an extra extension, like X.json.gz
+        other_ext = list(p.parent.glob(p.stem + '*')) # looks for other extensions, instead of X.json it will find X.toml
+        if more_ext:
+            return load_file(more_ext[0]) # only first in list used
+        elif other_ext:
+            return load_file(other_ext[0]) # only first in list used
+        else:
+            logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
+            sys.exit(-1)
     
 
 class ExperimentManager:

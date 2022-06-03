@@ -210,6 +210,16 @@ def test_json_cleaner():
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
 
+
+def test_open_file():
+    cwd = Path.cwd()
+    file = cwd / "test.json"
+    with open(file, "w") as f:
+        f.write("test")
+    with jbfs.open_file(file, "r") as f:
+        assert f.read() == "test"
+    file.unlink()
+
 def test_save_json():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -256,35 +266,6 @@ def test_save_toml():
     assert path.exists()
     path.unlink(True) 
 
-def test_save_gzip():
-    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
-    cwd = Path.cwd()
-    # JSON case
-    path = cwd / "test_zip_json.json.gzip"
-    jbfs.save_gzip(data, path)
-    assert path.exists()
-    path.unlink(True) 
-    # HJSON case
-    path = cwd / "test_zip_hjson.hjson.gzip"
-    jbfs.save_gzip(data, path)
-    assert path.exists()
-    path.unlink(True) 
-    # YAML case
-    path = cwd / "test_zip_yaml.yaml.gzip"
-    jbfs.save_gzip(data, path)
-    assert path.exists()
-    path.unlink(True) 
-    # TOML case
-    path = cwd / "test_zip_toml.toml.gzip"
-    jbfs.save_gzip(data, path)
-    assert path.exists()
-    path.unlink(True) 
-
-    path = cwd / "test_zip_json.json.gz"
-    jbfs.save_gzip(data, path)
-    assert path.exists()
-    path.unlink(True) 
-
 def test_save_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -323,40 +304,6 @@ def test_save_file():
     assert path.exists()
     path.unlink()
     assert not path.exists()
-
-
-def test_load_gzip():
-    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
-    cwd = Path.cwd()
-    # JSON case
-    path = cwd / "test_save_file.json.gzip"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
-    assert np.array_equal(loaded_data['np'], data['np'])
-    assert loaded_data['path'] == str(data['path'])
-    path.unlink()
-    # HJSON case
-    path = cwd / "test_save_file.hjson.gzip"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
-    assert np.array_equal(loaded_data['np'], data['np'])
-    assert loaded_data['path'] == str(data['path'])
-    path.unlink()
-    # YAML case
-    path = cwd / "test_save_file.yaml.gzip"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
-    assert np.array_equal(loaded_data['np'], data['np'])
-    assert loaded_data['path'] == data['path']
-    path.unlink()
-    # TOML case
-    path = cwd / "test_save_file.toml"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
-    assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
-    # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
-    # assert loaded_data['path'] == str(data['path']) 
-    path.unlink()
 
 
 def test_load_file():
@@ -398,3 +345,29 @@ def test_load_file():
     # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
     # assert loaded_data['path'] == str(data['path']) 
     path.unlink()
+
+
+def test_load_file_find_similar_file():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    # saved JSON, load TOML
+    # load_file should recognize that there is no 'test_save_file.toml' and load 'test_save_file.json' instead
+    json_path = cwd / "test_save_file.json"
+    toml_path = cwd / "test_save_file.toml"
+    jbfs.save_file(data, json_path)
+    assert not toml_path.exists()
+    loaded_data = jbfs.load_file(toml_path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
+    json_path.unlink()
+
+    # saved JSON.GZIP, load JSON
+    # load_file should recognize that there is no 'test_save_file.json' and load 'test_save_file.json.gzip' instead
+    gz_path = cwd / "test_save_file.json.gz"
+    json_path = cwd / "test_save_file.json"
+    jbfs.save_file(data, gz_path)
+    assert not json_path.exists()
+    loaded_data = jbfs.load_file(json_path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
+    gz_path.unlink()
