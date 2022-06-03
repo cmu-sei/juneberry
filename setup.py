@@ -65,6 +65,7 @@ bin_scripts = [
     'bin/jb_evaluate',
     'bin/jb_experiment_to_rules',
     'bin/jb_generate_experiments',
+    'bin/jb_generate_path_eval',
     'bin/jb_gpu_runner',
     'bin/jb_report',
     'bin/jb_rules_to_pydoit',

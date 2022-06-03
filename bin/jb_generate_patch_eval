@@ -62,19 +62,37 @@ import juneberry.scripting as jbscripting
 logger = logging.getLogger("juneberry.jb_generate_patch_eval")
 
 
-def make_variation_name(patch_name, size) -> str:
-    str_size = f"{int(size)}d{int((size % 1) * 10000)}"
+def make_variation_name(patch_name, scale) -> str:
+    """
+    Returns the name of the variation of the dataset based on patch and the scale to be used
+    for dataset names and curves.
+    :param patch_name: The name of the patch
+    :param scale: The scale of the patch
+    :return: The patch-scale combined name
+    """
+    str_size = f"{int(scale)}d{int((scale % 1) * 10000)}"
     return f"{patch_name}_{str_size}"
 
 
-def make_dataset_path(experiment_name, patch_name, size) -> Path:
+def make_dataset_path(experiment_name, patch_name, scale) -> Path:
+    """
+    Creates the dataset path within the experiment directory based on the patch and scale.
+    :param experiment_name: The name of the experiment
+    :param patch_name: The name of the patch
+    :param scale: The scale
+    :return: A path to the datasets file
+    """
     exp_mgr = ExperimentManager(experiment_name)
     datasets_dir = exp_mgr.experiment_dir_path / "data_sets"
+    return datasets_dir / f"{make_variation_name(patch_name, scale)}.json"
 
-    return datasets_dir / f"{make_variation_name(patch_name, size)}.json"
 
-
-def validate_base_config(base_config: DatasetConfig):
+def validate_base_config(base_config: DatasetConfig) -> None:
+    """
+    Checks to make sure that the base config has the minimal information required.
+    :param base_config: The base config to check.
+    :return: None
+    """
     for transform in base_config.data_transforms.transforms:
         # If we found one, then this is valid.
         if transform.fqcn == "juneberry.transforms.image.Watermark":
@@ -96,8 +114,16 @@ def validate_base_config(base_config: DatasetConfig):
     sys.exit(-1)
 
 
-def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size):
-    # Copy the config, adjust the patch_path, size and save
+def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size) -> None:
+    """
+    Constcut a patch dataset which includes the dataset config copied from the base config
+    with updated watermark.
+    :param base_config: The base config to start from.
+    :param dest_path: Where to save the new file.
+    :param patch_path: The path to the patch.
+    :param size: The scale of the patch.
+    :return: None
+    """
     new_config: DatasetConfig = copy.deepcopy(base_config)
     for transform in new_config.data_transforms.transforms:
         if transform.fqcn == "juneberry.transforms.image.Watermark":
@@ -109,9 +135,17 @@ def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: 
     new_config.save(str(dest_path))
 
 
-def generate_experiment(experiment_name, model_name, sizes, target_class) -> None:
-    # This function walks the patches directory abd create a dataset file for each patch and size pair.
-    # So, when done, there should be patches X sizes files in the datasets directory.
+def generate_experiment(experiment_name, model_name, scales, target_class) -> None:
+    """
+    This function walks the patches directory and creates a dataset file for each patch and size pair
+    and a corresponding experiment config file.
+    So, when done, there should be patches X sizes files in the datasets directory.
+    :param experiment_name: The experiment name we are working on
+    :param model_name: The name of the model that is to be trained.
+    :param scales: The scales to be used for the patches.
+    :param target_class: The target class for which to generate the rport.
+    :return: None
+    """
 
     # Set up some paths
     exp_mgr = ExperimentManager(experiment_name)
@@ -123,17 +157,18 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> Non
     base_config = DatasetConfig.load(exp_mgr.experiment_dir_path / "base_data_set.json")
     validate_base_config(base_config)
 
-    # Make a new dataset config with the updated size for each patch/size combo
+    # Make a new dataset config with the updated watermark for each patch/scale combo
     test_list = []
     report_test_list = []
     curve_names = []
+    # List of lists of test tags for the report
     series_list = []
     for patch_name in sorted(list(patches_dir.iterdir())):
         suffix = patch_name.suffix.lower()
         if suffix == ".png" or suffix == ".jpg" or suffix == ".tif":
             curve_names.append(patch_name.stem)
             eval_series = []
-            for size in sizes:
+            for size in scales:
                 # Make a patch dataset
                 dataset_path = make_dataset_path(experiment_name, patch_name.stem, size)
                 patch_path = patches_dir / patch_name.name
@@ -145,7 +180,7 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> Non
                 test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
                 report_test_list.append(ReportTest(tag=tag))
 
-            # Add the entires series of the evaluations to the series list for the report later
+            # Add the series of the evaluations to the series list for the report later
             series_list.append(eval_series)
 
     # Assemble an experiment config
@@ -165,21 +200,32 @@ def generate_experiment(experiment_name, model_name, sizes, target_class) -> Non
                         'eval_names': series_list,
                         'target_class': target_class,
                         'x_label': "Attack as % of image size",
-                        'x_values': sizes,
+                        'x_values': scales,
                         'y_label': "Attack Success Rate",
                         'output_dir': str(exp_mgr.experiment_dir_path)
                     },
                     tests=report_test_list)
     exp_config.reports = [report]
 
-    # Save the config out.
+    # Save the config
     logger.info(f"Saving experiment config to: {exp_mgr.get_experiment_config()}")
     exp_config.save(exp_mgr.get_experiment_config())
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generates all the necessary data sets, models and experiment config "
-                                                 "for evaluating the patches.")
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="Generates all the necessary data sets, models and experiment config for evaluating\n"
+                    "a set of provided patches within an experiment.\n\n"
+                    "We expect the following layout:\n"
+                    "  experiments/\n"
+                    "      <experiment-name>/\n"
+                    "          base_data_set.json\n"
+                    "          patches/\n\n"
+                    "Where:\n"
+                    "   <experiment-name> - the first argument to this script\n"
+                    "   base_data_set.json - A dataset with a watermark transform and describes the data under test\n"
+                    "   patches - A directory of patches in jpg, png or tif format\n")
     parser.add_argument('experimentName', help='Name of the experiment in the experiments directory that contains '
                                                'the patches directory, base_data_set.json and patch_eval_config.json.')
     parser.add_argument('modelName', help='Name of the base model to use for testing. The evaluations will be placed'
@@ -190,13 +236,13 @@ def main():
     # We only need basic logging setup.
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
-    # For now, we do ten sizes at from 10% to 100%. We shoud probably allow switches for this
-    sizes = [round(0.1 * x, 1) for x in range(1, 11)]
+    # For now, we do ten sizes from 10% to 100%. We should probably allow switches/configs for this.
+    scales = [round(0.1 * x, 1) for x in range(1, 11)]
 
     # Generate the dataset configs and experiment config
     generate_experiment(args.experimentName,
                         args.modelName,
-                        sizes,
+                        scales,
                         args.targetClass)
 
 
