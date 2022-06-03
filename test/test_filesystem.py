@@ -210,6 +210,81 @@ def test_json_cleaner():
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
 
+def test_save_json():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    
+    path = cwd / "test_save_json.json"
+    jbfs.save_json(data, path)
+    assert path.exists()
+    path.unlink(True)
+
+def test_save_hjson():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    
+    path = cwd / "test_save_hjson.hjson"
+    jbfs.save_hjson(data, path)
+    assert path.exists()
+    path.unlink(True)
+
+def test_save_yaml():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    
+    path = cwd / "test_save_yaml.yaml"
+    jbfs.save_yaml(data, path)
+    assert path.exists()
+    path.unlink(True)
+
+    path = cwd / "test_save_yaml.yml"
+    jbfs.save_yaml(data, path)
+    assert path.exists()
+    path.unlink(True)
+
+def test_save_toml():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    
+    path = cwd / "test_save_toml.toml"
+    jbfs.save_toml(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+    path = cwd / "test_save_toml.tml"
+    jbfs.save_toml(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+def test_save_gzip():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    
+    path = cwd / "test_zip_json.json.gzip"
+    jbfs.save_gzip(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+    path = cwd / "test_zip_hjson.hjson.gzip"
+    jbfs.save_gzip(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+    path = cwd / "test_zip_yaml.yaml.gzip"
+    jbfs.save_gzip(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+    path = cwd / "test_zip_toml.toml.gzip"
+    jbfs.save_gzip(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
+    path = cwd / "test_zip_json.json.gz"
+    jbfs.save_gzip(data, path)
+    assert path.exists()
+    path.unlink(True) 
+
 def test_save_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -228,7 +303,7 @@ def test_save_file():
     path.unlink()
     assert not path.exists()
 
-    path = cwd / "test_save_file.hjson.gzip"
+    path = cwd / "test_save_file.json.gzip"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
