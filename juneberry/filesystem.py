@@ -40,6 +40,7 @@ import socket
 import sys
 import gzip
 import yaml
+from yaml import Loader, Dumper
 import toml
 
 from juneberry import Platforms
@@ -142,7 +143,7 @@ def save_yaml(data, yaml_path) -> None:
     :return: None
     """
     with open(yaml_path, 'w') as yaml_file:
-        yaml.dump(data, yaml_file)
+        yaml.dump(data, yaml_file, Dumper=Dumper)
 
 def save_toml(data, toml_path) -> None:
     """
@@ -209,6 +210,27 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
         sys.exit(-1)
 
 
+def load_gzip(gzip_path):
+
+    suffixes = Path(gzip_path).suffixes
+    if len(suffixes) < 2:
+        logger.error(f'Zipped filed extensions must include format. Ex:"my_file.json.gz"')
+        sys.exit(-1)
+
+    format = suffixes[-2].lower()
+    if format in {'.json', '.hjson'}:
+        with gzip.open(gzip_path, 'rb') as in_file:
+                return hjson.loads(in_file.read())
+    elif format in {'.yaml', '.yml'}:
+        with gzip.open(gzip_path, 'rb') as in_file:
+                return yaml.load(in_file.read(), Loader=Loader)
+    elif format in {'.toml', '.tml'}:
+        with gzip.open(gzip_path, 'rb') as in_file:
+                return toml.loads(in_file.read())
+    else:
+        logger.error(f'Unsupported format for decompression {format}')
+        sys.exit(-1)
+
 def load_file(path: str):
     """
     Loads the file from the specified file path.
@@ -222,14 +244,12 @@ def load_file(path: str):
             with open(path, 'rb') as in_file:
                 return hjson.load(in_file)
         elif ext in {'.gzip', '.gz'}:
-            with gzip.open(path, 'rb') as in_file:
-                return in_file.read()
+            return load_gzip(path)
         elif ext in {'.yaml', '.yml'}:
             with open(path, 'rb') as in_file:
-                return yaml.load(in_file)
+                return yaml.load(in_file, Loader=Loader)
         elif ext in {'.toml', '.tml'}:
-            with open(path, 'rb') as in_file:
-                return toml.load(in_file)
+            return toml.load(path)
         else:
             logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)

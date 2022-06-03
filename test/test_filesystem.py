@@ -259,22 +259,22 @@ def test_save_toml():
 def test_save_gzip():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    
+    # JSON case
     path = cwd / "test_zip_json.json.gzip"
     jbfs.save_gzip(data, path)
     assert path.exists()
     path.unlink(True) 
-
+    # HJSON case
     path = cwd / "test_zip_hjson.hjson.gzip"
     jbfs.save_gzip(data, path)
     assert path.exists()
     path.unlink(True) 
-
+    # YAML case
     path = cwd / "test_zip_yaml.yaml.gzip"
     jbfs.save_gzip(data, path)
     assert path.exists()
     path.unlink(True) 
-
+    # TOML case
     path = cwd / "test_zip_toml.toml.gzip"
     jbfs.save_gzip(data, path)
     assert path.exists()
@@ -288,67 +288,113 @@ def test_save_gzip():
 def test_save_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-
+    # JSON case
     path = cwd / "test_save_file.json"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
-
+    # HJSON case
     path = cwd / "test_save_file.hjson"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
-
+    # GZIP case
     path = cwd / "test_save_file.json.gzip"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
-
+    # YAML case
     path = cwd / "test_save_file.yaml"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
-
+    # TOML case
     path = cwd / "test_save_file.toml"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
+
+
+def test_load_gzip():
+    data = {"np": np.array([1, 2, 3]), "path": Path('models')}
+    cwd = Path.cwd()
+    # JSON case
+    path = cwd / "test_save_file.json.gzip"
+    jbfs.save_file(data, path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
+    path.unlink()
+    # HJSON case
+    path = cwd / "test_save_file.hjson.gzip"
+    jbfs.save_file(data, path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
+    path.unlink()
+    # YAML case
+    path = cwd / "test_save_file.yaml.gzip"
+    jbfs.save_file(data, path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == data['path']
+    path.unlink()
+    # TOML case
+    path = cwd / "test_save_file.toml"
+    jbfs.save_file(data, path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
+    # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
+    # assert loaded_data['path'] == str(data['path']) 
+    path.unlink()
+
 
 def test_load_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-
+    # JSON case
     path = cwd / "test_save_file.json"
     jbfs.save_file(data, path)
-    assert json.dump(data) == jbfs.load_file(path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
     path.unlink()
-
+    # HJSON case
     path = cwd / "test_save_file.hjson"
     jbfs.save_file(data, path)
-    assert hjson.dump(data) == jbfs.load_file(path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
     path.unlink()
-
-    path = cwd / "test_save_file.gzip"
+    # GZIP case
+    path = cwd / "test_save_file.json.gz"
     jbfs.save_file(data, path)
-    assert data == jbfs.load_file(path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == str(data['path'])
     path.unlink()
-
+    # YAML case
     path = cwd / "test_save_file.yaml"
     jbfs.save_file(data, path)
-    assert yaml.dump(data) == jbfs.load_file(path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(loaded_data['np'], data['np'])
+    assert loaded_data['path'] == data['path']
     path.unlink()
-
+    # TOML case
     path = cwd / "test_save_file.toml"
     jbfs.save_file(data, path)
-    assert toml.dump(data) == jbfs.load_file(path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
+    # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
+    # assert loaded_data['path'] == str(data['path']) 
     path.unlink()
