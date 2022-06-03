@@ -150,8 +150,9 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
         with open(path, 'w') as hjson_file:
             hjson.dump(data, hjson_file, indent=indent, default=json_cleaner, sort_keys=True)
     elif ext in {'.gzip', '.gz'}:
-        with open(path, 'w') as gzip_file:
-            gzip_file.write(gzip.compress(data))
+        with gzip.GzipFile(path, 'w') as gzip_file:
+            j_data = json.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8')
+            gzip_file.write(j_data)
     elif ext in {'.yaml', '.yml'}:
         with open(path, 'w') as yaml_file:
             yaml.dump(data, yaml_file)

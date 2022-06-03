@@ -215,35 +215,35 @@ def test_save_file():
     cwd = Path.cwd()
 
     path = cwd / "test_save_file.json"
-    assert not path.exists()
+    path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
 
     path = cwd / "test_save_file.hjson"
-    assert not path.exists()
+    path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
 
     path = cwd / "test_save_file.gzip"
-    assert not path.exists()
+    path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
 
     path = cwd / "test_save_file.yaml"
-    assert not path.exists()
+    path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
 
     path = cwd / "test_save_file.toml"
-    assert not path.exists()
+    path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
     path.unlink()
