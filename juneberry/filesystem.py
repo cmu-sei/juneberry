@@ -28,6 +28,7 @@ Script that supports the model layout.
 NOTE: These paths are all relative to the Juneberry workspace root.
 """
 
+from calendar import c
 import datetime
 import hashlib
 import hjson
@@ -165,25 +166,22 @@ def save_gzip(data, gzip_path, indent: int = 4) -> None:
     """
     suffixes = Path(gzip_path).suffixes
     if len(suffixes) < 2:
-        logger.error(f'Zipped filed extensions must include format. Ex:"my_file.json.gz"')
+        logger.error(f'Compression file extensions must include file type. Ex:"my_file.json.gz"')
         sys.exit(-1)
 
     format = suffixes[-2].lower()
-    if format == '.json':
-        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+    with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+        if format == '.json':
             gzip_file.write(json.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
-    elif format == '.hjson':
-        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+        elif format == '.hjson':
             gzip_file.write(hjson.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
-    elif format in {'.yaml', '.yml'}:
-        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+        elif format in {'.yaml', '.yml'}:
             gzip_file.write(yaml.dump(data).encode('utf-8'))
-    elif format in {'.toml', '.tml'}:
-        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+        elif format in {'.toml', '.tml'}:
             gzip_file.write(toml.dumps(data).encode('utf-8'))
-    else:
-        logger.error(f'Unsupported format for compression {format}')
-        sys.exit(-1)
+        else:
+            logger.error(f'Unsupported file type {format} for this compression type {suffixes[-1]}')
+            sys.exit(-1)
   
 
 
@@ -211,25 +209,27 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
 
 
 def load_gzip(gzip_path):
-
+    """
+    Loads the file from the specified file path for GZIP file extensions.
+    :param path: The path to the file to load.
+    :return:
+    """
     suffixes = Path(gzip_path).suffixes
     if len(suffixes) < 2:
-        logger.error(f'Zipped filed extensions must include format. Ex:"my_file.json.gz"')
+        logger.error(f'Compression file extensions must include file type. Ex:"my_file.json.gz"')
         sys.exit(-1)
 
     format = suffixes[-2].lower()
-    if format in {'.json', '.hjson'}:
-        with gzip.open(gzip_path, 'rb') as in_file:
-                return hjson.loads(in_file.read())
-    elif format in {'.yaml', '.yml'}:
-        with gzip.open(gzip_path, 'rb') as in_file:
-                return yaml.load(in_file.read(), Loader=Loader)
-    elif format in {'.toml', '.tml'}:
-        with gzip.open(gzip_path, 'rb') as in_file:
-                return toml.loads(in_file.read())
-    else:
-        logger.error(f'Unsupported format for decompression {format}')
-        sys.exit(-1)
+    with gzip.open(gzip_path, 'rb') as in_file:
+        if format in {'.json', '.hjson'}:
+            return hjson.loads(in_file.read())
+        elif format in {'.yaml', '.yml'}:
+            return yaml.load(in_file.read(), Loader=Loader)
+        elif format in {'.toml', '.tml'}:
+            return toml.loads(in_file.read())
+        else:
+            logger.error(f'Unsupported file type {format} for this compression type {suffixes[-1]}')
+            sys.exit(-1)
 
 def load_file(path: str):
     """
@@ -253,7 +253,6 @@ def load_file(path: str):
         else:
             logger.error(f'Unsupported file extension {ext}')
             sys.exit(-1)
-
     else:
         logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
         sys.exit(-1)
