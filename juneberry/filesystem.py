@@ -134,6 +134,57 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
     with open(json_path, "w") as json_file:
         json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
+def save_yaml(data, yaml_path) -> None:
+    """
+    Save the data to the specified path (string or Path) in YAML format.
+    :param data: The data to save.
+    :param toml_path: The path to save the data to.
+    :return: None
+    """
+    with open(yaml_path, 'w') as yaml_file:
+        yaml.dump(data, yaml_file)
+
+def save_toml(data, toml_path) -> None:
+    """
+    Save the data to the specified path (string or Path) in TOML format.
+    :param data: The data to save.
+    :param toml_path: The path to save the data to.
+    :return: None
+    """
+    with open(toml_path, 'w') as toml_file:
+        toml.dump(data, toml_file)
+
+def save_gzip(data, gzip_path, indent: int = 4) -> None:
+    """
+    Save the data to the specified path (string or Path) in GZIP format.
+    :param data: The data to save.
+    :param gzip_path: The path to save the data to.
+    :param indent: The indent spacing to use; with a default of 4.
+    :return: None
+    """
+    suffixes = Path(gzip_path).suffixes
+    if len(suffixes) < 2:
+        logger.error(f'Zipped filed extensions must include format. Ex:"my_file.json.gz"')
+        sys.exit(-1)
+
+    format = suffixes[-2].lower()
+    if format == '.json':
+        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+            gzip_file.write(json.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
+    elif format == '.hjson':
+        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+            gzip_file.write(hjson.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8'))
+    elif format in {'.yaml', '.yml'}:
+        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+            gzip_file.write(yaml.dump(data).encode('utf-8'))
+    elif format in {'.toml', '.tml'}:
+        with gzip.GzipFile(gzip_path, 'w') as gzip_file:
+            gzip_file.write(toml.dumps(data).encode('utf-8'))
+    else:
+        logger.error(f'Unsupported format for compression {format}')
+        sys.exit(-1)
+  
+
 
 def save_file(data, path: str, *, indent: int = 4) -> None:
     """
@@ -144,21 +195,15 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
     """
     ext = Path(path).suffix.lower()
     if ext == '.json':
-        with open(path, 'w') as json_file:
-            json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
+        save_json(data, path)
     elif ext == '.hjson':
-        with open(path, 'w') as hjson_file:
-            hjson.dump(data, hjson_file, indent=indent, default=json_cleaner, sort_keys=True)
+        save_hjson(data, path)
     elif ext in {'.gzip', '.gz'}:
-        with gzip.GzipFile(path, 'w') as gzip_file:
-            j_data = json.dumps(data, indent=indent, default=json_cleaner, sort_keys=True).encode('utf-8')
-            gzip_file.write(j_data)
+        save_gzip(data, path, indent)
     elif ext in {'.yaml', '.yml'}:
-        with open(path, 'w') as yaml_file:
-            yaml.dump(data, yaml_file)
+        save_yaml(data, path)
     elif ext in {'.toml', '.tml'}:
-        with open(path, 'w') as toml_file:
-            toml.dump(data, toml_file)
+        save_toml(data, path)
     else:
         logger.error(f'Unsupported file extension {ext}')
         sys.exit(-1)

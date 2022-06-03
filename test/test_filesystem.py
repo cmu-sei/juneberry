@@ -228,7 +228,7 @@ def test_save_file():
     path.unlink()
     assert not path.exists()
 
-    path = cwd / "test_save_file.gzip"
+    path = cwd / "test_save_file.hjson.gzip"
     path.unlink(missing_ok=True)
     jbfs.save_file(data, path)
     assert path.exists()
