@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
+from argparse import Namespace
 import logging
 from math import ceil
 from pathlib import Path
@@ -37,13 +37,11 @@ from mmdet.apis import train_detector
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
 
-from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
-from juneberry.filesystem import generate_file_hash, ModelManager
+from juneberry.filesystem import generate_file_hash
 from juneberry.jb_logging import log_banner, setup_logger
-from juneberry.lab import Lab
 import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
@@ -53,11 +51,10 @@ logger = logging.getLogger(__name__)
 
 
 class MMDTrainer(Trainer):
-    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level):
-        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
+    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
+        super().__init__(model_config, trainer_args)
 
-        self.working_dir = model_manager.get_train_scratch_path()
+        self.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
         self.mm_home = mmd_utils.find_mmdetection()
 
         self.cfg = None

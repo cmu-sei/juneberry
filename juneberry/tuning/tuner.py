@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
+from argparse import Namespace
 import logging
 
 from ray import tune
@@ -30,6 +30,7 @@ from juneberry.config.plugin import Plugin
 from juneberry.config.tuning import TuningConfig
 import juneberry.filesystem as jb_fs
 import juneberry.loader as jb_loader
+import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger(__name__)
 
@@ -142,15 +143,18 @@ class Tuner:
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
         """ The model config substitution process (line below) appears to be working as expected."""
         trial_model_config = self.baseline_model_config.adjust_attributes(config)
-        trial_dataset_config = self.lab.load_dataset_config(trial_model_config.training_dataset_config_path)
+        # trial_model_config is a ModelConfig
+
+        # TODO: Fill out the Namespace with available info. Maybe this doesn't even belong in _train_fn
+        #  and should be a tuner attribute?
+        trainer_args = Namespace()
+        trainer = jb_training_utils.build_trainer(trial_model_config, trainer_args)
 
         # load_model_config
         # training_prep
         #   possibly_load_from_checkpoint
         # per_epoch_metrics = trainer.train_an_epoch()
         # tune.report(metric=per_epoch_metrics[self.metric])
-
-
 
         # Now that we have a new model config, eventually we want to get to a spot where we can do a
         # trainer.train_model()

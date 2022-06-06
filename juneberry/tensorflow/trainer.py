@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
+from argparse import Namespace
 import logging
 import numpy as np
 import os
@@ -49,9 +49,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClassifierTrainer(juneberry.training.trainer.Trainer):
-    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig,
-                 dataset_config: DatasetConfig, log_level):
-        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
+    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
+        super().__init__(model_config, trainer_args)
 
         # Grab these out of the model architecture for convenience.
         self.width = self.model_config.model_architecture.args['img_width']

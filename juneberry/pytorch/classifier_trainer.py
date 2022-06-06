@@ -21,6 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
+from argparse import Namespace
 import datetime
 import logging
 import math
@@ -52,8 +53,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClassifierTrainer(EpochTrainer):
-    def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
-        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
+    def __init__(self, model_config, trainer_args: Namespace):
+        super().__init__(model_config, trainer_args)
 
         # Assigned during setup
         self.loss_function = None
@@ -64,8 +65,8 @@ class ClassifierTrainer(EpochTrainer):
         self.acceptance_checker = None
 
         # We should probably be given a data manager
-        self.data_version = model_manager.model_version
-        self.binary = dataset_config.is_binary
+        self.data_version = self.model_manager.model_version if self.model_manager is not None else None
+        self.binary = self.dataset_config.is_binary
         self.pytorch_options: PytorchOptions = model_config.pytorch
 
         # A single sample from the input data. The dimensions of the sample matter during

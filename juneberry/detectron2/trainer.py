@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
+from argparse import Namespace
 from collections import OrderedDict
 import logging
 import math
@@ -49,7 +49,6 @@ import detectron2.utils.comm as comm
 from detectron2.utils.env import seed_all_rng
 from detectron2.utils.events import EventStorage, CommonMetricPrinter, JSONWriter, TensorboardXWriter
 
-from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
@@ -57,7 +56,6 @@ import juneberry.detectron2.data as dt2_data
 from juneberry.detectron2.loss_evaluator import DT2LossEvaluator
 from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
-from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.training.trainer import Trainer
@@ -66,9 +64,8 @@ logger = logging.getLogger(__name__)
 
 
 class Detectron2Trainer(Trainer):
-    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level, *, resume: bool = False):
-        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
+    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
+        super().__init__(model_config, trainer_args)
 
         self.iter: int = 0
         self.start_iter: int = 0
@@ -79,7 +76,7 @@ class Detectron2Trainer(Trainer):
         self.model = None
         self.save_model = None
 
-        self.resume = resume
+        self.resume = trainer_args.resume
 
         # We shouldn't need to change these.
         self.train_len = 0

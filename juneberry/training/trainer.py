@@ -34,7 +34,7 @@ It provides the following features:
 - Training can be terminated early based on extensible stopping criteria.
 - Each stage is independently timed.
 """
-
+from argparse import Namespace
 import datetime
 import logging
 
@@ -42,11 +42,10 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
 import juneberry.config.training_output
-from juneberry.filesystem import ModelManager
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.jb_logging import log_banner
-from juneberry.lab import Lab
 from juneberry.timing import Berryometer
+import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger(__name__)
 
@@ -57,26 +56,29 @@ class Trainer:
     with that model, and the dataset uses to train this model.
     """
 
-    def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig, dataset_config: DatasetConfig,
-                 log_level):
+    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
         """
         Constructs a basic trainer component.
-        :param lab: The Juneberry lab in which to run the trainer.
-        :param model_manager: The model manager of where to save model outputs.
         :param model_config: The model config to use in training.
-        :param dataset_config: The dataset config to use when training.
-        :param log_level: The message level to capture in the logging.
+        :param trainer_args: TODO
         """
         # This is the model we are associated with
-        self.lab = lab
-        self.model_manager = model_manager
+        self.model_manager = None if trainer_args.modelName is None else jb_fs.ModelManager(trainer_args.modelName)
+        if self.model_manager is None:
+            self.lab = None  # TODO: This will make things challenging.
+        else:
+            self.lab = jb_training_utils.setup_training_logging_and_lab(trainer_args, self.model_manager)
+            self.lab.setup_lab_profile(model_name=trainer_args.modelName, model_config=model_config)
 
         # The model and dataset configurations.
         self.model_config = model_config
-        self.dataset_config = dataset_config
+        if self.lab is None:
+            self.dataset_config = DatasetConfig.load(self.model_config.training_dataset_config_path)
+        else:
+            self.dataset_config = self.lab.load_dataset_config(self.model_config.training_dataset_config_path)
 
         # The level of logging for the Trainer.
-        self.log_level = log_level
+        self.log_level = logging.DEBUG if trainer_args.verbose else logging.INFO
 
         # Store the time that training started / ended.
         self.train_start_time = None
@@ -218,7 +220,7 @@ class Trainer:
 
         else:
             logger.info(f"Writing output file: {self.model_manager.get_training_out_file()}")
-            jbfs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
+            jb_fs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
 
 
 #  _____                  _   _____          _
@@ -233,14 +235,13 @@ class EpochTrainer(Trainer):
     This class encapsulates the process of training a supervised model epoch by epoch.
     """
 
-    def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
+    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
         """
         Construct an epoch trainer based on a model config and dataset config.
-        :param lab: The Juneberry lab in which to run the trainer.
         :param model_config: A Juneberry ModelConfig object that describes how to construct and train the model.
         """
         # Set to true for dry run mode
-        super().__init__(lab, model_manager, model_config, dataset_config, log_level)
+        super().__init__(model_config, trainer_args)
 
         # TODO: Should we just call dry run externally?
         self.do_dry_run = False

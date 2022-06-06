@@ -42,10 +42,10 @@ from juneberry.training.trainer import Trainer as BaseTrainer
 logger = logging.getLogger(__name__)
 
 
-def setup_training_logging_and_lab(args: Namespace, model_manager: ModelManager, dryrun: bool = False) -> Lab:
+def setup_training_logging_and_lab(args: Namespace, model_manager: ModelManager) -> Lab:
     # Use the config file to set up the workspace, data and logging
-    log_prefix = "<<DRY_RUN>> " if dryrun else ""
-    log_file = model_manager.get_training_dryrun_log_path() if dryrun else model_manager.get_training_log()
+    log_prefix = "<<DRY_RUN>> " if args.dryrun else ""
+    log_file = model_manager.get_training_dryrun_log_path() if args.dryrun else model_manager.get_training_log()
 
     return jb_scripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix,
                                                model_name=model_manager.model_name,
@@ -110,7 +110,7 @@ def set_trainer_output_format(trainer: BaseTrainer, args: Namespace):
     return trainer
 
 
-def build_trainer(model_config: ModelConfig, args: Namespace, reqd_args_dict: dict):
+def build_trainer(model_config: ModelConfig, trainer_args: Namespace):
 
     if model_config.trainer is None:
         model_config.trainer = assemble_trainer_stanza(model_config)
@@ -118,24 +118,16 @@ def build_trainer(model_config: ModelConfig, args: Namespace, reqd_args_dict: di
         if model_config.trainer.kwargs is None:
             model_config.trainer.kwargs = {}
 
-    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
-    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config']
-    for arg in reqd_args:
-        if arg not in model_config.trainer.kwargs:
-            model_config.trainer.kwargs[arg] = reqd_args_dict[arg]
-
-    model_config.trainer.kwargs['log_level'] = logging.DEBUG if args.verbose else logging.INFO
-
-    # Construct optional args that trainers may take.
-    opt_args = setup_trainer_opt_args(args)
+    model_config.trainer.kwargs['model_config'] = model_config
+    model_config.trainer.kwargs['trainer_args'] = trainer_args
 
     # Construct the trainer
     logger.info(f"Instantiating trainer: {model_config.trainer.fqcn}")
-    trainer = jb_loader.construct_instance(model_config.trainer.fqcn, model_config.trainer.kwargs, opt_args)
+    trainer = jb_loader.construct_instance(model_config.trainer.fqcn, model_config.trainer.kwargs)
 
     if trainer is None:
         return trainer
 
-    trainer = set_trainer_output_format(trainer, args)
+    trainer = set_trainer_output_format(trainer, trainer_args)
 
     return trainer
