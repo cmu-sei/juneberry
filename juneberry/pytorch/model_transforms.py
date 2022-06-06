@@ -222,6 +222,7 @@ class ReplaceFC:
         
         return model
 
+
 class Freeze:
     """
     Transform used to freeze a pre-trained model
@@ -234,6 +235,7 @@ class Freeze:
         for param in model.parameters():
             param.requires_grad = False
         return model
+
 
 class EmptyTransform:
     def __init__(self):

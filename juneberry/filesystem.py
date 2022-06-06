@@ -225,6 +225,22 @@ class ExperimentManager:
         """ :return: The path to the directory containing the individual report configs for the experiment. """
         return self.experiment_reports_dir_path
 
+    def get_experiment_datasets_dir(self):
+        """ :return: The path to the directory containing datasets specific to the experiment. """
+        return self.experiment_dir_path / "data_sets"
+
+    def get_experiment_base_dataset(self):
+        """ :return: The path to the experiment's base dataset config. """
+        return self.get_experiment_datasets_dir() / "base_data_set.json"
+
+    def get_experiment_dataset_path(self, dataset_name: str):
+        """ :return: The path to a dataset file inside the experiment's data_sets directory. """
+        return self.get_experiment_datasets_dir() / f"{dataset_name}.json"
+
+    def get_experiment_watermarks_dir(self):
+        """ :return: The path to the directory containing the experiment's watermarks. """
+        return self.experiment_dir_path / "watermarks"
+
     def get_experiment_report_file(self, idx: int):
         """ :return: A path to a particular report file inside the experiment reports directory."""
         return self.experiment_reports_dir_path / f"report_{idx}.json"

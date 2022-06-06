@@ -22,8 +22,8 @@
 #
 # ======================================================================================================================
 
-import copy
 import argparse
+import copy
 import logging
 from pathlib import Path
 import sys
@@ -31,15 +31,14 @@ import sys
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.experiment import ExperimentConfig, Model, ModelTest, Report, ReportTest
 from juneberry.filesystem import ExperimentManager
-
-import juneberry.scripting as jbscripting
+import juneberry.scripting as jb_scripting
 
 # DESIGN
-# We assume the following layout
+# We assume the following layout:
 #
 # experiments/
 #   <experiment-name>/
-#     patches/
+#     watermarks/
 #     base_data_set.json
 #
 # We make:
@@ -47,61 +46,50 @@ import juneberry.scripting as jbscripting
 # experiments/
 #   <experiment-name>/
 #     data_sets/
-#        <path_name>_<size>.json
+#        <watermark_name>_<size>.json
 # models/
 #   <model-name>
 #     evals
-#       <patch_name>_<size>/
+#       <watermark_name>_<size>/
 #         metrics.json
 #
-# The patches can be any set of images.
+# The watermarks can be any set of images.
 # The base_data_set.json is a data_set file that contains a juneberry.transforms.image.Watermark stanza.
 #
 # DESIGN
 
-logger = logging.getLogger("juneberry.jb_generate_patch_eval")
+logger = logging.getLogger("juneberry.jb_generate_watermark_eval")
 
 
-def make_variation_name(patch_name, scale) -> str:
+def make_variation_name(watermark_name, scale) -> str:
     """
-    Returns the name of the variation of the dataset based on patch and the scale to be used
+    Returns the name of the variation of the dataset based on watermark and the scale to be used
     for dataset names and curves.
-    :param patch_name: The name of the patch
-    :param scale: The scale of the patch
-    :return: The patch-scale combined name
+    :param watermark_name: The name of the watermark
+    :param scale: The scale of the watermark
+    :return: The watermark-scale combined name
     """
     str_size = f"{int(scale)}d{int((scale % 1) * 10000)}"
-    return f"{patch_name}_{str_size}"
+    return f"{watermark_name}_{str_size}"
 
 
-def make_dataset_path(experiment_name, patch_name, scale) -> Path:
-    """
-    Creates the dataset path within the experiment directory based on the patch and scale.
-    :param experiment_name: The name of the experiment
-    :param patch_name: The name of the patch
-    :param scale: The scale
-    :return: A path to the datasets file
-    """
-    exp_mgr = ExperimentManager(experiment_name)
-    datasets_dir = exp_mgr.experiment_dir_path / "data_sets"
-    return datasets_dir / f"{make_variation_name(patch_name, scale)}.json"
-
-
-def validate_base_config(base_config: DatasetConfig) -> None:
+def validate_base_config(base_config: DatasetConfig, experiment_name: str) -> None:
     """
     Checks to make sure that the base config has the minimal information required.
     :param base_config: The base config to check.
+    :param experiment_name: String indicating the name of the experiment whose base_config is being validated.
     :return: None
     """
     for transform in base_config.data_transforms.transforms:
-        # If we found one, then this is valid.
+        # The config is valid if it contains a Watermark transform.
         if transform.fqcn == "juneberry.transforms.image.Watermark":
             return
 
     # If we got this far, then the base config did NOT contain a watermark transform.
     # This is an error. Give them a hint and exit.
-    logger.error("Failed to find watermark transform in data transforms list."
-                 "Expected to find something like this the base_data_set.json:"
+    logger.error(f"Failed to find a watermark transform in data transforms list of "
+                 f"the base dataset config in the '{experiment_name}' experiment."
+                 "Expected to find something like this in the base_data_set.json:"
                  '"data_transforms": {'
                  '    "transforms": ['
                  '        {'
@@ -114,20 +102,20 @@ def validate_base_config(base_config: DatasetConfig) -> None:
     sys.exit(-1)
 
 
-def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: str, size) -> None:
+def make_watermark_dataset(base_config: DatasetConfig, dest_path: Path, watermark_path: str, size) -> None:
     """
-    Constcut a patch dataset which includes the dataset config copied from the base config
+    Construct a watermark dataset which includes the dataset config copied from the base config
     with updated watermark.
     :param base_config: The base config to start from.
     :param dest_path: Where to save the new file.
-    :param patch_path: The path to the patch.
-    :param size: The scale of the patch.
+    :param watermark_path: The path to the watermark.
+    :param size: The scale of the watermark.
     :return: None
     """
     new_config: DatasetConfig = copy.deepcopy(base_config)
     for transform in new_config.data_transforms.transforms:
         if transform.fqcn == "juneberry.transforms.image.Watermark":
-            transform.kwargs['watermark_path'] = patch_path
+            transform.kwargs['watermark_path'] = watermark_path
             transform.kwargs['min_scale'] = size
             transform.kwargs['max_scale'] = size
             continue
@@ -135,47 +123,50 @@ def make_patch_dataset(base_config: DatasetConfig, dest_path: Path, patch_path: 
     new_config.save(str(dest_path))
 
 
-def generate_experiment(experiment_name, model_name, scales, target_class) -> None:
+def generate_experiment(experiment_name: str, model_name: str, scales: list, target_class: int) -> None:
     """
-    This function walks the patches directory and creates a dataset file for each patch and size pair
+    This function walks the watermarks directory and creates a dataset file for each watermark and size pair
     and a corresponding experiment config file.
-    So, when done, there should be patches X sizes files in the datasets directory.
+    So, when done, there should be watermarks X sizes files in the datasets directory.
     :param experiment_name: The experiment name we are working on
     :param model_name: The name of the model that is to be trained.
-    :param scales: The scales to be used for the patches.
-    :param target_class: The target class for which to generate the rport.
+    :param scales: The scales to be used for the watermarks.
+    :param target_class: The target class for which to generate the report.
     :return: None
     """
 
     # Set up some paths
     exp_mgr = ExperimentManager(experiment_name)
-    patches_dir = exp_mgr.experiment_dir_path / "patches"
-    datasets_dir = exp_mgr.experiment_dir_path / "data_sets"
+    watermarks_dir = exp_mgr.get_experiment_watermarks_dir()
+    datasets_dir = exp_mgr.get_experiment_datasets_dir()
     datasets_dir.mkdir(exist_ok=True)
 
     # Load the base dataset config
-    base_config = DatasetConfig.load(exp_mgr.experiment_dir_path / "base_data_set.json")
-    validate_base_config(base_config)
+    base_config = DatasetConfig.load(exp_mgr.get_experiment_base_dataset())
+    validate_base_config(base_config, experiment_name)
 
-    # Make a new dataset config with the updated watermark for each patch/scale combo
+    # Make a new dataset config with the updated watermark for each watermark/scale combo
     test_list = []
     report_test_list = []
     curve_names = []
     # List of lists of test tags for the report
     series_list = []
-    for patch_name in sorted(list(patches_dir.iterdir())):
-        suffix = patch_name.suffix.lower()
+    for watermark_name in sorted(list(watermarks_dir.iterdir())):
+        suffix = watermark_name.suffix.lower()
         if suffix == ".png" or suffix == ".jpg" or suffix == ".tif":
-            curve_names.append(patch_name.stem)
+            curve_names.append(watermark_name.stem)
             eval_series = []
             for size in scales:
-                # Make a patch dataset
-                dataset_path = make_dataset_path(experiment_name, patch_name.stem, size)
-                patch_path = patches_dir / patch_name.name
-                make_patch_dataset(base_config, dataset_path, str(patch_path), size)
+                # Determine the variation name for this watermark and size combination.
+                variation_name = make_variation_name(watermark_name.stem, size)
+
+                # Make a watermark dataset
+                dataset_path = exp_mgr.get_experiment_dataset_path(variation_name)
+                watermark_path = watermarks_dir / watermark_name.name
+                make_watermark_dataset(base_config, dataset_path, str(watermark_path), size)
 
                 # Add a test stanza
-                tag = make_variation_name(patch_name.stem, size)
+                tag = variation_name
                 eval_series.append(tag)
                 test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
                 report_test_list.append(ReportTest(tag=tag))
@@ -185,7 +176,7 @@ def generate_experiment(experiment_name, model_name, scales, target_class) -> No
 
     # Assemble an experiment config
     exp_config = ExperimentConfig()
-    exp_config.description = "Patch evaluation experiment"
+    exp_config.description = "Watermark evaluation experiment"
     exp_config.format_version = "0.2.0"
 
     # Add the model stanza with all the tests
@@ -215,21 +206,22 @@ def generate_experiment(experiment_name, model_name, scales, target_class) -> No
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
-        description="Generates all the necessary data sets, models and experiment config for evaluating\n"
-                    "a set of provided patches within an experiment.\n\n"
+        description="Generates all the necessary data sets, models, and an experiment config for evaluating\n"
+                    "a set of provided watermarks within an experiment.\n\n"
                     "We expect the following layout:\n"
                     "  experiments/\n"
                     "      <experiment-name>/\n"
                     "          base_data_set.json\n"
-                    "          patches/\n\n"
+                    "          watermarks/\n\n"
                     "Where:\n"
                     "   <experiment-name> - the first argument to this script\n"
                     "   base_data_set.json - A dataset with a watermark transform and describes the data under test\n"
-                    "   patches - A directory of patches in jpg, png or tif format\n")
-    parser.add_argument('experimentName', help='Name of the experiment in the experiments directory that contains '
-                                               'the patches directory, base_data_set.json and patch_eval_config.json.')
+                    "   watermarks - A directory of watermarks in jpg, png, or tif format\n")
+    parser.add_argument('experimentName', help='Name of the experiment in the experiments directory that contains the '
+                                               'watermarks directory, base_data_set.json and '
+                                               'watermark_eval_config.json.')
     parser.add_argument('modelName', help='Name of the base model to use for testing. The evaluations will be placed'
-                                          'into this directory.')
+                                          'inside this model\'s eval directory.')
     parser.add_argument('targetClass', type=int, help="The target class to evaluate.")
     args = parser.parse_args()
 
@@ -239,6 +231,9 @@ def main():
     # For now, we do ten sizes from 10% to 100%. We should probably allow switches/configs for this.
     scales = [round(0.1 * x, 1) for x in range(1, 11)]
 
+    for scale in scales:
+        print(type(scale))
+
     # Generate the dataset configs and experiment config
     generate_experiment(args.experimentName,
                         args.modelName,
@@ -247,4 +242,4 @@ def main():
 
 
 if __name__ == "__main__":
-    jbscripting.run_main(main, logger)
+    jb_scripting.run_main(main, logger)

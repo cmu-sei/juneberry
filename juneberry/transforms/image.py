@@ -27,6 +27,7 @@ A set of general image conversions.
 """
 
 from PIL import Image
+
 import juneberry.image as iutils
 
 
@@ -63,12 +64,14 @@ class ResizePad:
     def __call__(self, image):
         return iutils.resize_image(image, self.width, self.height, self.color)
 
+
 class ChangeAllLabelsTo:
     def __init__(self, label):
         self.label = label
 
     def __call__(self, image, label):
-        return( (image, self.label ))
+        return image, self.label
+
 
 class Watermark:
     def __init__(self, watermark_path, min_scale=1.0, max_scale=1.0, rotation=0, blur=0):

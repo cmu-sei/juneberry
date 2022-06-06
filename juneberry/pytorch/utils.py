@@ -164,11 +164,10 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         model_path = model_manager.get_pytorch_model_path()
         torch.save(model.state_dict(), model_path)
 
-        # If there is a patch, save it
+        # If there is a watermark, save it.
         for module in model.modules():
-            if hasattr(module, 'save_patch'):
-                module.save_patch(model_manager.get_pytorch_model_path(), "patch.png")
-
+            if hasattr(module, 'save_watermark'):
+                module.save_watermark(model_manager.get_pytorch_model_path(), "watermark.png")
 
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
@@ -421,7 +420,8 @@ def un_normalize_imagenet_norms(x):
     x_r = x[0, :, :] * 0.229 + 0.485  
     x_g = x[1, :, :] * 0.224 + 0.456  
     x_b = x[2, :, :] * 0.225 + 0.406 
-    return (torch.stack([x_r, x_g, x_b]))
+    return torch.stack([x_r, x_g, x_b])
+
 
 def generate_sample_images(data_loader, quantity, img_path: Path):
     """
@@ -450,7 +450,8 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
 
         for step, (data, targets) in enumerate(data_loader):
             if step in sel_batches:
-                # TODO: Dive into the config to pull out whatever normalization is used, instead of just assuming the magic ImageNet numbers
+                # TODO: Dive into the config to pull out whatever normalization is used, instead of just
+                #  assuming the magic ImageNet numbers
                 img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
                 # Save the image
                 img.save(str(img_path / f"{step}.png"))
@@ -458,12 +459,14 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
         logger.info(f'{quantity} sample images saved to {img_path}')
 
     else: 
-        logger.info("Dry run takes the first image from randomly selected batches. It requires number of requested images ({quantity}) < number of batches ({num_batches}). No ouptut produced.")
+        logger.info("Dry run takes the first image from randomly selected batches. It requires number of requested "
+                    "images ({quantity}) < number of batches ({num_batches}). No output produced.")
 
         # iterate once to grab the shape
-        (data,targets) = next(iter(data_loader))
+        (data, targets) = next(iter(data_loader))
 
     return data.shape
+
 
 def invoke_evaluator_method(evaluator, module_name: str):
     """

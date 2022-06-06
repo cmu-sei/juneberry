@@ -27,13 +27,12 @@ A set of utilities for image manipulation.
 """
 
 import logging
-import numpy as np
 import random
+from typing import List, Tuple
 import warnings
 
-from PIL import Image, ImageFilter
-from PIL import ImageOps
-from typing import List, Tuple
+import numpy as np
+from PIL import Image, ImageFilter, ImageOps
 
 logger = logging.getLogger(__name__)
 
@@ -345,20 +344,21 @@ def load_prepare_images_np(data: List[Tuple[str, int]], size_wh: Tuple[int, int]
 def rotate_image(src_image: Image, rotation_degrees: int) -> Image:
     """
     :param src_image: The image receiving the rotation.
-    :param rotation_degrees: The maximum amount of rotation in degrees (negative and postivite) to apply to the imaeg.
-    :return:
+    :param rotation_degrees: The maximum amount of rotation in degrees (negative and positive) to apply to the image.
+    :return: The rotated Image.
     """
-    rotation_amount = randint(-rotation, rotation)
+    rotation_amount = random.randint(-rotation_degrees, rotation_degrees)
     logging.debug(f"Rotating the image by {rotation_amount} degrees.")
     return src_image.rotate(rotation_amount, expand=True)
 
 
-def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur=0):
+def transform_image(src_image: Image, scale_range: tuple = (None, None), rotation: int = 0, blur: int = 0):
     """
     This function is responsible for applying transformations to the provided image.
     :param src_image: The image receiving the transformations.
-    :param scale_range: Tuple indicating the min/max values to use for scaling the area of the patch with 1.0 being none.
-    :param rotation: The maximum amount of rotation in degrees (negative and postivite) to apply to the imaeg.
+    :param scale_range: Tuple indicating the min/max values to use for scaling the area of the watermark,
+    with 1.0 being no scaling.
+    :param rotation: The maximum amount of rotation in degrees (negative and positive) to apply to the image.
     :param blur: The maximum radius to use when applying Gaussian blur to the image.
     :return: The transformed image.
     """
@@ -372,24 +372,27 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
         src_image = src_image.filter(ImageFilter.GaussianBlur(blur_radius))
 
     # When a scale range is provided, a random scale value between scale_range[0] and scale_range[1] is chosen
-    # for the amount by which to scale the patch's area. Scale values less than 1.0 will shrink the patch, while scale
-    # values greater than 1 will increase the size of the patch.
+    # for the amount by which to scale the watermark's area. Scale values less than 1.0 will shrink the watermark,
+    # while scale values greater than 1.0 will increase the size of the watermark.
     # TODO Refactor out
     if scale_range != (None, None) and scale_range != (1.0, 1.0):
         logging.debug(f"Scaling the image size...")
-        patch_width, patch_height = src_image.size
-        logging.debug(f"...original dimensions: width = {patch_width}, height = {patch_height}, area = {patch_width * patch_height}")
+        watermark_width, watermark_height = src_image.size
+        logging.debug(f"...original dimensions: width = {watermark_width}, height = {watermark_height}, "
+                      f"area = {watermark_width * watermark_height}")
 
         scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
-        logging.debug(f"...applying a scale factor of {scale} to the area of the patch.")
-        src_image = src_image.resize((int(patch_width * np.sqrt(scale)), int(patch_height * np.sqrt(scale))), Image.ANTIALIAS)
+        logging.debug(f"...applying a scale factor of {scale} to the area of the watermark.")
+        src_image = src_image.resize((int(watermark_width * np.sqrt(scale)), int(watermark_height * np.sqrt(scale))),
+                                     Image.ANTIALIAS)
 
-        patch_width, patch_height = src_image.size
-        logging.debug(f"...new image dimensions: width = {patch_width}, height = {patch_height}, area = {patch_width * patch_height}")
+        watermark_width, watermark_height = src_image.size
+        logging.debug(f"...new image dimensions: width = {watermark_width}, height = {watermark_height}, "
+                      f"area = {watermark_width * watermark_height}")
 
     # When a rotation value is provided, this transform will randomly select a value between
-    # -rotationAmount and +rotationAmount and apply that rotation to the patch image. The
-    # "expand" argument ensures that the patch will not be trimmed if the rotation causes pixels
+    # -rotationAmount and +rotationAmount and apply that rotation to the watermark image. The
+    # "expand" argument ensures that the watermark will not be trimmed if the rotation causes pixels
     # to fall outside of the original dimensions of the image.
     if rotation:
         src_image = rotate_image(src_image, rotation)
@@ -399,14 +402,15 @@ def transform_image(src_image: Image, scale_range=(None, None), rotation=0, blur
 
 def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> (int, int):
     """
-    Randomly computes an position inside the target box which will fit the entirety
+    Randomly computes a position inside the target box which will fit the entirety
     of the source box without clipping.
     :param src_size_wh: The size of the source box to insert
     :param target_box_wh: The size of the destination region
+    :param randomizer: The randomizer to use.
     :return:
     """
 
-    # Make a "reduced" are so we can compute left top. (xy)
+    # Make a "reduced" area so we can compute left top. (xy)
     max_x = target_box_wh[0] - src_size_wh[0]
     max_y = target_box_wh[1] - src_size_wh[1]
 
@@ -418,7 +422,7 @@ def make_random_insert_position(src_size_wh, target_box_wh, randomizer=None) -> 
         print(f"Asked to compute random position for watermark:{src_size_wh} "
               f"target:{target_box_wh} and max_x or max_y is less than zero. "
               f"max_x={max_x}, max_y={max_y}")
-        #raise RuntimeError("Watermark larger than target image.")
+        # raise RuntimeError("Watermark larger than target image.")
         return 0, 0
     x = randomizer.randint(0, max_x)
     y = randomizer.randint(0, max_y)
@@ -437,7 +441,7 @@ def insert_watermark_at_position(image: Image, watermark: Image, position_xy):
     """
 
     # The third argument here is a mask parameter.
-    # It is an RGBA image so the mask will be the alpha channel of the patch.
+    # It is an RGBA image so the mask will be the alpha channel of the watermark.
     if watermark.mode == "RGBA":
         image.paste(watermark, position_xy, watermark)
     else:

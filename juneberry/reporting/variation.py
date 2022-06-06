@@ -42,8 +42,8 @@ def compute_accuracy_np(predictions_np, labels):
     """
     Converts the continuous predictions to classes, compares with truth labels and returns per-class accuracies.
     :param predictions_np: Array of arrays as predictions.
-    :param labels: The l
-    :return:
+    :param labels: The "true" labels to use in the accuracy calculation.
+    :return: A float indicating the accuracy.
     """
     np_labels = np.asarray(labels)
 
@@ -58,8 +58,8 @@ def compute_accuracy_one_class(y_scores_np, target_class):
     """
     Converts the continuous predictions to classes, and finds out how many were correct for that class.
     :param y_scores_np: Array of arrays as predictions.
-    :param target_class
-    :return:
+    :param target_class: An integer indicated the target class.
+    :return: An accuracy value for the indicated class.
     """
     # Convert continuous predictions to the highest entry which is the predicted class
     outputs = np.argmax(y_scores_np, axis=1)
@@ -73,8 +73,9 @@ def compute_accuracy_one_class(y_scores_np, target_class):
 def assemble_curves(model_mgr: ModelManager, eval_names: list, target_class: int):
     """
     Walk a series of evaluation metrics and assemble the curves for each
+    :param model_mgr: The ModelManager for the model whose evaluation metrics are being used to generate curves.
     :param eval_names: A list of lists of eval names.
-    :param results_metrics: The name of the results.metric field.
+    :param target_class: An integer indicating which class to target.
     :return: Curves of values
     """
     curves = []
@@ -96,7 +97,7 @@ def assemble_curves(model_mgr: ModelManager, eval_names: list, target_class: int
 
 def format_plot(x_values, curves, curve_names, x_title, y_title, output_dir):
     for idx, curve in enumerate(curves):
-        plt.plot(x_values, curve, label = curve_names[idx])
+        plt.plot(x_values, curve, label=curve_names[idx])
     plt.ylabel(y_title)
     plt.xlabel(x_title)
     plt.legend()
@@ -130,10 +131,10 @@ class VariationCurve(Report):
                 sys.exit(-1)
 
     def create_report(self) -> None:
-        mmgr = ModelManager(self.model_name)
+        model_mgr = ModelManager(self.model_name)
 
         # Get the curves
-        curves = assemble_curves(mmgr, self.eval_names, self.target_class)
+        curves = assemble_curves(model_mgr, self.eval_names, self.target_class)
 
         # Format the plot
         format_plot(self.x_values, curves, self.curve_names, self.x_label, self.y_label, self.output_dir)
