@@ -252,6 +252,7 @@ class StagedTransformManager:
         :param per_epoch_seed: The BASE seed to be used for each epoch. It will be incremented every epoch.
         :param per_epoch: The transforms to be applied with the per-epoch seed.
         """
+        # TODO: Check that the wrapped transforms take kwargs so we can pass anything through
         self.consistent_transform = consistent
         self.consistent_seed = consistent_seed
         self.per_epoch_transform = per_epoch

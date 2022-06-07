@@ -218,8 +218,7 @@ def main():
                     "   base_data_set.json - A dataset with a watermark transform and describes the data under test\n"
                     "   watermarks - A directory of watermarks in jpg, png, or tif format\n")
     parser.add_argument('experimentName', help='Name of the experiment in the experiments directory that contains the '
-                                               'watermarks directory, base_data_set.json and '
-                                               'watermark_eval_config.json.')
+                                               'watermarks directory and base_data_set.json.')
     parser.add_argument('modelName', help='Name of the base model to use for testing. The evaluations will be placed'
                                           'inside this model\'s eval directory.')
     parser.add_argument('targetClass', type=int, help="The target class to evaluate.")
