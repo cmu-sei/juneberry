@@ -142,7 +142,7 @@ class ConcatTransform():
     def __init__(self, val):
         self.val = val
 
-    def __call__(self, obj):
+    def __call__(self, obj, **kwargs):
         return f"{obj} {self.val}"
 
 

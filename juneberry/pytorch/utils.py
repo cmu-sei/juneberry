@@ -417,9 +417,9 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
 
 def un_normalize_imagenet_norms(x):
     # TODO: Generalize to arbitrary values and numbers of channels 
-    x_r = x[0, :, :] * 0.229 + 0.485  
-    x_g = x[1, :, :] * 0.224 + 0.456  
-    x_b = x[2, :, :] * 0.225 + 0.406 
+    x_r = x[0, :, :] * 0.229 + 0.485
+    x_g = x[1, :, :] * 0.224 + 0.456
+    x_b = x[2, :, :] * 0.225 + 0.406
     return torch.stack([x_r, x_g, x_b])
 
 
@@ -440,32 +440,39 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     num_batches = len(data_loader)
 
     # Grab the selected batches
-    if num_batches > quantity: 
+    img_shape = None
+    if num_batches > quantity:
         # Forks the RNG, so that when you return, the RNG is reset to the state that it was previously in.
-        torch.random.fork_rng()
-        # Generate a new seed
-        torch.random.seed()
+        with torch.random.fork_rng():
+            # Generate a new seed
+            torch.random.seed()
 
-        sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
+            sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
 
-        for step, (data, targets) in enumerate(data_loader):
-            if step in sel_batches:
-                # TODO: Dive into the config to pull out whatever normalization is used, instead of just
-                #  assuming the magic ImageNet numbers
-                img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
-                # Save the image
-                img.save(str(img_path / f"{step}.png"))
-        
-        logger.info(f'{quantity} sample images saved to {img_path}')
+            for step, (data, targets) in enumerate(data_loader):
+                if step in sel_batches:
+                    # TODO: Dive into the config to pull out whatever normalization is used, instead of just
+                    #  assuming the magic ImageNet numbers
+                    img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
+                    # Save the image
+                    img.save(str(img_path / f"{step}.png"))
 
-    else: 
+                if img_shape is None:
+                    img_shape = data[0].shape
+
+            logger.info(f'{quantity} sample images saved to {img_path}')
+
+    else:
         logger.info("Dry run takes the first image from randomly selected batches. It requires number of requested "
                     "images ({quantity}) < number of batches ({num_batches}). No output produced.")
 
         # iterate once to grab the shape
         (data, targets) = next(iter(data_loader))
 
-    return data.shape
+        if img_shape is None:
+            img_shape = data[0].shape
+
+    return img_shape
 
 
 def invoke_evaluator_method(evaluator, module_name: str):
