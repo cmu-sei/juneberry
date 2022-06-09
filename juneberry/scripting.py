@@ -180,6 +180,7 @@ def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="jun
     logger.info(f"Using data root:    {lab.data_root()}")
     logger.info(f"Using tensorboard:  {lab.tensorboard}")
     logger.info(f"Using profile name: {lab.profile_name}")
+    logger.info(f"Hostname:           {os.uname()[1]}")
 
     return lab
 

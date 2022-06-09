@@ -166,8 +166,8 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
 
         # If there is a watermark, save it.
         for module in model.modules():
-            if hasattr(module, 'save_watermark'):
-                module.save_watermark(model_manager.get_pytorch_model_path(), "watermark.png")
+            if hasattr(module, 'save_image'):
+                module.save_image(model_manager.get_pytorch_model_path())
 
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
