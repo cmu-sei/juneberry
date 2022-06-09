@@ -28,7 +28,8 @@ import sys
 
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jbfs
-import juneberry.scripting as jbscripting
+from juneberry.scripting.sprout import TrainingSprout
+import juneberry.scripting.utils as jb_scripting_utils
 import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger("juneberry.jb_train")
@@ -45,7 +46,7 @@ def setup_args(parser) -> None:
                         help='Flag to initiate dry run mode. ')
     # parser.add_argument('--nopaging', default=False, action='store_true',
     #                     help='Set to true to disable data set paging and load all at once.')
-    parser.add_argument('-n', '--num-gpus', type=int, default=None,
+    parser.add_argument('-n', '--num-gpus', type=int, default=0,
                         help='The number of GPUs. By default use all. Set to 0 for CPU.')
     parser.add_argument('--onnx', default=False, action='store_true',
                         help='When possible, save the trained model in ONNX format.')
@@ -63,8 +64,18 @@ def main():
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
                                                  "configuration file.")
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting_utils.setup_args(parser)
     train_args = parser.parse_args()
+
+    sprout = TrainingSprout()
+    sprout.grow_from_args(train_args)
+    sprout.set_model_config()
+    trainer = sprout.get_trainer()
+
+    # TODO: Now to redo the trainers so their inits only takes kwargs and
+    #  probably shove required trainer components into the sprout.
+
+    sys.exit(1)
 
     # The model manager helps us find all the files and directories
     model_manager = jbfs.ModelManager(train_args.modelName)
@@ -105,4 +116,4 @@ def main():
 
 
 if __name__ == "__main__":
-    jbscripting.run_main(main, logger)
+    jb_scripting_utils.run_main(main, logger)

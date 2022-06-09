@@ -56,6 +56,27 @@ class Trainer:
     with that model, and the dataset uses to train this model.
     """
 
+    def init(self):
+        self.model_manager = None
+        self.lab = None
+        self.model_config = None
+        self.dataset_config = None
+        self.log_level = None
+        self.train_start_time = None
+        self.train_end_time = None
+        self.gpu = None
+        self.distributed = False
+        self.num_gpus = 0
+        self.timer = Berryometer()
+        self.results = TrainingOutput()
+        self.results.options = juneberry.config.training_output.Options()
+        self.results.times = juneberry.config.training_output.Times()
+        self.results.times.epoch_duration_sec = []
+        self.results.results = juneberry.config.training_output.Results()
+        self.native = True
+        self.onnx = False
+
+
     def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
         """
         Constructs a basic trainer component.
@@ -63,7 +84,8 @@ class Trainer:
         :param trainer_args: TODO
         """
         # This is the model we are associated with
-        self.model_manager = None if trainer_args.modelName is None else jb_fs.ModelManager(trainer_args.modelName)
+        if trainer_args is not None:
+            self.model_manager = None if trainer_args.modelName is None else jb_fs.ModelManager(trainer_args.modelName)
         if self.model_manager is None:
             self.lab = None  # TODO: This will make things challenging.
         else:
