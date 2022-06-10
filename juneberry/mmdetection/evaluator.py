@@ -134,9 +134,8 @@ class Evaluator(EvaluatorBase):
         cfg.dataset_type = 'COCODataset'
         cfg.data_root = str(self.lab.data_root())
 
-        coco_path = self.model_manager.get_eval_manifest_path(ds_cfg.file_path).resolve()
         cfg.data.test.data_root = str(self.lab.data_root().resolve())
-        cfg.data.test.ann_file = str(coco_path.resolve())
+        cfg.data.test.ann_file = str(self.eval_dir_mgr.get_manifest_path())
         cfg.data.test.img_prefix = ""
         cfg.data.test.classes = classes
         cfg.data.test.test_mode = True
@@ -175,7 +174,7 @@ class Evaluator(EvaluatorBase):
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
-        out_path = self.model_manager.get_platform_eval_config(self.eval_dataset_config_path, 'py')
+        out_path = self.model_manager.get_eval_dir_mgr(str(self.eval_dataset_config_path)).get_platform_config('.py')
         with open(out_path, "w") as out_cfg:
             logger.info(f"Writing out config to: {out_path}")
             out_cfg.write(cfg.pretty_text)
@@ -231,7 +230,7 @@ class Evaluator(EvaluatorBase):
         # [batch] x [num_classes] x [ bbox(l,t,r,b] + score ]
 
         # Grab category mapping
-        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        eval_manifest_path = self.eval_dir_mgr.get_manifest_path()
         category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
                                                   model_manager=self.model_manager,
                                                   # train_config = self.dataset_config,

@@ -550,6 +550,14 @@ class AttackManager(ExperimentManager):
 
 
 class EvalDirMgr:
+    @staticmethod
+    def get_base_path(root):
+        return Path(root) / 'eval'
+
+    @staticmethod
+    def get_path(root, dataset_name):
+        return EvalDirMgr.get_base_path(root) / dataset_name if dataset_name else Path(root) / 'eval'
+
     def __init__(self, root: str, platform: str, dataset_name: str = None) -> None:
         """
         Constructs an EvalDirMgr object rooted at the root path for the specified platform
@@ -559,7 +567,9 @@ class EvalDirMgr:
         :param platform: The platform.
         :param dataset_name: The name of the evaluation dataset.
         """
-        self.root = Path(root) / 'eval' / dataset_name if dataset_name else Path(root) / 'eval'
+        # TODO: Why should the eval dir manager point to the rool eval directory?
+        # This seems like an error somewhere else
+        self.root = EvalDirMgr.get_path(root, dataset_name)
         self.platform = platform
 
     def setup(self):
@@ -575,8 +585,8 @@ class EvalDirMgr:
     def get_dryrun_imgs_dir(self):
         return str(self.root / "dryrun_imgs")
 
-    def get_platform_config(self):
-        return str(self.root / "platform_config.json")
+    def get_platform_config(self, suffix: str = '.json'):
+        return str(self.root / f"platform_config{suffix}")
 
     def get_manifest_path(self):
         return str(self.root / "eval_manifest.json")
@@ -737,14 +747,23 @@ class ModelManager:
         :param dataset_path: The path to the dataset file.
         :return: An EvalDirMgr object.
         """
-        dataset_arg = Path(dataset_path).stem if dataset_path else None
+        # TODO: Why do we support dataset_path of None?
+        # This seems like an error somewhere else
+        #dataset_arg = Path(dataset_path).stem if dataset_path else None
+        dataset_arg = None
+        if dataset_path is not None:
+            p = Path(dataset_path)
+            if p.parts[0] == "data_sets":
+                dataset_arg = Path(*p.parts[1:-1]) / p.stem
+            else:
+                dataset_arg = Path(*p.parts[:-1]) / p.stem
         return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
 
     def iter_eval_dirs(self):
         """
         :return: A generator over the eval directory return eval dir managers.
         """
-        eval_dir = Path(self.get_eval_root_dir())
+        eval_dir = EvalDirMgr.get_base_path(self.model_dir_path)
         for item in eval_dir.iterdir():
             if item.is_dir():
                 yield EvalDirMgr(self.model_dir_path, self.model_platform, item.name)
@@ -785,34 +804,6 @@ class ModelManager:
     def get_mmd_latest_model_path(self):
         """ :return: The path to the latest mmdetection model."""
         return self.get_train_scratch_path() / 'latest.pth'
-
-    # ============ New Style Evaluation Output ============
-    # TODO: Replace these with the eval dir stuff when we get there
-
-    def get_eval_root_dir(self):
-        """ :return: The path to the eval root directory."""
-        return self.model_dir_path / 'eval'
-
-    def get_eval_dir(self, dataset_path):
-        """
-        :param dataset_path: The Path of the dataset being evaluated.
-        :return: The path to the location within the eval root directory
-         corresponding to the dataset being evaluated.
-        """
-        return self.get_eval_root_dir() / Path(dataset_path).stem
-
-    def get_platform_eval_config(self, dataset_path, extension: str = 'json') -> Path:
-        """ :return: Path the the config (after modification) that was actually used to evaluate."""
-        # TODO: Add in sensitivity to platform for extension, for now we take it as
-        #  an optional argument as a compromise.
-        return self.get_eval_dir(dataset_path) / ("platform_config." + extension)
-
-    def get_eval_manifest_path(self, dataset_path) -> Path:
-        """
-        :param dataset_path: The name of the dataset being evaluated.
-        :return: The path to the manifest that lists the contents to be evaluated.
-        """
-        return self.get_eval_dir(dataset_path) / "eval_manifest.json"
 
     # ============ Misc ============
 

@@ -38,11 +38,6 @@ def test_eval_dir():
     root = Path('models') / 'TestModel' / '1999'
     eval_dir_root = root / 'eval' / 'TestDataset'
 
-    assert mm.get_eval_root_dir() == root / 'eval'
-    assert mm.get_eval_dir('TestDataset') == eval_dir_root
-    assert mm.get_platform_eval_config('TestDataset') == eval_dir_root / 'platform_config.json'
-    assert mm.get_eval_manifest_path('TestDataset') == eval_dir_root / 'eval_manifest.json'
-
     eval_dir_mgr = mm.get_eval_dir_mgr('TestDataset')
     eval_dir_mgr.setup()
 

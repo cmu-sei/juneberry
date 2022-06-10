@@ -81,7 +81,7 @@ class Evaluator(EvaluatorBase):
         self.obtain_model()
 
         # Test for the presence of the annotations file.
-        anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
+        anno_file = Path(self.output_dir) / self.eval_dir_mgr.get_manifest_path()
         logger.info(f"Checking for annotations file at {anno_file}")
         if anno_file.exists():
             logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
@@ -212,7 +212,7 @@ class Evaluator(EvaluatorBase):
         out = self.eval_dir_mgr.get_detections_anno_path()
 
         # Find category list
-        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        eval_manifest_path = self.eval_dir_mgr.get_manifest_path()
         category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
                                                   model_manager=self.model_manager,
                                                   train_config=self.dataset_config,

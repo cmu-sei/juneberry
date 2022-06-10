@@ -212,7 +212,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
         logger.info("Evaluating using ONLY the validation portion of the split data.")
         eval_list = split
 
-    output_path = str(model_manager.get_eval_manifest_path(dataset_config.file_path).resolve())
+    output_path = str(model_manager.get_eval_dir_mgr(str(dataset_config.file_path)).get_manifest_path())
 
     label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
     coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
