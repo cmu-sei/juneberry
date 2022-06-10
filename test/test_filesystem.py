@@ -376,3 +376,4 @@ def test_load_file_look_for_gz():
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     gz_path.unlink()
+    
