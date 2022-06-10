@@ -164,10 +164,11 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         model_path = model_manager.get_pytorch_model_path()
         torch.save(model.state_dict(), model_path)
 
-        # If there is a watermark, save it.
+        # Call any layer in the model that saves an image. 
+        # NOTE: Images are overwritten whenever the model.pt file is overwritten. 
         for module in model.modules():
             if hasattr(module, 'save_image'):
-                module.save_image(model_manager.get_pytorch_model_path())
+                module.save_image(model_manager.get_model_dir())
 
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
