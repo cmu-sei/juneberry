@@ -223,7 +223,7 @@ def test_open_file():
 def test_save_json():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    
+
     path = cwd / "test_save_json.json"
     jbfs.save_json(data, path)
     assert path.exists()
@@ -232,7 +232,7 @@ def test_save_json():
 def test_save_hjson():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    
+
     path = cwd / "test_save_hjson.hjson"
     jbfs.save_hjson(data, path)
     assert path.exists()
@@ -241,7 +241,7 @@ def test_save_hjson():
 def test_save_yaml():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    
+
     path = cwd / "test_save_yaml.yaml"
     jbfs.save_yaml(data, path)
     assert path.exists()
@@ -255,16 +255,21 @@ def test_save_yaml():
 def test_save_toml():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    
+
     path = cwd / "test_save_toml.toml"
     jbfs.save_toml(data, path)
     assert path.exists()
-    path.unlink(True) 
+    path.unlink(True)
 
     path = cwd / "test_save_toml.tml"
     jbfs.save_toml(data, path)
     assert path.exists()
     path.unlink(True) 
+
+    path = cwd / "test_save_toml.toml.gz"
+    jbfs.save_toml(data, path)
+    assert path.exists()
+    path.unlink(True)
 
 def test_save_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
@@ -345,24 +350,24 @@ def test_load_file():
     # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
     # assert loaded_data['path'] == str(data['path']) 
     path.unlink()
+    # TOML.GZ case
+    path = cwd / "test_save_file.toml.gz"
+    jbfs.save_file(data, path)
+    loaded_data = jbfs.load_file(path)
+    assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
+    # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
+    # assert loaded_data['path'] == str(data['path']) 
+    path.unlink()
 
 
-def test_load_file_find_similar_file():
+def test_load_file_look_for_gz():
+    # Load file should look for a fil.ext.gz file if fil.ext cannot be found
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
-    # saved JSON, load TOML
-    # load_file should recognize that there is no 'test_save_file.toml' and load 'test_save_file.json' instead
-    json_path = cwd / "test_save_file.json"
-    toml_path = cwd / "test_save_file.toml"
-    jbfs.save_file(data, json_path)
-    assert not toml_path.exists()
-    loaded_data = jbfs.load_file(toml_path)
-    assert np.array_equal(loaded_data['np'], data['np'])
-    assert loaded_data['path'] == str(data['path'])
-    json_path.unlink()
 
     # saved JSON.GZIP, load JSON
-    # load_file should recognize that there is no 'test_save_file.json' and load 'test_save_file.json.gzip' instead
+    # load_file should recognize that there is no 'test_save_file.json' and
+    # load 'test_save_file.json.gzip' instead
     gz_path = cwd / "test_save_file.json.gz"
     json_path = cwd / "test_save_file.json"
     jbfs.save_file(data, gz_path)

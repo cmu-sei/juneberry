@@ -28,7 +28,6 @@ Script that supports the model layout.
 NOTE: These paths are all relative to the Juneberry workspace root.
 """
 
-from calendar import c
 import datetime
 import hashlib
 import hjson
@@ -113,8 +112,8 @@ def load_json(json_path: str, attribute_map=None):
 
 def save_hjson(data, json_path, *, indent: int = 4) -> None:
     """
-    Save the data to the specified path (string or Path) in HJSON format, applying the specified indent (int),
-    and converting all the traditional non encoding bits (e.g. Path, numpy) to
+    Save the data to the specified path (string or Path) in HJSON format, applying the specified
+    indent (int), and converting all the traditional non encoding bits (e.g. Path, numpy) to
     the appropriate data structure.
     :param data: The data to save.
     :param json_path: The path to save the data to.
@@ -127,8 +126,8 @@ def save_hjson(data, json_path, *, indent: int = 4) -> None:
 
 def save_json(data, json_path, *, indent: int = 4) -> None:
     """
-    Save the data to the specified path (string or Path) in JSON format, applying the specified indent (int),
-    and converting all the traditional non encoding bits (e.g. Path, numpy) to
+    Save the data to the specified path (string or Path) in JSON format, applying the specified
+    indent (int), and converting all the traditional non encoding bits (e.g. Path, numpy) to
     the appropriate data structure.
     :param data: The data to save.
     :param json_path: The path to save the data to.
@@ -157,37 +156,38 @@ def save_toml(data, toml_path) -> None:
     """
     with open_file(toml_path, 'wt') as toml_file:
         toml.dump(data, toml_file)
-  
+
 @contextmanager
-def open_file(path, mode='r'):
+def open_file(path, mode='r') -> str:
     """
-    Opens files using file handlers according to the file extension. The base case is to use the python default 'open'.
-    :param path: Path to the file to be opened 
+    Opens files using file handlers according to the file extension. The base case is to use
+    the python default 'open'.
+    :param path: Path to the file to be opened
     :param mode: Mode to open the file
-    :yield: file object
+    :yield: File object
     """
     ext = Path(path).suffix.lower()
     if ext in {'.gzip', '.gz'}:
-        with gzip.open(path, mode) as f:
-            yield f
+        with gzip.open(path, mode) as file:
+            yield file
     else:
-        with open(path, mode) as f:
-            yield f
-    
+        with open(path, mode, encoding="utf8") as file:
+            yield file
+
 
 def save_file(data, path: str, *, indent: int = 4) -> None:
     """
     Generic file saver that chooses the file format based on the extension of the path.
-    :param path: 
+    :param path:
     :param indent: The indent spacing to use; with a default of 4.
     :return: None
     """
     exts = Path(path).suffixes
     ext = exts[0].lower() # the file type should be the left most of the suffixes
     if ext == '.json':
-        save_json(data, path)
+        save_json(data, path, indent=indent)
     elif ext == '.hjson':
-        save_hjson(data, path)
+        save_hjson(data, path, indent=indent)
     elif ext in {'.yaml', '.yml'}:
         save_yaml(data, path)
     elif ext in {'.toml', '.tml'}:
@@ -197,39 +197,36 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
         sys.exit(-1)
 
 
-def load_file(path: str):
+def load_file(path: str) -> str:
     """
     Loads the file from the specified file path.
     :param path: The path to the file to load.
-    :return:
+    :return: File contents
     """
     if Path(path).exists():
         exts = Path(path).suffixes
         ext = exts[0].lower() # the file type should be the left most of the suffixes
-        if ext in {'.json', '.hjson'}:
-            # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
-            with open_file(path, "rt") as f:
-                return hjson.load(f)
-        elif ext in {'.yaml', '.yml'}:
-            with open_file(path, 'rt') as f:
-                return yaml.load(f, Loader=Loader)
-        elif ext in {'.toml', '.tml'}:
-            return toml.load(path)  
-        else:
-            logger.error(f'Unsupported file extension {ext}')
-            sys.exit(-1)
+        with open_file(path, 'rt') as file:
+            if ext in {'.json', '.hjson'}:
+                # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
+                return hjson.load(file)
+            if ext in {'.yaml', '.yml'}:
+                return yaml.load(file, Loader=Loader)
+            if ext in {'.toml', '.tml'}:
+                return toml.load(file)
+            else:
+                logger.error(f'Unsupported file extension {ext}')
+                sys.exit(-1)
     else:
-        p = Path(path)
-        more_ext = list(p.parent.glob(p.name + '*'))  # looks for file with an extra extension, like X.json.gz
-        other_ext = list(p.parent.glob(p.stem + '*')) # looks for other extensions, instead of X.json it will find X.toml
-        if more_ext:
-            return load_file(more_ext[0]) # only first in list used
-        elif other_ext:
-            return load_file(other_ext[0]) # only first in list used
+        gz_path = Path(path)
+        gz_path = gz_path.with_suffix(gz_path.suffix + '.gz')
+        if gz_path.exists():
+            logger.info(f"Could not find '{path}'. Using GZIP of '{path}'.")
+            return load_file(gz_path)
         else:
             logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
             sys.exit(-1)
-    
+
 
 class ExperimentManager:
     def __init__(self, experiment_name):
