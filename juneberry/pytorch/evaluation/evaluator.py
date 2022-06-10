@@ -27,12 +27,11 @@ import sys
 from types import SimpleNamespace
 
 import torch
-from torch import Tensor
 
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-import juneberry.data as jbdata
+import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
@@ -79,6 +78,11 @@ class Evaluator(EvaluatorBase):
     def dry_run(self) -> None:
         self.setup()
         self.obtain_dataset()
+
+        # Write out a few dry run images
+        if self.eval_dataset_config.is_image_type():
+            _ = pyt_utils.generate_sample_images(self.eval_loader, 5, self.eval_dir_mgr.get_dryrun_imgs_dir())
+
         self.obtain_model()
 
         logger.info(f"Dryrun complete.")
@@ -151,7 +155,7 @@ class Evaluator(EvaluatorBase):
             # We don't really have names for these so we just us the number.
             self.eval_name_targets = []
             for i, v in enumerate(val_dataset.targets):
-                if isinstance(v, Tensor):
+                if isinstance(v, torch.Tensor):
                     self.eval_name_targets.append([i, v.item()])
                 else:
                     self.eval_name_targets.append([i, int(v)])
@@ -168,11 +172,11 @@ class Evaluator(EvaluatorBase):
                 logger.info(f"Splitting the dataset according to the model's validation split instructions.")
                 splitting_config = self.model_config.get_validation_split_config()
 
-            eval_list, split = jbdata.dataspec_to_manifests(self.lab,
-                                                            dataset_config=self.eval_dataset_config,
-                                                            splitting_config=splitting_config,
-                                                            preprocessors=TransformManager(
-                                                                self.model_config.preprocessors))
+            eval_list, split = jb_data.dataspec_to_manifests(self.lab,
+                                                             dataset_config=self.eval_dataset_config,
+                                                             splitting_config=splitting_config,
+                                                             preprocessors=TransformManager(
+                                                                 self.model_config.preprocessors))
 
             if self.use_train_split:
                 logger.info("Evaluating using ONLY the training portion of the split data.")
@@ -190,9 +194,9 @@ class Evaluator(EvaluatorBase):
 
             # Save the manifest
             if self.eval_dataset_config.is_image_type():
-                jbdata.save_path_label_manifest(eval_list,
-                                                self.eval_dir_mgr.get_manifest_path(),
-                                                self.lab.data_root())
+                jb_data.save_path_label_manifest(eval_list,
+                                                 self.eval_dir_mgr.get_manifest_path(),
+                                                 self.lab.data_root())
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")
@@ -223,7 +227,8 @@ class Evaluator(EvaluatorBase):
 
         # Load the weights into the model.
         logger.info(f"Loading model weights...")
-        pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model, self.model_config.pytorch.strict)
+        self.model = pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model,
+                                          self.model_config.pytorch.strict)
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

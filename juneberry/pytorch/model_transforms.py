@@ -197,7 +197,8 @@ class LogModelSummary:
     def __call__(self, model):
         orig = sys.stdout
         sys.stdout.write = logger.info
-        summary(model, self.image_shape)
+        with torch.no_grad():
+            summary(model, self.image_shape)
         sys.stdout = orig
         return model
 
@@ -222,6 +223,20 @@ class ReplaceFC:
         return model
 
 
+class Freeze:
+    """
+    Transform used to freeze a pre-trained model
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, model):
+        for param in model.parameters():
+            param.requires_grad = False
+        return model
+
+
 class EmptyTransform:
     def __init__(self):
         pass
@@ -231,7 +246,6 @@ class EmptyTransform:
 
 
 # Utilities
-
 def _ensure_list(args):
     if args is None:
         return None

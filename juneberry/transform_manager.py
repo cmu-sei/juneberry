@@ -171,6 +171,32 @@ class TransformManager:
         return self.__str__()
 
 
+def unpack_return_values(retval, label, fqcn):
+    """
+    Transforms may return either (item) or (item, label). This function determines which and
+    unpack accordingly.
+    :param retval: The value(s) that came back.
+    :param label: A label that was originally provided
+    :param fqcn: Optional FQCN of the transform for debugging
+    :return:
+    """
+    # TODO: Pre-determine if we should unpack or not and make a functor
+    # Unpack the return value. If a tuple we assume it is (object, label).  We do NOT
+    # do a list, because that could be real data.
+    if isinstance(retval, tuple):
+        if len(retval) != 2:
+            logger.error(f"When running transform {fqcn} received a tuple with length {len(retval)} "
+                         f"when expected two values.")
+            raise RuntimeError("See log for details.")
+
+        # Split the values and update the label
+        obj, label = retval
+    else:
+        obj = retval
+
+    return obj, label
+
+
 class LabeledTransformManager(TransformManager):
     """
     This transform manager understand that labels CAN BE returned along with the object.
@@ -196,26 +222,13 @@ class LabeledTransformManager(TransformManager):
         :return: The transformed object and final label
         """
         if 'label' not in kwargs:
-            logger.error("The LabeledTransformManager requires that 'label' be passed in as a kwarg.")
+            logger.error(f"The LabeledTransformManager requires that 'label' be passed in as a kwarg. "
+                         f"'{kwargs}' were provided.")
             raise RuntimeError("See log for details.")
 
         for entry in self.config:
             retval = entry(obj, **kwargs)
-
-            # Unpack the return value. If a tuple we assume it is (object, label).  We do NOT
-            # do a list, because that could be real data.
-            if isinstance(retval, tuple):
-                if len(retval) != 2:
-                    logger.error(f"When running transform {entry.fqcn} received a tuple with length {len(retval)} "
-                                 f"when expected two values.")
-                    raise RuntimeError("See log for details.")
-
-                # Split the values and update the label
-                obj, label = retval
-                # print(f"GOT TWO RETURN VALUES {obj} {label}")
-                kwargs["label"] = label
-            else:
-                obj = retval
+            obj, kwargs["label"] = unpack_return_values(retval, kwargs["label"], entry.fqcn)
 
         # We give back the object and accumulate label
         return obj, kwargs['label']
@@ -239,6 +252,7 @@ class StagedTransformManager:
         :param per_epoch_seed: The BASE seed to be used for each epoch. It will be incremented every epoch.
         :param per_epoch: The transforms to be applied with the per-epoch seed.
         """
+        # TODO: Check that the wrapped transforms take kwargs so we can pass anything through
         self.consistent_transform = consistent
         self.consistent_seed = consistent_seed
         self.per_epoch_transform = per_epoch
@@ -258,18 +272,28 @@ class StagedTransformManager:
         # Set the random seed based on index only
         seed = jb_utils.wrap_seed(self.consistent_seed + index)
         self.set_seeds(seed)
-        item = self.consistent_transform(item)
+        item = self.consistent_transform(item, **kwargs)
+
+        # We might need to unpack the kwargs if label was available
+        if 'label' in kwargs:
+            item, kwargs['label'] = unpack_return_values(item, kwargs['label'], "Unknown")
 
         # Now, execute the per epoch transform
         seed = jb_utils.wrap_seed(self.per_epoch_seed + index + epoch)
         self.set_seeds(seed)
-        item = self.per_epoch_transform(item)
+        item = self.per_epoch_transform(item, **kwargs)
+
+        # We might need to unpack the kwargs if label was available
+        if 'label' in kwargs:
+            item, kwargs['label'] = unpack_return_values(item, kwargs['label'], "Unknown")
 
         # Restore the state
         self.restore_random_state()
 
-        # TODO: This is probably labeled!!!
-        return item
+        if 'label' in kwargs:
+            return item, kwargs['label']
+        else:
+            return item
 
     # Extension points
     def save_random_state(self):

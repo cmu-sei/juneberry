@@ -122,7 +122,11 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
 
     # Load the thing that makes the other callable
     module = importlib.import_module(module_path)
-    direct_callable = getattr(module, leaf_part)
+    try:
+        direct_callable = getattr(module, leaf_part)
+    except AttributeError as e:
+        logger.error(f"Error when trying to load {leaf_part} from module path {module_path}")
+        raise e
 
     # Get all the parameter names from the signature of the callable
     # and then add any optional kwargs if in the signature

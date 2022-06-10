@@ -164,6 +164,12 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         model_path = model_manager.get_pytorch_model_path()
         torch.save(model.state_dict(), model_path)
 
+        # Call any layer in the model that saves an image. 
+        # NOTE: Images are overwritten whenever the model.pt file is overwritten. 
+        for module in model.modules():
+            if hasattr(module, 'save_image'):
+                module.save_image(model_manager.get_model_dir())
+
     # Save the model in ONNX format.
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
@@ -181,6 +187,7 @@ def load_model(model_path, model, strict: bool) -> None:
     """
     model.load_state_dict(torch.load(str(model_path)), strict=strict)
     model.eval()
+    return model
 
 
 def load_weights_from_model(model_manager, model, strict: bool) -> None:
@@ -409,6 +416,14 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
     sys.stdout = orig
 
 
+def un_normalize_imagenet_norms(x):
+    # TODO: Generalize to arbitrary values and numbers of channels 
+    x_r = x[0, :, :] * 0.229 + 0.485
+    x_g = x[1, :, :] * 0.224 + 0.456
+    x_b = x[2, :, :] * 0.225 + 0.406
+    return torch.stack([x_r, x_g, x_b])
+
+
 def generate_sample_images(data_loader, quantity, img_path: Path):
     """
     This function will save some quantity of images from a data iterable.
@@ -425,27 +440,39 @@ def generate_sample_images(data_loader, quantity, img_path: Path):
     # Calculate the max number of batches
     num_batches = len(data_loader)
 
-    # Reset the random seed so we get different images each dry run
-    random.seed()
-
-    # Loop through each batch and sample an image
+    # Grab the selected batches
     img_shape = None
-    for x in range(min(num_batches, quantity) + 1):
+    if num_batches > quantity:
+        # Forks the RNG, so that when you return, the RNG is reset to the state that it was previously in.
+        with torch.random.fork_rng():
+            # Generate a new seed
+            torch.random.seed()
 
-        # Get the next batch of images
-        images, labels = next(iter(data_loader))
+            sel_batches = torch.randint(0, num_batches, (quantity,)).tolist()
+
+            for step, (data, targets) in enumerate(data_loader):
+                if step in sel_batches:
+                    # TODO: Dive into the config to pull out whatever normalization is used, instead of just
+                    #  assuming the magic ImageNet numbers
+                    img = transforms.ToPILImage()(un_normalize_imagenet_norms(data[0]))
+                    # Save the image
+                    img.save(str(img_path / f"{step}.png"))
+
+                if img_shape is None:
+                    img_shape = data[0].shape
+
+            logger.info(f'{quantity} sample images saved to {img_path}')
+
+    else:
+        logger.info("Dry run takes the first image from randomly selected batches. It requires number of requested "
+                    "images ({quantity}) < number of batches ({num_batches}). No output produced.")
+
+        # iterate once to grab the shape
+        (data, targets) = next(iter(data_loader))
 
         if img_shape is None:
-            img_shape = images[0].shape
+            img_shape = data[0].shape
 
-        # Pick an image in the batch at random
-        rand_idx = random.randrange(0, len(images))
-        img = transforms.ToPILImage()(images[rand_idx])
-
-        # Save the image
-        img.save(str(img_path / f"{x}.png"))
-
-    logger.info(f'{min(num_batches, quantity) + 1} sample images saved to {img_path}')
     return img_shape
 
 

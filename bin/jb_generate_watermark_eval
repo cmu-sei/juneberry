@@ -1,0 +1,244 @@
+#! /usr/bin/env python
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import copy
+import logging
+from pathlib import Path
+import sys
+
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.experiment import ExperimentConfig, Model, ModelTest, Report, ReportTest
+from juneberry.filesystem import ExperimentManager
+import juneberry.scripting as jb_scripting
+
+# DESIGN
+# We assume the following layout:
+#
+# experiments/
+#   <experiment-name>/
+#     watermarks/
+#     base_data_set.json
+#
+# We make:
+#
+# experiments/
+#   <experiment-name>/
+#     data_sets/
+#        <watermark_name>_<size>.json
+# models/
+#   <model-name>
+#     evals
+#       <watermark_name>_<size>/
+#         metrics.json
+#
+# The watermarks can be any set of images.
+# The base_data_set.json is a data_set file that contains a juneberry.transforms.image.Watermark stanza.
+#
+# DESIGN
+
+logger = logging.getLogger("juneberry.jb_generate_watermark_eval")
+
+
+def make_variation_name(watermark_name, scale) -> str:
+    """
+    Returns the name of the variation of the dataset based on watermark and the scale to be used
+    for dataset names and curves.
+    :param watermark_name: The name of the watermark
+    :param scale: The scale of the watermark
+    :return: The watermark-scale combined name
+    """
+    str_size = f"{int(scale)}d{int((scale % 1) * 10000)}"
+    return f"{watermark_name}_{str_size}"
+
+
+def validate_base_config(base_config: DatasetConfig, experiment_name: str) -> None:
+    """
+    Checks to make sure that the base config has the minimal information required.
+    :param base_config: The base config to check.
+    :param experiment_name: String indicating the name of the experiment whose base_config is being validated.
+    :return: None
+    """
+    for transform in base_config.data_transforms.transforms:
+        # The config is valid if it contains a Watermark transform.
+        if transform.fqcn == "juneberry.transforms.image.Watermark":
+            return
+
+    # If we got this far, then the base config did NOT contain a watermark transform.
+    # This is an error. Give them a hint and exit.
+    logger.error(f"Failed to find a watermark transform in data transforms list of "
+                 f"the base dataset config in the '{experiment_name}' experiment."
+                 "Expected to find something like this in the base_data_set.json:"
+                 '"data_transforms": {'
+                 '    "transforms": ['
+                 '        {'
+                 '            "fqcn": "juneberry.transforms.image.Watermark",'
+                 '            "kwargs": {  }'
+                 '        }'
+                 '    ]'
+                 '}'
+                 )
+    sys.exit(-1)
+
+
+def make_watermark_dataset(base_config: DatasetConfig, dest_path: Path, watermark_path: str, size) -> None:
+    """
+    Construct a watermark dataset which includes the dataset config copied from the base config
+    with updated watermark.
+    :param base_config: The base config to start from.
+    :param dest_path: Where to save the new file.
+    :param watermark_path: The path to the watermark.
+    :param size: The scale of the watermark.
+    :return: None
+    """
+    new_config: DatasetConfig = copy.deepcopy(base_config)
+    for transform in new_config.data_transforms.transforms:
+        if transform.fqcn == "juneberry.transforms.image.Watermark":
+            transform.kwargs['watermark_path'] = watermark_path
+            transform.kwargs['min_scale'] = size
+            transform.kwargs['max_scale'] = size
+            continue
+    logger.info(f"Saving dataset config to {dest_path}")
+    new_config.save(str(dest_path))
+
+
+def generate_experiment(experiment_name: str, model_name: str, scales: list, target_class: int) -> None:
+    """
+    This function walks the watermarks directory and creates a dataset file for each watermark and size pair
+    and a corresponding experiment config file.
+    So, when done, there should be watermarks X sizes files in the datasets directory.
+    :param experiment_name: The experiment name we are working on
+    :param model_name: The name of the model that is to be trained.
+    :param scales: The scales to be used for the watermarks.
+    :param target_class: The target class for which to generate the report.
+    :return: None
+    """
+
+    # Set up some paths
+    exp_mgr = ExperimentManager(experiment_name)
+    watermarks_dir = exp_mgr.get_experiment_watermarks_dir()
+    datasets_dir = exp_mgr.get_experiment_datasets_dir()
+    datasets_dir.mkdir(exist_ok=True)
+
+    # Load the base dataset config
+    base_config = DatasetConfig.load(exp_mgr.get_experiment_base_dataset())
+    validate_base_config(base_config, experiment_name)
+
+    # Make a new dataset config with the updated watermark for each watermark/scale combo
+    test_list = []
+    report_test_list = []
+    curve_names = []
+    # List of lists of test tags for the report
+    series_list = []
+    for watermark_name in sorted(list(watermarks_dir.iterdir())):
+        suffix = watermark_name.suffix.lower()
+        if suffix == ".png" or suffix == ".jpg" or suffix == ".tif":
+            curve_names.append(watermark_name.stem)
+            eval_series = []
+            for size in scales:
+                # Determine the variation name for this watermark and size combination.
+                variation_name = make_variation_name(watermark_name.stem, size)
+
+                # Make a watermark dataset
+                dataset_path = exp_mgr.get_experiment_dataset_path(variation_name)
+                watermark_path = watermarks_dir / watermark_name.name
+                make_watermark_dataset(base_config, dataset_path, str(watermark_path), size)
+
+                # Add a test stanza
+                tag = variation_name
+                eval_series.append(tag)
+                test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
+                report_test_list.append(ReportTest(tag=tag))
+
+            # Add the series of the evaluations to the series list for the report later
+            series_list.append(eval_series)
+
+    # Assemble an experiment config
+    exp_config = ExperimentConfig()
+    exp_config.description = "Watermark evaluation experiment"
+    exp_config.format_version = "0.2.0"
+
+    # Add the model stanza with all the tests
+    exp_config.models = [Model(name=model_name, tests=test_list)]
+
+    # Add the reports stanza
+    report = Report(description="",
+                    fqcn="juneberry.reporting.variation.VariationCurve",
+                    kwargs={
+                        'model_name': model_name,
+                        'curve_names': curve_names,
+                        'eval_names': series_list,
+                        'target_class': target_class,
+                        'x_label': "Attack as % of image size",
+                        'x_values': scales,
+                        'y_label': "Attack Success Rate",
+                        'output_dir': str(exp_mgr.experiment_dir_path)
+                    },
+                    tests=report_test_list)
+    exp_config.reports = [report]
+
+    # Save the config
+    logger.info(f"Saving experiment config to: {exp_mgr.get_experiment_config()}")
+    exp_config.save(exp_mgr.get_experiment_config())
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="Generates all the necessary data sets, models, and an experiment config for evaluating\n"
+                    "a set of provided watermarks within an experiment.\n\n"
+                    "We expect the following layout:\n"
+                    "  experiments/\n"
+                    "      <experiment-name>/\n"
+                    "          base_data_set.json\n"
+                    "          watermarks/\n\n"
+                    "Where:\n"
+                    "   <experiment-name> - the first argument to this script\n"
+                    "   base_data_set.json - A dataset with a watermark transform and describes the data under test\n"
+                    "   watermarks - A directory of watermarks in jpg, png, or tif format\n")
+    parser.add_argument('experimentName', help='Name of the experiment in the experiments directory that contains the '
+                                               'watermarks directory and base_data_set.json.')
+    parser.add_argument('modelName', help='Name of the base model to use for testing. The evaluations will be placed'
+                                          'inside this model\'s eval directory.')
+    parser.add_argument('targetClass', type=int, help="The target class to evaluate.")
+    args = parser.parse_args()
+
+    # We only need basic logging setup.
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+
+    # For now, we do ten sizes from 10% to 100%. We should probably allow switches/configs for this.
+    scales = [round(0.1 * x, 1) for x in range(1, 11)]
+
+    for scale in scales:
+        print(type(scale))
+
+    # Generate the dataset configs and experiment config
+    generate_experiment(args.experimentName,
+                        args.modelName,
+                        scales,
+                        args.targetClass)
+
+
+if __name__ == "__main__":
+    jb_scripting.run_main(main, logger)
