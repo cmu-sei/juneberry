@@ -35,7 +35,7 @@ import sys
 
 # Utilities
 import juneberry.filesystem as jbfs
-import juneberry.scripting as jbscripting
+import juneberry.scripting.utils as jb_scripting_utils
 import juneberry.workflow as jbworkflow
 
 logger = logging.getLogger("juneberry.jb_run_experiment")
@@ -91,7 +91,7 @@ def main():
                                                  "be passed to the pydoit command.")
 
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting_utils.setup_args(parser)
     args, unknown = parser.parse_known_args()
     show_command = args.showcmd
 
@@ -103,7 +103,7 @@ def main():
     else:
         log_prefix = "<<LIVE>> "
         log_file = experiment_manager.get_experiment_log_path()
-    lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
+    lab = jb_scripting_utils.setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
 
     # Find bin directory
     bin_dir = Path(__file__).parent.absolute()

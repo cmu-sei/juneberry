@@ -618,6 +618,10 @@ class ModelManager:
         """ :return: The path to a tensorflow-compatible model file. """
         return self.model_dir_path / 'model.h5'
 
+    def get_detectron2_model_path(self):
+        """ :return: The path to a detectron2-compatible model file. """
+        return self.get_train_scratch_path() / 'model_final.pth'
+
     def get_pytorch_model_summary_path(self):
         """ :return: The path to model summary file. """
         return self.model_dir_path / 'model_summary.txt'
@@ -790,6 +794,8 @@ class ModelManager:
         if not self.model_dir_path.exists():
             logger.error(f"Model directory '{self.model_dir_path}' does not exist. Exiting.")
             exit(-1)
+        else:
+            self.setup()
 
     def get_training_output_list(self):
         """

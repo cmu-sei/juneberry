@@ -41,7 +41,7 @@ from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 from juneberry.filesystem import generate_file_hash
-from juneberry.jb_logging import log_banner, setup_logger
+from juneberry.logging import log_banner, setup_logger
 import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing

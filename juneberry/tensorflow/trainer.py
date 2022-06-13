@@ -23,39 +23,36 @@
 # ======================================================================================================================
 from argparse import Namespace
 import logging
-import numpy as np
 import os
 from pathlib import Path
 import random
 import sys
 
+import numpy as np
 import tensorflow as tf
 
-from juneberry.config.dataset import DatasetConfig
-from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
 import juneberry.filesystem as jbfs
-from juneberry.filesystem import ModelManager
-from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 import juneberry.plotting
+from juneberry.scripting.sprout import TrainingSprout
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
-import juneberry.training.trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
 
-class ClassifierTrainer(juneberry.training.trainer.Trainer):
-    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
-        super().__init__(model_config, trainer_args)
+class ClassifierTrainer(Trainer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # Grab these out of the model architecture for convenience.
-        self.width = self.model_config.model_architecture.args['img_width']
-        self.height = self.model_config.model_architecture.args['img_height']
-        self.channels = self.model_config.model_architecture.args['channels']
+        self.width = None
+        self.height = None
+        self.channels = None
 
         self.train_ds = None
         self.val_ds = None
@@ -86,6 +83,13 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
 
         # The values generated during train.
         self.history = None
+
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        super().inherit_from_sprout(sprout)
+
+        self.width = self.model_config.model_architecture.args['img_width']
+        self.height = self.model_config.model_architecture.args['img_height']
+        self.channels = self.model_config.model_architecture.args['channels']
 
     # ==========================
 
@@ -182,11 +186,11 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
         # Both the native and onnx output formats require this version of the model file to exist.
         self.model.save(str(out_model_filename))
 
-        if self.native:
+        if self.native_output_format:
             logger.info(f"Saving model to '{out_model_filename}'")
             self.results['results']['model_hash'] = jbfs.generate_file_hash(out_model_filename)
 
-        if self.onnx:
+        if self.onnx_output_format:
             model = tf.keras.models.load_model(out_model_filename)
             tf.saved_model.save(model, "tmp_model")
             onnx_outfile = self.model_manager.get_onnx_model_path()
@@ -195,7 +199,7 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
             self.results['results']['onnx_model_hash'] = jbfs.generate_file_hash(onnx_outfile)
 
             # If the native TF output format was not requested, discard the native version of the model.
-            if not self.native:
+            if not self.native_output_format:
                 out_model_filename.unlink()
 
         if self.model_config.epochs > 0:

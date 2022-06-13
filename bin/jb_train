@@ -26,11 +26,8 @@ import argparse
 import logging
 import sys
 
-from juneberry.config.model import ModelConfig
-import juneberry.filesystem as jbfs
 from juneberry.scripting.sprout import TrainingSprout
 import juneberry.scripting.utils as jb_scripting_utils
-import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger("juneberry.jb_train")
 
@@ -69,48 +66,13 @@ def main():
 
     sprout = TrainingSprout()
     sprout.grow_from_args(train_args)
-    sprout.set_model_config()
-    trainer = sprout.get_trainer()
-
-    # TODO: Now to redo the trainers so their inits only takes kwargs and
-    #  probably shove required trainer components into the sprout.
-
-    sys.exit(1)
-
-    # The model manager helps us find all the files and directories
-    model_manager = jbfs.ModelManager(train_args.modelName)
-    model_manager.setup()
-
-    model_config = ModelConfig.load(model_manager.get_model_config())
-    trainer = jb_training_utils.build_trainer(model_config, train_args)
+    trainer = sprout.build_trainer_from_model_config()
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
-    if train_args.dryrun:
-        trainer.dry_run()
-    else:
-        # Allocate the GPUs the user asked for, getting the current number if None are required.
-        trainer.num_gpus = trainer.check_gpu_availability(trainer.lab.profile.num_gpus)
-
-        if trainer.lab.profile.max_gpus is not None:
-            if trainer.num_gpus > trainer.lab.profile.max_gpus:
-                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to {trainer.lab.profile.max_gpus} "
-                            f"because of lab profile.")
-                trainer.num_gpus = trainer.lab.profile.max_gpus
-
-        # No matter the number of GPUs, setup the node for training
-        trainer.node_setup()
-
-        # Set the number of GPUs and kick it off
-        if trainer.num_gpus == 0:
-            trainer.train_model()
-        elif trainer.num_gpus == 1:
-            # With one GPU we just run on the GPU in this process
-            trainer.train_model(0)
-        else:
-            trainer.train_distributed(trainer.num_gpus)
+    trainer.train_model()
 
     logger.info(f"jb_train is done.")
 

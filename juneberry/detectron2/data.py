@@ -57,7 +57,7 @@ def register_train_manifest_files(lab: Lab, model_manager: ModelManager) -> None
 
     if not Path(train_path).exists() or not Path(split_path).exists():
         logger.error(f"Could not find the training OR validation manifest. {train_path}, {split_path}"
-                     f"EXITING.")
+                     f"Exiting.")
         sys.exit(-1)
 
     register_coco_instances(TRAIN_DS_NAME, {}, train_path, lab.data_root())

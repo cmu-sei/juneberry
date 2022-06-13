@@ -34,7 +34,6 @@ It provides the following features:
 - Training can be terminated early based on extensible stopping criteria.
 - Each stage is independently timed.
 """
-from argparse import Namespace
 import datetime
 import logging
 
@@ -43,92 +42,54 @@ from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
 import juneberry.config.training_output
 import juneberry.filesystem as jb_fs
-from juneberry.jb_logging import log_banner
+from juneberry.lab import Lab
+from juneberry.logging import log_banner
+from juneberry.scripting.sprout import TrainingSprout
 from juneberry.timing import Berryometer
-import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    """
-    This is the base class for all trainers and organizes the model we are training the config associated
-    with that model, and the dataset uses to train this model.
-    """
 
-    def init(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # All attributes
+        self.lab = Lab()
+        self.dataset_config = DatasetConfig()
+        self.gpu = None
+        self.distributed = False
+        self.dryrun = False
+
+        # Unique to trainer
+        self.train_start_time = None
+        self.train_end_time = None
+        self.timer = Berryometer()
+        self.results = TrainingOutput()
+        self.results.options = juneberry.config.training_output.Options()
+        self.results.times = juneberry.config.training_output.Times()
+        self.results.times.epoch_duration_sec = []
+        self.results.results = juneberry.config.training_output.Results()
+
+        # Defined in Sprout
         self.model_manager = None
-        self.lab = None
-        self.model_config = None
-        self.dataset_config = None
+        self.model_config = ModelConfig()
         self.log_level = None
-        self.train_start_time = None
-        self.train_end_time = None
-        self.gpu = None
-        self.distributed = False
         self.num_gpus = 0
-        self.timer = Berryometer()
-        self.results = TrainingOutput()
-        self.results.options = juneberry.config.training_output.Options()
-        self.results.times = juneberry.config.training_output.Times()
-        self.results.times.epoch_duration_sec = []
-        self.results.results = juneberry.config.training_output.Results()
-        self.native = True
-        self.onnx = False
+        self.native_output_format = None
+        self.onnx_output_format = None
+        self.lab = None
 
-
-    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
-        """
-        Constructs a basic trainer component.
-        :param model_config: The model config to use in training.
-        :param trainer_args: TODO
-        """
-        # This is the model we are associated with
-        if trainer_args is not None:
-            self.model_manager = None if trainer_args.modelName is None else jb_fs.ModelManager(trainer_args.modelName)
-        if self.model_manager is None:
-            self.lab = None  # TODO: This will make things challenging.
-        else:
-            self.lab = jb_training_utils.setup_training_logging_and_lab(trainer_args, self.model_manager)
-            self.lab.setup_lab_profile(model_name=trainer_args.modelName, model_config=model_config)
-
-        # The model and dataset configurations.
-        self.model_config = model_config
-        if self.lab is None:
-            self.dataset_config = DatasetConfig.load(self.model_config.training_dataset_config_path)
-        else:
-            self.dataset_config = self.lab.load_dataset_config(self.model_config.training_dataset_config_path)
-
-        # The level of logging for the Trainer.
-        self.log_level = logging.DEBUG if trainer_args.verbose else logging.INFO
-
-        # Store the time that training started / ended.
-        self.train_start_time = None
-        self.train_end_time = None
-
-        # This is the GPU (if any) associated with this training process. None indicates CPU.
-        self.gpu = None
-
-        # Flag indicating if we are to run in distributed mode and the number of GPUs to use.
-        self.distributed = False
-        self.num_gpus = 0
-
-        # A Berryometer object we use to track the times of phases. Can be used by the
-        # subclasses for tracking the time of particular tasks.
-        self.timer = Berryometer()
-
-        # This is where all the results of the training process are placed
-        # that we can serialize at the end.
-        self.results = TrainingOutput()
-        self.results.options = juneberry.config.training_output.Options()
-        self.results.times = juneberry.config.training_output.Times()
-        self.results.times.epoch_duration_sec = []
-        self.results.results = juneberry.config.training_output.Results()
-
-        # These booleans control which format(s) will be used when saving the trained model. All Trainers support
-        # some kind of native format, but not all trainers will support the ONNX format.
-        self.native = True
-        self.onnx = False
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        self.model_manager = sprout.model_manager
+        self.model_config = sprout.model_config
+        self.log_level = sprout.log_level
+        self.num_gpus = sprout.num_gpus
+        self.dryrun = sprout.dryrun
+        self.native_output_format = sprout.native_output_format
+        self.onnx_output_format = sprout.onnx_output_format
+        self.lab = sprout.lab
+        self.dataset_config = self.lab.load_dataset_config(self.model_config.training_dataset_config_path)
 
     # ==========================
 
@@ -147,24 +108,47 @@ class Trainer:
         :param gpu: The gpu/process number to use for training.  None indicates CPU only.
         :return: None
         """
-        self.gpu = gpu
 
-        # This allows each platform to have its own particular way of setting up logging.
-        # Logging must be set up prior to the first logging banner.
-        self.establish_loggers()
+        if self.dryrun:
+            self.dry_run()
+        else:
+            self.num_gpus = self.check_gpu_availability(self.lab.profile.num_gpus)
 
-        log_banner(logger, "Setup")
-        with self.timer("setup"):
-            self.setup()
+            if self.lab.profile.max_gpus is not None:
+                if self.num_gpus > self.lab.profile.max_gpus:
+                    logger.info(
+                        f"Maximum numbers of GPUs {self.num_gpus} being capped to {self.lab.profile.max_gpus} "
+                        f"because of lab profile.")
+                    self.num_gpus = self.lab.profile.max_gpus
 
-        log_banner(logger, "Training")
-        self.train_start_time = datetime.datetime.now().replace(microsecond=0)
-        self.train()
-        self.train_end_time = datetime.datetime.now().replace(microsecond=0)
+            # No matter the number of GPUs, setup the node for training
+            self.node_setup()
 
-        log_banner(logger, "Finalizing")
-        with self.timer("finalize"):
-            self.finish()
+            if self.num_gpus == 0:
+                self.gpu = None
+            elif self.num_gpus == 1:
+                self.gpu = 0
+            else:
+                self.train_distributed(self.num_gpus)
+
+            self.gpu = gpu
+
+            # This allows each platform to have its own particular way of setting up logging.
+            # Logging must be set up prior to the first logging banner.
+            self.establish_loggers()
+
+            log_banner(logger, "Setup")
+            with self.timer("setup"):
+                self.setup()
+
+            log_banner(logger, "Training")
+            self.train_start_time = datetime.datetime.now().replace(microsecond=0)
+            self.train()
+            self.train_end_time = datetime.datetime.now().replace(microsecond=0)
+
+            log_banner(logger, "Finalizing")
+            with self.timer("finalize"):
+                self.finish()
 
     # ==========================
 
@@ -245,42 +229,33 @@ class Trainer:
             jb_fs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
 
 
-#  _____                  _   _____          _
-# | ____|_ __   ___   ___| |_|_   _| __ __ _(_)_ __   ___ _ __
-# |  _| | '_ \ / _ \ / __| '_ \| || '__/ _` | | '_ \ / _ \ '__|
-# | |___| |_) | (_) | (__| | | | || | | (_| | | | | |  __/ |
-# |_____| .__/ \___/ \___|_| |_|_||_|  \__,_|_|_| |_|\___|_|
-#       |_|
-
 class EpochTrainer(Trainer):
     """
     This class encapsulates the process of training a supervised model epoch by epoch.
     """
 
-    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
+    def __init__(self, **kwargs):
         """
         Construct an epoch trainer based on a model config and dataset config.
         :param model_config: A Juneberry ModelConfig object that describes how to construct and train the model.
         """
         # Set to true for dry run mode
-        super().__init__(model_config, trainer_args)
-
-        # TODO: Should we just call dry run externally?
-        self.do_dry_run = False
-
-        # Maximum number of epochs.  We may stop earlier if we meet other criteria
-        self.max_epochs = model_config.epochs
+        super().__init__(**kwargs)
 
         # A 1-based counter showing the current epoch. A value of zero means training has not begun.
         self.epoch = 0
-
-        # Is the training done? Set to True to exit training loop.
-        self.done = False if self.max_epochs > self.epoch else True
-
-        # Iterables that provides batches (lists) of pairs of (data, targets) for training and evaluation.
-        # These must be initialized during setup.
+        #
+        # # TODO: New material
+        self.max_epochs = None
+        self.done = None
         self.training_iterable = None
         self.evaluation_iterable = None
+
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        super().inherit_from_sprout(sprout)
+
+        self.max_epochs = self.model_config.epochs
+        self.done = False if self.max_epochs > self.epoch else True
 
     # -----------------------------------------------
     #  _____     _                 _              ______     _       _

@@ -28,7 +28,7 @@ import os
 from pathlib import Path
 import sys
 
-import juneberry.jb_logging as jblogging
+import juneberry.logging as jblogging
 from juneberry.lab import Lab
 
 logger = logging.getLogger(__name__)

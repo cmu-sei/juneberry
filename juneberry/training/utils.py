@@ -37,7 +37,6 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 import juneberry.scripting as jb_scripting
-from juneberry.training.trainer import Trainer as BaseTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -86,28 +85,15 @@ def assemble_trainer_stanza(model_config: ModelConfig):
         logger.error(f"Juneberry training does not support the task '{model_config.task}'. "
                      f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
         sys.exit(-1)
-    model_config.trainer = Prodict(fqcn=task_platform_map[model_config.task][model_config.platform], kwargs={})
+    fqcn = task_platform_map[model_config.task][model_config.platform]
+    kwargs = {}
     logger.warning("Found deprecated platform/task configuration for loading trainer. "
                    "Consider updating the model config to use the trainer stanza.")
     logger.warning('"trainer": {')
-    logger.warning(f'    "fqcn": "{model_config.trainer.fqcn}"')
+    logger.warning(f'    "fqcn": "{fqcn}"')
     logger.warning('}')
 
-    return model_config.trainer
-
-
-def set_trainer_output_format(trainer: BaseTrainer, args: Namespace):
-    # Set the output format for the trainer.
-    trainer.onnx = args.onnx
-    trainer.native = not args.skipNative
-
-    # If no output format was set, choose the native format by default even if
-    # the user requested it to be skipped.
-    if not (trainer.onnx or trainer.native):
-        logger.warning(f"An output format was not set. Choosing the native format.")
-        trainer.native = True
-
-    return trainer
+    return jb_loader.construct_instance(fqcn, kwargs)
 
 
 def build_trainer(model_config: ModelConfig, trainer_args: Namespace):
@@ -127,7 +113,5 @@ def build_trainer(model_config: ModelConfig, trainer_args: Namespace):
 
     if trainer is None:
         return trainer
-
-    trainer = set_trainer_output_format(trainer, trainer_args)
 
     return trainer

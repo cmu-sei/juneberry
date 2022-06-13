@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-from argparse import Namespace
+
 from collections import OrderedDict
 import logging
 import math
@@ -29,11 +29,6 @@ from pathlib import Path
 import sys
 import types
 from typing import Optional
-
-import hjson
-
-import torch
-from torch.nn.parallel import DistributedDataParallel
 
 from detectron2 import model_zoo
 from detectron2.checkpoint import DetectionCheckpointer, PeriodicCheckpointer
@@ -48,24 +43,27 @@ from detectron2.utils.collect_env import collect_env_info
 import detectron2.utils.comm as comm
 from detectron2.utils.env import seed_all_rng
 from detectron2.utils.events import EventStorage, CommonMetricPrinter, JSONWriter, TensorboardXWriter
+import hjson
+import torch
+from torch.nn.parallel import DistributedDataParallel
 
-from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
 from juneberry.detectron2.loss_evaluator import DT2LossEvaluator
 from juneberry.filesystem import generate_file_hash, ModelManager
-from juneberry.jb_logging import log_banner, setup_logger
+from juneberry.logging import log_banner, setup_logger
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
+from juneberry.scripting.sprout import TrainingSprout
 from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
 
 class Detectron2Trainer(Trainer):
-    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
-        super().__init__(model_config, trainer_args)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         self.iter: int = 0
         self.start_iter: int = 0
@@ -76,7 +74,7 @@ class Detectron2Trainer(Trainer):
         self.model = None
         self.save_model = None
 
-        self.resume = trainer_args.resume
+        self.resume = None
 
         # We shouldn't need to change these.
         self.train_len = 0
@@ -95,9 +93,6 @@ class Detectron2Trainer(Trainer):
         self.output_builder = TrainingOutputBuilder()
         self.output = self.output_builder.output
 
-        # Fill out some of the output fields using the model name / model config.
-        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
-
         self.results_keys = ['accuracy', 'false_negative', 'fg_cls_accuracy', 'loss_box_reg', 'loss_cls',
                              'loss_rpn_cls', 'loss_rpn_loc', 'learning_rate', 'num_bg_samples', 'num_fg_samples',
                              'num_neg_anchors', 'num_pos_anchors', 'timetest', 'loss', 'val_accuracy', 'val_loss']
@@ -107,8 +102,18 @@ class Detectron2Trainer(Trainer):
 
         # NOTE: This is a custom path for DT2. We know that DT2 puts the model file in the final
         # OUTPUT directory, so we rename it out of there.
+        self.output_dir = None
+        self.final_model_path = None
+
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        super().inherit_from_sprout(sprout)
+
+        # Fill out some of the output fields using the model name / model config.
+        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
+
+        self.resume = sprout.resume
         self.output_dir = self.model_manager.get_train_scratch_path()
-        self.final_model_path = self.output_dir / 'model_final.pth'
+        self.final_model_path = self.model_manager.get_detectron2_model_path()
 
     def dry_run(self) -> None:
         self.node_setup()
@@ -118,6 +123,9 @@ class Detectron2Trainer(Trainer):
 
     def node_setup(self) -> None:
         log_banner(logger, "Node Setup")
+
+        import inspect
+        logger.debug(inspect.stack()[1].function)
 
         # Make sure we have the appropriate directory structure
         self.model_manager.setup()
@@ -150,11 +158,11 @@ class Detectron2Trainer(Trainer):
         logger.info("Setting up trainer")
         args = types.SimpleNamespace()
 
-        if self.onnx:
+        if self.onnx_output_format:
             logger.warning(f"An ONNX model format was requested, but Detectron training does not support saving model "
                            f"files in ONNX format. Switching to the DT2 native format.")
-            self.onnx = False
-            self.native = True
+            self.onnx_output_format = False
+            self.native_output_format = True
 
         # Register the datasets from our previously created manifests.
         dt2_data.register_train_manifest_files(self.lab, self.model_manager)

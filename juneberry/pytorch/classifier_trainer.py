@@ -21,7 +21,6 @@
 # DM21-0884
 #
 # ======================================================================================================================
-from argparse import Namespace
 import datetime
 import logging
 import math
@@ -39,12 +38,13 @@ import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
-from juneberry.jb_logging import setup_logger
+from juneberry.logging import setup_logger
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
+from juneberry.scripting.sprout import TrainingSprout
 import juneberry.tensorboard as jbtb
 from juneberry.training.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
@@ -53,8 +53,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClassifierTrainer(EpochTrainer):
-    def __init__(self, model_config, trainer_args: Namespace):
-        super().__init__(model_config, trainer_args)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # Assigned during setup
         self.loss_function = None
@@ -64,49 +64,44 @@ class ClassifierTrainer(EpochTrainer):
         self.evaluator = None
         self.acceptance_checker = None
 
-        # We should probably be given a data manager
-        self.data_version = self.model_manager.model_version if self.model_manager is not None else None
-        self.binary = self.dataset_config.is_binary
-        self.pytorch_options: PytorchOptions = model_config.pytorch
-
-        # A single sample from the input data. The dimensions of the sample matter during
-        # construction of the ONNX model.
+        self.data_version = None
+        self.binary = None
+        self.pytorch_options = None
         self.input_sample = None
-
-        # Should we load all the data at one time.  Edge case optimization.
-        self.no_paging = False
-        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
-            logger.info("Setting to no paging mode.")
-            self.no_paging = True
+        self.no_paging = None
 
         self.tb_mgr = None
-
-        # This model is for saving
         self.unwrapped_model = None
-
-        # This model is for training
         self.model = None
-
-        # Where we store all the in-flight results
         self.history = {}
-
-        # This is the pytorch device we are associated with
         self.device = None
-
         self.num_batches = -1
-
-        self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
-
-        # These properties are used for DistributedDataParallel (if necessary)
         self.training_loss_list = None
         self.training_accuracy_list = None
 
-        self.lr_step_frequency = LRStepFrequency.EPOCH
+        self.memory_summary_freq = None
+        self.lr_step_frequency = None
 
         # Added for the acceptance checker
         self.history_key = None
         self.direction = None
         self.abs_tol = None
+
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        super().inherit_from_sprout(sprout)
+
+        self.data_version = self.model_manager.model_version
+        self.binary = self.dataset_config.is_binary
+        self.pytorch_options: PytorchOptions = self.model_config.pytorch
+
+        self.no_paging = False
+        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
+            logger.info("Setting to no paging mode.")
+            self.no_paging = True
+
+        self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
+
+        self.lr_step_frequency = LRStepFrequency.EPOCH
 
     # ==========================================================================
     def dry_run(self) -> None:
@@ -298,14 +293,14 @@ class ClassifierTrainer(EpochTrainer):
         logger.info(f"Training stopped because: >> {self.acceptance_checker.stop_message} <<")
 
         # Add a hash of the model.
-        if self.native:
+        if self.native_output_format:
             self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
 
-        if self.onnx:
+        if self.onnx_output_format:
             self.history['onnx_model_hash'] = jbfs.generate_file_hash(self.model_manager.get_onnx_model_path())
 
         logger.info("Generating and saving output...")
-        history_to_results(self.history, self.results, self.native, self.onnx)
+        history_to_results(self.history, self.results, self.native_output_format, self.onnx_output_format)
 
         logger.info("Generating summary plot...")
         juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
@@ -452,8 +447,8 @@ class ClassifierTrainer(EpochTrainer):
                                                     threshold=stopping_options.get('threshold', None),
                                                     plateau_count=stopping_options.get('plateau_count', None))
 
-        self.acceptance_checker.native = self.native
-        self.acceptance_checker.onnx = self.onnx
+        self.acceptance_checker.native = self.native_output_format
+        self.acceptance_checker.onnx = self.onnx_output_format
 
     def show_memory_summary(self, model_loading):
         """Used to show a memory summary at appropriate times."""
