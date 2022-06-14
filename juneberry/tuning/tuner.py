@@ -21,31 +21,31 @@
 # DM21-0884
 #
 # ======================================================================================================================
-from argparse import Namespace
 import logging
 
 from ray import tune
 
+from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
 from juneberry.config.tuning import TuningConfig
-import juneberry.filesystem as jb_fs
+from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-import juneberry.training.utils as jb_training_utils
+from juneberry.scripting.sprout import TuningSprout
 
 logger = logging.getLogger(__name__)
 
 
 class Tuner:
 
-    def __init__(self, model_name: str, tuning_config_name: str, lab):
-        self.model_name = model_name
-        self.model_manager = jb_fs.ModelManager(self.model_name)
-        self.baseline_model_config = lab.load_model_config(self.model_name)
+    def __init__(self, **kwargs):
+        self.model_name = None
+        self.model_manager = None
+        self.baseline_model_config = ModelConfig()
 
-        self.tuning_config_name = tuning_config_name
-        self.tuning_config = TuningConfig.load(self.tuning_config_name)
+        self.tuning_config_str = None
+        self.tuning_config = TuningConfig()
 
-        self.lab = lab
+        self.lab = Lab()
 
         # Attributes derived from the tuning config.
 
@@ -63,14 +63,37 @@ class Tuner:
 
         # Some more properties from the tuning config.
         self.trial_resources = self.tuning_config.trial_resources
+        self.metric = None
+        self.mode = None
+        self.num_samples = self.tuning_config.sample_quantity
+        self.scope = None
+        self.checkpoint_interval = None
+
+        # Attribute to capture the best tuning result.
+        self.best_result = None
+
+        # Methods for setting attributes.
+        self._build_tuning_components()
+
+        self.sprout = None
+
+    def inherit_from_sprout(self, sprout: TuningSprout):
+        self.sprout = sprout
+
+        self.model_name = sprout.model_name
+        self.model_manager = sprout.model_manager
+        self.lab = sprout.lab
+        self.tuning_config_str = sprout.tuning_config_str
+        self.tuning_config = sprout.tuning_config
+
+        self.trial_resources = self.tuning_config.trial_resources
         self.metric = self.tuning_config.tuning_parameters.metric
         self.mode = self.tuning_config.tuning_parameters.mode
         self.num_samples = self.tuning_config.sample_quantity
         self.scope = self.tuning_config.tuning_parameters.scope
         self.checkpoint_interval = self.tuning_config.tuning_parameters.checkpoint_interval
 
-        # Attribute to capture the best tuning result.
-        self.best_result = None
+        self.baseline_model_config = self.lab.load_model_config(self.model_name)
 
         # Methods for setting attributes.
         self._build_tuning_components()
@@ -81,13 +104,16 @@ class Tuner:
         :return:
         """
         # Extract the search_space from the tuning config.
-        self._build_search_space(self.tuning_config.search_space)
+        if self.tuning_config.search_space is not None:
+            self._build_search_space(self.tuning_config.search_space)
 
         # Extract the scheduler from the tuning config and then build the desired scheduler.
-        self._build_scheduler(self.tuning_config.scheduler)
+        if self.tuning_config.scheduler is not None:
+            self._build_scheduler(self.tuning_config.scheduler)
 
         # Extract the search algorithm for the search space and then build it.
-        self._build_search_algo(self.tuning_config.search_algorithm)
+        if self.tuning_config.search_algorithm is not None:
+            self._build_search_algo(self.tuning_config.search_algorithm)
 
     def _build_search_space(self, search_space_dict: dict):
         """
@@ -136,6 +162,7 @@ class Tuner:
         logger.info(f"  Tuning search_algo built!")
 
     def _train_fn(self, config, checkpoint_dir=None):
+        # print(f"{os.getcwd()}")
         # TODO: Lots of work here...the real "meat" of the problem. May need to refactor various Juneberry
         #  components.
         # Ray Tune runs this function on a separate thread in a Ray actor process.
@@ -147,8 +174,8 @@ class Tuner:
 
         # TODO: Fill out the Namespace with available info. Maybe this doesn't even belong in _train_fn
         #  and should be a tuner attribute?
-        trainer_args = Namespace()
-        trainer = jb_training_utils.build_trainer(trial_model_config, trainer_args)
+        self.sprout.set_model_config(trial_model_config)
+        trainer = self.sprout.build_trainer_from_model_config()
 
         # load_model_config
         # training_prep
@@ -157,7 +184,7 @@ class Tuner:
         # tune.report(metric=per_epoch_metrics[self.metric])
 
         # Now that we have a new model config, eventually we want to get to a spot where we can do a
-        # trainer.train_model()
+        trainer.tune_model()
 
         # This function either needs to report the target metric (self.metric) after every unit of time
         # (epoch?) or return the metric value at the end of the function. I think if the scheduler is

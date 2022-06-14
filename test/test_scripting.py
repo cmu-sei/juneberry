@@ -25,7 +25,7 @@
 from pathlib import Path
 import os
 
-import juneberry.scripting as jbscripting
+import juneberry.scripting.utils as jb_scripting_utils
 
 
 class MockArgs:
@@ -37,7 +37,7 @@ class MockArgs:
 
 
 def test_defaults():
-    vals = jbscripting.make_default_values("/foo")
+    vals = jb_scripting_utils.make_default_values("/foo")
     assert vals['workspace'] == "/foo"
     assert vals['data_root'] == "/dataroot"
     assert vals['tensorboard'] == "/tensorboard"
@@ -55,7 +55,7 @@ def test_resolve_lab_args_ws():
     args = MockArgs()
     args.workspace = "/fakeroot/ws"
 
-    vals = jbscripting.resolve_lab_args(args)
+    vals = jb_scripting_utils.resolve_lab_args(args)
 
     assert vals['workspace'] == "/fakeroot/ws"
     assert vals['data_root'] == "/fakeroot/dataroot"
@@ -74,7 +74,7 @@ def test_env_variables():
     os.environ['JUNEBERRY_PROFILE_NAME'] = "prof_name"
 
     args = MockArgs()
-    vals = jbscripting.resolve_lab_args(args)
+    vals = jb_scripting_utils.resolve_lab_args(args)
 
     assert vals['workspace'] == str((Path.cwd() / "js_ws").absolute())
     assert vals['data_root'] == str((Path.cwd() / "js_dr").absolute())
@@ -94,7 +94,7 @@ def test_overrides():
     args.workspace = "/fakeroot/ws"
     args.dataRoot = "/some/hardcoded/path"
 
-    vals = jbscripting.resolve_lab_args(args)
+    vals = jb_scripting_utils.resolve_lab_args(args)
 
     assert vals['workspace'] == "/fakeroot/ws"
     assert vals['data_root'] == "/some/hardcoded/path"

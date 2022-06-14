@@ -21,23 +21,19 @@
 # DM21-0884
 #
 # ======================================================================================================================
-from argparse import Namespace
 import logging
 from math import ceil
 from pathlib import Path
 import sys
 
 import hjson
-import torch
-
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
-
 from mmdet.apis import train_detector
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
+import torch
 
-from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 from juneberry.filesystem import generate_file_hash
@@ -45,16 +41,17 @@ from juneberry.logging import log_banner, setup_logger
 import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
+from juneberry.scripting.sprout import TrainingSprout
 from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
 
 class MMDTrainer(Trainer):
-    def __init__(self, model_config: ModelConfig, trainer_args: Namespace):
-        super().__init__(model_config, trainer_args)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-        self.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
+        self.working_dir = None
         self.mm_home = mmd_utils.find_mmdetection()
 
         self.cfg = None
@@ -71,9 +68,6 @@ class MMDTrainer(Trainer):
         self.output_builder = TrainingOutputBuilder()
         self.output = self.output_builder.output
 
-        # Fill out some of the output fields using the model name / model config.
-        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
-
         # Initialize the output keys that will be written to as empty lists.
         # TODO: Disabled until we figure out how to get the per epoch time instead of the per iteration time.
         # self.output.times.epoch_duration_sec = []
@@ -87,6 +81,15 @@ class MMDTrainer(Trainer):
         #                 'val_loss_rpn_bbox', 'val_loss_rpn_cls']
         for key in results_keys:
             self.output.results.update({key: []})
+
+    def inherit_from_sprout(self, sprout: TrainingSprout):
+        super().inherit_from_sprout(sprout)
+
+        self.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
+        self.dryrun = sprout.dryrun
+
+        # Fill out some of the output fields using the model name / model config.
+        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
 
     def dry_run(self) -> None:
         # Setup saves the config file which is really what we want for now.

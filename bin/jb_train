@@ -24,7 +24,6 @@
 
 import argparse
 import logging
-import sys
 
 from juneberry.scripting.sprout import TrainingSprout
 import juneberry.scripting.utils as jb_scripting_utils
@@ -70,9 +69,8 @@ def main():
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
-        sys.exit(-1)
-
-    trainer.train_model()
+    else:
+        trainer.train_model()
 
     logger.info(f"jb_train is done.")
 

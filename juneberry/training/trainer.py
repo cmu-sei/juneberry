@@ -150,6 +150,9 @@ class Trainer:
             with self.timer("finalize"):
                 self.finish()
 
+    def tune_model(self) -> None:
+        logger.info(f"Tuning model {self.model_manager.model_name}")
+
     # ==========================
 
     def node_setup(self) -> None:
