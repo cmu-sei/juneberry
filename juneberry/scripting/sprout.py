@@ -66,7 +66,7 @@ class Sprout:
         self.dataroot_dir = getattr(args, "dataRoot", None)
         self.tensorboard_dir = getattr(args, "tensorboard", None)
         self.log_dir = getattr(args, "logDir", None)
-        self.silent = True if getattr(args, "silent", None) else False
+        self.silent = getattr(args, "silent", False)
         self.log_level = logging.DEBUG if getattr(args, "verbose", None) else logging.INFO
         self.profile_name = getattr(args, "profileName", None)
 
@@ -169,10 +169,10 @@ class TrainingSprout(Sprout):
     def grow_from_args(self, args: Namespace, init_logging: bool = True):
         super().grow_from_args(args)
 
-        self.model_name = args.modelName
+        self.model_name = getattr(args, "modelName", None)
         self.num_gpus = getattr(args, "num_gpus", None)
-        self.dryrun = args.dryrun
-        self.resume = getattr(args, "resume", None)
+        self.dryrun = getattr(args, "dryrun", False)
+        self.resume = getattr(args, "resume", False)
 
         skip_native_arg = getattr(args, "skipNative", False)
         onnx_arg = getattr(args, "onnx", False)
@@ -221,9 +221,9 @@ class TuningSprout(TrainingSprout):
 
     def grow_from_args(self, args: Namespace, init_logging: bool = True):
         super().grow_from_args(args, init_logging=False)
-        self.model_name = args.modelName
-        self.dryrun = args.dryrun
-        self.tuning_config_str = args.tuningConfig
+        self.model_name = getattr(args, "modelName", None)
+        self.dryrun = getattr(args, "dryrun", False)
+        self.tuning_config_str = getattr(args, "tuningConfig", None)
 
         self.model_manager = jb_fs.ModelManager(self.model_name)
         # TODO: How should JB log if there's no ModelManager?

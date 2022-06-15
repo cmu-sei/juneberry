@@ -55,11 +55,9 @@ class Trainer:
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # All attributes
-        self.lab = Lab()
         self.dataset_config = DatasetConfig()
         self.gpu = None
         self.distributed = False
-        self.dryrun = False
 
         # Unique to trainer
         self.train_start_time = None
@@ -72,6 +70,8 @@ class Trainer:
         self.results.results = juneberry.config.training_output.Results()
 
         # Defined in Sprout
+        self.lab = Lab()
+        self.dryrun = False
         self.model_manager = None
         self.model_config = ModelConfig()
         self.log_level = None
@@ -150,8 +150,15 @@ class Trainer:
             with self.timer("finalize"):
                 self.finish()
 
-    def tune_model(self) -> None:
-        logger.info(f"Tuning model {self.model_manager.model_name}")
+    def tuning_round(self) -> dict:
+        logger.warning("tuning_round() not implemented in base Trainer.")
+        import random
+        loss = random.randint(0, 10)
+        accuracy = random.randint(0, 100)
+        val_loss = random.randint(0, 10)
+        val_accuracy = random.randint(0, 100)
+
+        return {"loss": loss, "accuracy": accuracy, "val_loss": val_loss, "val_accuracy": val_accuracy}
 
     # ==========================
 

@@ -162,7 +162,6 @@ class Tuner:
         logger.info(f"  Tuning search_algo built!")
 
     def _train_fn(self, config, checkpoint_dir=None):
-        # print(f"{os.getcwd()}")
         # TODO: Lots of work here...the real "meat" of the problem. May need to refactor various Juneberry
         #  components.
         # Ray Tune runs this function on a separate thread in a Ray actor process.
@@ -172,27 +171,8 @@ class Tuner:
         trial_model_config = self.baseline_model_config.adjust_attributes(config)
         # trial_model_config is a ModelConfig
 
-        # TODO: Fill out the Namespace with available info. Maybe this doesn't even belong in _train_fn
-        #  and should be a tuner attribute?
         self.sprout.set_model_config(trial_model_config)
         trainer = self.sprout.build_trainer_from_model_config()
-
-        # load_model_config
-        # training_prep
-        #   possibly_load_from_checkpoint
-        # per_epoch_metrics = trainer.train_an_epoch()
-        # tune.report(metric=per_epoch_metrics[self.metric])
-
-        # Now that we have a new model config, eventually we want to get to a spot where we can do a
-        trainer.tune_model()
-
-        # This function either needs to report the target metric (self.metric) after every unit of time
-        # (epoch?) or return the metric value at the end of the function. I think if the scheduler is
-        # going to be important to us for enforcing early stopping of a bad trial, then the best option
-        # is to report the metric on a per-epoch basis. You can either report the metric to tune via
-        # tune.report() or with a Python yield statement.
-
-        # cur_epoch = 0
 
         # "Many Tune features rely on checkpointing, including certain Trial Schedulers..."
         if checkpoint_dir:
@@ -202,6 +182,14 @@ class Tuner:
             # checkpoint = torch.load(checkpoint_path)
             # model.load_state_dict(checkpoint["model_state_dict"])
             # cur_epoch = checkpoint["cur_epoch"]
+
+        cur_epoch = 0
+
+        while cur_epoch < trial_model_config.epochs:
+            latest_metrics = trainer.tuning_round()
+            # Assuming latest_metrics is a dictionary, use tune.report() like this:
+            tune.report(**latest_metrics)
+            cur_epoch += 1
 
         # Would something like this make sense? Would require Trainer refactoring, especially for the
         # metrics = trainer._train_one_epoch() (or equivalent) line.
@@ -218,7 +206,7 @@ class Tuner:
         #   tune.report(metric=metrics.metric)
 
     def tune(self):
-        # TODO: Perform the tuning run.
+        # Perform the tuning run.
         result = tune.run(
             tune.with_parameters(self._train_fn),
             resources_per_trial=self.trial_resources,
@@ -231,13 +219,15 @@ class Tuner:
             local_dir=str(self.model_manager.get_tuning_dir())
         )
         #
-        # TODO: Once the tuning is complete, store the best result.
-        # self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
+        # Once the tuning is complete, store the best result.
+        self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
 
     # TODO: Better name for this method.
     def process_best_result(self):
-        pass
-
         # TODO: Once a tuning run is complete, there are various things that can be done with
         #  the best tuning result. This is where we'd do something with self.best_result.
+        logger.info(f"Best trial config: {self.best_result.config}")
+        logger.info(f"Best trial final '{self.metric}': {self.best_result.last_result[self.metric]}")
+
+
     
