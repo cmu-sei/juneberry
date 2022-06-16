@@ -185,10 +185,17 @@ class Tuner:
 
         cur_epoch = 0
 
+        trainer.tuning_setup()
+
         while cur_epoch < trial_model_config.epochs:
-            latest_metrics = trainer.tuning_round()
+            latest_metrics = trainer.tune()
+            # latest_metrics = trainer.tuning_round()
+            # latest_metrics = trainer.tuning_generator()
             # Assuming latest_metrics is a dictionary, use tune.report() like this:
-            tune.report(**latest_metrics)
+            # tune.report(**latest_metrics)
+            thing = next(latest_metrics)
+            # print(f"thing{cur_epoch} is {thing}")
+            yield thing
             cur_epoch += 1
 
         # Would something like this make sense? Would require Trainer refactoring, especially for the
@@ -208,7 +215,7 @@ class Tuner:
     def tune(self):
         # Perform the tuning run.
         result = tune.run(
-            tune.with_parameters(self._train_fn),
+            self._train_fn,
             resources_per_trial=self.trial_resources,
             config=self.search_space,
             search_alg=self.search_algo,

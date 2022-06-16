@@ -107,11 +107,11 @@ def determine_gpus(num_gpus: int = None):
         logger.info(f"Detected {num_gpus} gpus. CUDA_VISIBLE_DEVICES='{os.environ.get('CUDA_VISIBLE_DEVICES')}'")
     elif num_gpus > 0:
         if not torch.cuda.is_available():
-            logger.error(f"{num_gpus} requested, but CUDA not available. EXITING.")
+            logger.error(f"{num_gpus} requested, but CUDA not available. Exiting.")
             sys.exit(-1)
 
         if num_gpus > torch.cuda.device_count():
-            logger.error(f"{num_gpus} requested, but only {torch.cuda.device_count()} available. EXITING.")
+            logger.error(f"{num_gpus} requested, but only {torch.cuda.device_count()} available. Exiting.")
             sys.exit(-1)
 
     return num_gpus

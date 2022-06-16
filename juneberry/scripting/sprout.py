@@ -160,7 +160,6 @@ class TrainingSprout(Sprout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.num_gpus = 0
         self.resume = None
 
         self.native_output_format = None

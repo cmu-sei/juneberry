@@ -103,7 +103,7 @@ class MMDTrainer(Trainer):
         log_banner(logger, "Node Setup")
 
         if self.num_gpus == 0 and not self.dryrun:
-            logger.error("MMDetection does not support CPU mode for training. EXITING.")
+            logger.error("MMDetection does not support CPU mode for training. Exiting.")
             sys.exit(-1)
 
         # Set up working dir to save files and logs.
@@ -133,11 +133,11 @@ class MMDTrainer(Trainer):
 
     def setup(self) -> None:
 
-        if self.onnx:
+        if self.onnx_output_format:
             logger.warning(f"An ONNX model format was requested, but mmdetection training does not support saving "
                            f"model files in ONNX format. Switching to the MMD native format.")
-            self.onnx = False
-            self.native = True
+            self.onnx_output_format = False
+            self.native_output_format = True
 
         # Load cfg based on what they said in the model.
         cfg = Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture['module']))
