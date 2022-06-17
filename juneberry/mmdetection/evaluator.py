@@ -135,7 +135,7 @@ class Evaluator(EvaluatorBase):
         cfg.data_root = str(self.lab.data_root())
 
         cfg.data.test.data_root = str(self.lab.data_root().resolve())
-        cfg.data.test.ann_file = str(self.eval_dir_mgr.get_manifest_path())
+        cfg.data.test.ann_file = str(self.eval_dir_mgr.get_manifest_path().resolve())
         cfg.data.test.img_prefix = ""
         cfg.data.test.classes = classes
         cfg.data.test.test_mode = True
