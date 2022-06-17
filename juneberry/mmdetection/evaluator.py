@@ -25,13 +25,13 @@
 from collections import OrderedDict
 import itertools
 import logging
-import mmcv
-import numpy as np
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 import warnings
 
 # Multi-gpu needs to do MMDDP
+import mmcv
 from mmcv.parallel import MMDataParallel
 
 # Multi-gpu needs to do init_dist
@@ -43,6 +43,8 @@ from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.datasets.api_wrappers import COCOeval
 from mmdet.datasets.coco import CocoDataset
 from mmdet.models import build_detector
+
+import numpy as np
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
@@ -135,7 +137,7 @@ class Evaluator(EvaluatorBase):
         cfg.data_root = str(self.lab.data_root())
 
         cfg.data.test.data_root = str(self.lab.data_root().resolve())
-        cfg.data.test.ann_file = str(self.eval_dir_mgr.get_manifest_path().resolve())
+        cfg.data.test.ann_file = str(Path(self.eval_dir_mgr.get_manifest_path()).resolve())
         cfg.data.test.img_prefix = ""
         cfg.data.test.classes = classes
         cfg.data.test.test_mode = True
