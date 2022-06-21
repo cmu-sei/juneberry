@@ -23,14 +23,13 @@
 # ======================================================================================================================
 
 from functools import partial
-import inspect
 import logging
-import numpy as np
 from pathlib import Path
-from PIL import Image
 import random
 import sys
 
+import numpy as np
+from PIL import Image
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -132,22 +131,22 @@ class TFTorchStagedTransform(jbtm.StagedTransformManager):
 
 
 def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_size: int,
-                           opt_args: dict, eval: bool = False):
+                           opt_args: dict, eval_mode: bool = False):
     """
     Constructs the appropriate transform manager for the this data.
     :param model_cfg: The model config.
     :param ds_cfg: The datasett config.
     :param set_size: The size of the data set.
     :param opt_args: Optional args to pass into the construction of the plugin.
-    :param eval: Are we in train (False) or eval mode (True).
+    :param eval_mode: Are we in train (False) or eval mode (True).
     :return: Transform manager.
     """
     # Convenience to call the base on with our custom stage transform
     return jb_data.make_transform_manager(model_cfg, ds_cfg, set_size, opt_args,
-                                          TFTorchStagedTransform, eval)
+                                          TFTorchStagedTransform, eval_mode)
 
 
-def _call_transforms_numpy(np_image, transforms):
+def _call_transforms_numpy(np_image, y, transforms):
     # Convert to image, apply transforms, and convert back.
     # print(f"+++++++++ type={type(np_image)} shape={np_image.shape}")
     # PIL doesn't like grayscale things to have 3 dimensions, so we have
@@ -156,27 +155,35 @@ def _call_transforms_numpy(np_image, transforms):
     if shape[2] == 1:
         np_image = np_image.reshape(shape[0], shape[1])
     img = Image.fromarray(np_image)
-    img = transforms(img)
+    img, new_label = transforms(img, label=y)
     if shape[2] == 1:
-        return np.array(img).reshape(shape[0], shape[1], 1)
-    return np.array(img)
+        return np.array(img).reshape(shape[0], shape[1], 1), new_label
+    return np.array(img), np.array(new_label)
 
 
 # TODO: Should this be a tf.function?
-def _transform_magic(image, transforms):
+def _transform_magic(image, y, transforms):
     # Set up a numpy function wrapper and then call it.
+    # Based on the explanation of py_function we need to explicitly set the shape so the
+    # graph code can figure out the size
+    # https://www.tensorflow.org/guide/data#applying_arbitrary_python_logic
+    # So get the shape, run the function, and set it back.
+    im_shape = image.shape
     partial_func = partial(_call_transforms_numpy, transforms=transforms)
-    return tf.numpy_function(partial_func, [image], Tout=tf.uint8)
+    new_image, new_y = tf.numpy_function(partial_func, [image, y], Tout=[tf.uint8, tf.int64])
+    new_image.set_shape(im_shape)
+    new_y.set_shape(y.shape)
+    return new_image, new_y
 
 
-def _add_transforms_and_batching(dataset, model_cfg, ds_cfg, batch_size, eval):
+def _add_transforms_and_batching(dataset, model_cfg, ds_cfg, batch_size, eval_mode):
     """
     Adds transformers and batching instructions to this datasets
     :param dataset: The dataset to augment
     :param model_cfg: The model config
     :param ds_cfg: The dataset config
     :param batch_size: The batch size
-    :param eval: Are we in eval mode
+    :param eval_mode: Are we in eval mode
     :return: The augmented dataset
     """
     # TODO: Figure out how to do BOTH dataset and model transforms
@@ -185,10 +192,10 @@ def _add_transforms_and_batching(dataset, model_cfg, ds_cfg, batch_size, eval):
     #     TFTorchStagedTransform, eval)
     transforms = jb_data.make_transform_manager(
         model_cfg, ds_cfg, len(dataset), {},
-        None, eval)
+        None, eval_mode)
 
     if transforms is not None:
-        dataset = dataset.map(lambda x, y: (_transform_magic(x, transforms), y))
+        dataset = dataset.map(lambda x, y: _transform_magic(x, y, transforms))
 
     # Apply batching
     return dataset.batch(batch_size)
