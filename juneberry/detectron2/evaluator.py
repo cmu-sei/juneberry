@@ -24,7 +24,6 @@
 
 import logging
 from pathlib import Path
-from torchvision import transforms
 from types import SimpleNamespace
 
 # import some common detectron2 utilities
@@ -33,6 +32,7 @@ from detectron2.config import get_cfg
 from detectron2.data import build_detection_test_loader
 from detectron2.engine import DefaultPredictor
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from torchvision import transforms
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
@@ -81,7 +81,7 @@ class Evaluator(EvaluatorBase):
         self.obtain_model()
 
         # Test for the presence of the annotations file.
-        anno_file = Path(self.output_dir) / self.model_manager.get_eval_manifest_path(self.dataset_config.file_path)
+        anno_file = Path(self.output_dir) / self.eval_dir_mgr.get_manifest_path()
         logger.info(f"Checking for annotations file at {anno_file}")
         if anno_file.exists():
             logger.info(f"Annotations file exists. It would be deleted and regenerated during the evaluation.")
@@ -212,7 +212,7 @@ class Evaluator(EvaluatorBase):
         out = self.eval_dir_mgr.get_detections_anno_path()
 
         # Find category list
-        eval_manifest_path = self.model_manager.get_eval_manifest_path(self.eval_dataset_config.file_path)
+        eval_manifest_path = self.eval_dir_mgr.get_manifest_path()
         category_list = jb_data.get_category_list(eval_manifest_path=eval_manifest_path,
                                                   model_manager=self.model_manager,
                                                   train_config=self.dataset_config,
@@ -232,5 +232,3 @@ class Evaluator(EvaluatorBase):
         # Save the eval output to file.
         logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_metrics_path()}")
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
-
-

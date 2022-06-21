@@ -156,7 +156,7 @@ class Lab:
         :return: The config object.
         """
         full_path = Path(self.workspace(ws_key)) / config_path
-        return DatasetConfig.load(str(full_path), relative_path=full_path.parent)
+        return DatasetConfig.load(config_path, relative_path=full_path.parent)
 
     def load_lab_profile(self, model_name: str = None, ws_key='default') -> LabProfile:
         """

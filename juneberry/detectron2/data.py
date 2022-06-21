@@ -72,7 +72,8 @@ def register_eval_manifest_file(lab: Lab, model_manager: ModelManager, dataset_c
     :param dataset_config: The dataset configuration
     :return: None
     """
-    manifest_path = model_manager.get_eval_manifest_path(dataset_config.file_path).resolve()
+    path_str = model_manager.get_eval_dir_mgr(str(dataset_config.file_path)).get_manifest_path()
+    manifest_path = str(Path(path_str).resolve())
 
     if not Path(manifest_path).exists():
         logger.error(f"Could not find the evaluation manifest. {manifest_path}"
