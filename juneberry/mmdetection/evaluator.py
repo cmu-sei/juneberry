@@ -33,17 +33,14 @@ import warnings
 # Multi-gpu needs to do MMDDP
 import mmcv
 from mmcv.parallel import MMDataParallel
-
 # Multi-gpu needs to do init_dist
 # from mmcv.runner import (init_dist, load_checkpoint)
 from mmcv.runner import load_checkpoint
-
 from mmdet.apis import single_gpu_test
 from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.datasets.api_wrappers import COCOeval
 from mmdet.datasets.coco import CocoDataset
 from mmdet.models import build_detector
-
 import numpy as np
 
 import juneberry.config.coco_utils as coco_utils
@@ -91,7 +88,7 @@ class Evaluator(EvaluatorBase):
 
     def check_gpu_availability(self, required: int):
         count = processing.determine_gpus(required)
-        # TODO: See if we can get the multigpu api working.
+        # TODO: See if we can get the multi-gpu api working.
         if count > 1:
             logger.warning(f"The evaluator is only configured to support 1 GPU. Reducing {count} to 1.")
             count = 1

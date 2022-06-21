@@ -24,7 +24,6 @@
 
 import logging
 from pathlib import Path
-from torchvision import transforms
 from types import SimpleNamespace
 
 # import some common detectron2 utilities
@@ -33,6 +32,7 @@ from detectron2.config import get_cfg
 from detectron2.data import build_detection_test_loader
 from detectron2.engine import DefaultPredictor
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from torchvision import transforms
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
@@ -232,5 +232,3 @@ class Evaluator(EvaluatorBase):
         # Save the eval output to file.
         logger.info(f"Saving evaluation output to {self.eval_dir_mgr.get_metrics_path()}")
         self.output_builder.save_predictions(self.eval_dir_mgr.get_metrics_path())
-
-

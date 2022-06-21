@@ -28,22 +28,22 @@ Script that supports the model layout.
 NOTE: These paths are all relative to the Juneberry workspace root.
 """
 
+from contextlib import contextmanager
 import datetime
+import gzip
 import hashlib
-import hjson
 import json
 import logging
-import numpy as np
 import os
 from pathlib import Path
 import socket
 import sys
-import gzip
+
+import hjson
+import numpy as np
+import toml
 import yaml
 from yaml import Loader, Dumper
-import toml
-from contextlib import contextmanager
-
 
 from juneberry import Platforms
 
@@ -137,15 +137,17 @@ def save_json(data, json_path, *, indent: int = 4) -> None:
     with open_file(json_path, "wt") as json_file:
         json.dump(data, json_file, indent=indent, default=json_cleaner, sort_keys=True)
 
+
 def save_yaml(data, yaml_path) -> None:
     """
     Save the data to the specified path (string or Path) in YAML format.
     :param data: The data to save.
-    :param toml_path: The path to save the data to.
+    :param yaml_path: The path to save the data to.
     :return: None
     """
     with open_file(yaml_path, 'wt') as yaml_file:
         yaml.dump(data, yaml_file, Dumper=Dumper)
+
 
 def save_toml(data, toml_path) -> None:
     """
@@ -156,6 +158,7 @@ def save_toml(data, toml_path) -> None:
     """
     with open_file(toml_path, 'wt') as toml_file:
         toml.dump(data, toml_file)
+
 
 @contextmanager
 def open_file(path, mode='r') -> str:
@@ -178,12 +181,13 @@ def open_file(path, mode='r') -> str:
 def save_file(data, path: str, *, indent: int = 4) -> None:
     """
     Generic file saver that chooses the file format based on the extension of the path.
+    :param data:
     :param path:
     :param indent: The indent spacing to use; with a default of 4.
     :return: None
     """
     exts = Path(path).suffixes
-    ext = exts[0].lower() # the file type should be the left most of the suffixes
+    ext = exts[0].lower()  # the file type should be the left most of the suffixes
     if ext == '.json':
         save_json(data, path, indent=indent)
     elif ext == '.hjson':
@@ -205,7 +209,7 @@ def load_file(path: str) -> str:
     """
     if Path(path).exists():
         exts = Path(path).suffixes
-        ext = exts[0].lower() # the file type should be the left most of the suffixes
+        ext = exts[0].lower()  # the file type should be the left most of the suffixes
         with open_file(path, 'rt') as file:
             if ext in {'.json', '.hjson'}:
                 # HJSON is a superset of JSON, so the HJSON parser can handle both cases.
@@ -567,8 +571,8 @@ class EvalDirMgr:
         :param platform: The platform.
         :param dataset_name: The name of the evaluation dataset.
         """
-        # TODO: Why should the eval dir manager point to the rool eval directory?
-        # This seems like an error somewhere else
+        # TODO: Why should the eval dir manager point to the root eval directory?
+        #  This seems like an error somewhere else
         self.root = EvalDirMgr.get_path(root, dataset_name)
         self.platform = platform
 
@@ -748,8 +752,8 @@ class ModelManager:
         :return: An EvalDirMgr object.
         """
         # TODO: Why do we support dataset_path of None?
-        # This seems like an error somewhere else
-        #dataset_arg = Path(dataset_path).stem if dataset_path else None
+        #  This seems like an error somewhere else
+        # dataset_arg = Path(dataset_path).stem if dataset_path else None
         dataset_arg = None
         if dataset_path is not None:
             p = Path(dataset_path)
