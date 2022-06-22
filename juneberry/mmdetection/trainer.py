@@ -41,7 +41,6 @@ from juneberry.logging import log_banner, setup_logger
 import juneberry.mmdetection.utils as mmd_utils
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.scripting.sprout import TrainingSprout
 from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
@@ -81,15 +80,6 @@ class MMDTrainer(Trainer):
         #                 'val_loss_rpn_bbox', 'val_loss_rpn_cls']
         for key in results_keys:
             self.output.results.update({key: []})
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        super().inherit_from_sprout(sprout)
-
-        self.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
-        self.dryrun = sprout.dryrun
-
-        # Fill out some of the output fields using the model name / model config.
-        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
 
     def dry_run(self) -> None:
         # Setup saves the config file which is really what we want for now.

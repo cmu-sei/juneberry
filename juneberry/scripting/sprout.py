@@ -21,45 +21,55 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
 from argparse import Namespace
+from dataclasses import asdict, dataclass
 import datetime
 import logging
 import os
 from pathlib import Path
 
-from juneberry.config.model import ModelConfig
+from prodict import Prodict
+
+from juneberry.config.model import LRStepFrequency, ModelConfig
 from juneberry.config.tuning import TuningConfig
+from juneberry.detectron2.trainer import Detectron2Trainer
 import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 import juneberry.logging as jb_logging
+from juneberry.mmdetection.trainer import MMDTrainer
+from juneberry.pytorch.classifier_trainer import ClassifierTrainer
 import juneberry.scripting.utils as jb_scripting_utils
+from juneberry.tensorflow.trainer import ClassifierTrainer as TFTrainer
+from juneberry.training.trainer import EpochTrainer, Trainer
 import juneberry.training.utils as jb_training_utils
+
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class Sprout:
+    workspace_dir: str = None
+    dataroot_dir: str = None
+    tensorboard_dir: str = None
+    log_dir: str = None
 
-    def __init__(self, **kwargs):
-        self.workspace_dir = None
-        self.dataroot_dir = None
-        self.tensorboard_dir = None
-        self.log_dir = None
+    silent: bool = None
+    log_level: int = None
 
-        self.silent = None
-        self.log_level = None
+    profile_name: str = None
 
-        self.profile_name = None
+    num_gpus: int = None
+    dryrun: bool = None
 
-        self.num_gpus = None
-        self.dryrun = None
+    model_name: str = None
+    model_manager: jb_fs.ModelManager = None
+    model_config: ModelConfig = None
+    lab: Lab = None
 
-        self.model_name = None
-        self.model_manager = None
-        self.model_config = None
-        self.lab = None
+    def __repr__(self):
+        return Prodict(asdict(self))
 
     def grow_from_args(self, args: Namespace):
         self.workspace_dir = getattr(args, "workspace", None)
@@ -140,30 +150,16 @@ class Sprout:
 
         self.log_sprout_directories()
 
-    def build_trainer_from_model_config(self):
-        if self.model_config is not None:
-            if self.model_config.trainer is None:
-                trainer = jb_training_utils.assemble_trainer_stanza(self.model_config)
-            else:
-                trainer = jb_loader.construct_instance(self.model_config.trainer.fqcn, self.model_config.trainer.kwargs)
 
-            trainer.inherit_from_sprout(self)
-            return trainer
-        else:
-            logger.warning(f"There is no model config associated with the training sprout. Unable to "
-                           f"determine which type of trainer to build.")
-            return None
-
-
+@dataclass()
 class TrainingSprout(Sprout):
+    resume: bool = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    native_output_format: bool = None
+    onnx_output_format: bool = None
 
-        self.resume = None
-
-        self.native_output_format = None
-        self.onnx_output_format = None
+    def __repr__(self):
+        return Prodict(asdict(self))
 
     def grow_from_args(self, args: Namespace, init_logging: bool = True):
         super().grow_from_args(args)
@@ -195,28 +191,114 @@ class TrainingSprout(Sprout):
             logger.warning(f"An output format was not set. Defaulting to the native format.")
             self.native_output_format = True
 
+    def get_trainer(self):
+        if self.model_config is None:
+            logger.warning(f"There is no model config associated with the sprout. Unable to "
+                           f"determine which type of trainer to build.")
+            trainer = None
 
-class EvaluationSprout(Sprout):
+        else:
+            trainer = self._assemble_trainer()
 
-    def __init__(self):
-        super().__init__()
-        self.model_name = None
+        return trainer
 
-        self.eval_dataset_name = None
-        self.use_train_split = None
-        self.use_val_split = None
+    def _assemble_trainer(self):
+        if self.model_config.trainer is None:
+            trainer = jb_training_utils.assemble_stanza_and_construct_trainer(self.model_config)
+        else:
+            fqcn = self.model_config.trainer.fqcn
+            kwargs = self.model_config.trainer.kwargs
+            trainer = jb_loader.construct_instance(fqcn, kwargs)
 
-        self.dryrun = None
+        trainer = self._pollinate_trainer(trainer)
 
-        self.top_k = 0
+        return trainer
+
+    def _pollinate_trainer(self, trainer: Trainer):
+        if isinstance(trainer, ClassifierTrainer):
+            return self._pytorch_classifier_pollination(trainer)
+        if isinstance(trainer, Detectron2Trainer):
+            return self._detectron2_trainer_pollination(trainer)
+        if isinstance(trainer, MMDTrainer):
+            return self._mmdetection_trainer_pollination(trainer)
+        if isinstance(trainer, TFTrainer):
+            return self._tensorflow_trainer_pollination(trainer)
+
+    def _base_trainer_pollination(self, trainer: Trainer):
+        trainer.model_manager = self.model_manager
+        trainer.model_config = self.model_config
+        trainer.log_level = self.log_level
+        trainer.num_gpus = self.num_gpus
+        trainer.dryrun = self.dryrun
+        trainer.native_output_format = self.native_output_format
+        trainer.onnx_output_format = self.onnx_output_format
+        trainer.lab = self.lab
+        trainer.dataset_config = trainer.lab.load_dataset_config(trainer.model_config.training_dataset_config_path)
+
+        return trainer
+
+    def _epoch_trainer_pollination(self, trainer: EpochTrainer):
+        trainer = self._base_trainer_pollination(trainer)
+
+        trainer.max_epochs = self.model_config.epochs
+        trainer.done = False if trainer.max_epochs > trainer.epoch else True
+
+        return trainer
+
+    def _pytorch_classifier_pollination(self, trainer: ClassifierTrainer):
+        trainer = self._epoch_trainer_pollination(trainer)
+
+        trainer.data_version = self.model_manager.model_version
+        trainer.binary = trainer.dataset_config.is_binary
+        trainer.pytorch_options = self.model_config.pytorch
+
+        trainer.no_paging = False
+        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
+            logger.info("Setting to no paging mode.")
+            trainer.no_paging = True
+
+        trainer.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
+
+        trainer.lr_step_frequency = LRStepFrequency.EPOCH
+
+        return trainer
+
+    def _detectron2_trainer_pollination(self, trainer: Detectron2Trainer):
+        trainer = self._base_trainer_pollination(trainer)
+        trainer.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
+
+        trainer.resume = self.resume
+        trainer.output_dir = self.model_manager.get_train_scratch_path()
+        trainer.final_model_path = self.model_manager.get_detectron2_model_path()
+
+        return trainer
+
+    def _mmdetection_trainer_pollination(self, trainer: MMDTrainer):
+        trainer = self._base_trainer_pollination(trainer)
+        trainer.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
+        trainer.dryrun = self.dryrun
+
+        # Fill out some of the output fields using the model name / model config.
+        trainer.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
+
+        return trainer
+
+    def _tensorflow_trainer_pollination(self, trainer: TFTrainer):
+        trainer = self._base_trainer_pollination(trainer)
+        self.width = self.model_config.model_architecture.args['img_width']
+        self.height = self.model_config.model_architecture.args['img_height']
+        self.channels = self.model_config.model_architecture.args['channels']
+
+        return trainer
 
 
+@dataclass
 class TuningSprout(TrainingSprout):
+    tuning_config_str: str = None
+    tuning_config: TuningConfig = None
 
-    def __init__(self):
-        super().__init__()
-        self.tuning_config_str = None
-        self.tuning_config = TuningConfig()
+    def __repr__(self):
+        return Prodict(asdict(self))
 
     def grow_from_args(self, args: Namespace, init_logging: bool = True):
         super().grow_from_args(args, init_logging=False)
@@ -239,5 +321,25 @@ class TuningSprout(TrainingSprout):
 
     def build_tuner(self):
         tuner = jb_loader.construct_instance("juneberry.tuning.tuner.Tuner", kwargs={})
-        tuner.inherit_from_sprout(self)
+        tuner = self._pollinate_tuner(tuner)
         return tuner
+
+    def _pollinate_tuner(self, tuner):
+        tuner.trial_resources = self.tuning_config.trial_resources
+        tuner.metric = self.tuning_config.tuning_parameters.metric
+        tuner.mode = self.tuning_config.tuning_parameters.mode
+        tuner.num_samples = self.tuning_config.sample_quantity
+        tuner.scope = self.tuning_config.tuning_parameters.scope
+        tuner.checkpoint_interval = self.tuning_config.tuning_parameters.checkpoint_interval
+
+        tuner.baseline_model_config = self.lab.load_model_config(self.model_name)
+
+        return tuner
+
+
+@dataclass
+class EvaluationSprout(Sprout):
+    eval_dataset_name: str = None
+    use_train_split: bool = None
+    use_val_split: bool = None
+    top_k: int = None

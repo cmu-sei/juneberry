@@ -36,7 +36,6 @@ import juneberry.data as jb_data
 import juneberry.filesystem as jbfs
 import juneberry.loader as jb_loader
 import juneberry.plotting
-from juneberry.scripting.sprout import TrainingSprout
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
@@ -83,13 +82,6 @@ class ClassifierTrainer(Trainer):
 
         # The values generated during train.
         self.history = None
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        super().inherit_from_sprout(sprout)
-
-        self.width = self.model_config.model_architecture.args['img_width']
-        self.height = self.model_config.model_architecture.args['img_height']
-        self.channels = self.model_config.model_architecture.args['channels']
 
     # ==========================
 

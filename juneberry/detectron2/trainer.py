@@ -55,7 +55,6 @@ from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.logging import log_banner, setup_logger
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.scripting.sprout import TrainingSprout
 from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
@@ -104,16 +103,6 @@ class Detectron2Trainer(Trainer):
         # OUTPUT directory, so we rename it out of there.
         self.output_dir = None
         self.final_model_path = None
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        super().inherit_from_sprout(sprout)
-
-        # Fill out some of the output fields using the model name / model config.
-        self.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
-
-        self.resume = sprout.resume
-        self.output_dir = self.model_manager.get_train_scratch_path()
-        self.final_model_path = self.model_manager.get_detectron2_model_path()
 
     def dry_run(self) -> None:
         self.node_setup()

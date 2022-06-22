@@ -65,7 +65,7 @@ def main():
 
     sprout = TrainingSprout()
     sprout.grow_from_args(train_args)
-    trainer = sprout.build_trainer_from_model_config()
+    trainer = sprout.get_trainer()
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")

@@ -65,7 +65,7 @@ def setup_trainer_opt_args(args: Namespace):
     return opt_args
 
 
-def assemble_trainer_stanza(model_config: ModelConfig):
+def assemble_stanza_and_construct_trainer(model_config: ModelConfig):
     # Backward compatible map of task and platform name to class to load
     task_platform_map = {
         "classification": {
@@ -99,7 +99,7 @@ def assemble_trainer_stanza(model_config: ModelConfig):
 def build_trainer(model_config: ModelConfig, trainer_args: Namespace):
 
     if model_config.trainer is None:
-        model_config.trainer = assemble_trainer_stanza(model_config)
+        model_config.trainer = assemble_stanza_and_construct_trainer(model_config)
     else:
         if model_config.trainer.kwargs is None:
             model_config.trainer.kwargs = {}

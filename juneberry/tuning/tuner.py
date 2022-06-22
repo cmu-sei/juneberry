@@ -27,25 +27,16 @@ from ray import tune
 
 from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
-from juneberry.config.tuning import TuningConfig
-from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-from juneberry.scripting.sprout import TuningSprout
 
 logger = logging.getLogger(__name__)
 
 
 class Tuner:
 
-    def __init__(self, **kwargs):
-        self.model_name = None
-        self.model_manager = None
+    def __init__(self):
         self.baseline_model_config = ModelConfig()
-
-        self.tuning_config_str = None
-        self.tuning_config = TuningConfig()
-
-        self.lab = Lab()
+        self.tuning_sprout = None
 
         # Attributes derived from the tuning config.
 
@@ -62,41 +53,15 @@ class Tuner:
         self.scheduler = None
 
         # Some more properties from the tuning config.
-        self.trial_resources = self.tuning_config.trial_resources
+        self.trial_resources = None
         self.metric = None
         self.mode = None
-        self.num_samples = self.tuning_config.sample_quantity
+        self.num_samples = None
         self.scope = None
         self.checkpoint_interval = None
 
         # Attribute to capture the best tuning result.
         self.best_result = None
-
-        # Methods for setting attributes.
-        self._build_tuning_components()
-
-        self.sprout = None
-
-    def inherit_from_sprout(self, sprout: TuningSprout):
-        self.sprout = sprout
-
-        self.model_name = sprout.model_name
-        self.model_manager = sprout.model_manager
-        self.lab = sprout.lab
-        self.tuning_config_str = sprout.tuning_config_str
-        self.tuning_config = sprout.tuning_config
-
-        self.trial_resources = self.tuning_config.trial_resources
-        self.metric = self.tuning_config.tuning_parameters.metric
-        self.mode = self.tuning_config.tuning_parameters.mode
-        self.num_samples = self.tuning_config.sample_quantity
-        self.scope = self.tuning_config.tuning_parameters.scope
-        self.checkpoint_interval = self.tuning_config.tuning_parameters.checkpoint_interval
-
-        self.baseline_model_config = self.lab.load_model_config(self.model_name)
-
-        # Methods for setting attributes.
-        self._build_tuning_components()
 
     def _build_tuning_components(self):
         """
@@ -104,16 +69,16 @@ class Tuner:
         :return:
         """
         # Extract the search_space from the tuning config.
-        if self.tuning_config.search_space is not None:
-            self._build_search_space(self.tuning_config.search_space)
+        if self.tuning_sprout.tuning_config.search_space is not None:
+            self._build_search_space(self.tuning_sprout.tuning_config.search_space)
 
         # Extract the scheduler from the tuning config and then build the desired scheduler.
-        if self.tuning_config.scheduler is not None:
-            self._build_scheduler(self.tuning_config.scheduler)
+        if self.tuning_sprout.tuning_config.scheduler is not None:
+            self._build_scheduler(self.tuning_sprout.tuning_config.scheduler)
 
         # Extract the search algorithm for the search space and then build it.
-        if self.tuning_config.search_algorithm is not None:
-            self._build_search_algo(self.tuning_config.search_algorithm)
+        if self.tuning_sprout.tuning_config.search_algorithm is not None:
+            self._build_search_algo(self.tuning_sprout.tuning_config.search_algorithm)
 
     def _build_search_space(self, search_space_dict: dict):
         """
@@ -142,13 +107,13 @@ class Tuner:
         if "metric" in scheduler_dict.kwargs:
             logger.warning(f"The scheduler does not need a 'metric' parameter since the 'metric' arg is "
                            f"passed to tune.run(). Remove the 'metric' kwarg from the 'scheduler' section "
-                           f"in '{self.tuning_config_name}' to eliminate this warning.")
+                           f"in '{self.tuning_sprout.tuning_config_str}' to eliminate this warning.")
             scheduler_dict.kwargs.pop("metric")
 
         if "mode" in scheduler_dict.kwargs:
             logger.warning(f"The scheduler does not need a 'mode' parameter since the 'mode' arg is "
                            f"passed to tune.run(). Remove the 'mode' kwarg from the 'scheduler' section "
-                           f"in '{self.tuning_config_name}' to eliminate this warning.")
+                           f"in '{self.tuning_sprout.tuning_config_str}' to eliminate this warning.")
             scheduler_dict.kwargs.pop("mode")
 
         logger.info(f"  kwargs for tuning scheduler: {scheduler_dict.kwargs}")
@@ -162,17 +127,14 @@ class Tuner:
         logger.info(f"  Tuning search_algo built!")
 
     def _train_fn(self, config, checkpoint_dir=None):
-        # TODO: Lots of work here...the real "meat" of the problem. May need to refactor various Juneberry
-        #  components.
         # Ray Tune runs this function on a separate thread in a Ray actor process.
 
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
-        """ The model config substitution process (line below) appears to be working as expected."""
         trial_model_config = self.baseline_model_config.adjust_attributes(config)
         # trial_model_config is a ModelConfig
 
-        self.sprout.set_model_config(trial_model_config)
-        trainer = self.sprout.build_trainer_from_model_config()
+        self.tuning_sprout.set_model_config(trial_model_config)
+        trainer = self.tuning_sprout.get_trainer()
 
         # "Many Tune features rely on checkpointing, including certain Trial Schedulers..."
         if checkpoint_dir:
@@ -189,30 +151,14 @@ class Tuner:
 
         while cur_epoch < trial_model_config.epochs:
             latest_metrics = trainer.tune()
-            # latest_metrics = trainer.tuning_round()
-            # latest_metrics = trainer.tuning_generator()
-            # Assuming latest_metrics is a dictionary, use tune.report() like this:
-            # tune.report(**latest_metrics)
             thing = next(latest_metrics)
-            # print(f"thing{cur_epoch} is {thing}")
             yield thing
             cur_epoch += 1
 
-        # Would something like this make sense? Would require Trainer refactoring, especially for the
-        # metrics = trainer._train_one_epoch() (or equivalent) line.
-        # while cur_epoch < max_epochs:
-        #   metrics = trainer._train_one_epoch()
-        #   if cur_epoch % self.checkpoint_interval == 0:
-        #       with tune.checkpoint_dir(step=cur_epoch) as checkpoint_dir:
-        #           path = Path(checkpoint_dir) / "checkpoint"
-        #           torch.save({
-        #               "cur_epoch": cur_epoch,
-        #               "model_state_dict": model.state_dict(),
-        #               "metric": metrics.metric
-        #           }, path)
-        #   tune.report(metric=metrics.metric)
-
     def tune(self):
+        # Methods for setting attributes.
+        self._build_tuning_components()
+
         # Perform the tuning run.
         result = tune.run(
             self._train_fn,
@@ -223,7 +169,7 @@ class Tuner:
             mode=self.mode,
             num_samples=self.num_samples,
             scheduler=self.scheduler,
-            local_dir=str(self.model_manager.get_tuning_dir())
+            local_dir=str(self.tuning_sprout.model_manager.get_tuning_dir())
         )
         #
         # Once the tuning is complete, store the best result.
@@ -235,6 +181,4 @@ class Tuner:
         #  the best tuning result. This is where we'd do something with self.best_result.
         logger.info(f"Best trial config: {self.best_result.config}")
         logger.info(f"Best trial final '{self.metric}': {self.best_result.last_result[self.metric]}")
-
-
     

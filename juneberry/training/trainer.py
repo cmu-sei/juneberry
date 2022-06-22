@@ -45,7 +45,6 @@ import juneberry.config.training_output
 import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 from juneberry.logging import log_banner
-from juneberry.scripting.sprout import TrainingSprout
 from juneberry.timing import Berryometer
 
 logger = logging.getLogger(__name__)
@@ -83,17 +82,6 @@ class Trainer:
         self.lab = None
 
         self.cur_metrics = None
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        self.model_manager = sprout.model_manager
-        self.model_config = sprout.model_config
-        self.log_level = sprout.log_level
-        self.num_gpus = sprout.num_gpus
-        self.dryrun = sprout.dryrun
-        self.native_output_format = sprout.native_output_format
-        self.onnx_output_format = sprout.onnx_output_format
-        self.lab = sprout.lab
-        self.dataset_config = self.lab.load_dataset_config(self.model_config.training_dataset_config_path)
 
     # ==========================
 
@@ -144,17 +132,6 @@ class Trainer:
 
     def tune_model(self):
         pass
-
-    def tuning_round(self) -> dict:
-        logger.warning("tuning_round() not implemented in base Trainer.")
-        import random
-        while True:
-            loss = random.randint(0, 10)
-            accuracy = random.randint(0, 100)
-            val_loss = random.randint(0, 10)
-            val_accuracy = random.randint(0, 100)
-
-            yield {"loss": loss, "accuracy": accuracy, "val_loss": val_loss, "val_accuracy": val_accuracy}
 
     # ==========================
 
@@ -280,12 +257,6 @@ class EpochTrainer(Trainer):
         self.max_epochs = None
         self.training_iterable = None
         self.evaluation_iterable = None
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        super().inherit_from_sprout(sprout)
-
-        self.max_epochs = self.model_config.epochs
-        self.done = False if self.max_epochs > self.epoch else True
 
     # -----------------------------------------------
     #  _____     _                 _              ______     _       _
@@ -462,7 +433,6 @@ class EpochTrainer(Trainer):
             return_val = self.end_epoch(tuning_mode=True)
             # print(f"return_val in _tune_one_interval is {return_val}")
             return return_val
-
 
     def _process_one_iterable(self, train: bool, data_iterable):
         """

@@ -24,7 +24,6 @@
 import datetime
 import logging
 import math
-import os
 import sys
 from typing import Union
 
@@ -36,7 +35,7 @@ import torch.distributed as dist
 
 import juneberry
 import juneberry.config.dataset as jb_dataset
-from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
+from juneberry.config.model import LRStepFrequency, StoppingCriteria
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
 from juneberry.logging import setup_logger
@@ -45,7 +44,6 @@ from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
-from juneberry.scripting.sprout import TrainingSprout
 import juneberry.tensorboard as jbtb
 from juneberry.training.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
@@ -87,22 +85,6 @@ class ClassifierTrainer(EpochTrainer):
         self.history_key = None
         self.direction = None
         self.abs_tol = None
-
-    def inherit_from_sprout(self, sprout: TrainingSprout):
-        super().inherit_from_sprout(sprout)
-
-        self.data_version = self.model_manager.model_version
-        self.binary = self.dataset_config.is_binary
-        self.pytorch_options: PytorchOptions = self.model_config.pytorch
-
-        self.no_paging = False
-        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
-            logger.info("Setting to no paging mode.")
-            self.no_paging = True
-
-        self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
-
-        self.lr_step_frequency = LRStepFrequency.EPOCH
 
     # ==========================================================================
     def dry_run(self) -> None:
