@@ -334,6 +334,8 @@ class TuningSprout(TrainingSprout):
 
         tuner.baseline_model_config = self.lab.load_model_config(self.model_name)
 
+        tuner.tuning_sprout = self
+
         return tuner
 
 
