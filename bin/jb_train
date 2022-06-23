@@ -25,6 +25,7 @@
 import argparse
 import logging
 
+from juneberry.scripting.pollinator import Pollinator
 from juneberry.scripting.sprout import TrainingSprout
 import juneberry.scripting.utils as jb_scripting_utils
 
@@ -65,7 +66,11 @@ def main():
 
     sprout = TrainingSprout()
     sprout.grow_from_args(train_args)
-    trainer = sprout.get_trainer()
+
+    pollinator = Pollinator()
+    pollinator.assign_sprout(sprout)
+
+    trainer = pollinator.get_trainer()
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
