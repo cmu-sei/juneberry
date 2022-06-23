@@ -113,7 +113,7 @@ class Trainer:
         Executes a "dryrun" of the training checking for model viability, data set properties, etc.
         :return: None
         """
-        logger.warning("No Dry Run implemented in base Trainer")
+        logger.warning("dry_run() not implemented in base Trainer.")
 
     # ==========================
 
@@ -123,7 +123,7 @@ class Trainer:
         :param gpu: The gpu/process number to use for training.  None indicates CPU only.
         :return: None
         """
-        self.gpu = gpu
+        self.gpu_setup(gpu)
 
         # This allows each platform to have its own particular way of setting up logging.
         # Logging must be set up prior to the first logging banner.
@@ -142,7 +142,33 @@ class Trainer:
         with self.timer("finalize"):
             self.finish()
 
+    def tuning_setup(self, gpu: int = None):
+        self.gpu_setup(gpu)
+        self.setup()
+
     # ==========================
+
+    def gpu_setup(self, gpu: int = None) -> None:
+        self.num_gpus = self.check_gpu_availability(self.lab.profile.num_gpus)
+
+        if self.lab.profile.max_gpus is not None:
+            if self.num_gpus > self.lab.profile.max_gpus:
+                logger.info(
+                    f"Maximum numbers of GPUs {self.num_gpus} being capped to {self.lab.profile.max_gpus} "
+                    f"because of lab profile.")
+                self.num_gpus = self.lab.profile.max_gpus
+
+        # No matter the number of GPUs, setup the node for training
+        self.node_setup()
+
+        if self.num_gpus == 0:
+            self.gpu = None
+        elif self.num_gpus == 1:
+            self.gpu = 0
+        else:
+            self.train_distributed(self.num_gpus)
+
+        self.gpu = gpu
 
     def node_setup(self) -> None:
         """ Called to prepare the node for either single process or distributed training. """
@@ -156,6 +182,9 @@ class Trainer:
 
     def train(self) -> None:
         logger.warning("train() not implemented in base Trainer")
+
+    def tune(self):
+        logger.warning("tune() not implemented in base Trainer")
 
     def finish(self) -> None:
         logger.warning("finish() not implemented in base Trainer")
@@ -285,6 +314,14 @@ class EpochTrainer(Trainer):
         while not self.done:
             self._train_one_epoch()
 
+    def tune(self):
+        # For each epoch we need to do our basic training loops
+        logger.info(f"Starting to Tune...")
+        while not self.done:
+            # print(f"self._tune_one_interval() type - {type(self._tune_one_interval())}")
+            # print(f"self.cur_metrics in tune(): {self.cur_metrics}")
+            yield self._tune_one_interval()
+
     def finish(self) -> None:
         """
         Called to finalize and close all resources.
@@ -347,7 +384,7 @@ class EpochTrainer(Trainer):
         """
         pass
 
-    def end_epoch(self) -> str:
+    def end_epoch(self, tuning_mode: bool = False) -> str:
         """
         Called at the end of epoch for model saving, external telemetry, etc.
         """
@@ -409,6 +446,22 @@ class EpochTrainer(Trainer):
                     f"time_sec: {elapsed:.3f}, eta: {eta.strftime('%H:%M:%S')}, "
                     f"remaining: {int(hours):d}:{int(minutes):02d}:{int(seconds):02d}, "
                     f"{msg}")
+
+    def _tune_one_interval(self):
+        self.epoch += 1
+
+        with self.timer("epoch"):
+            # Process all the data from the data loader
+            self._process_one_iterable(True, self.training_iterable)
+
+            # Process all the data from the data loader
+            self._process_one_iterable(False, self.evaluation_iterable)
+
+        with self.timer("end_epoch"):
+            epoch_tracker = self.timer('epoch')
+            return_val = self.end_epoch(tuning_mode=True)
+            # print(f"return_val in _tune_one_interval is {return_val}")
+            return return_val
 
     def _process_one_iterable(self, train: bool, data_iterable):
         """

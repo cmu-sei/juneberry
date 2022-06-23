@@ -1,0 +1,67 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+
+from juneberry.script_tools.sprout import TuningSprout
+import juneberry.scripting as jb_scripting_utils
+
+logger = logging.getLogger("juneberry.jb_tune")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument('modelName', help='Name of the directory in the workspace "models" directory containing the '
+                                          'model \'config.json\' of the model to be tuned.')
+    parser.add_argument('tuningConfig', help='Name of the tuning config to apply to the model.')
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
+
+
+def main():
+    # Setup and parse all arguments.
+    parser = argparse.ArgumentParser(description="Performs the hyperparameter tuning defined in a tuning config "
+                                                 "on a Juneberry model.")
+    setup_args(parser)
+    jb_scripting_utils.setup_args(parser)
+    args = parser.parse_args()
+
+    sprout = TuningSprout()
+    sprout.grow_from_args(args)
+    tuner = sprout.build_tuner()
+
+    if tuner is None:
+        logger.error(f"No Tuner instantiated. Exiting.")
+    else:
+        tuner.tune()
+        tuner.process_best_result()
+
+    logger.info(f"jb_tune is done.")
+
+
+if __name__ == "__main__":
+    jb_scripting_utils.run_main(main, logger)

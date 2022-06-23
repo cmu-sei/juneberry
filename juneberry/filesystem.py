@@ -634,6 +634,7 @@ class ModelManager:
         self.model_name = model_name
         self.model_version = model_version
         self.model_dir_path = Path('models') / self.model_name / self.model_version
+        self.ensure_model_directory()
         if platform is not None:
             self.model_platform = platform
         else:
@@ -743,6 +744,14 @@ class ModelManager:
         """ :return: Path to a directory for 'scratch' outputs from training. """
         return self.get_train_root_dir() / "scratch"
 
+    def get_tuning_dir(self) -> Path:
+        """ :return: Path to a directory containing files related to hyperparameter tuning. """
+        return self.get_train_root_dir() / "tuning"
+
+    def get_tuning_checkpoint_dir(self) -> Path:
+        """ :return: Path to a directory containing model checkpoints from hyperparameter tuning. """
+        return self.get_tuning_dir() / "checkpoints"
+
     # ============ Evaluation ============
 
     def get_eval_dir_mgr(self, dataset_path: str = None) -> EvalDirMgr:
@@ -823,9 +832,11 @@ class ModelManager:
 
     def ensure_model_directory(self) -> None:
         """ Checks for the existence of the model directory and exits if the model directory doesn't exist. """
-        if not os.path.exists(self.model_dir_path):
-            logger.error(f"Model directory '{self.model_dir_path}' does not exist!! EXITING!!")
+        if not self.model_dir_path.exists():
+            logger.error(f"Model directory '{self.model_dir_path}' does not exist. Exiting.")
             exit(-1)
+        else:
+            self.setup()
 
     def get_training_output_list(self):
         """
