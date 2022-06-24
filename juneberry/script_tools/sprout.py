@@ -169,7 +169,7 @@ class TrainingSprout(Sprout):
 
         self._determine_output_format(skip_native_arg, onnx_arg)
 
-        self.model_manager = jb_fs.ModelManager(self.model_name)
+        self.model_manager = jb_fs.ModelManager(self.model_name, validate_dir=True)
         # TODO: How should JB log if there's no ModelManager?
         # TODO: self.log_dir should influence the location of the log.
         log_file = self.model_manager.get_training_dryrun_log_path() if self.dryrun \

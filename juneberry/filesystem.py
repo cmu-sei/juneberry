@@ -623,7 +623,7 @@ class EvalDirMgr:
 
 class ModelManager:
     # TODO: See https://wiki-int.sei.cmu.edu/confluence/display/CYBINV/Juneberry+Refactoring+Sketchboard
-    def __init__(self, model_name, model_version=None, *, platform: str = None):
+    def __init__(self, model_name, model_version=None, *, platform: str = None, validate_dir: bool = False):
         """
         :param model_name: Name of model directory
         :param model_version: The version of the model.
@@ -634,7 +634,8 @@ class ModelManager:
         self.model_name = model_name
         self.model_version = model_version
         self.model_dir_path = Path('models') / self.model_name / self.model_version
-        self.ensure_model_directory()
+        if validate_dir:
+            self.ensure_model_directory()
         if platform is not None:
             self.model_platform = platform
         else:
