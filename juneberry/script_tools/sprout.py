@@ -39,7 +39,6 @@ import juneberry.jb_logging as jb_logging
 import juneberry.scripting as jb_scripting_utils
 import juneberry.training.utils as jb_training_utils
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -318,11 +317,13 @@ class TuningSprout(TrainingSprout):
         self.tuning_config_str = getattr(args, "tuningConfig", None)
 
         self.model_manager = jb_fs.ModelManager(self.model_name)
-        # TODO: How should JB log if there's no ModelManager?
-        # TODO: Figure out where/how to save Tuning log messages
-        log_file = None
+        self.model_manager.setup_tuning()
+
+        log_file = self.model_manager.get_tuning_log()
         if init_logging:
             self.initialize_logging(log_file=log_file, banner=">>> Juneberry Tuner <<<")
+            jb_logging.setup_logger(log_file=log_file, log_prefix="", name="ray", level=self.log_level)
+
         self.set_model_config()
         self.set_tuning_config()
 

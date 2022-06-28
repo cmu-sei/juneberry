@@ -22,12 +22,14 @@
 #
 # ======================================================================================================================
 import logging
+from pathlib import Path
 
 from ray import tune
 
 from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
 import juneberry.loader as jb_loader
+from juneberry.tuning.reporter import CustomReporter
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,7 @@ class Tuner:
         # Methods for setting attributes.
         self._build_tuning_components()
 
+        logger.info(f"Starting the tuning run.")
         # Perform the tuning run.
         result = tune.run(
             self._train_fn,
@@ -169,8 +172,10 @@ class Tuner:
             mode=self.mode,
             num_samples=self.num_samples,
             scheduler=self.scheduler,
-            local_dir=str(self.tuning_sprout.model_manager.get_tuning_dir())
+            local_dir=str(self.tuning_sprout.model_manager.get_tuning_dir()),
+            progress_reporter=CustomReporter()
         )
+        logger.info(f"The tuning run is complete. Storing best result.")
         #
         # Once the tuning is complete, store the best result.
         self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
@@ -181,3 +186,7 @@ class Tuner:
         #  the best tuning result. This is where we'd do something with self.best_result.
         logger.info(f"Best trial config: {self.best_result.config}")
         logger.info(f"Best trial final '{self.metric}': {self.best_result.last_result[self.metric]}")
+
+        # Move the Juneberry tuning log into the tuning directory for this run.
+        new_log_path = Path(self.best_result.local_dir) / "log.txt"
+        self.tuning_sprout.model_manager.get_tuning_log().rename(new_log_path)
