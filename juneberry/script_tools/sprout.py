@@ -44,23 +44,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Sprout:
+    # ========== SCRIPT ARGS ==========
+    # ===== DIRECTORY ARGS =====
     workspace_dir: str = None
     dataroot_dir: str = None
     tensorboard_dir: str = None
     log_dir: str = None
 
+    # ===== LOGGING ARGS =====
     silent: bool = None
     log_level: int = None
 
+    # ===== LAB ARGS =====
     profile_name: str = None
-
-    num_gpus: int = None
-    dryrun: bool = None
-
-    model_name: str = None
-    model_manager: jb_fs.ModelManager = None
-    model_config: ModelConfig = None
-    lab: Lab = None
 
     def __repr__(self):
         return Prodict(asdict(self))
@@ -81,12 +77,94 @@ class Sprout:
         logger.info(f"  Tensorboard dir: {self.tensorboard_dir}")
         logger.info(f"  Log dir: {self.log_dir}")
 
+
+@dataclass()
+class TrainingSprout(Sprout):
+    # ========== SCRIPT ARGS ==========
+    # ===== EXECUTION MODE ARGS =====
+    dryrun: bool = None
+    num_gpus: int = None
+    resume: bool = None
+
+    # ===== OUTPUT FORMAT ARGS =====
+    onnx: bool = None
+    skip_native: bool = None
+
+    # ===== MODEL ARGS =====
+    model_name: str = None
+
+    # ========== DERIVED FROM SCRIPT ARGS ==========
+    # ===== JUNEBERRY ATTRIBUTES =====
+    model_manager: jb_fs.ModelManager = None
+    model_config: ModelConfig = None
+    lab: Lab = None
+
+    # ===== LOGGING ATTRIBUTES =====
+    log_prefix = None
+    log_file = None
+
+    # ===== OUTPUT FORMAT ATTRIBUTES =====
+    native_output_format: bool = None
+    onnx_output_format: bool = None
+
+    def __repr__(self):
+        return Prodict(asdict(self))
+
+    def grow_from_args(self, args: Namespace, init_logging: bool = True, derive_attr: bool = True):
+        super().grow_from_args(args)
+
+        self.model_name = getattr(args, "modelName", None)
+        self.num_gpus = getattr(args, "num_gpus", None)
+        self.dryrun = getattr(args, "dryrun", False)
+        self.resume = getattr(args, "resume", False)
+
+        self.skip_native = getattr(args, "skipNative", False)
+        self.onnx = getattr(args, "onnx", False)
+
+        if derive_attr:
+            self._derive_attributes(init_logging=init_logging)
+
+    def log_sprout_directories(self):
+        if self.lab is not None:
+            logger.info(f"Directories associated with this sprout:")
+            logger.info(f"  Workspace dir: {self.lab.workspace()}")
+            logger.info(f"  Dataroot dir: {self.lab.data_root()}")
+            logger.info(f"  Tensorboard dir: {self.lab.tensorboard}")
+            logger.info(f"  Log dir: {self.log_dir}")
+        else:
+            super().log_sprout_directories()
+
+    def _derive_attributes(self, init_logging: bool):
+        self.model_manager = jb_fs.ModelManager(self.model_name, validate_dir=True)
+        # TODO: How should JB log if there's no ModelManager?
+        # TODO: self.log_dir should influence the location of the log.
+        if init_logging:
+            if self.dryrun:
+                self.log_file = self.model_manager.get_training_dryrun_log_path()
+            else:
+                self.log_file = self.model_manager.get_training_log()
+
+            self._initialize_logging(banner=">>> Juneberry Trainer <<<")
+
+        self._determine_output_format()
+        self.set_model_config()
+
+        self.log_sprout_directories()
+
+    def _determine_output_format(self):
+        self.native_output_format = not self.skip_native
+        self.onnx_output_format = self.onnx
+
+        if not (self.onnx_output_format or self.native_output_format):
+            logger.warning(f"An output format was not set. Defaulting to the native format.")
+            self.native_output_format = True
+
     def set_model_config(self, model_config: ModelConfig = None):
         if model_config is None:
             if self.model_manager is not None:
                 self.model_config = ModelConfig.load(self.model_manager.get_model_config())
                 if self.lab is None:
-                    self.lab = self.initialize_lab()
+                    self.lab = self._initialize_lab()
                 else:
                     self.lab.setup_lab_profile(model_config=self.model_config)
                 return
@@ -97,11 +175,11 @@ class Sprout:
 
         self.model_config = model_config
         if self.lab is None:
-            self.lab = self.initialize_lab()
+            self.lab = self._initialize_lab()
         else:
             self.lab.setup_lab_profile(model_config=self.model_config)
 
-    def initialize_lab(self):
+    def _initialize_lab(self):
         lab_args = Namespace(workspace=self.workspace_dir, dataRoot=self.dataroot_dir, tensorboard=self.tensorboard_dir,
                              profileName=self.profile_name)
         resolved_args = jb_scripting_utils.resolve_lab_args(lab_args)
@@ -120,81 +198,35 @@ class Sprout:
 
         return lab
 
-    def initialize_logging(self, log_file: Path = None, banner: str = ">>> New Section <<<"):
-        log_prefix = "<<DRY_RUN>> " if self.dryrun else ""
+    def _initialize_logging(self, banner: str = ">>> New Section <<<"):
+        self.log_prefix = "<<DRY_RUN>> " if self.dryrun else ""
 
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
-        # TODO: Maybe this isn't the right spot for the banner?
-        banner_msg = banner
-        jb_logging.log_banner(logger, banner_msg)
 
-        if log_file is not None and log_file.exists():
+        if self.log_file is not None and self.log_file.exists():
             if int(os.environ.get('JUNEBERRY_REMOVE_OLD_LOGS', 0)) == 1:
-                log_file.unlink()
+                self.log_file.unlink()
             else:
                 logger.info("Keeping old log files. Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
-                time_val = datetime.datetime.fromtimestamp(os.path.getmtime(log_file)).strftime("%m%d%y_%H%M")
-                new_file_path = Path(log_file.parent, f"{log_file.stem}_{time_val}.txt")
-                os.rename(log_file, new_file_path)
+                time_val = datetime.datetime.fromtimestamp(os.path.getmtime(self.log_file)).strftime("%m%d%y_%H%M")
+                timestamped_log_filename = Path(self.log_file.parent, f"{self.log_file.stem}_{time_val}.txt")
+                self.log_file.rename(timestamped_log_filename)
 
-        jb_logging.setup_logger(log_file, log_prefix=log_prefix, log_to_console=not self.silent, level=self.log_level,
-                                name="juneberry")
+        jb_logging.setup_logger(self.log_file, log_prefix=self.log_prefix, log_to_console=not self.silent,
+                                level=self.log_level, name="juneberry")
+
+        jb_logging.log_banner(logger, banner)
 
         logger.debug(f"DEBUG messages enabled.")
-
-        self.log_sprout_directories()
-
-
-@dataclass()
-class TrainingSprout(Sprout):
-    resume: bool = None
-
-    native_output_format: bool = None
-    onnx_output_format: bool = None
-
-    def __repr__(self):
-        return Prodict(asdict(self))
-
-    def grow_from_args(self, args: Namespace, init_logging: bool = True):
-        super().grow_from_args(args)
-
-        self.model_name = getattr(args, "modelName", None)
-        self.num_gpus = getattr(args, "num_gpus", None)
-        self.dryrun = getattr(args, "dryrun", False)
-        self.resume = getattr(args, "resume", False)
-
-        skip_native_arg = getattr(args, "skipNative", False)
-        onnx_arg = getattr(args, "onnx", False)
-
-        self._determine_output_format(skip_native_arg, onnx_arg)
-
-        self.model_manager = jb_fs.ModelManager(self.model_name, validate_dir=True)
-        # TODO: How should JB log if there's no ModelManager?
-        # TODO: self.log_dir should influence the location of the log.
-        log_file = self.model_manager.get_training_dryrun_log_path() if self.dryrun \
-            else self.model_manager.get_training_log()
-        if init_logging:
-            self.initialize_logging(log_file=log_file, banner=">>> Juneberry Trainer <<<")
-        self.set_model_config()
-
-    def _determine_output_format(self, native_arg, onnx_arg):
-        self.native_output_format = not native_arg
-        self.onnx_output_format = onnx_arg
-
-        if not (self.onnx_output_format or self.native_output_format):
-            logger.warning(f"An output format was not set. Defaulting to the native format.")
-            self.native_output_format = True
 
     def get_trainer(self):
         if self.model_config is None:
             logger.warning(f"There is no model config associated with the sprout. Unable to "
                            f"determine which type of trainer to build.")
-            trainer = None
+            return None
 
         else:
-            trainer = self._assemble_trainer()
-
-        return trainer
+            return self._assemble_trainer()
 
     def _assemble_trainer(self):
         if self.model_config.trainer is None:
@@ -202,10 +234,7 @@ class TrainingSprout(Sprout):
             trainer_kwargs = {}
         else:
             trainer_fqcn = self.model_config.trainer.fqcn
-            trainer_kwargs = self.model_config.trainer.kwargs
-
-        if trainer_kwargs is None:
-            trainer_kwargs = {}
+            trainer_kwargs = self.model_config.trainer.kwargs if self.model_config.trainer.kwargs is not None else {}
 
         trainer_kwargs['lab'] = self.lab
         trainer_kwargs['model_manager'] = self.model_manager
@@ -220,116 +249,54 @@ class TrainingSprout(Sprout):
         trainer.onnx = self.onnx_output_format
         trainer.native = self.native_output_format
 
-        # trainer = self._pollinate_trainer(trainer)
-
         return trainer
-
-    # def _pollinate_trainer(self, trainer: Trainer):
-    #     if isinstance(trainer, ClassifierTrainer):
-    #         return self._pytorch_classifier_pollination(trainer)
-    #     if isinstance(trainer, Detectron2Trainer):
-    #         return self._detectron2_trainer_pollination(trainer)
-    #     if isinstance(trainer, MMDTrainer):
-    #         return self._mmdetection_trainer_pollination(trainer)
-    #     if isinstance(trainer, TFTrainer):
-    #         return self._tensorflow_trainer_pollination(trainer)
-    #
-    # def _base_trainer_pollination(self, trainer: Trainer):
-    #     trainer.model_manager = self.model_manager
-    #     trainer.model_config = self.model_config
-    #     trainer.log_level = self.log_level
-    #     trainer.num_gpus = self.num_gpus
-    #     trainer.dryrun = self.dryrun
-    #     trainer.native_output_format = self.native_output_format
-    #     trainer.onnx_output_format = self.onnx_output_format
-    #     trainer.lab = self.lab
-    #     trainer.dataset_config = trainer.lab.load_dataset_config(trainer.model_config.training_dataset_config_path)
-    #
-    #     return trainer
-    #
-    # def _epoch_trainer_pollination(self, trainer: EpochTrainer):
-    #     trainer = self._base_trainer_pollination(trainer)
-    #
-    #     trainer.max_epochs = self.model_config.epochs
-    #     trainer.done = False if trainer.max_epochs > trainer.epoch else True
-    #
-    #     return trainer
-    #
-    # def _pytorch_classifier_pollination(self, trainer: ClassifierTrainer):
-    #     trainer = self._epoch_trainer_pollination(trainer)
-    #
-    #     trainer.data_version = self.model_manager.model_version
-    #     trainer.binary = trainer.dataset_config.is_binary
-    #     trainer.pytorch_options = self.model_config.pytorch
-    #
-    #     trainer.no_paging = False
-    #     if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
-    #         logger.info("Setting to no paging mode.")
-    #         trainer.no_paging = True
-    #
-    #     trainer.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
-    #
-    #     trainer.lr_step_frequency = LRStepFrequency.EPOCH
-    #
-    #     return trainer
-    #
-    # def _detectron2_trainer_pollination(self, trainer: Detectron2Trainer):
-    #     trainer = self._base_trainer_pollination(trainer)
-    #     trainer.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
-    #
-    #     trainer.resume = self.resume
-    #     trainer.output_dir = self.model_manager.get_train_scratch_path()
-    #     trainer.final_model_path = self.model_manager.get_detectron2_model_path()
-    #
-    #     return trainer
-    #
-    # def _mmdetection_trainer_pollination(self, trainer: MMDTrainer):
-    #     trainer = self._base_trainer_pollination(trainer)
-    #     trainer.working_dir = self.model_manager.get_train_scratch_path() if self.model_manager is not None else None
-    #     trainer.dryrun = self.dryrun
-    #
-    #     # Fill out some of the output fields using the model name / model config.
-    #     trainer.output_builder.set_from_model_config(self.model_manager.model_name, self.model_config)
-    #
-    #     return trainer
-    #
-    # def _tensorflow_trainer_pollination(self, trainer: TFTrainer):
-    #     trainer = self._base_trainer_pollination(trainer)
-    #     self.width = self.model_config.model_architecture.args['img_width']
-    #     self.height = self.model_config.model_architecture.args['img_height']
-    #     self.channels = self.model_config.model_architecture.args['channels']
-    #
-    #     return trainer
 
 
 @dataclass
 class TuningSprout(TrainingSprout):
+    # ========== SCRIPT ARGS ==========
+    # ===== TUNING ARGS =====
     tuning_config_str: str = None
+
+    # ========== DERIVED FROM SCRIPT ARGS ==========
+    # ===== TUNING ATTRIBUTES =====
     tuning_config: TuningConfig = None
 
     def __repr__(self):
         return Prodict(asdict(self))
 
-    def grow_from_args(self, args: Namespace, init_logging: bool = True):
-        super().grow_from_args(args, init_logging=False)
+    def grow_from_args(self, args: Namespace, init_logging: bool = True, derive_attr: bool = True):
+        super().grow_from_args(args, init_logging=False, derive_attr=False)
+
         self.model_name = getattr(args, "modelName", None)
         self.dryrun = getattr(args, "dryrun", False)
         self.tuning_config_str = getattr(args, "tuningConfig", None)
 
+        if derive_attr:
+            self._derive_attributes(init_logging=init_logging)
+
+    def _derive_attributes(self, init_logging: bool):
         self.model_manager = jb_fs.ModelManager(self.model_name)
         self.model_manager.setup_tuning()
 
-        log_file = self.model_manager.get_tuning_log()
         if init_logging:
-            self.initialize_logging(log_file=log_file, banner=">>> Juneberry Tuner <<<")
-            jb_logging.setup_logger(log_file=log_file, log_prefix="", name="ray", level=self.log_level)
+            self._initialize_logging()
 
         self.set_model_config()
         self.set_tuning_config()
 
+        self.log_sprout_directories()
+
+    def _initialize_logging(self, banner: str = ">>> Juneberry Tuner <<<"):
+        self.log_file = self.log_dir / self.model_manager.get_tuning_log()
+        super()._initialize_logging(banner=banner)
+        jb_logging.setup_logger(log_file=self.log_file, log_prefix="", name="ray", level=self.log_level)
+
     def set_tuning_config(self, tuning_config_str: str = None):
-        target_string = self.tuning_config_str if tuning_config_str is None else tuning_config_str
-        self.tuning_config = TuningConfig.load(target_string)
+        if tuning_config_str is not None:
+            self.tuning_config_str = tuning_config_str
+
+        self.tuning_config = TuningConfig.load(self.tuning_config_str)
 
     def build_tuner(self):
         tuner = jb_loader.construct_instance("juneberry.tuning.tuner.Tuner", kwargs={})

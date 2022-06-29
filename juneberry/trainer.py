@@ -315,11 +315,9 @@ class EpochTrainer(Trainer):
             self._train_one_epoch()
 
     def tune(self):
-        # For each epoch we need to do our basic training loops
-        logger.info(f"Starting to Tune...")
+        # For each epoch we need to complete a tuning interval.
+        logger.info(f"Starting a tuning interval...")
         while not self.done:
-            # print(f"self._tune_one_interval() type - {type(self._tune_one_interval())}")
-            # print(f"self.cur_metrics in tune(): {self.cur_metrics}")
             yield self._tune_one_interval()
 
     def finish(self) -> None:
@@ -460,7 +458,6 @@ class EpochTrainer(Trainer):
         with self.timer("end_epoch"):
             epoch_tracker = self.timer('epoch')
             return_val = self.end_epoch(tuning_mode=True)
-            # print(f"return_val in _tune_one_interval is {return_val}")
             return return_val
 
     def _process_one_iterable(self, train: bool, data_iterable):

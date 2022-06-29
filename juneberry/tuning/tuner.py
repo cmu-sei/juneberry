@@ -22,12 +22,15 @@
 #
 # ======================================================================================================================
 import logging
+import os
 from pathlib import Path
 
 from ray import tune
+import torch
 
 from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
+import juneberry.jb_logging as jb_logging
 import juneberry.loader as jb_loader
 from juneberry.tuning.reporter import CustomReporter
 
@@ -128,7 +131,12 @@ class Tuner:
         self.search_algo = jb_loader.construct_instance(algo_dict.fqcn, algo_dict.kwargs)
         logger.info(f"  Tuning search_algo built!")
 
-    def _train_fn(self, config, checkpoint_dir=None):
+    def _tuning_attempt(self, config, checkpoint_dir=None):
+
+        jb_logging.setup_logger(self.tuning_sprout.log_file, log_prefix=self.tuning_sprout.log_prefix,
+                                log_to_console=not self.tuning_sprout.silent, level=self.tuning_sprout.log_level,
+                                name="juneberry")
+
         # Ray Tune runs this function on a separate thread in a Ray actor process.
 
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
@@ -138,23 +146,29 @@ class Tuner:
         self.tuning_sprout.set_model_config(trial_model_config)
         trainer = self.tuning_sprout.get_trainer()
 
-        # "Many Tune features rely on checkpointing, including certain Trial Schedulers..."
-        if checkpoint_dir:
-            pass
-            # Load from checkpoint.
-            # checkpoint_path = self.model_manager.get_tuning_checkpoint_dir() / checkpoint_name
-            # checkpoint = torch.load(checkpoint_path)
-            # model.load_state_dict(checkpoint["model_state_dict"])
-            # cur_epoch = checkpoint["cur_epoch"]
-
+        trainer.tuning_setup()
         cur_epoch = 0
 
-        trainer.tuning_setup()
+        # "Many Tune features rely on checkpointing, including certain Trial Schedulers..."
+        if checkpoint_dir:
+            logger.info(f"Loading from checkpoint. Checkpoint dir - {checkpoint_dir}")
+            checkpoint_path = os.path.join(checkpoint_dir, "checkpoint")
+            checkpoint = torch.load(checkpoint_path)
+            trainer.model.load_state_dict(checkpoint["model_state_dict"])
+            cur_epoch = checkpoint["cur_epoch"]
 
         while cur_epoch < trial_model_config.epochs:
-            latest_metrics = trainer.tune()
-            thing = next(latest_metrics)
-            yield thing
+            returned_metrics = trainer.tune()
+
+            if self.checkpoint_interval:
+                if not (cur_epoch + 1) % self.checkpoint_interval:
+                    with tune.checkpoint_dir(step=cur_epoch) as checkpoint_dir:
+                        path = os.path.join(checkpoint_dir, "checkpoint")
+                        logger.info(f"Saving checkpoint to {path}")
+                        torch.save((trainer.model.state_dict(), trainer.optimizer.state_dict()), path)
+
+            metrics = next(returned_metrics)
+            yield metrics
             cur_epoch += 1
 
     def tune(self):
@@ -164,7 +178,7 @@ class Tuner:
         logger.info(f"Starting the tuning run.")
         # Perform the tuning run.
         result = tune.run(
-            self._train_fn,
+            self._tuning_attempt,
             resources_per_trial=self.trial_resources,
             config=self.search_space,
             search_alg=self.search_algo,
@@ -175,7 +189,7 @@ class Tuner:
             local_dir=str(self.tuning_sprout.model_manager.get_tuning_dir()),
             progress_reporter=CustomReporter()
         )
-        logger.info(f"The tuning run is complete. Storing best result.")
+        logger.info(f"The tuning run is complete. Storing the best result.")
         #
         # Once the tuning is complete, store the best result.
         self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)

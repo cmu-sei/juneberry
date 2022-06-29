@@ -47,7 +47,7 @@ class TuningParameters(Prodict):
     scope: str
 
     def init(self):
-        self.checkpoint_interval = 1
+        self.checkpoint_interval = 0
         self.metric = 'loss'
         self.mode = 'min'
         self.scope = 'last'
