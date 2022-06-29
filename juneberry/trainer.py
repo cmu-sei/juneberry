@@ -117,13 +117,13 @@ class Trainer:
 
     # ==========================
 
-    def train_model(self, gpu: int = None) -> None:
+    def train_model(self) -> None:
         """
         Executes construction, training and serialization of the model.
         :param gpu: The gpu/process number to use for training.  None indicates CPU only.
         :return: None
         """
-        self.gpu_setup(gpu)
+        self.gpu_setup()
 
         # This allows each platform to have its own particular way of setting up logging.
         # Logging must be set up prior to the first logging banner.
@@ -158,9 +158,6 @@ class Trainer:
                     f"because of lab profile.")
                 self.num_gpus = self.lab.profile.max_gpus
 
-        # No matter the number of GPUs, setup the node for training
-        self.node_setup()
-
         if self.num_gpus == 0:
             self.gpu = None
         elif self.num_gpus == 1:
@@ -168,7 +165,8 @@ class Trainer:
         else:
             self.train_distributed(self.num_gpus)
 
-        self.gpu = gpu
+        # No matter the number of GPUs, setup the node for training
+        self.node_setup()
 
     def node_setup(self) -> None:
         """ Called to prepare the node for either single process or distributed training. """
