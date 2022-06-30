@@ -117,17 +117,34 @@ class Trainer:
 
     # ==========================
 
-    def train_model(self) -> None:
+    def train_model(self, gpu: int = None) -> None:
         """
         Executes construction, training and serialization of the model.
         :param gpu: The gpu/process number to use for training.  None indicates CPU only.
         :return: None
         """
-        self.gpu_setup()
 
-        # This allows each platform to have its own particular way of setting up logging.
-        # Logging must be set up prior to the first logging banner.
-        self.establish_loggers()
+        # establish_loggers() allows each platform to have its own particular way of
+        # setting up logging.
+        # Loggers can only be established after self.gpu is set, but before the first
+        # logging banner. node_setup() usually contains a logging banner.
+
+        # If train_model() was entered via distributed training, the order of operations
+        # needs to be a little different, since the full gpu_setup() step isn't required.
+        if self.distributed:
+            self.gpu = gpu
+            self.establish_loggers()
+            self.node_setup()
+        else:
+            self.gpu_setup()
+
+            # If the call to gpu_setup() resulted in distributed training, then once
+            # execution reaches this point the spawned processes have already completed
+            # train_model(). Thus, if the distributed flag has been set, no further
+            # actions in train_model() should occur.
+            if self.distributed:
+                return
+            self.establish_loggers()
 
         log_banner(logger, "Setup")
         with self.timer("setup"):
@@ -142,13 +159,13 @@ class Trainer:
         with self.timer("finalize"):
             self.finish()
 
-    def tuning_setup(self, gpu: int = None):
-        self.gpu_setup(gpu)
+    def tuning_setup(self):
+        self.gpu_setup()
         self.setup()
 
     # ==========================
 
-    def gpu_setup(self, gpu: int = None) -> None:
+    def gpu_setup(self) -> None:
         self.num_gpus = self.check_gpu_availability(self.lab.profile.num_gpus)
 
         if self.lab.profile.max_gpus is not None:
@@ -164,6 +181,7 @@ class Trainer:
             self.gpu = 0
         else:
             self.train_distributed(self.num_gpus)
+            return
 
         # No matter the number of GPUs, setup the node for training
         self.node_setup()
