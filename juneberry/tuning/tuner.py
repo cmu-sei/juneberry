@@ -26,6 +26,7 @@ import os
 from pathlib import Path
 
 from ray import tune
+from ray.tune.integration.torch import DistributedTrainableCreator, distributed_checkpoint_dir
 import torch
 
 from juneberry.config.model import ModelConfig
@@ -132,24 +133,24 @@ class Tuner:
         logger.info(f"  Tuning search_algo built!")
 
     def _tuning_attempt(self, config, checkpoint_dir=None):
+        # Ray Tune runs this function on a separate thread in a Ray actor process.
 
         jb_logging.setup_logger(self.tuning_sprout.log_file, log_prefix=self.tuning_sprout.log_prefix,
                                 log_to_console=not self.tuning_sprout.silent, level=self.tuning_sprout.log_level,
                                 name="juneberry")
 
-        # Ray Tune runs this function on a separate thread in a Ray actor process.
-
         # This will substitute the current set of hyperparameters for the trial into the baseline config.
+        # trial_model_config is a ModelConfig.
         trial_model_config = self.baseline_model_config.adjust_attributes(config)
-        # trial_model_config is a ModelConfig
 
         self.tuning_sprout.set_model_config(trial_model_config)
         trainer = self.tuning_sprout.get_trainer()
 
-        trainer.tuning_setup()
+        # trainer.tuning_setup()
         cur_epoch = 0
 
         # "Many Tune features rely on checkpointing, including certain Trial Schedulers..."
+        # Retrieve the checkpoint if one was provided.
         if checkpoint_dir:
             logger.info(f"Loading from checkpoint. Checkpoint dir - {checkpoint_dir}")
             checkpoint_path = os.path.join(checkpoint_dir, "checkpoint")
@@ -157,29 +158,45 @@ class Tuner:
             trainer.model.load_state_dict(checkpoint["model_state_dict"])
             cur_epoch = checkpoint["cur_epoch"]
 
+        trainer.tuning_setup()
+
         while cur_epoch < trial_model_config.epochs:
             returned_metrics = trainer.tune()
 
+            # Save a checkpoint
             if self.checkpoint_interval:
                 if not (cur_epoch + 1) % self.checkpoint_interval:
-                    with tune.checkpoint_dir(step=cur_epoch) as checkpoint_dir:
-                        path = os.path.join(checkpoint_dir, "checkpoint")
-                        logger.info(f"Saving checkpoint to {path}")
-                        torch.save((trainer.model.state_dict(), trainer.optimizer.state_dict()), path)
 
+                    if self.trial_resources.gpu > 1:
+                        # TODO: Shouldn't reach here until distributed tuning works.
+                        with distributed_checkpoint_dir(step=cur_epoch) as checkpoint_dir:
+                            self._save_model_checkpoint(trainer, checkpoint_dir)
+                    else:
+                        with tune.checkpoint_dir(step=cur_epoch) as checkpoint_dir:
+                            self._save_model_checkpoint(trainer, checkpoint_dir)
+
+            # Retrieve the latest metrics, report the intermediate value, and increment the epoch number.
             metrics = next(returned_metrics)
             yield metrics
             cur_epoch += 1
+
+    @staticmethod
+    def _save_model_checkpoint(trainer, checkpoint_dir):
+        path = os.path.join(checkpoint_dir, "checkpoint")
+        logger.info(f"Saving checkpoint to {path}")
+        torch.save((trainer.model.state_dict(), trainer.optimizer.state_dict()), path)
 
     def tune(self):
         # Methods for setting attributes.
         self._build_tuning_components()
 
+        trainable, trial_resources = self._determine_trainable()
+
         logger.info(f"Starting the tuning run.")
         # Perform the tuning run.
         result = tune.run(
-            self._tuning_attempt,
-            resources_per_trial=self.trial_resources,
+            trainable,
+            resources_per_trial=trial_resources,
             config=self.search_space,
             search_alg=self.search_algo,
             metric=self.metric,
@@ -194,10 +211,36 @@ class Tuner:
         # Once the tuning is complete, store the best result.
         self.best_result = result.get_best_trial(self.metric, self.mode, self.scope)
 
+    def _determine_trainable(self):
+        if self.trial_resources.gpu > 1:
+            logger.warning(f"Distributed tuning not implemented yet. Setting trial GPU resources "
+                           f"to 1.")
+            trainable = self._tuning_attempt
+            self.trial_resources.gpu = 1
+            trial_resources = self.trial_resources
+
+            # TODO: Implement distributed tuning.
+            # This is what would probably be needed to get distributed tuning working:
+            # trainable = DistributedTrainableCreator(
+            #     self._tuning_attempt,
+            #     num_workers=1,
+            #     num_cpus_per_worker=self.trial_resources.cpu,
+            #     num_gpus_per_worker=self.trial_resources.gpu
+            # )
+            # tune.run complains if trial resources are still set if they've been defined
+            # inside the DistributedTrainableCreator
+            # trial_resources = None
+        else:
+            trainable = self._tuning_attempt
+            trial_resources = self.trial_resources
+
+        return trainable, trial_resources
+
     # TODO: Better name for this method.
     def process_best_result(self):
         # TODO: Once a tuning run is complete, there are various things that can be done with
         #  the best tuning result. This is where we'd do something with self.best_result.
+        #  Maybe save the best model config?
         logger.info(f"Best trial config: {self.best_result.config}")
         logger.info(f"Best trial final '{self.metric}': {self.best_result.last_result[self.metric]}")
 

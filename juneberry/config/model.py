@@ -279,7 +279,7 @@ class ModelConfig(Prodict):
 
         return as_dict
 
-    def adjust_attributes(self, adjustment_dict: dict):
+    def adjust_attributes(self, adjustment_dict: dict) -> Prodict:
         """
         This method is responsible for replacing attributes in a ModelConfig.
         :param adjustment_dict: A dictionary where the keys indicate which ModelConfig attributes
