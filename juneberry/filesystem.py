@@ -634,8 +634,12 @@ class ModelManager:
         self.model_name = model_name
         self.model_version = model_version
         self.model_dir_path = Path('models') / self.model_name / self.model_version
+
+        # Check for the existence of the model directory. Note: This will not happen by default when
+        # initializing a ModelManager.
         if validate_dir:
             self.ensure_model_directory()
+
         if platform is not None:
             self.model_platform = platform
         else:
@@ -756,10 +760,6 @@ class ModelManager:
     def get_tuning_log(self) -> Path:
         """ :return: The path to the model's tuning log. """
         return self.get_tuning_dir() / "log.txt"
-
-    def get_tuning_checkpoint_dir(self) -> Path:
-        """ :return: Path to a directory containing model checkpoints from hyperparameter tuning. """
-        return self.get_tuning_dir() / "checkpoints"
 
     # ============ Evaluation ============
 

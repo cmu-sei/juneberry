@@ -25,7 +25,7 @@
 import argparse
 import logging
 
-from juneberry.script_tools.sprout import TuningSprout
+from juneberry.script_tools.tuning_sprout import TuningSprout
 import juneberry.scripting as jb_scripting_utils
 
 logger = logging.getLogger("juneberry.jb_tune")
@@ -50,15 +50,16 @@ def main():
     jb_scripting_utils.setup_args(parser)
     args = parser.parse_args()
 
+    # Create a TuningSprout, feed it the script args, then fetch the tuner.
     sprout = TuningSprout()
     sprout.grow_from_args(args)
     tuner = sprout.build_tuner()
 
+    # Exit if a tuner could not be retrieved. Otherwise, tune the model and process the tuning results.
     if tuner is None:
         logger.error(f"No Tuner instantiated. Exiting.")
     else:
         tuner.tune()
-        tuner.process_best_result()
 
     logger.info(f"jb_tune is done.")
 

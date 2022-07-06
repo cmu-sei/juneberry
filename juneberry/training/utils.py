@@ -26,44 +26,24 @@
 Training utilities
 """
 
-from argparse import Namespace
 import logging
 import sys
 
 from juneberry.config.model import ModelConfig
-from juneberry.filesystem import ModelManager
-from juneberry.lab import Lab
-import juneberry.loader as jb_loader
-import juneberry.scripting as jb_scripting
 
 logger = logging.getLogger(__name__)
 
 
-def setup_training_logging_and_lab(args: Namespace, model_manager: ModelManager) -> Lab:
-    # Use the config file to set up the workspace, data and logging
-    log_prefix = "<<DRY_RUN>> " if args.dryrun else ""
-    log_file = model_manager.get_training_dryrun_log_path() if args.dryrun else model_manager.get_training_log()
-
-    return jb_scripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix,
-                                               model_name=model_manager.model_name,
-                                               banner_msg=">>> Juneberry Trainer <<<")
-
-
-def setup_trainer_opt_args(args: Namespace):
-    """
-    Set up optional args from the command line.
-    :param args: A Namespace object built from the attributes parsed out of the command line.
-    """
-    opt_args = {}
-    opt_arg_keys = ['resume']
-    for key in opt_arg_keys:
-        if key in vars(args):
-            opt_args[key] = vars(args)[key]
-
-    return opt_args
-
-
 def assemble_stanza_and_construct_trainer(model_config: ModelConfig) -> str:
+    """
+    This function enables backwards compatibility with older versions of Juneberry Model config
+    files which do not contain a "trainer" stanza. The function interprets the "task" and "platform"
+    fields in older model configs and determines which string to use for the "fqcn" field in the
+    "trainer" stanza of the ModelConfig.
+    :param model_config: A ModelConfig object that does not have a "trainer" field.
+    :return: The "fqcn" to use in the "trainer" field, based on the "task" and "platform"
+    listed in the ModelConfig.
+    """
     # Backward compatible map of task and platform name to class to load
     task_platform_map = {
         "classification": {
@@ -84,7 +64,6 @@ def assemble_stanza_and_construct_trainer(model_config: ModelConfig) -> str:
                      f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
         sys.exit(-1)
     fqcn = task_platform_map[model_config.task][model_config.platform]
-    kwargs = {}
     logger.warning("Found deprecated platform/task configuration for loading trainer. "
                    "Consider updating the model config to use the trainer stanza.")
     logger.warning('"trainer": {')
@@ -92,24 +71,3 @@ def assemble_stanza_and_construct_trainer(model_config: ModelConfig) -> str:
     logger.warning('}')
 
     return fqcn
-
-
-def build_trainer(model_config: ModelConfig, trainer_args: Namespace):
-
-    if model_config.trainer is None:
-        model_config.trainer = assemble_stanza_and_construct_trainer(model_config)
-    else:
-        if model_config.trainer.kwargs is None:
-            model_config.trainer.kwargs = {}
-
-    model_config.trainer.kwargs['model_config'] = model_config
-    model_config.trainer.kwargs['trainer_args'] = trainer_args
-
-    # Construct the trainer
-    logger.info(f"Instantiating trainer: {model_config.trainer.fqcn}")
-    trainer = jb_loader.construct_instance(model_config.trainer.fqcn, model_config.trainer.kwargs)
-
-    if trainer is None:
-        return trainer
-
-    return trainer

@@ -21,20 +21,19 @@
 # DM21-0884
 #
 # ======================================================================================================================
+from dataclasses import dataclass
 import logging
-from typing import Dict, List
 
-from ray.tune import CLIReporter
+from juneberry.script_tools.sprout import Sprout
 
 logger = logging.getLogger(__name__)
 
+# TODO: Implement EvaluationSprout for jb_evaluate.
 
-class CustomReporter(CLIReporter):
-    """
-    This class is responsible for altering the logging behavior in Ray Tune. By default, Ray Tune just
-    prints its log messages. This CustomReporter overrides that print statement and changes it to a
-    logger message, so a record of the message will be maintained inside Juneberry log files.
-    """
 
-    def report(self, trials: List, done: bool, *sys_info: Dict):
-        logger.info(f"Status Message from Ray Tune:\n{self._progress_str(trials, done, *sys_info)}")
+@dataclass
+class EvaluationSprout(Sprout):
+    eval_dataset_name: str = None
+    use_train_split: bool = None
+    use_val_split: bool = None
+    top_k: int = None

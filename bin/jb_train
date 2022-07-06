@@ -26,7 +26,7 @@ import argparse
 import logging
 import sys
 
-from juneberry.script_tools.sprout import TrainingSprout
+from juneberry.script_tools.training_sprout import TrainingSprout
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_train")
@@ -56,20 +56,6 @@ def setup_args(parser) -> None:
                              'from the last checkpoint.')
 
 
-def setup_opt_args(args: argparse.Namespace):
-    """
-    Set up optional args from the command line.
-    :param args: A Namespace object built from the attributes parsed out of the command line.
-    """
-    opt_args = {}
-    opt_arg_keys = ['resume']
-    for key in opt_arg_keys:
-        if key in vars(args):
-            opt_args[key] = vars(args)[key]
-
-    return opt_args
-
-
 def main():
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
@@ -78,14 +64,17 @@ def main():
     jbscripting.setup_args(parser)
     train_args = parser.parse_args()
 
+    # Create a TrainingSprout, feed it the script args, then fetch the trainer.
     sprout = TrainingSprout()
     sprout.grow_from_args(train_args)
     trainer = sprout.get_trainer()
 
+    # Exit if a trainer could not be retrieved.
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
+    # Use the trainer to perform a dryrun or live training.
     if sprout.dryrun:
         trainer.dry_run()
     else:

@@ -159,15 +159,25 @@ class Trainer:
         with self.timer("finalize"):
             self.finish()
 
-    def tuning_setup(self):
+    def tuning_setup(self) -> None:
+        """
+        Performs GPU setup and training setup step prior to model tuning.
+        :return: Nothing.
+        """
         self.gpu_setup()
         self.setup()
 
     # ==========================
 
     def gpu_setup(self) -> None:
+        """
+        Performs steps to setup GPUs prior to training a model.
+        :return: Nothing.
+        """
+        # Determine how many GPUs are available.
         self.num_gpus = self.check_gpu_availability(self.lab.profile.num_gpus)
 
+        # Check if the lab profile places any constraints on the number of GPUs to use.
         if self.lab.profile.max_gpus is not None:
             if self.num_gpus > self.lab.profile.max_gpus:
                 logger.info(
@@ -175,6 +185,7 @@ class Trainer:
                     f"because of lab profile.")
                 self.num_gpus = self.lab.profile.max_gpus
 
+        # Assign the GPU if one was requested or initiate distributed training if multiple GPUs were requested.
         if self.num_gpus == 0:
             self.gpu = None
         elif self.num_gpus == 1:
@@ -183,7 +194,7 @@ class Trainer:
             self.train_distributed(self.num_gpus)
             return
 
-        # No matter the number of GPUs, setup the node for training
+        # No matter the number of GPUs, setup the node for training.
         self.node_setup()
 
     def node_setup(self) -> None:
@@ -401,6 +412,7 @@ class EpochTrainer(Trainer):
     def end_epoch(self, tuning_mode: bool = False) -> str:
         """
         Called at the end of epoch for model saving, external telemetry, etc.
+        :param tuning_mode: Boolean indicating if the epoch is being used to tune the model.
         """
         return ""
 
@@ -462,6 +474,14 @@ class EpochTrainer(Trainer):
                     f"{msg}")
 
     def _tune_one_interval(self):
+        """
+        Iterates the training set performing the forward function and returns metric data
+        to the tuner. Then evaluates the model using the validation batch.
+
+        Metrics are produced and updated for each batch.
+
+        Performs timing instrumentation as appropriate.
+        """
         self.epoch += 1
 
         with self.timer("epoch"):

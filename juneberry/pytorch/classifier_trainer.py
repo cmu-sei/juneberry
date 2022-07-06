@@ -29,7 +29,6 @@ import sys
 from typing import Union
 
 import numpy as np
-
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
@@ -279,6 +278,9 @@ class ClassifierTrainer(EpochTrainer):
 
         self.show_memory_summary(False)
 
+        # When tuning a PyTorch classifier, the tuner should receive a dictionary of metrics and not the
+        # formatted metric string.
+        # TODO: Maybe it's a good idea to return the metrics dictionary in all cases?
         if tuning_mode:
             return_val = {}
             for x in self.history:

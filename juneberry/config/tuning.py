@@ -69,18 +69,28 @@ class TuningConfig(Prodict):
     def init(self) -> None:
         pass
 
-    def _finish_init(self, file_path: str = None):
+    def _finish_init(self, file_path: str = None) -> None:
+        """
+        Initializes a tuning configuration object from a config data structure.
+        :param file_path: Optional - string indicating the tuning config file.
+        :return: Nothing.
+        """
+        # Set the file_path
         self.file_path = Path(file_path) if file_path is not None else None
 
+        # Initialize trial resources if none were defined.
         if self.trial_resources is None:
             self.trial_resources = TrialResources()
 
+        # Initialize GPU trial resources if none were defined.
         if self.trial_resources.gpu is None:
             self.trial_resources.gpu = 0
 
+        # Initialize CPU trial resources if none were defined.
         if self.trial_resources.cpu is None:
             self.trial_resources.cpu = 1 if self.trial_resources.gpu == 0 else 0
 
+        # Initial tuning parameters if none were defined.
         if self.tuning_parameters is None:
             self.tuning_parameters = TuningParameters()
 
