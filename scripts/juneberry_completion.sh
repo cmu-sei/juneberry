@@ -199,6 +199,24 @@ _jb_generate_experiments_comp() {
   return 0
 }
 
+_jb_tune_comp() {
+  # By default we turn off the normal behavior
+
+  compopt +o default
+  case ${COMP_CWORD} in
+  1)
+    _add_model_dirs 1
+    ;;
+  2)
+    # We want the "normal" autocomplete behavior here.
+    # NOTE The compgen -f does NOT work as expected as directory names satisfy -f.
+    compopt -o default
+    #COMPREPLY=($(compgen -f -- "${COMP_WORDS[COMP_CWORD]}"))
+    ;;
+  esac
+  return 0
+}
+
 # Sign them up!
 
 complete -F _jb_train_comp jb_train
@@ -206,3 +224,4 @@ complete -F _jb_evaluate_comp jb_evaluate
 complete -F _jb_run_experiment_comp jb_run_experiment
 complete -F _jb_experiment_to_rules_comp jb_experiment_to_rules
 complete -F _jb_generate_experiments_comp jb_generate_experiments
+complete -F _jb_tune_comp jb_tune
