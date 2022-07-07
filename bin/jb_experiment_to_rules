@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 JB_TRAIN_COMMAND = 'jb_train'
 JB_EVALUATE_COMMAND = 'jb_evaluate'
 JB_REPORT_COMMAND = 'jb_report'
+JB_TUNE_COMMAND = 'jb_tune'
 
 
 class RuleMaker:
@@ -58,6 +59,7 @@ class RuleMaker:
     def save(self, file_path):
 
         self.add_training()
+        self.add_tuning()
         self.add_eval()
         self.add_reports()
 
@@ -100,6 +102,36 @@ class RuleMaker:
             if model.filters is not None:
                 self.add_filters(model.filters, model_mgr, model_config.training_dataset_config_path,
                                  model['train_rule_id'])
+
+    def add_tuning(self):
+        for tuning_run in self.experiment_config.tuning:
+            model_mgr = ModelManager(tuning_run.model)
+            model_config = ModelConfig.load(model_mgr.get_model_config())
+
+            # Tuning rules
+            workflow = self.builder.get_workflow("main")
+            inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path, tuning_run.tuning_config]
+            outputs = model_mgr.get_tuning_output_list()
+            command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config]
+
+            doc = " ".join([str(x) for x in command])
+            clean_extras = model_mgr.get_tuning_clean_extras_list()
+            requirements = []
+
+            # Add a temporary property for now
+            tuning_run['tune_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+            # Dry run rules
+            workflow = self.builder.get_workflow("dryrun")
+            inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path, tuning_run.tuning_config]
+            outputs = model_mgr.get_tuning_dryrun_output_list()
+            command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config, '--dryrun']
+            doc = " ".join([str(x) for x in command])
+            clean_extras = model_mgr.get_tuning_dryrun_clean_extras_list()
+            requirements = []
+
+            # Add a temporary property for now
+            tuning_run['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
     def add_eval(self):
         self.tag_map = {}
