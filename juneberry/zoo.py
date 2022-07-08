@@ -47,17 +47,17 @@ If the model name has slashes in it, then the last part is the part before the z
 """
 
 
-# This module uses two environment/lab variablesL
+# This module uses two environment/lab variables
 # JUNEBERRY_MODEL_ZOO - An url to the model zoo
-# JUNEBERRY_CACHE - Alocaiotn on disk for the cache. Default ~/.juneberry/cache
+# JUNEBERRY_CACHE - A location on disk for the cache. Default ~/.juneberry/cache
 
-def _setup_zoo_and_model_name(Lab: Lab, model_name: str) -> Tuple[str, str]:
+def _setup_zoo_and_model_name(lab: Lab, model_name: str) -> Tuple[str, str]:
     """
     If a model name contains an URL splits it into a zoo path or model name.
     We assume the word models exists at least once and we split the path
     based on the LAST location of models into the zoo portion and model name.
     If the model name is just the model, use it and the zoo from the lab
-    :param Lab: The lab object.
+    :param lab: The lab object.
     :param model_name: The model name (may have URL) to analyze.
     :return: Zoo base URL, model-name
     """
