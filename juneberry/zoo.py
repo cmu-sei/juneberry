@@ -168,6 +168,12 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
     if model_mgr.get_model_config().exists():
         return
 
+    # By this point we are going to pull things and put into the cache.
+    # The cache dir needs to exist.
+    if lab.cache is None:
+        logger.error(f"Cache directory not defined.  Please set the JUNEBERRY_CACHE value or use --cache switch.")
+        raise RuntimeError("No juneberry cache defined, can't download model.")
+
     # If not in cache or "no_cache" then pull to cache
     cache_file_path = cache_model_zip_path(lab, model_name)
     if no_cache or not cache_file_path.exists():

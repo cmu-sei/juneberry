@@ -34,6 +34,8 @@ class MockArgs:
         self.dataRoot = None
         self.tensorboard = None
         self.profileName = None
+        self.zoo = None
+        self.cache = None
 
 
 def test_defaults():

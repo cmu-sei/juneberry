@@ -89,7 +89,7 @@ class Lab:
 
     @staticmethod
     def validate_args(workspace: str, data_root: str, tensorboard: str, profile_name: str,
-                      cache_path: str = None) -> None:
+                      model_zoo:str=None, cache: str = None) -> None:
         """
         Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
@@ -98,6 +98,7 @@ class Lab:
         :param data_root: The data root
         :param tensorboard: OPTIONAL: tensorboard directory
         :param profile_name: OPTIONAL: Name of the profile to use.
+        :param model_zoo: OPTIONAL: Model zoo url.
         :param cache_path: OPTIONAL: Path to the cache directory.
         :return:
         """
@@ -106,8 +107,6 @@ class Lab:
         errors += Lab.check_path(data_root, "data root")
         if tensorboard is not None:
             errors += Lab.check_path(tensorboard, "tensorboard directory")
-        if cache_path is not None:
-            errors += Lab.check_path(cache_path, "cache directory")
 
         # Try to load the lab profile from the workspace config
         # TODO once lab profile is finished
