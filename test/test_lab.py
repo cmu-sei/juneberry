@@ -70,6 +70,16 @@ def test_construction():
     assert lab.data_root() == Path('dr')
 
 
+def test_model_zoo():
+    lab = Lab(model_zoo="some_url")
+    assert lab.model_zoo == "some_url"
+
+
+def test_cache_path():
+    lab = Lab(cache='/path/to/cache')
+    assert lab.cache == Path("/path/to/cache")
+
+
 def test_model_loading(tmp_path):
     model_name = "pytest_model"
 
@@ -98,7 +108,7 @@ def test_model_config_saving(tmp_path):
     model_data = ModelConfig.construct(test_model_config.make_basic_config())
     model_data.task = 'object_detection'
     model_data.timestamp = datetime.datetime.now
-    
+
     lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
     save_path = lab.save_model_config(model_data, 'test_model', model_version='v1')
 

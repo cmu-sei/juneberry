@@ -57,14 +57,17 @@ def run_main(main_fn, the_logger):
 def make_default_values(workspace: str):
     """
     This routine generates "standard" locations for the basic sibling directory structure.
-    :return: Default values for a script for workspace, data_root, tensorboard and machine class.
+    :return: Default values for a script for workspace, data_root, tensorboard, profile name, etc.
     """
+    # NOTE: These names match the Lab, NOT the command line names
     ws = Path(workspace)
     return {
         "workspace": str(ws),
         "data_root": str((ws.parent / "dataroot").absolute()),
         "tensorboard": str((ws.parent / "tensorboard").absolute()),
-        "profile_name": "default"
+        "profile_name": "default",
+        "model_zoo": None,
+        "cache": str(Path.home() / ".juneberry" / "cache")
     }
 
 
@@ -99,9 +102,12 @@ def resolve_lab_args(args):
     vals = make_default_values(def_ws)
 
     # STEP 3: Overlay the *remaining* (not ws) values from environment vars.
+    # NOTE: This is where we KNOW the name of the args and are coupled with setup_args
     vals['data_root'] = resolve_arg(args.dataRoot, 'JUNEBERRY_DATA_ROOT', vals['data_root'], is_path=True)
     vals['tensorboard'] = resolve_arg(args.tensorboard, 'JUNEBERRY_TENSORBOARD', vals['tensorboard'], is_path=True)
     vals['profile_name'] = resolve_arg(args.profileName, 'JUNEBERRY_PROFILE_NAME', vals['profile_name'])
+    vals['model_zoo'] = resolve_arg(args.zoo, 'JUNEBERRY_MODEL_ZOO', vals['model_zoo'])
+    vals['cache'] = resolve_arg(args.cache, 'JUNEBERRY_CACHE', vals['cache'], is_path=True)
 
     # Now we have the basics, let's return those.
     return vals
@@ -122,6 +128,10 @@ def setup_args(parser) -> None:
                         help='The name of the lab profile.')
     parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
                         help="Directory where the log file will be saved. Default is the current working directory.")
+    parser.add_argument('--zoo', default=None, required=False,
+                        help="Url for the juneberry model zoo.")
+    parser.add_argument('--cache', default=None, required=False,
+                        help="Directory where to cache files.  The default is ~/.juneberry/cache")
 
 
 def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="juneberry", banner_msg=None) -> Lab:

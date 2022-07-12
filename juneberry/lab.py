@@ -42,22 +42,41 @@ class Lab:
     information.
     """
 
-    def __init__(self, *, workspace='.', data_root='.', tensorboard=None, profile_name="default"):
+    def __init__(self, *, workspace='.', data_root='.', tensorboard=None,
+                 profile_name: str = "default", model_zoo: str = None, cache=None):
+        """
+        Used to initialize the environment in which to run experiments.
+        :param workspace: The path to the default workspace. By default this is the current working directory.
+        :param data_root: The path to where the data is stored. By default this is the current working directory.
+        :param tensorboard: The path to where the tensorboard information is stored.
+        :param profile_name: The name of the lab profile.
+        :param model_zoo: Optional url to the model zoo.
+        :param cache: Optional path to where data is cached.
+        """
+
         # We expose these as direct attributes.
         self.tensorboard = Path(tensorboard) if tensorboard is not None else None
 
         # Where we store host specific information.
         self.profile_name = profile_name
 
-        # We store multiple workspaces and data_roots so we can search them.  The first one is
-        # always the default.
-        self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
-        self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
-
         # A place to store the workspace config and the profile.
         self.ws_config = WorkspaceConfig.load()
         self.profile: LabProfile
         self.profile = LabProfile()
+
+        # Where models in the zoo can be found
+        self.model_zoo = model_zoo
+
+        # Where we cache items like model zoo models
+        self.cache = Path(cache) if cache is not None else None
+
+        # We store multiple workspaces and data_roots so we can search them.  The first one is
+        # always the default and where we write things.
+        # NOTE. We don't want people using these. They should access the workspace and data root
+        # via workspace() and data_root()
+        self._workspaces = {'default': Path(workspace)} if workspace is not None else {}
+        self._data_roots = {'default': Path(data_root)} if data_root is not None else {}
 
     @staticmethod
     def check_path(path, label):
@@ -69,7 +88,8 @@ class Lab:
             return 0
 
     @staticmethod
-    def validate_args(workspace: str, data_root: str, tensorboard: str, profile_name: str) -> None:
+    def validate_args(workspace: str, data_root: str, tensorboard: str, profile_name: str,
+                      model_zoo:str=None, cache: str = None) -> None:
         """
         Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
@@ -78,6 +98,8 @@ class Lab:
         :param data_root: The data root
         :param tensorboard: OPTIONAL: tensorboard directory
         :param profile_name: OPTIONAL: Name of the profile to use.
+        :param model_zoo: OPTIONAL: Model zoo url.
+        :param cache_path: OPTIONAL: Path to the cache directory.
         :return:
         """
         errors = 0
@@ -96,7 +118,8 @@ class Lab:
     def create_copy_from_keys(self, ws_key, dr_key):
         # Construct a new one and copy over the profile
         lab = Lab(workspace=str(self.workspace(ws_key)), data_root=str(self.data_root(dr_key)),
-                  tensorboard=self.tensorboard, profile_name=self.profile_name)
+                  tensorboard=self.tensorboard, profile_name=self.profile_name,
+                  model_zoo=self.model_zoo, cache=self.cache)
         lab.profile = self.profile
         return lab
 
@@ -108,7 +131,10 @@ class Lab:
         self._workspaces[ws_key] = workspace
 
     def data_root(self, dr_key='default') -> Path:
-        """ :return: The path to the default dataroot. """
+        """
+        ":param dr_key: Which dataroot we want. "default" by default.
+        :return: The path to the dataroot.
+        """
         return self._data_roots[dr_key]
 
     def add_data_root(self, data_root, dr_key):
@@ -190,8 +216,12 @@ class Lab:
         return dataset_config_path
 
     def __str__(self):
-        return f'{{"workspace"="{self.workspace()}", ' \
-               f'"data_root"="{self.data_root()}", ' \
-               f'"tensorboard"="{self.tensorboard}", ' \
-               f'"profile_name"={self.profile_name}' \
-               f'"profile"={self.profile}}}'
+        return str({
+            'workspace': str(self.workspace()),
+            'data_root': str(self.data_root()),
+            'tensorboard': str(self.tensorboard),
+            'profile_name': self.profile_name,
+            'profile': self.profile,
+            'model_zoo': self.model_zoo,
+            'cache_path': str(self.cache)
+        })
