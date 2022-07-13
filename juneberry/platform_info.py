@@ -81,7 +81,9 @@ def capture_pip_freeze():
 
 def capture_versions():
     versions = {}
-    for pkg in ['juneberry', 'detectron2', 'mmcv', 'mmdet', 'numpy', 'onnx', 'onnxruntime', 'onnxruntime-gpu',
+#    for pkg in ['juneberry', 'detectron2', 'mmcv', 'mmdet', 'numpy', 'onnx', 'onnxruntime', 'onnxruntime-gpu',
+#                'torch', 'torchvision', 'tensorflow', 'tensorrt']:
+    for pkg in ['juneberry', 'detectron2', 'numpy', 'onnx', 'onnxruntime', 'onnxruntime-gpu',
                 'torch', 'torchvision', 'tensorflow', 'tensorrt']:
         try:
             mod = importlib.import_module(pkg)

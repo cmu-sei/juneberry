@@ -36,7 +36,7 @@ from juneberry.detectron2.evaluator import Evaluator as Detectron2Evaluator
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import create_evaluator
 from juneberry.lab import Lab
-from juneberry.mmdetection.evaluator import Evaluator as MMDEvaluator
+#from juneberry.mmdetection.evaluator import Evaluator as MMDEvaluator
 from juneberry.pytorch.evaluation.evaluator import Evaluator as PyTorchEvaluator
 from juneberry.tensorflow.evaluation.evaluator import Evaluator as TFEvaluator
 
@@ -163,16 +163,16 @@ def test_detectron2_evaluator(tmp_path):
     eval_harness.check_calls()
 
 
-def test_mmdetection_evaluator(tmp_path):
-    helper = EvalTestHelper(tmp_path)
-    helper.model_config.platform = "mmdetection"
-    evaluator = helper.build_evaluator()
-
-    assert isinstance(evaluator, MMDEvaluator)
-
-    eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
-    eval_harness.perform_evaluation()
-    eval_harness.check_calls()
+#def test_mmdetection_evaluator(tmp_path):
+#    helper = EvalTestHelper(tmp_path)
+#    helper.model_config.platform = "mmdetection"
+#    evaluator = helper.build_evaluator()
+#
+#    assert isinstance(evaluator, MMDEvaluator)
+#
+#    eval_harness = EvaluatorHarness(evaluator, helper.eval_options)
+#    eval_harness.perform_evaluation()
+#    eval_harness.check_calls()
 
 
 def test_tensorflow_evaluator(tmp_path):
