@@ -109,7 +109,6 @@ def generate_roc_reports(in_report: Prodict, models: list) -> list:
 
     # Loop over every model in the experiment
     for model in models:
-
         # Build a new Plugin for the output Report and fill in some fields
         # from the input Report.
         out_report = Plugin()
@@ -174,7 +173,6 @@ def generate_pr_reports(in_report: Prodict, models: list) -> list:
 
     # Loop through every model in the model list.
     for model in models:
-
         # Build a new Plugin for the output Report and fill in some fields
         # from the input Report.
         out_report = Plugin()
@@ -633,18 +631,13 @@ def main():
     setup_args(parser)
     jbscripting.setup_args(parser)
     args = parser.parse_args()
-
     experiment_creator = ExperimentCreator(args.experimentName)
 
-    if args.dryrun:
-        log_prefix = "<<DRY_RUN>> "
-        log_file = experiment_creator.get_experiment_creation_dryrun_log()
-    else:
-        log_prefix = ""
-        log_file = experiment_creator.get_experiment_creation_log()
-
-    # Use the config file to set up the workspace, data and logging
-    jbscripting.setup_for_experiment_creation(args, experiment_creator, log_file=log_file, log_prefix=log_prefix)
+    # Set up the workspace, logging and general environment
+    lab = jbscripting.setup_workspace(
+        args,
+        log_file=experiment_creator.get_log_path(args.dryrun),
+        log_prefix=jbscripting.standard_line_prefix(args.dryrun))
 
     # Initial log message for this operation
     logger.info("Creating the experiment files for the following experiment: " + args.experimentName)
