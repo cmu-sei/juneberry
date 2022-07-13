@@ -54,7 +54,7 @@ def run_main(main_fn, the_logger):
         sys.exit(-1)
 
 
-def make_default_values(workspace: str):
+def make_default_lab_values(workspace: str):
     """
     This routine generates "standard" locations for the basic sibling directory structure.
     :return: Default values for a script for workspace, data_root, tensorboard, profile name, etc.
@@ -72,6 +72,14 @@ def make_default_values(workspace: str):
 
 
 def resolve_arg(arg, env_name, default, is_path: bool = False):
+    """
+    Determines the right value from the arg, environment variable, or default.
+    :param arg: The passed in arg
+    :param env_name: The name of an environment variable to check
+    :param default: A default value
+    :param is_path: If a path resolves to the absolute
+    :return: The final value
+    """
     if arg is not None:
         val = arg
     elif env_name in os.environ:
@@ -99,7 +107,7 @@ def resolve_lab_args(args):
     def_ws = resolve_arg(args.workspace, "JUNEBERRY_WORKSPACE", Path.cwd(), is_path=True)
 
     # STEP 2: Populate the "normal" structure based on the workspace relative values.
-    vals = make_default_values(def_ws)
+    vals = make_default_lab_values(def_ws)
 
     # STEP 3: Overlay the *remaining* (not ws) values from environment vars.
     # NOTE: This is where we KNOW the name of the args and are coupled with setup_args
@@ -129,60 +137,98 @@ def setup_args(parser) -> None:
     parser.add_argument('-l', '--logDir', default=Path.cwd(), required=False,
                         help="Directory where the log file will be saved. Default is the current working directory.")
     parser.add_argument('--zoo', default=None, required=False,
-                        help="Url for the juneberry model zoo.")
+                        help="Url for the optional juneberry model zoo.")
     parser.add_argument('--cache', default=None, required=False,
                         help="Directory where to cache files.  The default is ~/.juneberry/cache")
 
 
-def setup_workspace(args, *, log_file, log_prefix="", model_name=None, name="juneberry", banner_msg=None) -> Lab:
+def construct_validated_lab_from_args(args):
     """
-    Sets up the workspace package variable, sets the current working directory properly, and inits logging
-    into the log file.
-    :param args: The args from parseargs.
-    :param log_file: A workspace relative log file to write to. Can be None to use no log file.
+    Constructs and validates the lab object from the arguments
+    :param args: The parse args arguments
+    :return: The constructed lab.
+    """
+    # Resolve all the args we want for the lab.
+    lab_args = resolve_lab_args(args)
+
+    # Check the lab args and make the lab. NOTE: validate_args will exit if it fails
+    Lab.validate_args(**lab_args)
+    lab = Lab(**lab_args)
+
+    return lab
+
+
+def standard_line_prefix(dryrun):
+    if dryrun:
+        return "<<DRYRUN>> "
+    else:
+        return ""
+
+
+def setup_workspace(args, *, log_file, log_prefix="", name="juneberry", banner_msg=None) -> Lab:
+    """
+    Sets up the lab (workspace, etc) and inits the log file.
+    :param args: The args from setup args and parseargs.
+    :param log_file: OPTIONAL: Path to log file. If a relative path, must be relative ot the workspace.
     :param log_prefix: OPTIONAL: A string to add as a prefix to log entries; can be "".
-    :param model_name: OPTIONAL model name to use for juneberry options.
     :param name: OPTIONAL name for logger.
     :param banner_msg: OPTIONAL message for a startup banner.
     :return: The lab object with the configuration
     """
-    if log_file is not None:
-        log_file = Path(log_file)
+    # LOGGING NOTE:
+    # Everything up to the comment needs to be quiet and work without logging, UNLESS it fails and exits.
+    # Once we have the log file all logging is fair game.
 
     # Load workspace root and data root from config variables.
     # NOTE: We need to temporarily set up the logger to just use the console because we
     # don't know where to store it yet.
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
-    if banner_msg:
-        jblogging.log_banner(logger, banner_msg)
 
-    # Resolve all the args we want for the lab.
-    lab_args = resolve_lab_args(args)
-
-    # Check the lab args and make the lab
-    Lab.validate_args(**lab_args)
-    lab = Lab(**lab_args)
+    # Make the lab
+    lab = construct_validated_lab_from_args(args)
 
     # Change to the workspace root so we can find everything.
-    logger.info(f"Changing directory to workspace: '{lab.workspace()}'")
     os.chdir(lab.workspace())
 
-    # Convert verbose argument to proper logging level.
-    level = logging.DEBUG if args.verbose else logging.INFO
+    # =======================================
+    # Logging prep
 
-    # If there's an existing log_train file, rename it to include the last modified timestamp in the filename.
-    # The current run will then get logged into a fresh log_train.txt file.
+    # Use the user supplied function to return the log name.
+    if log_file is not None:
+        log_file = Path(log_file)
+
+    # Make sure the path to the log file is ready
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # If there's an existing log file, rename it to include the last modified timestamp in the filename.
+    # The current run will then get logged into a fresh file.
+    add_log_keeping_logs = False
     if log_file is not None and log_file.exists():
         if int(os.environ.get('JUNEBERRY_REMOVE_OLD_LOGS', 0)) == 1:
             log_file.unlink()
         else:
-            logger.info("Keeping old log files. Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
+            add_log_keeping_logs = True
             time_val = datetime.datetime.fromtimestamp(os.path.getmtime(log_file)).strftime("%m%d%y_%H%M")
             new_file_path = Path(log_file.parent, f"{log_file.stem}_{time_val}.txt")
             os.rename(log_file, new_file_path)
 
+    # Convert verbose argument to proper logging level.
+    level = logging.DEBUG if args.verbose else logging.INFO
+
     # Set up logging now that we have a workspace to log to.
     jblogging.setup_logger(log_file, log_prefix=log_prefix, log_to_console=not args.silent, level=level, name=name)
+
+    # =======================================
+    # Log away!
+    if banner_msg:
+        jblogging.log_banner(logger, banner_msg)
+
+    logger.info(f"Changing directory to workspace: '{lab.workspace()}'")
+    if log_file:
+        logger.info(f"Using log file: '{log_file}'")
+    if add_log_keeping_logs:
+        logger.info("Keeping old log files. Specify 'JUNEBERRY_REMOVE_OLD_LOGS=1' to remove them.")
 
     # Indicates when DEBUG level messages have been enabled.
     logger.debug(f"DEBUG messages enabled.")
@@ -221,23 +267,12 @@ def setup_logging_for_script(args, script_name: str = None):
     logger.info(f"Log messages are beings saved to {log_file}")
 
 
-def setup_for_single_model(args, *, log_file, model_name, log_prefix="", banner_msg=None):
-    # TODO: Come up with a better name for this call
-    # Check that the model directory is there. We need to do this before setting up logging
-    # because the logger wants to write to the directory.
-    lab = setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
-                          model_name=model_name, banner_msg=banner_msg)
+def setup_workspace_and_model(args, *, log_file, model_name, log_prefix="", banner_msg=None):
+    # Setup up the workspace like normal
+    lab = setup_workspace(args, log_file=log_file, log_prefix=log_prefix, banner_msg=banner_msg)
+
+    # Double check the model.
     mm = lab.model_manager(model_name)
     mm.ensure_model_directory()
+    mm.setup()
     return lab
-
-
-def setup_for_experiment_creation(args, experiment_manager, *, log_file, log_prefix="") -> Lab:
-    # Check that the experiment directory is there.   We need to do this before setting up logging
-    # because the logger wants to write to the directory.
-    experiment_manager.ensure_experiment_directory()
-
-    return setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
-
-# Log files are model relative
-# jbfs determines where model log files belong
