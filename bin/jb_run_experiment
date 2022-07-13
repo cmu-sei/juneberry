@@ -29,12 +29,14 @@ a set of reports.
 """
 
 import argparse
+from functools import partial
 import logging
 from pathlib import Path
 import sys
 
 # Utilities
 import juneberry.filesystem as jbfs
+from juneberry.lab import Lab
 import juneberry.scripting as jbscripting
 import juneberry.workflow as jbworkflow
 
@@ -95,15 +97,15 @@ def main():
     args, unknown = parser.parse_known_args()
     show_command = args.showcmd
 
-    # Set up logging
     experiment_manager = jbfs.ExperimentManager(args.experimentName)
-    if args.dryrun:
-        log_prefix = "<<PREVIEW>> "
-        log_file = experiment_manager.get_experiment_dryrun_log_path()
-    else:
-        log_prefix = "<<LIVE>> "
-        log_file = experiment_manager.get_experiment_log_path()
-    lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix)
+    log_file = experiment_manager.get_log_path(args.dryrun)
+
+    # Set up the workspace, logging and general environment
+    lab = jbscripting.setup_workspace(
+        args,
+        log_file=log_file,
+        log_prefix="<<PREVIEW>> " if args.dryrun else "<<LIVE>> ",
+        banner_msg=f">>> Juneberry Experiment Runner {args.experimentName} <<<")
 
     # Find bin directory
     bin_dir = Path(__file__).parent.absolute()

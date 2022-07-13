@@ -39,7 +39,7 @@ class MockArgs:
 
 
 def test_defaults():
-    vals = jbscripting.make_default_values("/foo")
+    vals = jbscripting.make_default_lab_values("/foo")
     assert vals['workspace'] == "/foo"
     assert vals['data_root'] == "/dataroot"
     assert vals['tensorboard'] == "/tensorboard"

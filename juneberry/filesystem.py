@@ -201,11 +201,11 @@ def save_file(data, path: str, *, indent: int = 4) -> None:
         sys.exit(-1)
 
 
-def load_file(path: str) -> str:
+def load_file(path: str):
     """
-    Loads the file from the specified file path.
+    Loads the file from the specified file path via the specific loader.
     :param path: The path to the file to load.
-    :return: File contents
+    :return: File contents as a dict
     """
     if Path(path).exists():
         exts = Path(path).suffixes
@@ -226,7 +226,7 @@ def load_file(path: str) -> str:
         gz_path = gz_path.with_suffix(gz_path.suffix + '.gz')
         if gz_path.exists():
             logger.info(f"Could not find '{path}'. Using GZIP of '{path}'.")
-            return load_file(gz_path)
+            return load_file(str(gz_path))
         else:
             logger.error(f'Failed to load {path}. The file could not be found. Exiting.')
             sys.exit(-1)
@@ -307,11 +307,13 @@ class ExperimentManager:
         """ :return: The relative path to the experiment's DB-file (pydoit). """
         return self.experiment_dir_path / '.doit.db'
 
-    def get_experiment_log_path(self):
+    def get_log_path(self, dryrun=False):
         """ :return: The path to the experiment log file. """
+        if dryrun:
+            return self.get_dryrun_log_path()
         return self.experiment_log_dir_path / "log_experiment.txt"
 
-    def get_experiment_dryrun_log_path(self):
+    def get_dryrun_log_path(self):
         """ :return: The path to the experiment log file. """
         return self.experiment_log_dir_path / "log_experiment_dryrun.txt"
 
@@ -319,7 +321,7 @@ class ExperimentManager:
         """
         :return: Returns a list of files or glob patterns of outputs.
         """
-        return [self.get_experiment_dryrun_log_path()]
+        return [self.get_dryrun_log_path()]
 
     def clean(self, dry_run=False):
         """
@@ -343,11 +345,13 @@ class ExperimentCreator(ExperimentManager):
         """
         super().__init__(experiment_name)
 
-    def get_experiment_creation_log(self):
+    def get_log_path(self, dryrun=False):
         """ :return: The path to the experiment creation log. """
+        if dryrun:
+            return self.get_dryrun_log_path()
         return self.experiment_dir_path / 'log_experiment_creation.txt'
 
-    def get_experiment_creation_dryrun_log(self):
+    def get_dryrun_log_path(self):
         """ :return: The path to the dry run of the experiment creation log. """
         return self.experiment_dir_path / 'log_experiment_creation_dryrun.txt'
 
@@ -601,12 +605,14 @@ class EvalDirMgr:
     def get_detections_anno_path(self):
         return str(self.root / "detections_anno.json")
 
-    def get_log_path(self, tool_name=None):
+    def get_log_path(self, tool_name=None, dryrun=False):
+        if dryrun:
+            return self.get_dryrun_log_path(tool_name)
         if tool_name:
             return str(self.root / f"log_{tool_name}.txt")
         return str(self.root / "log.txt")
 
-    def get_log_dryrun_path(self, tool_name=None):
+    def get_dryrun_log_path(self, tool_name=None):
         if tool_name:
             return str(self.root / f"log_dryrun_{tool_name}.txt")
         return str(self.root / "log_dryrun.txt")
@@ -715,8 +721,10 @@ class ModelManager:
         """ :return: The path to the model's training plot. """
         return self.get_train_root_dir() / 'output.png'
 
-    def get_training_log(self):
+    def get_training_log(self, dryrun=False):
         """ :return: The path to the model's training log. """
+        if dryrun:
+            return self.get_training_dryrun_log_path()
         return self.get_train_root_dir() / 'log.txt'
 
     def get_training_dryrun_log_path(self):

@@ -89,7 +89,7 @@ class Lab:
 
     @staticmethod
     def validate_args(workspace: str, data_root: str, tensorboard: str, profile_name: str,
-                      model_zoo:str=None, cache: str = None) -> None:
+                      model_zoo: str = None, cache: str = None) -> None:
         """
         Checks to see that the four lab arguments are valid and exits if they aren't. We do NOT do this
         automatically on lab construction because there are cases where we want to construct a lab
@@ -143,8 +143,17 @@ class Lab:
     @staticmethod
     def model_manager(model_name: str, model_version=None) -> jbfs.ModelManager:
         """ :return: The ModelManager for this model. """
-        # return jbfs.ModelManager(self.workspace, model_name)
         return jbfs.ModelManager(model_name, model_version)
+
+    @staticmethod
+    def experiment_manager(experiment_name: str) -> jbfs.ExperimentManager:
+        """ :return: The ExperimentManager for this experiment. """
+        return jbfs.ExperimentManager(experiment_name)
+
+    @staticmethod
+    def experiment_creator(experiment_name: str) -> jbfs.ExperimentCreator:
+        """ :return: The ExperimentCreator for this experiment. """
+        return jbfs.ExperimentCreator(experiment_name)
 
     # Setup commands
     def setup_lab_profile(self, *, model_name: str = None, model_config: ModelConfig = None) -> None:

@@ -80,18 +80,18 @@ def main():
     args = parser.parse_args()
 
     # The model manager helps us find all the files and directories
+    # NOTE: We can use the default constructor because this model MUST be in the default (current) workspace.
     model_name = args.modelName
     model_manager = jbfs.ModelManager(args.modelName)
     model_manager.setup()
 
     # Use the config file to set up the workspace, data and logging
-    log_prefix = ""
-    log_file = model_manager.get_training_log()
-    if args.dryrun:
-        log_prefix = "<<DRY_RUN>> "
-        log_file = model_manager.get_training_dryrun_log_path()
-    lab = jbscripting.setup_for_single_model(args, log_file=log_file, log_prefix=log_prefix, model_name=model_name,
-                                             banner_msg=">>> Juneberry Trainer <<<")
+    lab = jbscripting.setup_workspace_and_model(
+        args,
+        log_file=model_manager.get_training_log(args.dryrun),
+        log_prefix=jbscripting.standard_line_prefix(args.dryrun),
+        model_name=model_name,
+        banner_msg=">>> Juneberry Trainer <<<")
 
     # Convert the verbose argument to the corresponding logging level.
     log_level = logging.DEBUG if args.verbose else logging.INFO

@@ -25,9 +25,6 @@
 import json
 import hjson
 import numpy as np
-import gzip
-import yaml
-import toml
 from pathlib import Path
 
 import juneberry.filesystem as jbfs
@@ -50,8 +47,8 @@ def test_eval_dir():
     assert eval_dir_mgr.get_detections_anno_path() == str(eval_dir_root / "detections_anno.json")
     assert eval_dir_mgr.get_log_path() == str(eval_dir_root / "log.txt")
     assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_root / "log_TestTool.txt")
-    assert eval_dir_mgr.get_log_dryrun_path() == str(eval_dir_root / "log_dryrun.txt")
-    assert eval_dir_mgr.get_log_dryrun_path("TestTool") == str(eval_dir_root / "log_dryrun_TestTool.txt")
+    assert eval_dir_mgr.get_dryrun_log_path() == str(eval_dir_root / "log_dryrun.txt")
+    assert eval_dir_mgr.get_dryrun_log_path("TestTool") == str(eval_dir_root / "log_dryrun_TestTool.txt")
     assert eval_dir_mgr.get_metrics_path() == str(eval_dir_root / "metrics.json")
     assert eval_dir_mgr.get_predictions_path() == str(eval_dir_root / "predictions.json")
     assert eval_dir_mgr.get_sample_detections_dir() == str(eval_dir_root / "sample_detections")
@@ -113,8 +110,8 @@ def test_experiment_manager():
     assert em.get_experiment_name() == "millikan_oil_drop"
     assert em._get_experiment_dir() == root
     assert em.get_experiment_config() == root / 'config.json'
-    assert em.get_experiment_log_path() == root / "logs" / "log_experiment.txt"
-    assert em.get_experiment_dryrun_log_path() == root / "logs" / "log_experiment_dryrun.txt"
+    assert em.get_log_path() == root / "logs" / "log_experiment.txt"
+    assert em.get_dryrun_log_path() == root / "logs" / "log_experiment_dryrun.txt"
 
 
 def test_experiment_manager_clean():
@@ -128,20 +125,20 @@ def test_experiment_manager_clean():
     if not test_dir.exists():
         test_dir.mkdir(parents=True)
     em.get_experiment_config().touch()
-    em.get_experiment_dryrun_log_path().touch()
+    em.get_dryrun_log_path().touch()
     woot_file.touch()
     ok_file.touch()
 
     em.clean(dry_run=True)
     assert em.get_experiment_config().exists()
-    assert em.get_experiment_dryrun_log_path().exists()
+    assert em.get_dryrun_log_path().exists()
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()
 
     em.clean()
     assert em.get_experiment_config().exists()
-    assert not em.get_experiment_dryrun_log_path().exists()
+    assert not em.get_dryrun_log_path().exists()
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()
@@ -215,6 +212,7 @@ def test_open_file():
         assert f.read() == "test"
     file.unlink()
 
+
 def test_save_json():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -224,6 +222,7 @@ def test_save_json():
     assert path.exists()
     path.unlink(True)
 
+
 def test_save_hjson():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -232,6 +231,7 @@ def test_save_hjson():
     jbfs.save_hjson(data, path)
     assert path.exists()
     path.unlink(True)
+
 
 def test_save_yaml():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
@@ -247,6 +247,7 @@ def test_save_yaml():
     assert path.exists()
     path.unlink(True)
 
+
 def test_save_toml():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
     cwd = Path.cwd()
@@ -259,12 +260,13 @@ def test_save_toml():
     path = cwd / "test_save_toml.tml"
     jbfs.save_toml(data, path)
     assert path.exists()
-    path.unlink(True) 
+    path.unlink(True)
 
     path = cwd / "test_save_toml.toml.gz"
     jbfs.save_toml(data, path)
     assert path.exists()
     path.unlink(True)
+
 
 def test_save_file():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
@@ -371,4 +373,3 @@ def test_load_file_look_for_gz():
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     gz_path.unlink()
-    

@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import argparse
+from functools import partial
 import logging
 from pathlib import Path
 from random import choice, randint
@@ -51,6 +52,7 @@ class AttackMaker:
     Initialize some attributes for the AttackMaker, setup the workspace and logging, and
     load the attack configuration file.
     """
+
     def __init__(self, args):
         self.experiment_name = args.experimentName
         self.attack_manager = jbfs.AttackManager(self.experiment_name)
@@ -66,16 +68,17 @@ class AttackMaker:
         self.shadow_superset_eval_output_files_list = []
         self.shadow_disjoint_eval_output_files_list = []
 
-        # Setup the experiment directory for the attack.
+        # Set up the experiment directory for the attack.
         self.attack_manager.setup()
 
-        # Set logging properties depending on whether or not dry run mode was requested.
-        log_prefix = "<<DRY_RUN>> " if self.dryrun else ""
         log_file = self.attack_manager.get_attack_setup_dryrun_log() if self.dryrun \
             else self.attack_manager.get_attack_setup_log()
 
-        # Set up the workspace, and logging.
-        jbscripting.setup_for_experiment_creation(args, self.attack_manager, log_file=log_file, log_prefix=log_prefix)
+        # Set up the workspace, logging and general environment
+        jbscripting.setup_workspace(
+            args,
+            log_file=log_file,
+            log_prefix=jbscripting.standard_line_prefix(self.dryrun))
 
         # Load the attack config for the experiment.
         self.attack_config = self.attack_config.load(self.attack_manager.get_experiment_attack_file())
@@ -379,7 +382,6 @@ class AttackMaker:
 
         # Create the requested number of shadow models.
         for i in range(num_shadow_models):
-
             # Determine which name to use for the current shadow model, which model directory the files
             # should be stored in, and then set up a ModelManager for this model.
             shadow_model_name = self.attack_manager.get_shadow_model_name(i, disjoint=disjoint)

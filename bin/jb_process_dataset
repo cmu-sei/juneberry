@@ -422,14 +422,14 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
-    # Follow the normal procedure for setting up logs and workspace
-    log_prefix = ""
-    log_file = str((Path(args.logDir) / "preprocess_log.txt").absolute())
-    if args.dryrun:
-        log_prefix = "<<DRY_RUN>> "
-        log_file = str(Path(args.logDir) / "preprocess_dryrun_log.txt")
-    lab = jbscripting.setup_workspace(args, log_file=log_file, log_prefix=log_prefix,
-                                      banner_msg=">>> Juneberry Dataset Preprocessor <<<")
+    log_file_name = "preprocess_dryrun_log.txt" if args.dryrun else "preprocess_log.txt"
+
+    # Set up the workspace, logging and general environment
+    lab = jbscripting.setup_workspace(
+        args,
+        log_file=str(Path(args.logDir) / log_file_name),
+        log_prefix=jbscripting.standard_line_prefix(args.dryrun),
+        banner_msg=">>> Juneberry Dataset Preprocessor <<<")
 
     # First, let's see if the output directory exists. We don't want to overwrite
     out_dir_path = Path(lab.data_root()) / args.output_dir
