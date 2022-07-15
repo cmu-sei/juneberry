@@ -57,11 +57,22 @@ def create_workspace_dirs(workspace_dir: str) -> None:
     create_dir(workspace_dir_path / "drafts")
     
 
-def create_package_and_setup(workspace_dir: str, requirements_string: str):
+def create_package_and_setup(workspace_dir: str, requirements_list: list):
     # Make a package directory and put in an empty init file
     package_dir = Path(workspace_dir) / workspace_dir
     create_dir(package_dir)
     (package_dir / "__init__.py").touch()
+
+    for package in requirements_list:
+        if 'requirements_string' not in locals():
+            requirements_string = f"\"{package}\""
+        else: 
+            requirements_string = f"{requirements_string},\n \"{package}\""
+
+        if 'install_string' not in locals():
+            install_string = f"pip install -e /lab/{package}"
+        else: 
+            install_string = f"{install_string}\npip install -e /lab/{package}"
 
     # TODO: Add juneberry version
     install_requires = [
@@ -88,11 +99,13 @@ def create_package_and_setup(workspace_dir: str, requirements_string: str):
         out_file.writelines(setup_args)
         out_file.write("\n")
     
-    container_start = """#! /usr/bin/env bash
-# Setup juneberry
-echo "Installing Juneberry..."
-pip install -e /juneberry
+    container_sh_start = (
+        "#! /usr/bin/env bash\n",
+        "# Setup juneberry\n",
+        "echo \"Installing requiremnts..\"\n",
+        f"{install_string}" )
 
+    container_sh_end = """
 # Add in the bash completion
 source /juneberry/scripts/juneberry_completion.sh
 
@@ -104,7 +117,8 @@ fi
 """
 
     with open(str(Path(workspace_dir) / "container_start.sh"), "w") as out_file:
-        out_file.writelines(container_start)
+        out_file.writelines(container_sh_start)
+        out_file.writelines(container_sh_end)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -119,16 +133,12 @@ def main():
         if not Path(f"./{package}/setup.py").exists():
             logging.error(f"Required package ./{package}/setup.py does not exist. No workspace created.")
             sys.exit(1)
-        if 'requirements_string' not in locals():
-            requirements_string = package
-        else: 
-            requirements_string = f"{requirements_string},\n {package}"
 
     # Create the Juneberry workspace directories and files.
     # Return 0 for success, 1 for failure.
     try:
         create_workspace_dirs(args.workspace)
-        create_package_and_setup(args.workspace, requirements_string)
+        create_package_and_setup(args.workspace, args.requirements)
     except Exception as e:
         logging.error(e)
         sys.exit(1)
