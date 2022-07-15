@@ -49,24 +49,86 @@ def create_workspace_dirs(workspace_dir: str) -> None:
     :param workspace_dir: The Juneberry workspace directory.
     :return: None
     """
-    workspace_dir = Path(workspace_dir)
-    create_dir(workspace_dir)
-    create_dir(workspace_dir / "data_sets")
-    create_dir(workspace_dir / "experiments")
-    create_dir(workspace_dir / "models")
+    workspace_dir_path = Path(workspace_dir)
+    create_dir(workspace_dir_path)
+    create_dir(workspace_dir_path / "data_sets")
+    create_dir(workspace_dir_path / "experiments")
+    create_dir(workspace_dir_path / "models")
+    create_dir(workspace_dir_path / "drafts")
+    
 
+def create_package_and_setup(workspace_dir: str, requirements_string: str):
+    # Make a package directory and put in an empty init file
+    package_dir = Path(workspace_dir) / workspace_dir
+    create_dir(package_dir)
+    (package_dir / "__init__.py").touch()
+
+    # TODO: Add juneberry version
+    install_requires = [
+        f"install_requires = [\n"
+        f" {requirements_string}\n",
+        f"]"
+    ]
+
+    setup_args = [
+        f"setuptools.setup(\n",
+        f"    name='{workspace_dir}',\n",
+        f"    version='0.1',\n",
+        f"    packages=setuptools.find_packages(),\n",
+        f"    install_requires=install_requires,\n",
+        f"    python_required='>=3.7'\n"
+        f")\n",
+    ]
+
+    with open(str(Path(workspace_dir) / "setup.py"), "w") as out_file:
+        out_file.write("#! /usr/bin/env python3\n\n")
+        out_file.write("import setuptools\n\n")
+        out_file.writelines(install_requires)
+        out_file.write("\n\n")
+        out_file.writelines(setup_args)
+        out_file.write("\n")
+    
+    container_start = """#! /usr/bin/env bash
+# Setup juneberry
+echo "Installing Juneberry..."
+pip install -e /juneberry
+
+# Add in the bash completion
+source /juneberry/scripts/juneberry_completion.sh
+
+# Install any workspace code
+if [ -e "./setup.py" ]; then
+    echo "Installing workspace..."
+    pip install -e .
+fi      
+"""
+
+    with open(str(Path(workspace_dir) / "container_start.sh"), "w") as out_file:
+        out_file.writelines(container_start)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("workspace", help="Juneberry workspace to set up.")
+    parser.add_argument("requirements", help="Python requirements.", type=str, nargs='+',)
     args = parser.parse_args()
 
-    logging.info(f"Setting up workspace in {args.workspace}...")
+    logging.info(f"Setting up workspace in {args.workspace} ...")
+    
+    logging.info("Checking specified requirements ...")
+    for package in args.requirements:
+        if not Path(f"./{package}/setup.py").exists():
+            logging.error(f"Required package ./{package}/setup.py does not exist. No workspace created.")
+            sys.exit(1)
+        if 'requirements_string' not in locals():
+            requirements_string = package
+        else: 
+            requirements_string = f"{requirements_string},\n {package}"
 
     # Create the Juneberry workspace directories and files.
     # Return 0 for success, 1 for failure.
     try:
         create_workspace_dirs(args.workspace)
+        create_package_and_setup(args.workspace, requirements_string)
     except Exception as e:
         logging.error(e)
         sys.exit(1)
