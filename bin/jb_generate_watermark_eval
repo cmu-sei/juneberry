@@ -230,9 +230,6 @@ def main():
     # For now, we do ten sizes from 10% to 100%. We should probably allow switches/configs for this.
     scales = [round(0.1 * x, 1) for x in range(1, 11)]
 
-    for scale in scales:
-        print(type(scale))
-
     # Generate the dataset configs and experiment config
     generate_experiment(args.experimentName,
                         args.modelName,
