@@ -166,7 +166,6 @@ def generate_experiment(experiment_name: str, model_name: str, scales: list, tar
                 make_watermark_dataset(base_config, dataset_path, str(watermark_path), size)
 
                 # Add a test stanza
-#                import pdb; pdb.set_trace()
                 tag = str(dataset_path.parent / dataset_path.stem)
                 eval_series.append(tag)
                 test_list.append(ModelTest(dataset_path=dataset_path, tag=tag, classify=0))
