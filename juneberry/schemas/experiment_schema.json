@@ -51,6 +51,7 @@
                             "required": [ "dataset_path", "tag" ]
                         }
                     },
+                    "train": { "type": "boolean" },
                     "version": { "type": "string" }
                 },
                 "required": [ "name", "tests" ]

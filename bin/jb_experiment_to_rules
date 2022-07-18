@@ -65,6 +65,10 @@ class RuleMaker:
 
     def add_training(self):
         for model in self.experiment_config.models:
+            # If they don't want this trained, then we are done.
+            if not model.train:
+                continue
+
             model_mgr = ModelManager(model.name)
             model_config = ModelConfig.load(model_mgr.get_model_config())
 
@@ -128,7 +132,10 @@ class RuleMaker:
                         command.append('--useValSplit')
                     doc = " ".join([str(x) for x in command])
                     clean_extras = model_mgr.get_predictions_clean_extras_list()
-                    requirements = [model['train_rule_id']]
+                    if 'train_rule_id' in model:
+                        requirements = [model['train_rule_id']]
+                    else:
+                        requirements = []
 
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
