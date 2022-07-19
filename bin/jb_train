@@ -27,8 +27,8 @@ import logging
 import sys
 
 import juneberry.filesystem as jbfs
-import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
+from juneberry.training.trainer_factory import TrainerFactory
 
 logger = logging.getLogger("juneberry.jb_train")
 
@@ -55,20 +55,6 @@ def setup_args(parser) -> None:
     parser.add_argument('--resume', default=False, action='store_true',
                         help='If the trainer supports checkpointing, then this instructs the trainer to resume training'
                              'from the last checkpoint.')
-
-
-def setup_opt_args(args: argparse.Namespace):
-    """
-    Set up optional args from the command line.
-    :param args: A Namespace object built from the attributes parsed out of the command line.
-    """
-    opt_args = {}
-    opt_arg_keys = ['resume']
-    for key in opt_arg_keys:
-        if key in vars(args):
-            opt_args[key] = vars(args)[key]
-
-    return opt_args
 
 
 def main():
@@ -115,84 +101,33 @@ def main():
 
     # TODO: Reimplement no_paging via lab profile
 
-    # Backward compatible map of task and platform name to class to load
-    task_platform_map = {
-        "classification": {
-            "pytorch": "juneberry.pytorch.classifier_trainer.ClassifierTrainer",
-            "pytorch_privacy": "juneberry.pytorch.privacy.classifier_trainer.PrivacyTrainer",
-            "tensorflow": "juneberry.tensorflow.trainer.ClassifierTrainer",
-            "tfgloro": "juneberry.tensorflow.trainer.ClassifierTrainer"
-        },
-        "objectDetection": {
-            "detectron2": "juneberry.detectron2.trainer.Detectron2Trainer",
-            "mmdetection": "juneberry.mmdetection.trainer.MMDTrainer"
-        }
-    }
-
-    if model_config.trainer is not None:
-        kw_args = model_config.trainer.kwargs
-        if kw_args is None:
-            kw_args = {}
-        fqcn = model_config.trainer.fqcn
-    else:
-        # Dig through our map of tasks and platforms
-        if model_config.task not in task_platform_map:
-            logger.error(f"We do not support the task '{model_config.task}'. "
-                         f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
-            sys.exit(-1)
-        else:
-            task_set = task_platform_map[model_config.task]
-            if model_config.platform not in task_set:
-                logger.error(
-                    f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
-                    f"Supported platforms: {list(task_set.keys())}. Exiting.")
-                sys.exit(-1)
-            fqcn = task_platform_map[model_config.task][model_config.platform]
-        kw_args = {}
-        logger.warning("Found deprecated platform/task configuration for loading trainer. "
-                       "Consider updating the model config to use the trainer stanza.")
-        logger.warning('"trainer": {')
-        logger.warning(f'    "fqcn": "{fqcn}"')
-        logger.warning('}')
-
-    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
-    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
-    for arg in reqd_args:
-        if arg not in kw_args:
-            kw_args[arg] = locals()[arg]
-
-    # Construct optional args that trainers may take.
-    opt_args = setup_opt_args(args)
+    # Create a TrainerFactory to generate the Trainer.
+    trainer_factory = TrainerFactory(dataset_config=dataset_config, lab=lab, log_level=log_level,
+                                     model_config=model_config, model_manager=model_manager)
 
     # Construct the trainer
-    logger.info(f"Instantiating trainer: {fqcn}")
-    trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
+    # trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
+    trainer = trainer_factory.get_trainer(resume=args.resume)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
     # Set the output format for the trainer.
-    trainer.onnx = args.onnx
-    trainer.native = not args.skipNative
-
-    # If no output format was set, choose the native format by default even if
-    # the user requested it to be skipped.
-    if not (trainer.onnx or trainer.native):
-        logger.warning(f"An output format was not set. Choosing the native format.")
-        trainer.native = True
+    trainer.set_output_format(native=not args.skipNative, onnx=args.onnx)
 
     if args.dryrun:
         trainer.dry_run()
     else:
         # Allocate the GPUs the user asked for, getting the current number if None are required.
-        trainer.num_gpus = trainer.check_gpu_availability(lab.profile.num_gpus)
+        trainer.num_gpus = trainer.check_gpu_availability(trainer_factory.lab.profile.num_gpus)
 
-        if lab.profile.max_gpus is not None:
-            if trainer.num_gpus > lab.profile.max_gpus:
-                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to {lab.profile.max_gpus} "
+        if trainer_factory.lab.profile.max_gpus is not None:
+            if trainer.num_gpus > trainer_factory.lab.profile.max_gpus:
+                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to "
+                            f"{trainer_factory.lab.profile.max_gpus}"
                             f"because of lab profile.")
-                trainer.num_gpus = lab.profile.max_gpus
+                trainer.num_gpus = trainer_factory.lab.profile.max_gpus
 
         # No matter the number of GPUs, setup the node for training
         trainer.node_setup()

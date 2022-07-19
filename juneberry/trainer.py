@@ -106,6 +106,26 @@ class Trainer:
         self.native = True
         self.onnx = False
 
+    def set_output_format(self, native: bool = True, onnx: bool = False):
+        """
+        This method can be used to set the Trainer's output format attributes. If no output format is
+        detected, then the "native" format will be chosen by default.
+        :param native: A boolean indicating if the Trainer should save the trained model file in the
+        platform's native format. The default value is True.
+        :param onnx: A boolean indicating if the Trainer should save the trained model file in ONNX
+        format, if the training platform supports saving ONNX model files. The default values is False.
+        :return: Nothing.
+        """
+        # Set the attributes.
+        self.native = native
+        self.onnx = onnx
+
+        # If the trainer has no output format, choose the native format by default even if
+        # the user requested it to be skipped.
+        if not (self.onnx or self.native):
+            logger.warning(f"An output format was not set for the Trainer. Choosing the native format.")
+            self.native = True
+
     # ==========================
 
     def dry_run(self) -> None:
