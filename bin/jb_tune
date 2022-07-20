@@ -1,0 +1,105 @@
+#! /usr/bin/env python3
+
+# ======================================================================================================================
+# Juneberry - General Release
+#
+# Copyright 2021 Carnegie Mellon University.
+#
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+#
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+#
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
+#
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
+#
+# DM21-0884
+#
+# ======================================================================================================================
+
+import argparse
+import logging
+
+from juneberry.config.tuning import TuningConfig
+import juneberry.filesystem as jb_fs
+from juneberry.script_tools.tuning_sprout import TuningSprout
+import juneberry.scripting as jb_scripting_utils
+from juneberry.training.trainer_factory import TrainerFactory
+from juneberry.tuning.tuner import Tuner
+
+logger = logging.getLogger("juneberry.jb_tune")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument('modelName', help='Name of the directory in the workspace "models" directory containing the '
+                                          'model \'config.json\' of the model to be tuned.')
+    parser.add_argument('tuningConfig', help='Name of the tuning config to apply to the model.')
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
+
+
+def main():
+    # Setup and parse all arguments.
+    parser = argparse.ArgumentParser(description="Performs hyperparameter tuning on a Juneberry model using the "
+                                                 "tuning properties described in a tuning config file.")
+    setup_args(parser)
+    jb_scripting_utils.setup_args(parser)
+    args = parser.parse_args()
+
+    # Create a TuningSprout, feed it the script args.
+    sprout = TuningSprout()
+    sprout.grow_from_args(args)
+
+    # The model manager helps us find all the files and directories.
+    # NOTE: We can use the default constructor because this model MUST be in the default (current) workspace.
+    model_manager = jb_fs.ModelManager(sprout.model_name)
+    model_manager.setup_tuning()
+
+    # Use the config file to set up the workspace, data, and logging.
+    lab = jb_scripting_utils.setup_workspace_and_model(
+        args,
+        log_file=model_manager.get_tuning_log(),
+        log_prefix=jb_scripting_utils.standard_line_prefix(sprout.dryrun),
+        model_name=sprout.model_name,
+        banner_msg=">>> Juneberry Tuner <<<")
+
+    # Kick off the logging.
+    logger.info(f"Initiating tuning for model: {sprout.model_name}")
+
+    # Load the config files, check and aggregate configuration options.
+    model_config = lab.load_model_config(sprout.model_name)
+
+    # The model config may influence the lab profile, so once the model config has been
+    # established it is safe to set up the lab profile.
+    lab.setup_lab_profile(model_name=sprout.model_name, model_config=model_config)
+    logger.info(f"Using lab profile: {lab.profile}")
+
+    # Now load the dataset.
+    dataset_config = lab.load_dataset_config(model_config.training_dataset_config_path)
+
+    # Create a TrainerFactory to generate the Trainer.
+    trainer_factory = TrainerFactory(dataset_config=dataset_config, lab=lab, log_level=sprout.log_level,
+                                     model_config=model_config, model_manager=model_manager)
+
+    # Create a Tuner and set its initial attributes.
+    tuner = Tuner()
+    tuner.trainer_factory = trainer_factory
+    tuner.tuning_config = TuningConfig.load(sprout.tuning_config)
+    tuner.sprout = sprout
+
+    # Perform hyperparameter tuning on the model.
+    tuner.tune()
+
+    logger.info(f"jb_tune is done.")
+
+
+if __name__ == "__main__":
+    jb_scripting_utils.run_main(main, logger)

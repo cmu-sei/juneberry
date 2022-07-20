@@ -123,7 +123,7 @@ class Trainer:
         # If the trainer has no output format, choose the native format by default even if
         # the user requested it to be skipped.
         if not (self.onnx or self.native):
-            logger.warning(f"An output format was not set for the Trainer. Choosing the native format.")
+            logger.warning(f"An output format was not set for the Trainer. Enabling the native format.")
             self.native = True
 
     # ==========================
@@ -176,6 +176,9 @@ class Trainer:
 
     def train(self) -> None:
         logger.warning("train() not implemented in base Trainer")
+
+    def tune(self) -> None:
+        logger.warning("tune() not implemented in base Trainer")
 
     def finish(self) -> None:
         logger.warning("finish() not implemented in base Trainer")
@@ -305,6 +308,12 @@ class EpochTrainer(Trainer):
         while not self.done:
             self._train_one_epoch()
 
+    def tune(self):
+        # For each epoch we need to complete a tuning interval.
+        logger.info(f"Calculating the latest training metrics and sending them to the tuner...")
+        while not self.done:
+            yield self._tune_one_interval()
+
     def finish(self) -> None:
         """
         Called to finalize and close all resources.
@@ -367,9 +376,10 @@ class EpochTrainer(Trainer):
         """
         pass
 
-    def end_epoch(self) -> str:
+    def end_epoch(self, tuning_mode: bool = False) -> str:
         """
         Called at the end of epoch for model saving, external telemetry, etc.
+        :param tuning_mode: Boolean indicating if the epoch is being used to tune the model.
         """
         return ""
 
@@ -429,6 +439,27 @@ class EpochTrainer(Trainer):
                     f"time_sec: {elapsed:.3f}, eta: {eta.strftime('%H:%M:%S')}, "
                     f"remaining: {int(hours):d}:{int(minutes):02d}:{int(seconds):02d}, "
                     f"{msg}")
+
+    def _tune_one_interval(self):
+        """
+        Iterates the training set performing the forward function and returns metric data
+        to the tuner. Then evaluates the model using the validation batch.
+        Metrics are produced and updated for each batch.
+        Performs timing instrumentation as appropriate.
+        """
+        self.epoch += 1
+
+        with self.timer("epoch"):
+            # Process all the data from the data loader
+            self._process_one_iterable(True, self.training_iterable)
+
+            # Process all the data from the data loader
+            self._process_one_iterable(False, self.evaluation_iterable)
+
+        with self.timer("end_epoch"):
+            epoch_tracker = self.timer('epoch')
+            return_val = self.end_epoch(tuning_mode=True)
+            return return_val
 
     def _process_one_iterable(self, train: bool, data_iterable):
         """

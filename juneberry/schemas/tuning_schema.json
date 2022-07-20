@@ -1,0 +1,41 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "$id": "tuning_schema.json",
+    "definitions": {
+        "plugin_item": {
+            "type": "object",
+            "properties": {
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" }
+            },
+            "required": [ "fqcn" ]
+        }
+    },
+    "type": "object",
+    "description": "A configuration for tuning hyperparameters in a Juneberry model.",
+    "properties": {
+        "description": { "type": "string" },
+        "format_version": { "type": "string" },
+        "num_samples": { "type": "integer" },
+        "scheduler": { "$ref": "#/definitions/plugin_item" },
+        "search_algorithm": { "$ref": "#/definitions/plugin_item" },
+        "search_space": { "type":  "object" },
+        "timestamp": { "type": "string" },
+        "trial_resources": {
+            "type": "object",
+            "properties": {
+                "cpu": { "type": "integer" },
+                "gpu": { "type": "integer" }
+            }
+        },
+        "tuning_parameters": {
+            "type": "object",
+            "properties": {
+                "checkpoint_interval": { "type": "integer" },
+                "metric": { "type": "string" },
+                "mode": { "type": "string", "enum": [ "min", "max" ] },
+                "scope": { "type": "string", "enum": [ "all", "last", "avg", "last-5-avg", "last-10-avg" ] }
+            }
+        }
+    }
+}

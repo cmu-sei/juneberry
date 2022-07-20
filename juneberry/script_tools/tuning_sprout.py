@@ -24,29 +24,26 @@
 from argparse import Namespace
 from dataclasses import dataclass
 import logging
+from juneberry.script_tools.sprout import Sprout
+
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Sprout:
+class TuningSprout(Sprout):
     """
-    The purpose of the Sprout class is to capture the arguments that are passed into Juneberry
-    scripts. The base Sprout class reflects the args that are common to all scripts.
+    The TuningSprout class extends the Sprout class to include args related to model tuning.
     """
     # ========== SCRIPT ARGS ==========
-    # ===== DIRECTORY ARGS =====
-    workspace_dir: str = None
-    dataroot_dir: str = None
-    tensorboard_dir: str = None
-    log_dir: str = None
+    # ===== EXECUTION MODE ARGS =====
+    dryrun: bool = None
 
-    # ===== LOGGING ARGS =====
-    silent: bool = None
-    log_level: int = None
+    # ===== MODEL ARGS =====
+    model_name: str = None
 
-    # ===== LAB ARGS =====
-    profile_name: str = None
+    # ===== TUNING ARGS =====
+    tuning_config: str = None
 
     def grow_from_args(self, args: Namespace) -> None:
         """
@@ -54,10 +51,10 @@ class Sprout:
         :param args: A Namespace of arguments, typically created by passing arguments to a Juneberry script.
         :return: Nothing.
         """
-        self.workspace_dir = getattr(args, "workspace", None)
-        self.dataroot_dir = getattr(args, "dataRoot", None)
-        self.tensorboard_dir = getattr(args, "tensorboard", None)
-        self.log_dir = getattr(args, "logDir", None)
-        self.silent = getattr(args, "silent", False)
-        self.log_level = logging.DEBUG if getattr(args, "verbose", None) else logging.INFO
-        self.profile_name = getattr(args, "profileName", None)
+        # Start by setting the attributes in the base Sprout.
+        super().grow_from_args(args)
+
+        # Now set the attributes listed in the TuningSprout.
+        self.dryrun = getattr(args, "dryrun", False)
+        self.model_name = getattr(args, "modelName", None)
+        self.tuning_config = getattr(args, "tuningConfig", None)

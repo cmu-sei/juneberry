@@ -652,6 +652,10 @@ class ModelManager:
         for name in ['train', 'eval']:
             (self.model_dir_path / name).mkdir(parents=True, exist_ok=True)
 
+    def setup_tuning(self):
+        """ Prepares a directory for tuning. """
+        self.get_tuning_dir().mkdir(parents=True, exist_ok=True)
+
     def get_model_name(self):
         """ :return: The name of the model. """
         return self.model_name
@@ -750,6 +754,14 @@ class ModelManager:
     def get_train_scratch_path(self) -> Path:
         """ :return: Path to a directory for 'scratch' outputs from training. """
         return self.get_train_root_dir() / "scratch"
+
+    def get_tuning_dir(self) -> Path:
+        """ :return: Path to a directory containing files related to hyperparameter tuning. """
+        return self.get_train_root_dir() / "tuning"
+
+    def get_tuning_log(self) -> Path:
+        """ :return: The path to the model's tuning log. """
+        return self.get_tuning_dir() / "log.txt"
 
     # ============ Evaluation ============
 
