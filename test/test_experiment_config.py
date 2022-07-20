@@ -82,36 +82,6 @@ def test_config_basics(tmp_path):
         assert len(config['reports']) == len(exp_conf['reports'])
 
 
-def test_models_missing(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        del config['models']
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-        assert caplog.records[0].levelname == "ERROR"
-        assert "'models' is a required property at []" in caplog.text
-
-
-def test_models_non_zero(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['models'] = []
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "is too short at ['models']" in caplog.text
-
-
 def test_model_bad_name(tmp_path, caplog):
     with utils.set_directory(tmp_path):
         # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
