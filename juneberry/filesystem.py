@@ -935,6 +935,38 @@ class ModelManager:
 
         clean_if_exists(files_to_clean, dry_run)
 
+    @staticmethod
+    def get_tuning_output_list() -> list:
+        """
+        :return: A list of files or glob patterns of files generated during tuning.
+        """
+        files = []
+
+        return files
+
+    @staticmethod
+    def get_tuning_clean_extras_list() -> list:
+        """
+        :return: A list of additional things to clean after tuning.
+        """
+        return []
+
+    @staticmethod
+    def get_tuning_dryrun_output_list() -> list:
+        """
+        :return: A list of files or glob patterns of files generated during tuning.
+        """
+        files = []
+
+        return files
+
+    @staticmethod
+    def get_tuning_dryrun_clean_extras_list() -> list:
+        """
+        :return: A list of additional things to clean after tuning.
+        """
+        return []
+
     def create_tensorboard_directory_name(self, tensorboard_root):
         time_str = datetime.datetime.now().strftime('%m%d_%H%M') + '_'
         hostname_str = socket.gethostname() + '_'
