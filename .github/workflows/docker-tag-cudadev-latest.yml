@@ -1,0 +1,21 @@
+name: Docker cudadev to latest
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - 
+        name: Retag cudadev to latest
+        uses: tinact/docker.image-retag@master
+        with:
+          image_name: cmusei/juneberry
+          image_old_tag: cudadev
+          image_new_tag: latest
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
