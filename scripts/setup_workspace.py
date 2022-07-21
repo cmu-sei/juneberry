@@ -55,7 +55,7 @@ def create_workspace_dirs(workspace_dir: str) -> None:
     create_dir(workspace_dir_path / "experiments")
     create_dir(workspace_dir_path / "models")
     create_dir(workspace_dir_path / "drafts")
-    
+
 
 def create_package_and_setup(workspace_dir: str, requirements_list: list):
     # Make a package directory and put in an empty init file
@@ -63,23 +63,10 @@ def create_package_and_setup(workspace_dir: str, requirements_list: list):
     create_dir(package_dir)
     (package_dir / "__init__.py").touch()
 
-    for package in requirements_list:
-        if 'requirements_string' not in locals():
-            requirements_string = f"\"{package}\""
-        else: 
-            requirements_string = f"{requirements_string},\n \"{package}\""
-
-        if 'install_string' not in locals():
-            install_string = f"pip install -e /lab/{package}"
-        else: 
-            install_string = f"{install_string}\npip install -e /lab/{package}"
-
-    # TODO: Add juneberry version
-    install_requires = [
-        f"install_requires = [\n"
-        f" {requirements_string}\n",
-        f"]"
-    ]
+    # TODO: Add juneberry version?
+    requires = ['juneberry']
+    requires.extend(requirements_list)
+    install_requires = [f"install_requires = [ {', '.join(requires)} ]\n"]
 
     setup_args = [
         f"setuptools.setup(\n",
@@ -98,12 +85,17 @@ def create_package_and_setup(workspace_dir: str, requirements_list: list):
         out_file.write("\n\n")
         out_file.writelines(setup_args)
         out_file.write("\n")
-    
-    container_sh_start = (
-        "#! /usr/bin/env bash\n",
+
+    # Now make a container start
+
+    container_sh_start = [
+        "#! /usr/bin/env bash\n\n",
         "# Setup juneberry\n",
-        "echo \"Installing requiremnts..\"\n",
-        f"{install_string}" )
+        "echo \"Installing Juneberry...\"\n",
+        "pip install -e /juneberry\n\n",
+        "echo \"Installing requiremnts..\"\n"]
+
+    container_sh_start.extend([f"pip install -e /lab/{x}\n" for x in requirements_list])
 
     container_sh_end = """
 # Add in the bash completion
@@ -120,14 +112,15 @@ fi
         out_file.writelines(container_sh_start)
         out_file.writelines(container_sh_end)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("workspace", help="Juneberry workspace to set up.")
-    parser.add_argument("requirements", help="Python requirements.", type=str, nargs='+',)
+    parser.add_argument("requirements", help="Python requirements.", type=str, nargs='*', )
     args = parser.parse_args()
 
     logging.info(f"Setting up workspace in {args.workspace} ...")
-    
+
     logging.info("Checking specified requirements ...")
     for package in args.requirements:
         if not Path(f"./{package}/setup.py").exists():
