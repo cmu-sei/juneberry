@@ -121,11 +121,12 @@ def main():
 
     logging.info(f"Setting up workspace in {args.workspace} ...")
 
-    logging.info("Checking specified requirements ...")
-    for package in args.requirements:
-        if not Path(f"./{package}/setup.py").exists():
-            logging.error(f"Required package ./{package}/setup.py does not exist. No workspace created.")
-            sys.exit(1)
+    if len(args.requirements) > 0:
+        logging.info("Checking specified requirements ...")
+        for package in args.requirements:
+            if not Path(f"./{package}/setup.py").exists():
+                logging.error(f"Required package ./{package}/setup.py does not exist. No workspace created.")
+                sys.exit(1)
 
     # Create the Juneberry workspace directories and files.
     # Return 0 for success, 1 for failure.
