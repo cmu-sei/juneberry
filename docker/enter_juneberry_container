@@ -129,6 +129,7 @@ else
 fi
 DR="-v ${DATA_ROOT}:/dataroot${DATA_ROOT_MODE}"
 TB="-v ${TENSORBOARD}:/tensorboard"
+LAB_MOUNT="-v ${LAB}:/lab"
 HUB_CACHE="-v ${CACHE}/hub:/root/.cache/torch/hub"
 TORCH_CACHE="-v ${CACHE}/torch:/root/.torch"
 TF_CACHE="-v ${CACHE}/tensorflow:/root/tensorflow_datasets"
@@ -169,6 +170,6 @@ ENVS="--env HTTP_PROXY --env http_proxy --env HTTPS_PROXY --env https_proxy --en
 ENVS_USER="-e USER_NAME=${USER} -e USER_ID=$(id -u ${USER}) -e USER_GID=$(id -g ${USER}) -e HOST_UNAME=$(uname)"
 
 # Assemble the command, show it, and run it.
-CMD="docker ${RUN_CMD} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DR} ${TB} ${CACHES} ${CONTAINER} bash"
+CMD="docker ${RUN_CMD} ${ENVS} ${ENVS_USER} ${GPUS} ${JB} ${WS} ${DR} ${LAB_MOUNT} ${TB} ${CACHES} ${CONTAINER} bash"
 echo "${CMD}"
 ${CMD}
