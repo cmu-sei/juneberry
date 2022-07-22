@@ -27,6 +27,7 @@ and the generation of some number of reports from aggregates of the test results
     "models": [
          {
             "filters" : [ "tag1", "tag2" ] - OPTIONAL
+            "maximum_evaluations": <maximum number of similar evaluations to perform at once. Default is 1.>
             "name": <name of model in models directory>,
             "onnx": <boolean indicating if an ONNX version of the model should be saved>,
             "tests": [
@@ -105,6 +106,14 @@ Current: 1.5.0
 ## models
 An array of entries that describe which model(s) to train (if needed) and which test(s) to run against
 the trained model(s).
+
+### maximum_evaluations
+** Optional** number specifying the number of evaltions to be performed **per call** to jb_evaluate
+on loading the model. When generating the calls to jb_evaluate similar evaluations (the same classify,
+use_train_split, use_val_split, etc.) up to this number of evaluations will be performed while only
+loading the model once. This is only impacts performance and should not affect correctness. This is
+mostly useful from a runtime performance perspective when the model is large and the dataset is small.
+This value defaults to 1.
 
 ### name
 The name of the model to train if needed. (The directory in the "models" directory.)

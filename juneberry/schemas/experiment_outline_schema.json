@@ -9,7 +9,8 @@
         "model": {
             "type": "object",
             "properties": {
-                "filters": { "type": "array" }
+                "filters": { "type": "array" },
+                "maximum_evaluations": { "type": "integer"}
             }
         },
         "reports": {

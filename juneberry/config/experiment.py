@@ -54,6 +54,7 @@ class ModelTest(Prodict):
 
 class Model(Prodict):
     filters: List[str]
+    maximum_evaluations: int
     name: str
     onnx: bool
     tests: List[ModelTest]

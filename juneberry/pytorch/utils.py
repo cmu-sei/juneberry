@@ -178,7 +178,7 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
         torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
 
 
-def load_model(model_path, model, strict: bool) -> None:
+def load_model(model_path, model, strict: bool):
     """
     Loads the model weights from the model directory using our model naming scheme and format.
     :param model_path: The model directory.

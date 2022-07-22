@@ -19,6 +19,7 @@ refer to the specifications for experiment configurations and model configuratio
     "format_version": <linux style version string of the format of this file.>,
     "model" : {
         "filters": [ <list of filters to add to each model> ]
+        "maximum_evaluations": <maximum number of similar evaluations to perform at once. Default is 1.>
     }
     "reports": [
         {
@@ -73,6 +74,14 @@ Specific details to add to each generated model stanza.
 ### filters
 A list of filters to apply to the model stanza verbatim.  See the experiment configuration
 specification for details.
+
+### maximum_evaluations
+** Optional** number specifying the number of evaltions to be performed **per call** to jb_evaluate
+on loading the model. When generating the calls to jb_evaluate similar evaluations (the same classify,
+use_train_split, use_val_split, etc.) up to this number of evaluations will be performed while only
+loading the model once. This is only impacts performance and should not affect correctness. This is
+mostly useful from a runtime performance perspective when the model is large and the dataset is small.
+This value defaults to 1.
 
 ## reports
 A list of reports to produce when running the experiment.

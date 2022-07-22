@@ -129,6 +129,10 @@ class Evaluator(EvaluatorBase):
 
         logger.info(f"PyTorch Evaluator setup steps are complete.")
 
+    def resetup(self) -> None:
+        # Set the seeds using the value from the ModelConfig.
+        pyt_utils.set_pytorch_seeds(self.model_config.seed)
+
     def obtain_dataset(self) -> None:
         """
         This is the PyTorch version of the extension point that's responsible for obtaining the dataset

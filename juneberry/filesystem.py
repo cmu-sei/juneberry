@@ -634,6 +634,16 @@ class EvalDirMgr:
     def get_predictions_path(self):
         return str(self.root / "predictions.json")
 
+    def predictions_exists(self) -> bool:
+        """ :return: True if predictions exists as json or json.gz """
+        pred_path = Path(self.get_predictions_path())
+        if pred_path.exists():
+            return True
+        pred_path = Path(self.get_predictions_path() + ".gz")
+        if pred_path.exists():
+            return True
+        return False
+
     def get_sample_detections_dir(self):
         return str(self.root / "sample_detections")
 
