@@ -25,13 +25,19 @@ import logging
 from pathlib import Path
 import sys
 
-from prodict import Prodict
+from prodict import List, Prodict
 
 from juneberry.config.plugin import Plugin
 import juneberry.config.util as jb_conf_utils
 import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
+
+
+class Hyperparameter(Prodict):
+    hyperparameter_name: str
+    fqcn: str
+    kwargs: Prodict
 
 
 class TrialResources(Prodict):
@@ -60,7 +66,7 @@ class TuningConfig(Prodict):
     num_samples: int
     scheduler: Plugin
     search_algorithm: Plugin
-    search_space: dict
+    search_space: List[Hyperparameter]
     timestamp: str
     trial_resources: TrialResources
     tuning_parameters: TuningParameters

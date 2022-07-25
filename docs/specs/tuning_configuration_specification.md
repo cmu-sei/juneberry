@@ -5,11 +5,13 @@ Tuning Configuration Specification
 # Introduction
 This document describes a JSON format that controls the configuration options used when performing 
 hyperparameter tuning on a machine learning model in Juneberry. Since Juneberry relies on 
-[Ray Tune - external link](https://docs.ray.io/en/latest/tune/index.html) to perform hyperparameter 
-tuning, the fields in this config are heavily influenced by terminology used by Ray Tune. This 
-[key concepts page - external link](https://docs.ray.io/en/latest/tune/key-concepts.html) offers a 
-quick, high-level explanation of several tuning components that can be adjusted using values in 
-the tuning config.
+[Ray Tune (external link)](https://docs.ray.io/en/latest/tune/index.html) to perform hyperparameter 
+tuning, the fields in this config are heavily influenced by terminology used by Ray Tune. 
+
+This [key concepts (external link)](https://docs.ray.io/en/latest/tune/key-concepts.html) page offers 
+a quick, high-level explanation of several tuning components that can be controlled using the tuning 
+config. Of the Ray Tune components described in this link, the tuning config allows you to define 
+which search space, search algorithm, and scheduler to use during your tuning run.
 
 # Schema
 
@@ -26,13 +28,15 @@ the tuning config.
         "fqcn": <fully qualified name of the ray.tune search algorithm class to use for hyperparameter selection>,
         "kwargs": { <OPTIONAL> kwargs to be passed to the search algorithm class during its construction }
     },
-    "search_space": {
-        "model_config_attribute_name": {
-            "fqcn": <fully qualified name of the ray.tune sampling function to use for assigning values to the 
+    "search_space": [
+        {
+            "fqcn":<fully qualified name of the ray.tune sampling function to use for assigning values to the 
             model config attribute>,
+            "hyperparameter_name": <String indicating the name of an attribute in a ModelConfig that you 
+            would like the tuner to adjust during tuning trials>
             "kwargs": { <OPTIONAL> kwargs to be passed to the sampling function during its construction }
         }
-    },
+    ], 
     "timestamp": <OPTIONAL ISO timestamp for when this file was last updated>,
     "trial_resources": {
         "cpu": <Integer indicating how many CPUs to allocate to a tuning trial>,
@@ -66,9 +70,9 @@ corresponds to a selection of hyperparameter values from the search space. The m
 trained for a "trial" using those hyperparameters.
 
 ## scheduler
-The scheduler is responsible for running trials in the Tuner. A scheduler can cause the 
-early termination of bad trials, pause trials, clone trials, and even potentially alter 
-hyperparameters of a running trial. Refer to this 
+**Optional:** The scheduler is responsible for running trials in the Tuner. A scheduler can 
+cause the early termination of bad trials, pause trials, clone trials, and even potentially 
+alter hyperparameters of a running trial. Refer to this 
 [external link](https://docs.ray.io/en/latest/tune/api_docs/schedulers.html) for more 
 information about schedulers, including what schedulers are supported in Ray Tune.
 
@@ -82,9 +86,10 @@ The fully qualified name of the scheduler class to use.
 This stanza contains all the arguments to pass in to the scheduler during its construction.
 
 ## search_algorithm
-The search algorithm is responsible for making hyperparameter selections out of the search space. 
-Refer to this [external link](https://docs.ray.io/en/latest/tune/api_docs/suggestion.html) for more 
-information about search algorithms, including what search algorithms are supported in Ray Tune.
+**Optional:** The search algorithm is responsible for making hyperparameter selections out of 
+the search space. Refer to this 
+[external link](https://docs.ray.io/en/latest/tune/api_docs/suggestion.html) for more information 
+about search algorithms, including what search algorithms are supported in Ray Tune.
 
 If this field is not provided, Ray Tune will use the 'ray.tune.suggest.basic_variant.BasicVariantGenerator' 
 by default.
@@ -97,23 +102,24 @@ This stanza contains all the arguments to pass in to the search algorithm during
 
 ## search_space
 The search space defines which hyperparameters in the model config will be varied during tuning. The 
-search space is represented by a dictionary, where each key name corresponds to the name of a property 
-in a Juneberry Model Config. The value for the key describes which function to use for generating 
-values for the indicated Model Config property. Refer to this 
+search space is a list of dictionaries, where each dictionary corresponds to one hyperparameter that 
+you would like the tuner to adjust during tuning trials. The dictionary contains the name of the 
+hyperparameter you wish to adjust, which should correspond to a property inside a Juneberry model 
+config. Each dictionary should also contain an fqcn and kwargs describing how to generate values for 
+the target model config property.  Refer to this 
 [external link](https://docs.ray.io/en/latest/tune/api_docs/search_space.html) for more information 
 about which functions can be used to generate values in the search space.
 
-### model_config_attribute_name
-The name of this field can be a little misleading. It is not literally 'model_config_attribute_name'. 
-Instead, the key here should correspond to the string name of a property in a Juneberry Model Config 
-that you would like to vary prior to training the model. Examples of such properties include (but are 
-not limited to) 'batch_size', 'epochs', and 'model_architecture'. 
-
-#### fqcn
+### fqcn
 The fully qualified name of the sampling function to use when generating values to substitute in 
 for the target model config attribute.
 
-#### kwargs
+### hyperparameter_name
+This string describes a property inside a Juneberry model config that you would like the tuner to 
+adjust during tuner trials. Examples of such properties include (but are not limited to) 'batch_size', 
+'epochs', and 'model_architecture'. 
+
+### kwargs
 This stanza contains all the arguments to pass in to the sampling function during its construction.
 
 ## timestamp
@@ -134,6 +140,14 @@ This integer indicates how many GPUs should be allocated to the trial.
 Tuning parameters control what aspects the Tuner will attempt to optimize during model training and 
 how it should perform that optimization. By default, the Tuner will attempt to minimize the last 
 reported training loss value.
+
+### checkpoint_interval
+This integer indicates how often to save model checkpoints during tuning. For example, when this field 
+is set to 1, a model checkpoint will be saved every time a round of metrics is sent to the tuner. If 
+this field is set to 0, then no model checkpoint directories will ever be saved. 
+
+**NOTE:** Some tuning features, such as certain types of schedulers, may rely on checkpointing in order 
+to work properly.  
 
 ### metric
 This string indicates which training metric the Tuner should attempt to optimize. Example values for 

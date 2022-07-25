@@ -67,12 +67,16 @@ class TrainerFactory:
                 logger.warning(f"There is no ModelManager associated with the TrainerFactory, so "
                                f"the model directory could not be determined.")
 
-    def get_trainer(self, resume: bool = False) -> Union[None, Trainer]:
+    def get_trainer(self, resume: bool = False, native: bool = True, onnx: bool = False) -> Union[None, Trainer]:
         """
         This method is responsible for using the attributes in the TrainerFactory to build and return a
         Juneberry Trainer object.
         :param resume: A boolean indicating if the 'resume' optional arg should be passed to the Trainer
         object when it is created.
+        :param native: A boolean indicating if the Trainer should output the resulting trained model file
+        in the platform's native format.
+        :param onnx: A boolean indicating if the Trainer should output the resulting trained model file
+        in the ONNX format.
         :return: A Juneberry Trainer, or None when a Trainer could not be built.
         """
         # If a ModelConfig is not associated with the TrainerFactory, the Factory can't determine
@@ -85,7 +89,12 @@ class TrainerFactory:
         # When a ModelConfig does exist, ModelConfig properties can be used to determine which type
         # of Trainer to build. Return the constructed Trainer.
         else:
-            return self._assemble_trainer(resume=resume)
+            # Assemble the Trainer, allocate GPUs, and set the Trainer's output formats.
+            trainer = self._assemble_trainer(resume=resume)
+            trainer = self._allocate_trainer_gpus(trainer)
+            trainer.set_output_format(native=native, onnx=onnx)
+
+            return trainer
 
     def _assemble_trainer(self, resume: bool = False) -> Trainer:
         """
@@ -124,3 +133,15 @@ class TrainerFactory:
         # Construct the Trainer object.
         logger.info(f"Instantiating trainer: {trainer_fqcn}")
         return jb_loader.construct_instance(trainer_fqcn, trainer_kwargs, opt_args)
+
+    def _allocate_trainer_gpus(self, trainer: Trainer) -> Trainer:
+        # Allocate the GPUs the user asked for, getting the current number if None are required.
+        trainer.num_gpus = trainer.check_gpu_availability(self.lab.profile.num_gpus)
+
+        if self.lab.profile.max_gpus is not None:
+            if trainer.num_gpus > self.lab.profile.max_gpus:
+                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to "
+                            f"{self.lab.profile.max_gpus} because of lab profile.")
+                trainer.num_gpus = self.lab.profile.max_gpus
+
+        return trainer

@@ -42,7 +42,8 @@ def setup_args(parser) -> None:
     """
     parser.add_argument('modelName', help='Name of the directory in the workspace "models" directory containing the '
                                           'model \'config.json\' of the model to be tuned.')
-    parser.add_argument('tuningConfig', help='Name of the tuning config to apply to the model.')
+    parser.add_argument('tuningConfig', help='Path to a tuning config file (relative to the workspace) '
+                                             'that defines how to conduct the tuning run.')
     parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode.')
 
 

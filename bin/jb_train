@@ -106,29 +106,16 @@ def main():
                                      model_config=model_config, model_manager=model_manager)
 
     # Construct the trainer
-    trainer = trainer_factory.get_trainer(resume=sprout.resume)
+    trainer = trainer_factory.get_trainer(resume=sprout.resume, native=not sprout.skip_native, onnx=sprout.onnx)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
-    # Set the output format for the trainer.
-    trainer.set_output_format(native=not sprout.skip_native, onnx=sprout.onnx)
-
     if sprout.dryrun:
         trainer.dry_run()
     else:
-        # Allocate the GPUs the user asked for, getting the current number if None are required.
-        trainer.num_gpus = trainer.check_gpu_availability(trainer_factory.lab.profile.num_gpus)
-
-        if trainer_factory.lab.profile.max_gpus is not None:
-            if trainer.num_gpus > trainer_factory.lab.profile.max_gpus:
-                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to "
-                            f"{trainer_factory.lab.profile.max_gpus}"
-                            f"because of lab profile.")
-                trainer.num_gpus = trainer_factory.lab.profile.max_gpus
-
-        # No matter the number of GPUs, setup the node for training
+        # Setup the node for training.
         trainer.node_setup()
 
         # Set the number of GPUs and kick it off

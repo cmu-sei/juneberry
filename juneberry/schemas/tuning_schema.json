@@ -19,7 +19,18 @@
         "num_samples": { "type": "integer" },
         "scheduler": { "$ref": "#/definitions/plugin_item" },
         "search_algorithm": { "$ref": "#/definitions/plugin_item" },
-        "search_space": { "type":  "object" },
+        "search_space": {
+            "type":  "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "fqcn": { "type": "string" },
+                    "hyperparameter_name": { "type": "string" },
+                    "kwargs": { "type": "object" }
+                },
+                "required" : [ "hyperparameter_name", "fqcn" ]
+            }
+        },
         "timestamp": { "type": "string" },
         "trial_resources": {
             "type": "object",
@@ -37,5 +48,6 @@
                 "scope": { "type": "string", "enum": [ "all", "last", "avg", "last-5-avg", "last-10-avg" ] }
             }
         }
-    }
+    },
+    "required": [ "search_space" ]
 }

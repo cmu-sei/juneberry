@@ -24,7 +24,6 @@
 import logging
 import os
 from pathlib import Path
-import sys
 
 from ray import tune
 from ray.tune.integration.torch import DistributedTrainableCreator, distributed_checkpoint_dir
@@ -79,14 +78,7 @@ class Tuner:
         :return:
         """
         # Extract the search_space from the tuning config.
-        if self.tuning_config.search_space is not None:
-            self._build_search_space()
-
-        # Exit if the tuning config does not define a search space.
-        else:
-            logger.error(f"The tuning config does not define a search space. The Tuner cannot "
-                         f"determine which hyperparameters to tune. Exiting.")
-            sys.exit(-1)
+        self._build_search_space()
 
         # Extract the scheduler from the tuning config and then build the desired scheduler.
         if self.tuning_config.scheduler is not None:
@@ -107,17 +99,16 @@ class Tuner:
         This method is responsible for constructing the search space for the Tuner.
         :return: Nothing.
         """
+        # The goal is to create a dictionary that tune.run() will use to select hyperparameters
+        # for each tuning trial. In this dictionary, the keys are the hyperparameter to adjust, and
+        # the values are functions that define the allowed range of sample values for the hyperparameter.
         search_space = {}
 
-        # Retrieve the desired search space from the tuning config.
-        search_space_dict = self.tuning_config.search_space
+        # Convert the search space defined in the tuning config into the format tune.run() expects.
+        for variable in self.tuning_config.search_space:
+            search_space[variable.hyperparameter_name] = jb_loader.construct_instance(variable.fqcn, variable.kwargs)
 
-        # For each item listed in the tuning config's search space, construct the desired
-        # sampling function.
-        for key, plugin in search_space_dict.items():
-            search_space[key] = jb_loader.construct_instance(plugin.fqcn, plugin.kwargs)
-
-        # Once the entire search space has been assembled, assign it to the Tuner.
+        # Once the entire search space has been assembled, assign it to the Tuner attribute.
         self.search_space = search_space
 
     def _build_scheduler(self) -> None:

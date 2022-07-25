@@ -54,6 +54,7 @@ class ModelTest(Prodict):
 
 class Model(Prodict):
     filters: List[str]
+    name: str
     onnx: bool
     tests: List[ModelTest]
     tuning: str

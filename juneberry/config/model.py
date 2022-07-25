@@ -286,16 +286,13 @@ class ModelConfig(Prodict):
         to change, and the corresponding value indicates what the attribute value should be changed to.
         :return: A ModelConfig whose attributes have been adjusted to the desired values.
         """
-        # Convert the current ModelConfig to a dictionary.
-        as_dict = conf_utils.prodict_to_dict(self)
-
         # Loop through all keys in the adjustment dictionary and make the substitutions in the
         # current model config.
         for k in adjustment_dict.keys():
-            as_dict[k] = adjustment_dict[k]
+            self[k] = adjustment_dict[k]
 
-        # Return the new ModelConfig.
-        return ModelConfig.from_dict(as_dict)
+        # Return the adjusted ModelConfig.
+        return self
 
     def get_previous_model(self):
         # TODO: Remove
