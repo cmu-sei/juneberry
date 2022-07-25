@@ -38,6 +38,8 @@ It provides the following features:
 import datetime
 import logging
 
+from tqdm import tqdm
+
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
@@ -426,7 +428,7 @@ class EpochTrainer(Trainer):
         # Process each batch
         with self.timer(label):
             try:
-                for data, targets in data_iterable:
+                for data, targets in tqdm(data_iterable):
                     # Forwards
                     with self.timer(f"{label}_batch"):
                         results = self.process_batch(train, data, targets)
