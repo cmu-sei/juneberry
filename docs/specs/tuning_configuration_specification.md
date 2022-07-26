@@ -116,8 +116,9 @@ for the target model config attribute.
 
 ### hyperparameter_name
 This string describes a property inside a Juneberry model config that you would like the tuner to 
-adjust during tuner trials. Examples of such properties include (but are not limited to) 'batch_size', 
-'epochs', and 'model_architecture'. 
+adjust during tuner trials. Examples of such properties include root level properties, such as 
+"batch_size" and "epochs", and nested properties, such as "pytorch.lr_schedule_args.gamma" and 
+"model_architecture.args.num_classes". 
 
 ### kwargs
 This stanza contains all the arguments to pass in to the sampling function during its construction.

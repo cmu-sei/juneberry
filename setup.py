@@ -57,7 +57,8 @@ install_requires = [
     "pyyaml",
     "hjson",
     "natsort",
-    "ray"
+    "ray",
+    "jsonpath-ng"
 ]
 
 bin_scripts = [

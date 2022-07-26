@@ -26,10 +26,12 @@ from collections import namedtuple
 from enum import Enum
 import logging
 from pathlib import Path
-from prodict import List, Prodict
 import random
 import sys
 import typing
+
+from jsonpath_ng.ext import parse
+from prodict import List, Prodict
 
 from juneberry.config.plugin import Plugin
 import juneberry.config.util as conf_utils
@@ -289,7 +291,8 @@ class ModelConfig(Prodict):
         # Loop through all keys in the adjustment dictionary and make the substitutions in the
         # current model config.
         for k in adjustment_dict.keys():
-            self[k] = adjustment_dict[k]
+            jsonpath_expr = parse(k)
+            jsonpath_expr.update(self, adjustment_dict[k])
 
         # Return the adjusted ModelConfig.
         return self
