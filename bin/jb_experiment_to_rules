@@ -121,7 +121,10 @@ class RuleMaker:
             # Predictions
             if model.tests:
                 for test in model.tests:
-                    inputs = [model_mgr.get_model_path(), test.dataset_path]
+                    if model.train:
+                        inputs = [model_mgr.get_model_path(), test.dataset_path]
+                    else:
+                        inputs = [test.dataset_path]
                     outputs = model_mgr.get_evaluation_output_list(test.dataset_path)
                     command = [JB_EVALUATE_COMMAND, model_mgr.model_name, test.dataset_path]
                     if test.classify:
