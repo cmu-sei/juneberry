@@ -125,6 +125,8 @@ class ExperimentConfig(Prodict):
         # The reports should have a 'tests' section to make sense and tags in those tests.
         error_count += self._validate_reports(tag_set)
 
+        error_count += self._validate_tuning()
+
         if error_count > 0:
             logger.error(f"Found {error_count} errors in experiment config. Exiting.")
             sys.exit(-1)

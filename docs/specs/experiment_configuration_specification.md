@@ -42,7 +42,13 @@ and the generation of some number of reports from aggregates of the test results
             "version": <OPTIONAL - which version of the model to use>,
         }
     ],
-    "reports": [ <array of Report plugins - see below ],
+    "reports": [ <array of Report plugins - see below> ],
+    "tuning": [
+        {
+            "model": <name of model in models directory to tune>,
+            "tuning_config": <name of tuning config in workspace describing how to tune the model>
+        }
+    ],
     "timestamp": <optional ISO time stamp for when this was generated>
 }
 ```
@@ -53,7 +59,7 @@ and the generation of some number of reports from aggregates of the test results
 **Optional** prose description of this experiment.
 
 ## filters
-This sections lists the filters that can be applied training output or evaluation output.
+This section lists the filters that can be applied training output or evaluation output.
 Each model or test stanza has a **filters** field specified which filters to invoke after the
 training or evaluation as appropriate.
 Each entry in here describes a pattern for how the filter but the actual values will be filled
@@ -130,6 +136,19 @@ want the predictions script to perform classifications.
 **OPTIONAL** An array of one or more Plugins, where each Plugin corresponds to a Juneberry Report 
 class. Refer to the [report config specification](report_configuration_specification.md) for more information 
 about Juneberry Report Plugins.
+
+## tuning
+**OPTIONAL** An array of one or more dictionaries, where each dictionary describes a tuning run. A tuning run 
+can be used to optimize the hyperparameters of a model.
+
+### model
+This string indicates the name of the model in the workspace to tune. When generating a 'jb_tune' command 
+for the experiment, the value of this property will be used for the command's "modelName" argument.
+
+### tuning_config
+This string indicates the name of the tuning config file, relative to the workspace, to use when tuning 
+the model. When generating a 'jb_tune' command for the experiment, the value of this property will be 
+used for the command's "tuningConfig" argument.
 
 ## timestamp
 **Optional** Time stamp (ISO format with 0 microseconds) for when this file was last updated.

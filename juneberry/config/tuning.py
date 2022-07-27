@@ -62,7 +62,6 @@ class TuningConfig(Prodict):
     FORMAT_VERSION = '0.1.0'
     SCHEMA_NAME = 'tuning_schema.json'
     description: str
-    file_path: Path
     num_samples: int
     scheduler: Plugin
     search_algorithm: Plugin
@@ -125,7 +124,7 @@ class TuningConfig(Prodict):
         :return: Loaded, validated and constructed object.
         """
         # Load the raw file.
-        logger.info(f"Loading TuningConfig from {data_path}")
+        logger.info(f"Loading TUNING CONFIG from {data_path}")
         data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
