@@ -232,6 +232,17 @@ def load_file(path: str):
             sys.exit(-1)
 
 
+def load_json_lines(path: str) -> list:
+    """
+    The purpose of this function is to load content from the specified file path, when the
+    target file contains data in JSON Lines format.
+    :param path: The path to the JSON Lines file to load.
+    :return: A list of data, where each element in the list is a valid JSON object.
+    """
+    with open(path, 'r') as file:
+        return [json.loads(line) for line in file]
+
+
 class ExperimentManager:
     def __init__(self, experiment_name):
         self.experiment_name = experiment_name
@@ -762,6 +773,21 @@ class ModelManager:
     def get_tuning_log(self) -> Path:
         """ :return: The path to the model's tuning log. """
         return self.get_tuning_dir() / "log.txt"
+
+    @staticmethod
+    def get_relocated_tuning_log(target_dir: str) -> Path:
+        """ :return: The path for a tuning log file that's been relocated to a target directory. """
+        return Path(target_dir) / "log.txt"
+
+    @staticmethod
+    def get_relocated_tuning_output(target_dir: str) -> Path:
+        """ :return: The path for a tuning output file that's been relocated to a target directory. """
+        return Path(target_dir) / "output.json"
+
+    @staticmethod
+    def get_tuning_result_file(target_dir: str) -> Path:
+        """ :return: The path for a tuning result file inside a target directory. """
+        return Path(target_dir) / "result.json"
 
     # ============ Evaluation ============
 

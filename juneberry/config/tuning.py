@@ -61,7 +61,9 @@ class TuningParameters(Prodict):
 class TuningConfig(Prodict):
     FORMAT_VERSION = '0.1.0'
     SCHEMA_NAME = 'tuning_schema.json'
+
     description: str
+    format_version: str
     num_samples: int
     scheduler: Plugin
     search_algorithm: Plugin

@@ -21,14 +21,16 @@
 # DM21-0884
 #
 # ======================================================================================================================
+import datetime
 import logging
 import os
-from pathlib import Path
 
 from ray import tune
 from ray.tune.integration.torch import DistributedTrainableCreator, distributed_checkpoint_dir
 import torch
 
+from juneberry.config.tuning_output import TuningOutputBuilder
+import juneberry.filesystem as jb_fs
 import juneberry.loader as jb_loader
 import juneberry.jb_logging as jb_logging
 import juneberry.scripting as jb_scripting_utils
@@ -70,6 +72,14 @@ class Tuner:
 
         # Attribute to capture the best tuning result.
         self.best_result = None
+
+        # These attributes are responsible for producing the tuning output.json.
+        self.output_builder = TuningOutputBuilder()
+        self.output = self.output_builder.output
+
+        # Store the time that tuning started / ended.
+        self.tuning_start_time = None
+        self.tuning_end_time = None
 
     def _build_tuning_components(self) -> None:
         """
@@ -263,6 +273,10 @@ class Tuner:
         attributes of the Tuner.
         :return: Nothing.
         """
+        # Record the Tuning options.
+        self.output_builder.set_tuning_options(model_name=self.sprout.model_name,
+                                               tuning_config=self.sprout.tuning_config)
+
         # Construct the various components required for tuning.
         self._build_tuning_components()
 
@@ -271,6 +285,10 @@ class Tuner:
         trainable, trial_resources = self._determine_trainable()
 
         logger.info(f"Starting the tuning run.")
+
+        # Capture the time when the tuning run started.
+        self.tuning_start_time = datetime.datetime.now().replace(microsecond=0)
+
         # Perform the tuning run.
         result = tune.run(
             trainable,
@@ -282,14 +300,26 @@ class Tuner:
             num_samples=self.tuning_config.num_samples,
             scheduler=self.scheduler,
             local_dir=str(self.trainer_factory.model_manager.get_tuning_dir()),
-            progress_reporter=CustomReporter()
+            progress_reporter=CustomReporter(),
+            trial_dirname_creator=self._trial_dirname_string_creator
         )
+
+        # Capture the time when the tuning run ended.
+        self.tuning_end_time = datetime.datetime.now().replace(microsecond=0)
 
         # Once tuning is complete, store the best result.
         logger.info(f"The tuning run is complete. Storing the best result.")
         self.best_result = result.get_best_trial(self.tuning_config.tuning_parameters.metric,
                                                  self.tuning_config.tuning_parameters.mode,
                                                  self.tuning_config.tuning_parameters.scope)
+
+        # Retrieve the data from inside each trial's result.json file.
+        for trial in result.trials:
+            result_path = self.trainer_factory.model_manager.get_tuning_result_file(trial.logdir)
+            trial_data = jb_fs.load_json_lines(result_path)
+
+            # Add the trial's result data to the tuning output.
+            self.output_builder.append_trial_result(directory=trial.logdir, params=trial.config, trial_data=trial_data)
 
         # Perform any final tuning steps, such as indicating the "best result".
         self.finish_tuning()
@@ -329,6 +359,17 @@ class Tuner:
 
         return trainable, trial_resources
 
+    @staticmethod
+    def _trial_dirname_string_creator(trial) -> str:
+        """
+        The purpose of this method is to shorten the directory name used to contain the files for each trial.
+        Without this, tuning runs involving many hyperparameters run the risk of generating directory names that
+        may be too long on a Windows system.
+        :param trial: A Ray Tune Trial object.
+        :return: A string to use for the Trial's directory.
+        """
+        return f"{trial.trainable_name}_{trial.trial_id}"
+
     def finish_tuning(self):
         # TODO: Once a tuning run is complete, there are various things that can be done with
         #  the best tuning result.
@@ -338,5 +379,19 @@ class Tuner:
                     f"{self.best_result.last_result[self.tuning_config.tuning_parameters.metric]}")
 
         # Move the Juneberry tuning log into the tuning directory for this run.
-        new_log_path = Path(self.best_result.local_dir) / "log.txt"
+        new_log_path = self.trainer_factory.model_manager.get_relocated_tuning_log(self.best_result.local_dir)
         self.trainer_factory.model_manager.get_tuning_log().rename(new_log_path)
+
+        # Store some data in the tuning output, then save the tuning output file.
+        logger.info(f"Generating Tuning Output...")
+
+        logger.info(f"  Recording time spent tuning.")
+        self.output_builder.set_times(start_time=self.tuning_start_time, end_time=self.tuning_end_time)
+
+        logger.info(f"  Recording the ID and config params of best trial.")
+        self.output_builder.output.results.best_trial_id = self.best_result.trial_id
+        self.output_builder.output.results.best_trial_params = self.best_result.config
+
+        logger.info(f"  Saving Tuning Output file.")
+        output_path = self.trainer_factory.model_manager.get_relocated_tuning_output(self.best_result.local_dir)
+        self.output_builder.save(output_path)

@@ -170,16 +170,17 @@ class ExperimentConfig(Prodict):
     def _validate_tuning(self):
         error_count = 0
 
-        for i, trial in enumerate(self.tuning):
-            model_manager = jbfs.ModelManager(trial.model)
-            tuning_config_path = Path(trial.tuning_config)
-            if not model_manager.get_model_dir().exists():
-                logger.error(f"Model not found: {model_manager.get_model_dir()}")
-                error_count += 1
+        if self.tuning is not None:
+            for i, trial in enumerate(self.tuning):
+                model_manager = jbfs.ModelManager(trial.model)
+                tuning_config_path = Path(trial.tuning_config)
+                if not model_manager.get_model_dir().exists():
+                    logger.error(f"Model not found: {model_manager.get_model_dir()}")
+                    error_count += 1
 
-            if not tuning_config_path.exists():
-                logger.error(f"Tuning config not found: {tuning_config_path}")
-                error_count += 1
+                if not tuning_config_path.exists():
+                    logger.error(f"Tuning config not found: {tuning_config_path}")
+                    error_count += 1
 
         return error_count
 
