@@ -1,0 +1,63 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "format_version": { "type": "string" },
+        "options": {
+            "type": "object",
+            "properties": {
+                "model_name": { "type": "string" },
+                "tuning_config": { "type": "string" }
+            },
+            "required": [ "model_name", "tuning_config" ]
+        },
+        "results": {
+            "type": "object",
+            "properties": {
+                "best_trial_id": { "type": "string" },
+                "best_trial_params": { "type": "object" },
+                "trial_results": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "directory": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "num_iterations": {
+                                "type": "integer"
+                            },
+                            "params": {
+                                "type": "object"
+                            },
+                            "result_data": {
+                                "type": "object"
+                            }
+                        },
+                        "required": [
+                            "directory",
+                            "id",
+                            "num_iterations",
+                            "params",
+                            "result_data"
+                        ]
+                    }
+                }
+            },
+            "required": [ "best_trial_id", "trial_results" ]
+        },
+        "times": {
+            "type": "object",
+            "properties": {
+                "duration": { "type": "number" },
+                "end_time": { "type": "string" },
+                "start_time": { "type": "string" }
+            },
+            "required": [ ]
+        }
+    },
+    "required": [ "options", "results" ]
+}

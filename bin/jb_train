@@ -27,8 +27,9 @@ import logging
 import sys
 
 import juneberry.filesystem as jbfs
-import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
+from juneberry.script_tools.training_sprout import TrainingSprout
+from juneberry.training.trainer_factory import TrainerFactory
 
 logger = logging.getLogger("juneberry.jb_train")
 
@@ -57,20 +58,6 @@ def setup_args(parser) -> None:
                              'from the last checkpoint.')
 
 
-def setup_opt_args(args: argparse.Namespace):
-    """
-    Set up optional args from the command line.
-    :param args: A Namespace object built from the attributes parsed out of the command line.
-    """
-    opt_args = {}
-    opt_arg_keys = ['resume']
-    for key in opt_arg_keys:
-        if key in vars(args):
-            opt_args[key] = vars(args)[key]
-
-    return opt_args
-
-
 def main():
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="Performs the training defined in a Juneberry model "
@@ -79,122 +66,56 @@ def main():
     jbscripting.setup_args(parser)
     args = parser.parse_args()
 
+    # Establish a TrainingSprout to hold the script args.
+    sprout = TrainingSprout()
+    sprout.grow_from_args(args)
+
     # The model manager helps us find all the files and directories
     # NOTE: We can use the default constructor because this model MUST be in the default (current) workspace.
-    model_name = args.modelName
-    model_manager = jbfs.ModelManager(args.modelName)
+    model_manager = jbfs.ModelManager(sprout.model_name)
     model_manager.setup()
 
     # Use the config file to set up the workspace, data and logging
     lab = jbscripting.setup_workspace_and_model(
         args,
-        log_file=model_manager.get_training_log(args.dryrun),
-        log_prefix=jbscripting.standard_line_prefix(args.dryrun),
-        model_name=model_name,
+        log_file=model_manager.get_training_log(sprout.dryrun),
+        log_prefix=jbscripting.standard_line_prefix(sprout.dryrun),
+        model_name=sprout.model_name,
         banner_msg=">>> Juneberry Trainer <<<")
 
-    # Convert the verbose argument to the corresponding logging level.
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-
     # Kick off the logging
-    logger.info(f"Beginning training with model: {model_name}")
+    logger.info(f"Beginning training with model: {sprout.model_name}")
 
     # Load the config files, check and aggregate configuration options
-    logger.info(f"Loading model config for model {model_name} files...")
-    model_config = lab.load_model_config(model_name)
+    model_config = lab.load_model_config(sprout.model_name)
 
-    # Set up the lab profile
-    lab.setup_lab_profile(model_name=model_name, model_config=model_config)
-    if args.num_gpus is not None:
-        lab.profile.num_gpus = args.num_gpus
+    # The model config may influence the lab profile, so once the model config has been
+    # established it is safe to set up the lab profile.
+    lab.setup_lab_profile(model_name=sprout.model_name, model_config=model_config)
+    if sprout.num_gpus is not None:
+        lab.profile.num_gpus = sprout.num_gpus
     logger.info(f"Using lab profile: {lab.profile}")
 
     # Now load the dataset
-    logger.info(f"Loading dataset for {model_config.training_dataset_config_path} files...")
     dataset_config = lab.load_dataset_config(model_config.training_dataset_config_path)
 
     # TODO: Reimplement no_paging via lab profile
 
-    # Backward compatible map of task and platform name to class to load
-    task_platform_map = {
-        "classification": {
-            "pytorch": "juneberry.pytorch.classifier_trainer.ClassifierTrainer",
-            "pytorch_privacy": "juneberry.pytorch.privacy.classifier_trainer.PrivacyTrainer",
-            "tensorflow": "juneberry.tensorflow.trainer.ClassifierTrainer",
-            "tfgloro": "juneberry.tensorflow.trainer.ClassifierTrainer"
-        },
-        "objectDetection": {
-            "detectron2": "juneberry.detectron2.trainer.Detectron2Trainer",
-            "mmdetection": "juneberry.mmdetection.trainer.MMDTrainer"
-        }
-    }
-
-    if model_config.trainer is not None:
-        kw_args = model_config.trainer.kwargs
-        if kw_args is None:
-            kw_args = {}
-        fqcn = model_config.trainer.fqcn
-    else:
-        # Dig through our map of tasks and platforms
-        if model_config.task not in task_platform_map:
-            logger.error(f"We do not support the task '{model_config.task}'. "
-                         f"Supported tasks: {list(task_platform_map.keys())}. Exiting.")
-            sys.exit(-1)
-        else:
-            task_set = task_platform_map[model_config.task]
-            if model_config.platform not in task_set:
-                logger.error(
-                    f"We do not support the platform '{model_config.platform}' in task '{model_config.task}'. "
-                    f"Supported platforms: {list(task_set.keys())}. Exiting.")
-                sys.exit(-1)
-            fqcn = task_platform_map[model_config.task][model_config.platform]
-        kw_args = {}
-        logger.warning("Found deprecated platform/task configuration for loading trainer. "
-                       "Consider updating the model config to use the trainer stanza.")
-        logger.warning('"trainer": {')
-        logger.warning(f'    "fqcn": "{fqcn}"')
-        logger.warning('}')
-
-    # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
-    reqd_args = ['lab', 'model_manager', 'model_config', 'dataset_config', 'log_level']
-    for arg in reqd_args:
-        if arg not in kw_args:
-            kw_args[arg] = locals()[arg]
-
-    # Construct optional args that trainers may take.
-    opt_args = setup_opt_args(args)
+    # Create a TrainerFactory to generate the Trainer.
+    trainer_factory = TrainerFactory(dataset_config=dataset_config, lab=lab, log_level=sprout.log_level,
+                                     model_config=model_config, model_manager=model_manager)
 
     # Construct the trainer
-    logger.info(f"Instantiating trainer: {fqcn}")
-    trainer = jb_loader.construct_instance(fqcn, kw_args, opt_args)
+    trainer = trainer_factory.get_trainer(resume=sprout.resume, native=not sprout.skip_native, onnx=sprout.onnx)
 
     if trainer is None:
         logger.error("No Trainer instantiated for configuration. Exiting.")
         sys.exit(-1)
 
-    # Set the output format for the trainer.
-    trainer.onnx = args.onnx
-    trainer.native = not args.skipNative
-
-    # If no output format was set, choose the native format by default even if
-    # the user requested it to be skipped.
-    if not (trainer.onnx or trainer.native):
-        logger.warning(f"An output format was not set. Choosing the native format.")
-        trainer.native = True
-
-    if args.dryrun:
+    if sprout.dryrun:
         trainer.dry_run()
     else:
-        # Allocate the GPUs the user asked for, getting the current number if None are required.
-        trainer.num_gpus = trainer.check_gpu_availability(lab.profile.num_gpus)
-
-        if lab.profile.max_gpus is not None:
-            if trainer.num_gpus > lab.profile.max_gpus:
-                logger.info(f"Maximum numbers of GPUs {trainer.num_gpus} being capped to {lab.profile.max_gpus} "
-                            f"because of lab profile.")
-                trainer.num_gpus = lab.profile.max_gpus
-
-        # No matter the number of GPUs, setup the node for training
+        # Setup the node for training.
         trainer.node_setup()
 
         # Set the number of GPUs and kick it off

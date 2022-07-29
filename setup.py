@@ -56,7 +56,9 @@ install_requires = [
     "brambox",
     "pyyaml",
     "hjson",
-    "natsort"
+    "natsort",
+    "ray",
+    "jsonpath-ng"
 ]
 
 bin_scripts = [
@@ -71,7 +73,8 @@ bin_scripts = [
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',
     'bin/jb_run_plugin',
-    'bin/jb_train'
+    'bin/jb_train',
+    'bin/jb_tune'
 ]
 
 setuptools.setup(

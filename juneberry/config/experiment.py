@@ -57,6 +57,7 @@ class Model(Prodict):
     name: str
     onnx: bool
     tests: List[ModelTest]
+    tuning: str
     version: str
 
 
@@ -79,6 +80,11 @@ class Filter(Prodict):
     outputs: List[str]
 
 
+class Tuning(Prodict):
+    model: str
+    tuning_config: str
+
+
 class ExperimentConfig(Prodict):
     """
     A class to validate and manage the experiment config.
@@ -92,21 +98,42 @@ class ExperimentConfig(Prodict):
     models: List[Model]
     reports: List[Report]
     timestamp: str
+    tuning: List[Tuning]
 
     def _finish_init(self) -> None:
         """
         Finish setting up fields and validate some fields
         :return: None
         """
-        error_count = 0
-
         # Check format_version
         # jbvs.version_check("EXPERIMENT", config.get('formatVersion', None), FORMAT_VERSION, True)
 
         # Keep track of all the tags we find so we can validate the reports against the tags.
         tag_set = set()
 
-        # Process the models
+        # If we don't have models, then add an empty section.
+        if self.models is None:
+            self.models = []
+
+        # If we don't have reports, then add an empty section.
+        if self.reports is None:
+            self.reports = []
+
+        # Validate the models in the models section.
+        error_count, tag_set = self._validate_models(tag_set)
+
+        # The reports should have a 'tests' section to make sense and tags in those tests.
+        error_count += self._validate_reports(tag_set)
+
+        error_count += self._validate_tuning()
+
+        if error_count > 0:
+            logger.error(f"Found {error_count} errors in experiment config. Exiting.")
+            sys.exit(-1)
+
+    def _validate_models(self, tag_set: set):
+        error_count = 0
+
         for i, model in enumerate(self.models):
             # At this point it must exist.
             model_manager = jbfs.ModelManager(model.name)
@@ -125,11 +152,11 @@ class ExperimentConfig(Prodict):
                     logger.error(f"Dataset not found: {test.dataset_path}")
                     error_count += 1
 
-        # If we don't have reports, then add an empty section so folks can just iterate
-        if self.reports is None:
-            self.reports = []
+        return error_count, tag_set
 
-        # The reports should have a tests section to make sense and tags in those tests
+    def _validate_reports(self, tag_set: set):
+        error_count = 0
+
         for i, report in enumerate(self.reports):
             if report.fqcn == ReportFQCN.PLOT_ROC or report.fqcn == ReportFQCN.PLOT_PR:
 
@@ -138,9 +165,24 @@ class ExperimentConfig(Prodict):
                         logger.error(f"Unknown report tag. tag='{test['tag']}', report index = {i}.")
                         error_count += 1
 
-        if error_count > 0:
-            logger.error(f"Found {error_count} errors in experiment config. Exiting.")
-            sys.exit(-1)
+        return error_count
+
+    def _validate_tuning(self):
+        error_count = 0
+
+        if self.tuning is not None:
+            for i, trial in enumerate(self.tuning):
+                model_manager = jbfs.ModelManager(trial.model)
+                tuning_config_path = Path(trial.tuning_config)
+                if not model_manager.get_model_dir().exists():
+                    logger.error(f"Model not found: {model_manager.get_model_dir()}")
+                    error_count += 1
+
+                if not tuning_config_path.exists():
+                    logger.error(f"Tuning config not found: {tuning_config_path}")
+                    error_count += 1
+
+        return error_count
 
     @staticmethod
     def construct(data: dict, file_path: str = None):
@@ -186,5 +228,3 @@ class ExperimentConfig(Prodict):
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json"""
         return conf_utils.prodict_to_dict(self)
-
-

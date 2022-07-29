@@ -26,10 +26,12 @@ from collections import namedtuple
 from enum import Enum
 import logging
 from pathlib import Path
-from prodict import List, Prodict
 import random
 import sys
 import typing
+
+from jsonpath_ng.ext import parse
+from prodict import List, Prodict
 
 from juneberry.config.plugin import Plugin
 import juneberry.config.util as conf_utils
@@ -278,6 +280,22 @@ class ModelConfig(Prodict):
                 del as_dict[attr_name]
 
         return as_dict
+
+    def adjust_attributes(self, adjustment_dict: dict) -> Prodict:
+        """
+        This method is responsible for replacing attributes in a ModelConfig.
+        :param adjustment_dict: A dictionary where the keys indicate which ModelConfig attributes
+        to change, and the corresponding value indicates what the attribute value should be changed to.
+        :return: A ModelConfig whose attributes have been adjusted to the desired values.
+        """
+        # Loop through all keys in the adjustment dictionary and make the substitutions in the
+        # current model config.
+        for k in adjustment_dict.keys():
+            jsonpath_expr = parse(k)
+            jsonpath_expr.update(self, adjustment_dict[k])
+
+        # Return the adjusted ModelConfig.
+        return self
 
     def get_previous_model(self):
         # TODO: Remove
