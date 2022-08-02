@@ -24,7 +24,6 @@
 
 import argparse
 import logging
-from pathlib import Path
 import sys
 from types import SimpleNamespace
 
@@ -128,7 +127,7 @@ def main():
         model_name=model_name,
         banner_msg=">>> Juneberry Evaluator <<<")
 
-    # Use the first model for initializing the model (regardless of existence) for consistency.
+    # Load the dataset.
     dataset = lab.load_dataset_config(first_dataset_name) if first_dataset_name is not None else None
 
     # Start evaluation
@@ -152,7 +151,7 @@ def main():
         if args.dryrun:
             # Perform the dry run for the Evaluator.
             evaluator.dry_run()
-            # TODO: Add dry run support for additionaly evals
+            # TODO: Add dry run support for additional evals
 
         else:
             # Perform the evaluation.
@@ -161,14 +160,11 @@ def main():
                 logger.info(f"--skip-exists is true and {eval_dir_mgr.get_predictions_path()} found. Skipping.")
             else:
                 evaluator.perform_evaluation()
+
+            # EXPERIMENTAL
             if len(args.dataset) > 1:
                 for dsname in args.dataset[1:]:
-                    #  _   _    _    ____ _  __
-                    # | | | |  / \  / ___| |/ /
-                    # | |_| | / _ \| |   | ' /
-                    # |  _  |/ ___ \ |___| . \
-                    # |_| |_/_/   \_\____|_|\_\
-                    # Try to reset the dataset file, reinit logging and see if we can do another eval
+                    # Try to reset the dataset file, reinit logging, and attempt another eval.
                     eval_dir_mgr = model_manager.get_eval_dir_mgr(dsname)
                     eval_dir_mgr.setup()
                     jblogging.setup_logger(log_file=eval_dir_mgr.get_log_path(args.dryrun),

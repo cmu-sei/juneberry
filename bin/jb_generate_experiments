@@ -285,7 +285,7 @@ def generate_models_list(outline: ExperimentOutline, experiment_name: str, model
             if 'classify' not in test:
                 test['classify'] = 0
 
-        # If they specified model specifics then add them to the model.
+        # If they specified model specifics, then add them to the model.
         if outline.model is not None:
             if outline.model.filters is not None:
                 out_model.filters = outline.model.filters

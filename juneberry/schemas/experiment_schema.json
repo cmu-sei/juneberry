@@ -31,7 +31,7 @@
                         "type": "array",
                         "items": { "type": "string" }
                     },
-                    "maximum_evaluations": { "type": "integer"},
+                    "maximum_evaluations": { "type": "integer" },
                     "name": { "type": "string" },
                     "onnx": { "type": "boolean"},
                     "tests": {

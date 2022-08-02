@@ -178,7 +178,7 @@ class EvaluatorBase:
         """
         pass
 
-    def resetup(self) -> None:
+    def reset(self) -> None:
         pass
 
     def obtain_dataset(self) -> None:
@@ -257,12 +257,12 @@ class EvaluatorBase:
         :param log_file: The file to log to
         :param dataset: The dataset to evaluate
         :param eval_dir_mgr: Where to place the evaluation
-        :return:
+        :return: Nothing
         """
         # This is all reinit stuff that we could factor out of __init__
         # TODO: should go into a separate init function.
 
-        # Reset the eval data set and the output directory
+        # Reset the eval dataset, output directory, and log file location.
         self.eval_dataset_config = dataset
         self.eval_dir_mgr = eval_dir_mgr
         self.log_file_path = log_file
@@ -270,8 +270,7 @@ class EvaluatorBase:
         # Set up the eval output
         self._init_output()
 
-        # TODO: Need a better name than "resetup"
-        self.resetup()
+        self.reset()
 
         # ===
 

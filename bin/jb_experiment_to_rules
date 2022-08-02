@@ -141,9 +141,10 @@ class RuleMaker:
     @staticmethod
     def partition_test_groups(model_tests: list, max_count: int) -> list:
         """
-        Partitions the model tests into groups of similar arguments an all less than max_count
-        :param model_tests: The tests to partition
-        :param max_count: Max partition size
+        Partitions the model tests into groups of similar arguments, with all groups sized
+        less than max_count.
+        :param model_tests: The list of tests to partition.
+        :param max_count: Max partition size.
         :return: List of lists of tests.
         """
         if len(model_tests) == 0:
@@ -162,7 +163,7 @@ class RuleMaker:
         # Seed the first group
         group = [working_list.pop(0)]
 
-        # Now, consume the rest of the list adding to a group until the params are different, or the group is full.
+        # Now, consume the rest of the list, adding to a group until the params are different or the group is full.
         while len(working_list) > 0:
             test = working_list.pop(0)
             if group[-1].classify == test.classify and \
@@ -171,21 +172,21 @@ class RuleMaker:
                 # Same args so grow the group
                 group.append(test)
 
-                # If we met the limit start a new group
+                # If we met the limit, start a new group.
                 if max_count == len(group):
                     groups.append(group)
                     if len(working_list) > 0:
                         group = [working_list.pop(0)]
             else:
-                # It is different so end the last group and start another
+                # Args are different, so end the previous group and start another.
                 groups.append(group)
                 group = [test]
 
-        # If any remaining items in the group
+        # If any remaining items in the group.
         if len(group) > 0:
             groups.append(group)
 
-        # At this point it should all be partitioned
+        # At this point it should all be partitioned.
         return groups
 
     @staticmethod

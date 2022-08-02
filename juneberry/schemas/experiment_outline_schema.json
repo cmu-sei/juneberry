@@ -10,7 +10,7 @@
             "type": "object",
             "properties": {
                 "filters": { "type": "array" },
-                "maximum_evaluations": { "type": "integer"}
+                "maximum_evaluations": { "type": "integer" }
             }
         },
         "reports": {
