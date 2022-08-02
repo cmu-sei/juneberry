@@ -26,6 +26,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+import json
 
 logging.basicConfig(level=logging.INFO, format="%(filename)s:%(levelname)s - %(message)s")
 
@@ -65,8 +66,9 @@ def create_package_and_setup(workspace_dir: str, requirements_list: list):
 
     # TODO: Add juneberry version?
     requires = ['juneberry']
-    requires.extend(requirements_list)
-    install_requires = [f"install_requires = [ {', '.join(requires)} ]\n"]
+    [requires.append(x) for x in requirements_list if x not in requires]
+
+    install_requires = f"install_requires = {json.dumps(requires)}"
 
     setup_args = [
         f"setuptools.setup(\n",
@@ -93,7 +95,7 @@ def create_package_and_setup(workspace_dir: str, requirements_list: list):
         "# Setup juneberry\n",
         "echo \"Installing Juneberry...\"\n",
         "pip install -e /juneberry\n\n",
-        "echo \"Installing requiremnts..\"\n"]
+        "echo \"Installing requirements..\"\n"]
 
     container_sh_start.extend([f"pip install -e /lab/{x}\n" for x in requirements_list])
 
