@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 class Model(Prodict):
     filters: List
+    maximum_evaluations: int
 
 
 class Report(Prodict):
