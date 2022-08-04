@@ -64,7 +64,7 @@ def test_model_manager():
     assert mm.get_plots_dir() == plots
     assert mm.get_dryrun_imgs_dir() == root / 'train' / 'dryrun_imgs'
     assert mm.get_pytorch_model_path() == root / 'model.pt'
-    assert mm.get_pytorch_model_summary_path() == root / 'model_summary.txt'
+    assert mm.get_model_summary_path() == root / 'model_summary.txt'
     assert mm.get_model_config() == root / 'config.json'
     assert mm.get_model_diagram() == root / 'model_diagram.png'
     assert mm.get_training_out_file() == root / 'train' / 'output.json'
@@ -138,7 +138,7 @@ def test_experiment_manager_clean():
 
     em.clean()
     assert em.get_experiment_config().exists()
-    assert not em.get_dryrun_log_path().exists()
+    assert em.get_dryrun_log_path().exists()
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()

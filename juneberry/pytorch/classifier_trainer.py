@@ -113,7 +113,7 @@ class ClassifierTrainer(EpochTrainer):
         # Setup is the same for dry run
         self.setup()
 
-        summary_path = self.model_manager.get_pytorch_model_summary_path()
+        summary_path = self.model_manager.get_model_summary_path()
         if self.dataset_config.is_image_type():
             # Save some sample images to verify augmentations
             image_shape = pyt_utils.generate_sample_images(self.training_iterable, 5,

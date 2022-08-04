@@ -80,7 +80,7 @@ def make_clean_partial(out_file, rule):
         return False
 
     # Make the clean function partial
-    out_file.write(f"    clean_fn = partial(clean_glob_paths, [\n")
+    out_file.write(f"    clean_fn = partial(clean_files, [\n")
     out_file.writelines(lineify(rule.clean_extras, "        "))
     out_file.write(f"        ])\n")
 
@@ -101,9 +101,9 @@ def make_task(out_file, rule, parallelism, concurrent=None) -> None:
     out_file.write(f"        ],\n")
     out_file.write(f"        'actions': [[{make_action(rule['command'], parallelism, concurrent)}]],\n")
     if custom_clean:
-        out_file.write(f"        'clean': [clean_fn, clean_targets]\n")
+        out_file.write(f"        'clean': [clean_files]\n")
     else:
-        out_file.write(f"        'clean': [clean_targets]\n")
+        out_file.write(f"        'clean': [clean_files]\n")
     out_file.write("    }\n\n")
 
 
@@ -130,18 +130,25 @@ def write_file(out_file, reader: RulesList, workflow_name, parallelism=False, co
     out_file.write("# ! /usr/bin/doit -f\n\n")
     out_file.write(f'# dodo.py file for the {workflow_name} workflow\n\n')
 
-    # Some imports for the cleaning functions
+    # Some imports for the cleaning function
     out_file.write("from functools import partial\n")
     out_file.write("from pathlib import Path\n")
-    out_file.write("from doit.task import clean_targets\n\n")
+    out_file.write("import shutil\n\n\n")
 
     # Emit the clean function
-    out_file.write("def clean_glob_paths(paths: list):\n")
-    out_file.write("    for path in paths:\n")
-    out_file.write("        p = Path(path)\n")
-    out_file.write("        for item in p.parent.glob(p.name):\n")
-    out_file.write("            print(f'removing file {str(item)}')\n")
-    out_file.write("            item.unlink()\n")
+    out_file.write("def clean_files(task, dryrun):\n")
+    out_file.write("    for target in sorted(task.targets, reverse=True):\n")
+    out_file.write("        target_path = Path(target)\n")
+    out_file.write("        if not target_path.exists():\n")
+    out_file.write("            continue\n")
+    out_file.write("        if target_path.is_file():\n")
+    out_file.write("            print(f\"{task.name} - removing file '{target}'\")\n")
+    out_file.write("            if not dryrun:\n")
+    out_file.write("                target_path.unlink()\n")
+    out_file.write("        elif target_path.is_dir():\n")
+    out_file.write("            print(f\"{task.name} - removing directory {target} and all its contents\")\n")
+    out_file.write("            if not dryrun:\n")
+    out_file.write("                shutil.rmtree(target_path)\n")
 
     # Emit workflows
     for workflow in reader["workflows"]:

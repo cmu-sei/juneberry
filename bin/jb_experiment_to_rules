@@ -27,14 +27,16 @@
 import argparse
 import json
 import logging
-from pathlib import Path
 import sys
+
+from pathlib import Path
 
 from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig
 from juneberry.config.report import ReportConfig
 from juneberry.config.rule_list import RuleListBuilder
 from juneberry.filesystem import ExperimentManager, ModelManager
+from juneberry.reporting.summary import REPORT_FILES_DIRNAME
 
 logger = logging.getLogger(__name__)
 
@@ -439,6 +441,11 @@ class RuleMaker:
 
         # The md_filename for this report is a product of this process, so add it to the list of outputs.
         outputs.append(report.kwargs.md_filename)
+
+        # Include the location of the directory which may contain files attached to the summary in the list
+        # of outputs.
+        summary_files_dir = Path(report.kwargs.md_filename).parent / REPORT_FILES_DIRNAME
+        outputs.append(str(summary_files_dir))
 
         # The CSV file is optional, so only adjust the filename (potentially) if a csv_filename was provided.
         if "csv_filename" in report.kwargs:

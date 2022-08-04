@@ -30,12 +30,11 @@ a set of reports.
 
 import argparse
 import logging
-from pathlib import Path
 import sys
 
-# Utilities
+from pathlib import Path
+
 import juneberry.filesystem as jbfs
-from juneberry.lab import Lab
 import juneberry.scripting as jbscripting
 import juneberry.workflow as jbworkflow
 
@@ -103,7 +102,7 @@ def main():
     lab = jbscripting.setup_workspace(
         args,
         log_file=log_file,
-        log_prefix="<<PREVIEW>> " if args.dryrun else "<<LIVE>> ",
+        log_prefix="<<LIVE>> " if args.commit else "<<PREVIEW>> ",
         banner_msg=f">>> Juneberry Experiment Runner {args.experimentName} <<<")
 
     # Find bin directory
@@ -217,14 +216,10 @@ def main():
     if not args.commit:
         logger.info("Add --commit or -X to execute changes.")
 
-    # Lastly, remove rules.json and dodo.py files
-    if args.commit and args.clean:
-        if rules_path.exists():
-            logger.info("Removing " + str(rules_path))
-            rules_path.unlink()
-        if dodo_path.exists():
-            logger.info("Removing " + str(dodo_path))
-            dodo_path.unlink()
+    # Lastly, clean the output files in the experiment directory.
+    if args.clean:
+        logger.info(f"Cleaning files in the experiment directory...")
+        experiment_manager.clean(dry_run=not args.commit)
 
     logger.info("jb_run_experiment is done.")
 
