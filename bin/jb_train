@@ -113,6 +113,13 @@ def main():
         sys.exit(-1)
 
     if sprout.dryrun:
+        # Need to set the number of GPUs in the trainer to 0 regardless of the "true" state
+        # in order to be able to successfully perform a dry run on a GPU.
+        trainer.num_gpus = 0
+
+        # TODO: Decide if the dry run should exercise GPU setup tasks. If yes, would need to
+        #  remove the previous line where num_gpus was set to zero and probably set GPUs
+        #  similar to how it's done below for train_model().
         trainer.dry_run()
     else:
         # Setup the node for training.
