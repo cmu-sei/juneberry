@@ -64,7 +64,6 @@ class ModelArchitecture(Prodict):
     module: str
     args: Prodict
     previous_model: typing.Union[str, None]
-    previous_model_version: typing.Union[str, None]
 
     def get_shape_hwc(self):
         """ :return The height, width and channels in a named tuple. """
@@ -153,7 +152,6 @@ class ModelConfig(Prodict):
     mmdetection: Prodict
     model_architecture: ModelArchitecture
     model_transforms: List[Plugin]
-    platform: str
     preprocessors: List[Plugin]
     pytorch: PytorchOptions
     reports: List[Plugin]
@@ -298,9 +296,8 @@ class ModelConfig(Prodict):
         return self
 
     def get_previous_model(self):
-        # TODO: Remove
-        """ :return" Previous model architecture and version from which to load weights. """
-        return self.model_architecture.previous_model, self.model_architecture.previous_model_version
+        """ :return" Previous model architecture from which to load weights. """
+        return self.model_architecture.previous_model
 
     def get_validation_split_config(self):
         """

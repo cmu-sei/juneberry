@@ -94,6 +94,41 @@ def extract_kwarg_names(func):
     return params
 
 
+def split_fully_qualified_name(fully_qualified_name: str):
+    """
+    Splits the fully qualified dotted name into path and name parts.
+    :param fully_qualified_name:
+    :return: Tuple of path part and name part
+    """
+    class_data = fully_qualified_name.split(".")
+    path_part = ".".join(class_data[:-1])
+    name_part = class_data[-1]
+
+    return path_part, name_part
+
+
+def load_class(fqcn):
+    """
+    Loads the class from the FQCN.  The module and class are expected to exist and if not, then we exit.
+    :param fqcn: The fully qualified class name.
+    :return: The class.
+    """
+    module_path, class_name = split_fully_qualified_name(fqcn)
+
+    try:
+        mod = importlib.import_module(module_path)
+    except ModuleNotFoundError:
+        logger.error(f"Failed to find module '{module_path}'")
+        return False
+
+    # Make sure we have the class
+    if not hasattr(mod, class_name):
+        logger.error(f"Missing class '{class_name}' in module='{module_path}'")
+        return False
+
+    return getattr(mod, class_name)
+
+
 def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     """
     Constructs an instance of the class from the fully qualified name expanding
@@ -111,9 +146,7 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     # NOTE: We don't actually check that the returns/constructed thing is a callable
     # or has any particular signature.
 
-    path_parts = fq_name.split(".")
-    module_path = ".".join(path_parts[:-1])
-    leaf_part = path_parts[-1]
+    module_path, leaf_part = split_fully_qualified_name(fq_name)
 
     if kwargs is None:
         kwargs = {}
@@ -309,19 +342,6 @@ def invoke_call_function_on_class(fqcn: str, args: dict, optional_kwargs=None):
                          method_args=args,
                          dry_run=False,
                          optional_kwargs=optional_kwargs)
-
-
-def split_fully_qualified_name(fully_qualified_name: str):
-    """
-    Splits the fully qualified dotted name into path and name parts.
-    :param fully_qualified_name:
-    :return: Tuple of path part and name part
-    """
-    class_data = fully_qualified_name.split(".")
-    path_part = ".".join(class_data[:-1])
-    name_part = class_data[-1]
-
-    return path_part, name_part
 
 
 if __name__ == "__main__":

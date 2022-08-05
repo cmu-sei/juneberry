@@ -45,6 +45,7 @@ import numpy as np
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
@@ -56,6 +57,7 @@ from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,19 @@ class Evaluator(EvaluatorBase):
         self.dataset = None
         self.data_loader = None
         self.eval_options = eval_options
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The name of the metric produced in results structure """
+        return eval_data.results.metrics.bbox['mAP']
 
     # ==========================================================================
     def dry_run(self) -> None:
@@ -145,7 +160,7 @@ class Evaluator(EvaluatorBase):
 
         # Similar to trainer using the predefined model architecture, but this time use the
         # training output instead of the mmdetection trained checkpoint.
-        model_path = self.model_manager.get_pytorch_model_path()
+        model_path = self.model_manager.get_model_path(self.get_platform_defs())
         if not model_path.exists():
             logger.error(f"Trained model {model_path} does not exist. EXITING.")
             sys.exit(-1)

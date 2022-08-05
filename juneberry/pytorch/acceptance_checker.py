@@ -150,7 +150,7 @@ class AcceptanceChecker:
         construction of the ONNX model.
         """
         # We need to remove any old one if it exists
-        model_path = self.model_manager.get_pytorch_model_path()
+        model_path = self.model_manager.get_model_path(pyt_utils.PyTorchPlatformDefinitions())
         if model_path.exists():
             model_path.unlink()
 

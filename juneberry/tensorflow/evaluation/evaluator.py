@@ -30,11 +30,13 @@ import tensorflow as tf
 import juneberry.evaluation.evaluator
 import juneberry.evaluation.utils
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import ModelManager, EvalDirMgr
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
+from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 import juneberry.utils
 
 logger = logging.getLogger(__name__)
@@ -55,6 +57,19 @@ class Evaluator(EvaluatorBase):
 
         self.eval_results = None
         self.predictions = None
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return TensorFlowPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The name of the metric produced in results structure """
+        return eval_data.results.metrics.accuracy
 
     # ==========================================================================
     def dry_run(self) -> None:
@@ -86,7 +101,7 @@ class Evaluator(EvaluatorBase):
             self.use_train_split, self.use_val_split)
 
     def obtain_model(self) -> None:
-        hdf5_file = self.model_manager.get_tensorflow_model_path()
+        hdf5_file = self.model_manager.get_model_path(TensorFlowPlatformDefinitions())
         logger.info(f"Loading model {hdf5_file}...")
         self.model = tf.keras.models.load_model(hdf5_file)
         logger.info("...complete")

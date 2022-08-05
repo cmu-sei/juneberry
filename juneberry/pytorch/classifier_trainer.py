@@ -40,17 +40,18 @@ from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCrit
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
 from juneberry.jb_logging import setup_logger
+from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 import juneberry.tensorboard as jbtb
 from juneberry.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
-
 
 class ClassifierTrainer(EpochTrainer):
     def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
@@ -65,7 +66,6 @@ class ClassifierTrainer(EpochTrainer):
         self.acceptance_checker = None
 
         # We should probably be given a data manager
-        self.data_version = model_manager.model_version
         self.binary = dataset_config.is_binary
         self.pytorch_options: PytorchOptions = model_config.pytorch
 
@@ -109,11 +109,18 @@ class ClassifierTrainer(EpochTrainer):
         self.abs_tol = None
 
     # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
     def dry_run(self) -> None:
         # Setup is the same for dry run
         self.setup()
 
-        summary_path = self.model_manager.get_pytorch_model_summary_path()
+        summary_path = self.model_manager.get_model_summary_path()
         if self.dataset_config.is_image_type():
             # Save some sample images to verify augmentations
             image_shape = pyt_utils.generate_sample_images(self.training_iterable, 5,
@@ -311,10 +318,12 @@ class ClassifierTrainer(EpochTrainer):
 
         # Add a hash of the model.
         if self.native:
-            self.history['model_hash'] = jbfs.generate_file_hash(self.model_manager.get_pytorch_model_path())
+            model_path = self.model_manager.get_model_path(self.get_platform_defs())
+            self.history['model_hash'] = jbfs.generate_file_hash(model_path)
 
         if self.onnx:
-            self.history['onnx_model_hash'] = jbfs.generate_file_hash(self.model_manager.get_onnx_model_path())
+            self.history['onnx_model_hash'] = jbfs.generate_file_hash(
+                self.model_manager.get_model_path(ONNXPlatformDefinitions()))
 
         logger.info("Generating and saving output...")
         history_to_results(self.history, self.results, self.native, self.onnx)
@@ -424,11 +433,11 @@ class ClassifierTrainer(EpochTrainer):
                                                self.dataset_config.num_model_classes)
 
         # If this model is based off another model, then load its weights.
-        previous_model, prev_model_version = self.model_config.get_previous_model()
+        previous_model = self.model_config.get_previous_model()
         if previous_model is not None:
-            logger.info(f"Loading weights from previous model: {previous_model}, version: {prev_model_version}")
+            logger.info(f"Loading weights from previous model: {previous_model}")
 
-            prev_model_manager = jbfs.ModelManager(previous_model, prev_model_version)
+            prev_model_manager = jbfs.ModelManager(previous_model)
 
             pyt_utils.load_weights_from_model(prev_model_manager, self.model, self.model_config.pytorch.strict)
 

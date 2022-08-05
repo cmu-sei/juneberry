@@ -27,6 +27,13 @@ import logging
 from typing import Tuple
 from pathlib import Path
 import re
+
+import juneberry.onnx.utils
+from juneberry.onnx.utils import ONNXPlatformDefinitions
+import juneberry.pytorch.utils
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
+import juneberry.tensorflow.utils
+from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 import requests
 from zipfile import ZipFile
 
@@ -206,13 +213,21 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
 
     with ZipFile(model_zip_path, "w") as zip_file:
         zip_file.write(model_mgr.get_model_config(), "config.json")
-        if model_mgr.get_pytorch_model_path().exists():
-            zip_file.write(model_mgr.get_pytorch_model_path(), "model.pt")
-        if model_mgr.get_tensorflow_model_path().exists():
-            zip_file.write(model_mgr.get_tensorflow_model_path(), "model.h5")
+
+        # TODO: This is fragile in that we won't zip just anything. We need some better way
+        # to do this. Of course, the user can just zip it themselves, so this is just a convenience.
+        path = model_mgr.get_model_path(PyTorchPlatformDefinitions())
+        if path.exists():
+            zip_file.write(path, PyTorchPlatformDefinitions().get_model_filename())
+
+        path = model_mgr.get_model_path(TensorFlowPlatformDefinitions())
+        if path.exists():
+            zip_file.write(path, TensorFlowPlatformDefinitions().get_model_filename())
+
         if onnx:
-            if model_mgr.get_onnx_model_path().exists():
-                zip_file.write(model_mgr.get_tensorflow_model_path(), "model.h5")
+            path = model_mgr.get_model_path(ONNXPlatformDefinitions())
+            if path.exists():
+                zip_file.write(path, ONNXPlatformDefinitions().get_model_filename())
 
     return str(model_zip_path.absolute())
 

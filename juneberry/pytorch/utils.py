@@ -44,6 +44,8 @@ import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 import juneberry.loader as jbloader
 import juneberry.loader as model_loader
+from juneberry.onnx.utils import ONNXPlatformDefinitions
+from juneberry.platform import PlatformDefinitions
 import juneberry.transform_manager as jbtm
 from juneberry.pytorch.evaluation.utils import compute_accuracy
 import juneberry.utils as jb_utils
@@ -118,6 +120,15 @@ def worker_init_fn(worker_id):
 # | |  | | (_) | (_| |  __/ |
 # |_|  |_|\___/ \__,_|\___|_|
 
+class PyTorchPlatformDefinitions(PlatformDefinitions):
+    def get_model_filename(self) -> str:
+        """ :return: The name of the model file that the trainer saves and what evaluators should load"""
+        return "model.pt"
+
+    def has_platform_config(self) -> bool:
+        return False
+
+
 def construct_model(arch_config, num_model_classes):
     """
     Loads/constructs the requested model type.
@@ -160,8 +171,8 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
 
     # Save the model in PyTorch format.
     if native:
-        logger.info(f"Saving PyTorch model file to {model_manager.get_pytorch_model_path()}")
-        model_path = model_manager.get_pytorch_model_path()
+        model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
+        logger.info(f"Saving PyTorch model file to {model_path}")
         torch.save(model.state_dict(), model_path)
 
         # Call any layer in the model that saves an image. 
@@ -174,8 +185,9 @@ def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -
     # LIMITATION: If the model is dynamic, e.g., changes behavior depending on input data, the
     # ONNX export won't be accurate. This is because the ONNX exporter is a trace-based exporter.
     if onnx:
-        logger.info(f"Saving ONNX model file to {model_manager.get_onnx_model_path()}")
-        torch.onnx.export(model, input_sample, model_manager.get_onnx_model_path(), export_params=True)
+        model_path = model_manager.get_model_path(ONNXPlatformDefinitions())
+        logger.info(f"Saving ONNX model file to {model_path}")
+        torch.onnx.export(model, input_sample, model_path, export_params=True)
 
 
 def load_model(model_path, model, strict: bool):
@@ -197,7 +209,7 @@ def load_weights_from_model(model_manager, model, strict: bool) -> None:
     :param model: The model file into which to load the model weights.
     :param strict: A boolean indicating if PyTorch should be 'strict' when loading the model.
     """
-    model_path = model_manager.get_pytorch_model_path()
+    model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
     if Path(model_path).exists():
         model.load_state_dict(torch.load(str(model_path)), strict=strict)
     else:

@@ -28,11 +28,11 @@ import numpy as np
 from pathlib import Path
 
 import juneberry.filesystem as jbfs
-
+from juneberry.platform import PlatformDefinitions
 
 def test_eval_dir():
-    mm = jbfs.ModelManager('TestModel', '1999')
-    root = Path('models') / 'TestModel' / '1999'
+    mm = jbfs.ModelManager('TestModel')
+    root = Path('models') / 'TestModel'
     eval_dir_root = root / 'eval' / 'TestDataset'
 
     eval_dir_mgr = mm.get_eval_dir_mgr('TestDataset')
@@ -54,17 +54,27 @@ def test_eval_dir():
     assert eval_dir_mgr.get_sample_detections_dir() == str(eval_dir_root / "sample_detections")
 
 
+class DummyPlatformDefinitions(PlatformDefinitions):
+    def get_model_filename(self) -> str:
+        return "foo.txt"
+
+    def get_config_suffix(self) -> str:
+        return ".bak"
+
+    def has_platform_config(self) -> bool:
+        return True
+
+
 def test_model_manager():
-    mm = jbfs.ModelManager('TestModel', '1999')
-    root = Path('models') / 'TestModel' / '1999'
+    mm = jbfs.ModelManager('TestModel')
+    root = Path('models') / 'TestModel'
     plots = root / 'plots'
 
     assert mm.get_model_name() == 'TestModel'
     assert mm.get_model_dir() == root
     assert mm.get_plots_dir() == plots
     assert mm.get_dryrun_imgs_dir() == root / 'train' / 'dryrun_imgs'
-    assert mm.get_pytorch_model_path() == root / 'model.pt'
-    assert mm.get_pytorch_model_summary_path() == root / 'model_summary.txt'
+    assert mm.get_model_summary_path() == root / 'model_summary.txt'
     assert mm.get_model_config() == root / 'config.json'
     assert mm.get_model_diagram() == root / 'model_diagram.png'
     assert mm.get_training_out_file() == root / 'train' / 'output.json'
@@ -72,9 +82,11 @@ def test_model_manager():
     assert mm.get_training_log() == root / 'train' / 'log.txt'
     assert mm.get_training_dryrun_log_path() == root / 'train' / 'log_dryrun.txt'
 
+    assert mm.get_model_path(DummyPlatformDefinitions()) == root / 'foo.txt'
+
 
 def test_model_manager_clean():
-    mm = jbfs.ModelManager('TestModel', '1999')
+    mm = jbfs.ModelManager('TestModel')
     root = Path('models') / 'TestModel' / '1999'
     test_dir = root / 'test_dir'
     woot_file = root / 'woot.txt'
@@ -83,19 +95,19 @@ def test_model_manager_clean():
     if not test_dir.exists():
         test_dir.mkdir(parents=True)
     mm.get_model_config().touch()
-    mm.get_pytorch_model_path().touch()
+    mm.get_model_path(DummyPlatformDefinitions()).touch()
     woot_file.touch()
     ok_file.touch()
 
-    mm.clean(dry_run=True)
+    mm.clean(DummyPlatformDefinitions(), dry_run=True)
     assert mm.get_model_config().exists()
-    assert mm.get_pytorch_model_path().exists()
+    assert mm.get_model_path(DummyPlatformDefinitions()).exists()
     assert ok_file.exists()
     assert woot_file.exists()
 
-    mm.clean()
+    mm.clean(DummyPlatformDefinitions())
     assert mm.get_model_config().exists()
-    assert not mm.get_pytorch_model_path().exists()
+    assert not mm.get_model_path(DummyPlatformDefinitions()).exists()
     assert ok_file.exists()
     assert woot_file.exists()
 
@@ -145,42 +157,6 @@ def test_experiment_manager_clean():
 
     import shutil
     shutil.rmtree(Path('experiments') / 'millikan_oil_drop')
-
-
-def test_data_manager():
-    data_set_config = {}
-    dm = jbfs.DataManager(data_set_config)
-    assert dm.version_path == Path()
-    dm = jbfs.DataManager(data_set_config, version='009')
-    assert dm.version_path == Path('009')
-
-    data_set_config['dataSetPath'] = 'testDataSet'
-    dm = jbfs.DataManager(data_set_config)
-    assert dm.version_path == Path('testDataSet')
-    dm = jbfs.DataManager(data_set_config, version='009')
-    assert dm.version_path == Path('testDataSet') / '009'
-
-    category = 'cars'
-    assert dm.get_directory_path(category) == Path('testDataSet') / '009' / 'cars'
-
-    image = 'miata.png'
-    assert dm.get_file_path(category, image) == Path('testDataSet') / '009' / 'cars' / 'miata.png'
-
-    data_set_config['imageData'] = {}
-    data_set_config['imageData']['properties'] = {}
-    data_set_config['imageData']['properties']['dimensions'] = '64,64'
-    data_set_config['imageData']['properties']['colorspace'] = 'gray'
-    dm = jbfs.DataManager(data_set_config, version='009')
-
-    temp_dir = Path.cwd() / 'test' / 'cache' / 'testDataSet' / '009' / '64x64_gray' / 'cars'
-    temp_image = temp_dir / 'miata.png'
-
-    if not temp_dir.exists():
-        temp_dir.mkdir(parents=True)
-    temp_image.touch()
-
-    import shutil
-    shutil.rmtree(Path.cwd() / 'test' / 'cache')
 
 
 def test_hash_function(tmp_path):

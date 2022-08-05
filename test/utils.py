@@ -51,6 +51,9 @@ tabular_model_config = {
     'batch_size': 1024,
     'description': 'Sample config for unit testing',
     'epochs': 100,
+    'evaluator': {
+        'fqcn': 'juneberry.dummy.evaluator'
+    },
     'evaluation_transforms': [
         {
             'fqcn': 'juneberry.transforms.tabular.RemoveColumns',
@@ -73,6 +76,9 @@ tabular_model_config = {
     'seed': 4210592948,
     'task': 'classification',
     'timestamp': '2021-03-01T10:00:00',
+    'trainer': {
+        'fqcn': 'juneberry.dummy.evaluator'
+    },
     'training_dataset_config_path': 'data_sets/train_data_config.json',
     'training_transforms': [
         {

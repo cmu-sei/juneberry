@@ -30,6 +30,7 @@ import torch
 from torchsummary import summary
 
 import juneberry.filesystem as jbfs
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class LoadModel:
             logger.info(f"LoadModel transform loading model: {self.model_name}.")
             # Construct a model manager so we can get the model path.
             model_manager = jbfs.ModelManager(self.model_name)
-            model_path = model_manager.get_pytorch_model_path()
+            model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
             if not Path(model_path).exists():
                 logger.error(f"Model path {model_path} does not exist! EXITING.")
                 sys.exit(-1)
@@ -161,7 +162,7 @@ class SaveModel:
                 logger.error(f"Model directory {model_dir} does not exist! EXITING.")
                 sys.exit(-1)
 
-            model_path = model_manager.get_pytorch_model_path()
+            model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
             if Path(model_path).exists() and not self.overwrite:
                 logger.error(
                     f"Model file already exists and 'overwrite' setting is False. Model: {model_path} EXITING.")

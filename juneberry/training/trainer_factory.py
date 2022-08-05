@@ -31,7 +31,6 @@ import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 from juneberry.trainer import Trainer
-import juneberry.training.utils as jb_training_utils
 
 logger = logging.getLogger(__name__)
 
@@ -104,16 +103,14 @@ class TrainerFactory:
         object when it is created.
         :return: A Juneberry Trainer object.
         """
-        # If the model config doesn't have a "trainer" stanza, then it's likely an older version. The
-        # correct trainer fqcn will need to be retrieved via a task/platform mapping. There will be no kwargs.
-        if self.model_config.trainer is None:
-            trainer_fqcn = jb_training_utils.assemble_stanza_and_construct_trainer(self.model_config)
-            trainer_kwargs = {}
+        # Make sure they at least specified a trainer
+        if self.model_config.trainer.fqcn is None:
+            logger.error("The fully qualified name to trainer must be specified.")
+            raise RuntimeError("The fully qualified name to trainer must be specified.")
 
-        # Otherwise, retrieve the Trainer fqcn and kwargs from the ModelConfig's Trainer stanza.
-        else:
-            trainer_fqcn = self.model_config.trainer.fqcn
-            trainer_kwargs = self.model_config.trainer.kwargs if self.model_config.trainer.kwargs is not None else {}
+        # Retrieve the Trainer fqcn and kwargs from the ModelConfig's Trainer stanza.
+        trainer_fqcn = self.model_config.trainer.fqcn
+        trainer_kwargs = self.model_config.trainer.kwargs if self.model_config.trainer.kwargs is not None else {}
 
         # Set some additional Trainer kwargs to reflect TrainerFactory attributes. These kwargs are needed
         # to construct the Trainer instance.
