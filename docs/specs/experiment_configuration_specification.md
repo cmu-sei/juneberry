@@ -27,6 +27,8 @@ and the generation of some number of reports from aggregates of the test results
     "models": [
          {
             "filters" : [ "tag1", "tag2" ] - OPTIONAL
+            "maximum_evaluations": <EXPERIMENTAL: maximum number of similar evaluations to perform at once. 
+            Default is 1.>
             "name": <name of model in models directory>,
             "onnx": <boolean indicating if an ONNX version of the model should be saved>,
             "tests": [
@@ -43,7 +45,13 @@ and the generation of some number of reports from aggregates of the test results
             "version": <OPTIONAL - which version of the model to use>,
         }
     ],
-    "reports": [ <array of Report plugins - see below ],
+    "reports": [ <array of Report plugins - see below> ],
+    "tuning": [
+        {
+            "model": <name of model in models directory to tune>,
+            "tuning_config": <name of tuning config in workspace describing how to tune the model>
+        }
+    ],
     "timestamp": <optional ISO time stamp for when this was generated>
 }
 ```
@@ -54,7 +62,7 @@ and the generation of some number of reports from aggregates of the test results
 **Optional** prose description of this experiment.
 
 ## filters
-This sections lists the filters that can be applied training output or evaluation output.
+This section lists the filters that can be applied training output or evaluation output.
 Each model or test stanza has a **filters** field specified which filters to invoke after the
 training or evaluation as appropriate.
 Each entry in here describes a pattern for how the filter but the actual values will be filled
@@ -101,11 +109,19 @@ Current: 1.5.0
 An array of entries that describe which model(s) to train (if needed) and which test(s) to run against
 the trained model(s).
 
+### maximum_evaluations
+**EXPERIMENTAL** **Optional** number specifying how many evaluations to perform **per call** to jb_evaluate
+on loading the model. When generating the calls to jb_evaluate, similar evaluations (meaning the 
+same classify, use_train_split, use_val_split, etc.) up to this maximum will be performed while only
+loading the model once. This only impacts performance and should not affect correctness. This is
+mostly useful from a runtime performance perspective when the model is large and the dataset is small.
+This value defaults to 1.
+
 ### name
 The name of the model to train if needed. (The directory in the "models" directory.)
 
 ### onnx
-This boolean controls whether or not an ONNX version of the model will be saved after training. When 
+This boolean controls if an ONNX version of the model will be saved after training. When 
 set to true, the "--onnx" option will be added to the jb_train command for the model during the 
 creation of the experiment rules file.
 
@@ -136,6 +152,19 @@ to train (or clean) the model.
 **OPTIONAL** An array of one or more Plugins, where each Plugin corresponds to a Juneberry Report 
 class. Refer to the [report config specification](report_configuration_specification.md) for more information 
 about Juneberry Report Plugins.
+
+## tuning
+**OPTIONAL** An array of one or more dictionaries, where each dictionary describes a tuning run. A tuning run 
+can be used to optimize the hyperparameters of a model.
+
+### model
+This string indicates the name of the model in the workspace to tune. When generating a 'jb_tune' command 
+for the experiment, the value of this property will be used for the command's "modelName" argument.
+
+### tuning_config
+This string indicates the name of the tuning config file, relative to the workspace, to use when tuning 
+the model. When generating a 'jb_tune' command for the experiment, the value of this property will be 
+used for the command's "tuningConfig" argument.
 
 ## timestamp
 **Optional** Time stamp (ISO format with 0 microseconds) for when this file was last updated.

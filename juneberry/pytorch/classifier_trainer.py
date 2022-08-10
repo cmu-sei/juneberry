@@ -26,6 +26,7 @@ import logging
 import math
 import os
 import sys
+from typing import Union
 
 import numpy as np
 
@@ -254,7 +255,7 @@ class ClassifierTrainer(EpochTrainer):
             self.history['val_loss'].append(float(np.mean(metrics['losses'])))
             self.history['val_accuracy'].append(float(np.mean(metrics['accuracies'])))
 
-    def end_epoch(self) -> str:
+    def end_epoch(self, tuning_mode: bool = False) -> Union[str, dict]:
         if self.lr_scheduler is not None:
             if self.lr_step_frequency == LRStepFrequency.EPOCH:
                 self.lr_scheduler.step()
@@ -265,17 +266,29 @@ class ClassifierTrainer(EpochTrainer):
                 self.history['lr'].append(param_group['lr'])
 
         # Pass the model and value we want to check to the acceptance checker
+        allow_save = (self.gpu is None or self.gpu == 0) and not tuning_mode
         self.done = self.acceptance_checker.add_checkpoint(self.unwrapped_model, self.input_sample,
                                                            self.history[self.history_key][-1],
-                                                           allow_save=(self.gpu is None or self.gpu == 0))
+                                                           allow_save=allow_save)
 
         # TODO: Check if loss when nan.
 
         # Capture the data for TensorBoard (if necessary)
-        if self.tb_mgr is not None:
+        if self.tb_mgr is not None and not tuning_mode:
             self.tb_mgr.update(self.history, self.epoch - 1)
 
         self.show_memory_summary(False)
+
+        # When tuning a PyTorch classifier, the tuner should receive a dictionary of metrics and not the
+        # formatted metric string.
+        # TODO: Maybe it's a good idea to return the metrics dictionary in all cases?
+        if tuning_mode:
+            return_val = {}
+            for x in self.history:
+                if len(self.history[x]) > 0:
+                    return_val[x] = self.history[x][-1]
+
+            return return_val
 
         # Make a nice metric message for the epoch output
         metric_str = ""

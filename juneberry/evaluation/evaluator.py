@@ -136,14 +136,8 @@ class EvaluatorBase:
         self.raw_output = None
         self.top_k = None
 
-        # Set up the evaluation output.
-        self.output_builder = EvaluationOutputBuilder()
-        self.output = self.output_builder.output
-
-        # Record some initial information in the evaluation output, such as the model being
-        # evaluated and the dataset used in the evaluation.
-        self.output.options.model.name = self.model_manager.model_name
-        self.output.options.dataset.config = self.eval_dataset_config.file_path if dataset else None
+        # Set up the eval output
+        self._init_output()
 
         # Check the eval_options for values related to the relevant attributes. If found, set the
         # attribute.
@@ -182,6 +176,9 @@ class EvaluatorBase:
         The intent of this extension point is to perform any setup steps required by the evaluation process.
         :return: Nothing
         """
+        pass
+
+    def reset(self) -> None:
         pass
 
     def obtain_dataset(self) -> None:
@@ -252,6 +249,56 @@ class EvaluatorBase:
         self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
 
         self.format_evaluation()
+
+    def perform_additional_eval(self, log_file, dataset: DatasetConfig, eval_dir_mgr: EvalDirMgr) -> None:
+        """
+        Allows the evaluation of a different dataset that has the same basic characteristics
+        as the original data set, in terms of model layer sizes, etc.
+        :param log_file: The file to log to
+        :param dataset: The dataset to evaluate
+        :param eval_dir_mgr: Where to place the evaluation
+        :return: Nothing
+        """
+        # This is all reinit stuff that we could factor out of __init__
+        # TODO: should go into a separate init function.
+
+        # Reset the eval dataset, output directory, and log file location.
+        self.eval_dataset_config = dataset
+        self.eval_dir_mgr = eval_dir_mgr
+        self.log_file_path = log_file
+
+        # Set up the eval output
+        self._init_output()
+
+        self.reset()
+
+        # ===
+
+        self.obtain_dataset()
+        # Record the time the evaluation started.
+        self.output.times.start_time = datetime.datetime.now().replace(microsecond=0)
+
+        self.evaluate_data()
+
+        self.populate_metrics()
+
+        # Record the time the evaluation ended.
+        self.output.times.end_time = datetime.datetime.now().replace(microsecond=0)
+
+        # Format the evaluation times in the output and calculate the duration.
+        self.output_builder.set_times(self.output.times.start_time, self.output.times.end_time)
+
+        self.format_evaluation()
+
+    def _init_output(self):
+        # Set up the evaluation output.
+        self.output_builder = EvaluationOutputBuilder()
+        self.output = self.output_builder.output
+
+        # Record some initial information in the evaluation output, such as the model being
+        # evaluated and the dataset used in the evaluation.
+        self.output.options.model.name = self.model_manager.model_name
+        self.output.options.dataset.config = self.eval_dataset_config.file_path if self.eval_dataset_config else None
 
 
 def main():

@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 JB_TRAIN_COMMAND = 'jb_train'
 JB_EVALUATE_COMMAND = 'jb_evaluate'
 JB_REPORT_COMMAND = 'jb_report'
+JB_TUNE_COMMAND = 'jb_tune'
 
 
 class RuleMaker:
@@ -58,6 +59,7 @@ class RuleMaker:
     def save(self, file_path):
 
         self.add_training()
+        self.add_tuning()
         self.add_eval()
         self.add_reports()
 
@@ -105,6 +107,100 @@ class RuleMaker:
                 self.add_filters(model.filters, model_mgr, model_config.training_dataset_config_path,
                                  model['train_rule_id'])
 
+    def add_tuning(self):
+        if self.experiment_config.tuning is not None:
+            for tuning_run in self.experiment_config.tuning:
+                model_mgr = ModelManager(tuning_run.model)
+                model_config = ModelConfig.load(model_mgr.get_model_config())
+
+                # Tuning rules
+                workflow = self.builder.get_workflow("main")
+                inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
+                          tuning_run.tuning_config]
+                outputs = model_mgr.get_tuning_output_list()
+                command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config]
+
+                doc = " ".join([str(x) for x in command])
+                clean_extras = model_mgr.get_tuning_clean_extras_list()
+                requirements = []
+
+                # Add a temporary property for now
+                tuning_run['tune_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                               requirements)
+
+                # Dry run rules
+                workflow = self.builder.get_workflow("dryrun")
+                inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
+                          tuning_run.tuning_config]
+                outputs = model_mgr.get_tuning_dryrun_output_list()
+                command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config, '--dryrun']
+                doc = " ".join([str(x) for x in command])
+                clean_extras = model_mgr.get_tuning_dryrun_clean_extras_list()
+                requirements = []
+
+                # Add a temporary property for now
+                tuning_run['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                                 requirements)
+
+    @staticmethod
+    def partition_test_groups(model_tests: list, max_count: int) -> list:
+        """
+        Partitions the model tests into groups of similar arguments, with all groups sized
+        less than max_count.
+        :param model_tests: The list of tests to partition.
+        :param max_count: Max partition size.
+        :return: List of lists of tests.
+        """
+        if len(model_tests) == 0:
+            return [[]]
+
+        # The normal case is one per, so just return that
+        if max_count == 1 or max_count is None:
+            return [[x] for x in model_tests]
+
+        # We are going to consume the list so make a copy so we don't break the original
+        working_list: list = model_tests.copy()
+
+        # List of output groups
+        groups = []
+
+        # Seed the first group
+        group = [working_list.pop(0)]
+
+        # Now, consume the rest of the list, adding to a group until the params are different or the group is full.
+        while len(working_list) > 0:
+            test = working_list.pop(0)
+            if group[-1].classify == test.classify and \
+                    group[-1].use_train_split == test.use_train_split and \
+                    group[-1].use_val_split == test.use_val_split:
+                # Same args so grow the group
+                group.append(test)
+
+                # If we met the limit, start a new group.
+                if max_count == len(group):
+                    groups.append(group)
+                    if len(working_list) > 0:
+                        group = [working_list.pop(0)]
+            else:
+                # Args are different, so end the previous group and start another.
+                groups.append(group)
+                group = [test]
+
+        # If any remaining items in the group.
+        if len(group) > 0:
+            groups.append(group)
+
+        # At this point it should all be partitioned.
+        return groups
+
+    @staticmethod
+    def aggregate_outputs(model_mgr, dataset_paths):
+        all_outs = set()
+        for ds_path in dataset_paths:
+            for x in model_mgr.get_evaluation_output_list(ds_path):
+                all_outs.add(str(x))
+        return sorted(all_outs)
+
     def add_eval(self):
         self.tag_map = {}
 
@@ -136,6 +232,9 @@ class RuleMaker:
                         command.append('--useTrainSplit')
                     if test.use_val_split:
                         command.append('--useValSplit')
+                    # If they allow more than one, add the skip exists switch
+                    if model.maximum_evaluations is not None and model.maximum_evaluations != 1:
+                        command.append('--skip-exists')
                     doc = " ".join([str(x) for x in command])
                     clean_extras = model_mgr.get_predictions_clean_extras_list()
                     if 'train_rule_id' in model:

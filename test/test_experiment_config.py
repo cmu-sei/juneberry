@@ -21,11 +21,11 @@
 # DM21-0884
 #
 # ======================================================================================================================
+from unittest import TestCase
 
 import pytest
 
 from juneberry.config.experiment import ExperimentConfig
-
 import utils
 
 
@@ -60,6 +60,13 @@ def make_basic_config():
                 ],
             }
         ],
+        "tuning": [
+            {
+                "model": "",
+                "tuning_config": ""
+            }
+
+        ],
         "format_version": "1.5.0"
     }
     # NOTE: We provide the formatVersion manually to force an update of the unit test when
@@ -80,119 +87,141 @@ def test_config_basics(tmp_path):
         exp_conf = ExperimentConfig.construct(config)
         assert len(config['models']) == len(exp_conf['models'])
         assert len(config['reports']) == len(exp_conf['reports'])
+        assert len(config['tuning']) == len(exp_conf['tuning'])
 
 
-def test_models_missing(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
+class TestExperimentModels(TestCase):
+    """
+    The purpose of this class is to organize any unit tests that apply to the "models" section of
+    an experiment config.
+    """
 
+    @pytest.fixture(autouse=True)
+    def init_fixtures(self, tmp_path, caplog):
+        """
+        The purpose of this function is to make the pytest tmp_path fixture available inside of
+        the unittest.TestCase.
+        """
+        self.tmp_path = tmp_path
+        self.caplog = caplog
+
+        with utils.set_directory(self.tmp_path):
+            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
+            utils.setup_test_workspace(self.tmp_path)
+            utils.make_tabular_workspace(self.tmp_path)
+
+    def test_model_bad_name(self):
+            config = make_basic_config()
+            config['models'][0]['name'] = "bad name"
+
+            with pytest.raises(SystemExit) as exc_info:
+                ExperimentConfig.construct(config)
+
+            assert "Model not found" in self.caplog.text
+
+    def test_model_duplicate_tag(self):
+            config = make_basic_config()
+            config['models'][0]['tests'].append({
+                "tag": "pyt50",
+                "dataset_path": "data_sets/imagenette_unit_test.json",
+            })
+
+            with pytest.raises(SystemExit) as exc_info:
+                ExperimentConfig.construct(config)
+
+            assert "Found duplicate tag" in self.caplog.text
+
+    def test_model_duplicate_tag_2(self):
+            config = make_basic_config()
+            config['models'].append({
+                "name": "tabular_binary_sample",
+                "tests": [
+                    {
+                        "tag": "pyt50",
+                        "dataset_path": "data_sets/imagenette_unit_test.json",
+                    }
+                ]
+            })
+
+            with pytest.raises(SystemExit) as exc_info:
+                ExperimentConfig.construct(config)
+
+            assert "Found duplicate tag" in self.caplog.text
+
+    def test_model_bad_dataset_path(self):
+            config = make_basic_config()
+            config['models'][0]['tests'][0]['dataset_path'] = "bad name"
+
+            with pytest.raises(SystemExit) as exc_info:
+                ExperimentConfig.construct(config)
+
+            assert "Dataset not found" in self.caplog.text
+
+
+class TestExperimentReports(TestCase):
+    """
+    The purpose of this class is to organize any unit tests that apply to the "reports" section of
+    an experiment config.
+    """
+
+    @pytest.fixture(autouse=True)
+    def init_fixtures(self, tmp_path, caplog):
+        """
+        The purpose of this function is to make the pytest tmp_path fixture available inside of
+        the unittest.TestCase.
+        """
+        self.tmp_path = tmp_path
+        self.caplog = caplog
+
+        with utils.set_directory(self.tmp_path):
+            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
+            utils.setup_test_workspace(self.tmp_path)
+            utils.make_tabular_workspace(self.tmp_path)
+
+    def test_report_bad_tag(self):
+            config = make_basic_config()
+            config['reports'][0]['tests'][0]['tag'] = "wrong tag"
+
+            with pytest.raises(SystemExit) as exc_info:
+                ExperimentConfig.construct(config)
+
+            assert "Unknown report tag" in self.caplog.text
+
+
+class TestExperimentTuning(TestCase):
+    """
+    The purpose of this class is to organize any unit tests that apply to the "tuning" section of
+    an experiment config.
+    """
+
+    @pytest.fixture(autouse=True)
+    def init_fixtures(self, tmp_path, caplog):
+        """
+        The purpose of this function is to make the pytest tmp_path fixture available inside of
+        the unittest.TestCase.
+        """
+        self.tmp_path = tmp_path
+        self.caplog = caplog
+
+        with utils.set_directory(self.tmp_path):
+            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
+            utils.setup_test_workspace(self.tmp_path)
+            utils.make_tabular_workspace(self.tmp_path)
+
+    def test_tuning_bad_model(self):
         config = make_basic_config()
-        del config['models']
+        config['tuning'][0]['model'] = "unknown_model"
 
         with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
-        assert caplog.records[0].levelname == "ERROR"
-        assert "'models' is a required property at []" in caplog.text
 
+        assert "Model not found: " in self.caplog.text
 
-def test_models_non_zero(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
+    def test_tuning_bad_tuning_config(self):
         config = make_basic_config()
-        config['models'] = []
+        config['tuning'][0]['tuning_config'] = "unknown_tuning_config.json"
 
         with pytest.raises(SystemExit) as exc_info:
             ExperimentConfig.construct(config)
 
-        assert "is too short at ['models']" in caplog.text
-
-
-def test_model_bad_name(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['models'][0]['name'] = "bad name"
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "Model not found" in caplog.text
-
-
-def test_model_duplicate_tag(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['models'][0]['tests'].append({
-            "tag": "pyt50",
-            "dataset_path": "data_sets/imagenette_unit_test.json",
-        })
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "Found duplicate tag" in caplog.text
-
-
-def test_model_duplicate_tag_2(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['models'].append({
-            "name": "tabular_binary_sample",
-            "tests": [
-                {
-                    "tag": "pyt50",
-                    "dataset_path": "data_sets/imagenette_unit_test.json",
-                }
-            ]
-        })
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "Found duplicate tag" in caplog.text
-
-
-def test_model_bad_dataset_path(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['models'][0]['tests'][0]['dataset_path'] = "bad name"
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "Dataset not found" in caplog.text
-
-
-def test_report_bad_tag(tmp_path, caplog):
-    with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
-        config = make_basic_config()
-        config['reports'][0]['tests'][0]['tag'] = "wrong tag"
-
-        with pytest.raises(SystemExit) as exc_info:
-            ExperimentConfig.construct(config)
-
-        assert "Unknown report tag" in caplog.text
+        assert "Tuning config not found: " in self.caplog.text

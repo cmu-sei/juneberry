@@ -232,6 +232,17 @@ def load_file(path: str):
             sys.exit(-1)
 
 
+def load_json_lines(path: str) -> list:
+    """
+    The purpose of this function is to load content from the specified file path, when the
+    target file contains data in JSON Lines format.
+    :param path: The path to the JSON Lines file to load.
+    :return: A list of data, where each element in the list is a valid JSON object.
+    """
+    with open(path, 'r') as file:
+        return [json.loads(line) for line in file]
+
+
 class ExperimentManager:
     def __init__(self, experiment_name):
         self.experiment_name = experiment_name
@@ -623,6 +634,16 @@ class EvalDirMgr:
     def get_predictions_path(self):
         return str(self.root / "predictions.json")
 
+    def predictions_exists(self) -> bool:
+        """ :return: True if predictions exists as json or json.gz """
+        pred_path = Path(self.get_predictions_path())
+        if pred_path.exists():
+            return True
+        pred_path = Path(self.get_predictions_path() + ".gz")
+        if pred_path.exists():
+            return True
+        return False
+
     def get_sample_detections_dir(self):
         return str(self.root / "sample_detections")
 
@@ -651,6 +672,10 @@ class ModelManager:
         self.model_dir_path.mkdir(parents=True, exist_ok=True)
         for name in ['train', 'eval']:
             (self.model_dir_path / name).mkdir(parents=True, exist_ok=True)
+
+    def setup_tuning(self):
+        """ Prepares a directory for tuning. """
+        self.get_tuning_dir().mkdir(parents=True, exist_ok=True)
 
     def get_model_name(self):
         """ :return: The name of the model. """
@@ -750,6 +775,29 @@ class ModelManager:
     def get_train_scratch_path(self) -> Path:
         """ :return: Path to a directory for 'scratch' outputs from training. """
         return self.get_train_root_dir() / "scratch"
+
+    def get_tuning_dir(self) -> Path:
+        """ :return: Path to a directory containing files related to hyperparameter tuning. """
+        return self.get_train_root_dir() / "tuning"
+
+    def get_tuning_log(self) -> Path:
+        """ :return: The path to the model's tuning log. """
+        return self.get_tuning_dir() / "log.txt"
+
+    @staticmethod
+    def get_relocated_tuning_log(target_dir: str) -> Path:
+        """ :return: The path for a tuning log file that's been relocated to a target directory. """
+        return Path(target_dir) / "log.txt"
+
+    @staticmethod
+    def get_relocated_tuning_output(target_dir: str) -> Path:
+        """ :return: The path for a tuning output file that's been relocated to a target directory. """
+        return Path(target_dir) / "output.json"
+
+    @staticmethod
+    def get_tuning_result_file(target_dir: str) -> Path:
+        """ :return: The path for a tuning result file inside a target directory. """
+        return Path(target_dir) / "result.json"
 
     # ============ Evaluation ============
 
@@ -922,6 +970,38 @@ class ModelManager:
                     files_to_clean.append(item)
 
         clean_if_exists(files_to_clean, dry_run)
+
+    @staticmethod
+    def get_tuning_output_list() -> list:
+        """
+        :return: A list of files or glob patterns of files generated during tuning.
+        """
+        files = []
+
+        return files
+
+    @staticmethod
+    def get_tuning_clean_extras_list() -> list:
+        """
+        :return: A list of additional things to clean after tuning.
+        """
+        return []
+
+    @staticmethod
+    def get_tuning_dryrun_output_list() -> list:
+        """
+        :return: A list of files or glob patterns of files generated during tuning.
+        """
+        files = []
+
+        return files
+
+    @staticmethod
+    def get_tuning_dryrun_clean_extras_list() -> list:
+        """
+        :return: A list of additional things to clean after tuning.
+        """
+        return []
 
     def create_tensorboard_directory_name(self, tensorboard_root):
         time_str = datetime.datetime.now().strftime('%m%d_%H%M') + '_'

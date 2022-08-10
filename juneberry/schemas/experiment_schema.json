@@ -31,6 +31,7 @@
                         "type": "array",
                         "items": { "type": "string" }
                     },
+                    "maximum_evaluations": { "type": "integer" },
                     "name": { "type": "string" },
                     "onnx": { "type": "boolean"},
                     "tests": {
@@ -52,11 +53,11 @@
                         }
                     },
                     "train": { "type": "boolean" },
+                    "tuning": { "type": "string" },
                     "version": { "type": "string" }
                 },
                 "required": [ "name", "tests" ]
-            },
-            "minItems": 1
+            }
         },
         "reports": {
             "type": "array",
@@ -78,10 +79,18 @@
                 }
             }
         },
-        "timestamp": { "type": "string" }
+        "timestamp": { "type": "string" },
+        "tuning": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "model": { "type": "string" },
+                    "tuning_config": { "type": "string" }
+                },
+                "required": [ "model", "tuning_config" ]
+            }
+        }
     },
-    "required": [
-        "models",
-        "reports"
-    ]
+    "required": []
 }

@@ -38,6 +38,8 @@ It provides the following features:
 import datetime
 import logging
 
+from tqdm import tqdm
+
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
@@ -106,6 +108,26 @@ class Trainer:
         self.native = True
         self.onnx = False
 
+    def set_output_format(self, native: bool = True, onnx: bool = False):
+        """
+        This method can be used to set the Trainer's output format attributes. If no output format is
+        detected, then the "native" format will be chosen by default.
+        :param native: A boolean indicating if the Trainer should save the trained model file in the
+        platform's native format. The default value is True.
+        :param onnx: A boolean indicating if the Trainer should save the trained model file in ONNX
+        format, if the training platform supports saving ONNX model files. The default values is False.
+        :return: Nothing.
+        """
+        # Set the attributes.
+        self.native = native
+        self.onnx = onnx
+
+        # If the trainer has no output format, choose the native format by default even if
+        # the user requested it to be skipped.
+        if not (self.onnx or self.native):
+            logger.warning(f"An output format was not set for the Trainer. Enabling the native format.")
+            self.native = True
+
     # ==========================
 
     def dry_run(self) -> None:
@@ -156,6 +178,9 @@ class Trainer:
 
     def train(self) -> None:
         logger.warning("train() not implemented in base Trainer")
+
+    def tune(self) -> None:
+        logger.warning("tune() not implemented in base Trainer")
 
     def finish(self) -> None:
         logger.warning("finish() not implemented in base Trainer")
@@ -285,6 +310,12 @@ class EpochTrainer(Trainer):
         while not self.done:
             self._train_one_epoch()
 
+    def tune(self):
+        # For each epoch we need to complete a tuning interval.
+        logger.info(f"Calculating the latest training metrics and sending them to the tuner...")
+        while not self.done:
+            yield self._tune_one_interval()
+
     def finish(self) -> None:
         """
         Called to finalize and close all resources.
@@ -347,9 +378,10 @@ class EpochTrainer(Trainer):
         """
         pass
 
-    def end_epoch(self) -> str:
+    def end_epoch(self, tuning_mode: bool = False) -> str:
         """
         Called at the end of epoch for model saving, external telemetry, etc.
+        :param tuning_mode: Boolean indicating if the epoch is being used to tune the model.
         """
         return ""
 
@@ -410,6 +442,27 @@ class EpochTrainer(Trainer):
                     f"remaining: {int(hours):d}:{int(minutes):02d}:{int(seconds):02d}, "
                     f"{msg}")
 
+    def _tune_one_interval(self):
+        """
+        Iterates the training set performing the forward function and returns metric data
+        to the tuner. Then evaluates the model using the validation batch.
+        Metrics are produced and updated for each batch.
+        Performs timing instrumentation as appropriate.
+        """
+        self.epoch += 1
+
+        with self.timer("epoch"):
+            # Process all the data from the data loader
+            self._process_one_iterable(True, self.training_iterable)
+
+            # Process all the data from the data loader
+            self._process_one_iterable(False, self.evaluation_iterable)
+
+        with self.timer("end_epoch"):
+            epoch_tracker = self.timer('epoch')
+            return_val = self.end_epoch(tuning_mode=True)
+            return return_val
+
     def _process_one_iterable(self, train: bool, data_iterable):
         """
         Iterates the specified data iterable providing each batch to process_batch.
@@ -426,7 +479,7 @@ class EpochTrainer(Trainer):
         # Process each batch
         with self.timer(label):
             try:
-                for data, targets in data_iterable:
+                for data, targets in tqdm(data_iterable):
                     # Forwards
                     with self.timer(f"{label}_batch"):
                         results = self.process_batch(train, data, targets)
