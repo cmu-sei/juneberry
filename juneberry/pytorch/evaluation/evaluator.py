@@ -231,7 +231,8 @@ class Evaluator(EvaluatorBase):
             logger.info(f"Loading model weights...")
             self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)
         else:
-            logger.warning(f"No 'model.pt' found, running with plain model. Expected to find: {model_path}")
+            logger.warning(f"No 'model.pt' found, running with default model produced from model architecture. "
+                           f"Expected to find: {model_path}")
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

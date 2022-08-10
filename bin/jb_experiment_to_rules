@@ -124,6 +124,9 @@ class RuleMaker:
                     if model.train:
                         inputs = [model_mgr.get_model_path(), test.dataset_path]
                     else:
+                        # If the model isn't being trained, then a model file doesn't have to exist.
+                        # The model architecture can create a fully functional pretrained model from the
+                        # underlying platform such as torchvision pretrained models.
                         inputs = [test.dataset_path]
                     outputs = model_mgr.get_evaluation_output_list(test.dataset_path)
                     command = [JB_EVALUATE_COMMAND, model_mgr.model_name, test.dataset_path]
