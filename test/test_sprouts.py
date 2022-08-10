@@ -222,7 +222,7 @@ class TestTuningSprout(TestCase):
         # Create a Namespace for args that are unique to the TuningSprout.
         tune_args = Namespace(dryrun=True,
                               modelName="test_model",
-                              tuningConfig="test_tuning_config")
+                              tuningConfig="test_tuning_config.json")
 
         # Create a Namespace for the args in the Base Sprout.
         base_args = TestBaseSprout.build_base_namespace()
@@ -288,7 +288,7 @@ class TestTuningSprout(TestCase):
         # Check all of the TuningSprout attributes for the expected values.
         assert sprout.dryrun is True
         assert sprout.model_name == "test_model"
-        assert sprout.tuning_config == "test_tuning_config"
+        assert sprout.tuning_config == "test_tuning_config.json"
 
         # Check all of the Base Sprout attributes for the expected values.
         assert sprout.workspace_dir == "workspace_dir"

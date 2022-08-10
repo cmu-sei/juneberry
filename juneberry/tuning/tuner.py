@@ -267,10 +267,11 @@ class Tuner:
         logger.info(f"Saving checkpoint to {path}")
         torch.save((trainer.model.state_dict(), trainer.optimizer.state_dict()), path)
 
-    def tune(self) -> None:
+    def tune(self, dryrun: bool = False) -> None:
         """
         This method performs a tuning run based on the conditions set by all of the various
         attributes of the Tuner.
+        :param dryrun: A boolean indicating whether to tune in dryrun mode. Default is False.
         :return: Nothing.
         """
         # Record the Tuning options.
@@ -284,45 +285,48 @@ class Tuner:
         # to figure out if a distributed trainable is needed.
         trainable, trial_resources = self._determine_trainable()
 
-        logger.info(f"Starting the tuning run.")
+        if not dryrun:
 
-        # Capture the time when the tuning run started.
-        self.tuning_start_time = datetime.datetime.now().replace(microsecond=0)
+            logger.info(f"Starting the tuning run.")
 
-        # Perform the tuning run.
-        result = tune.run(
-            trainable,
-            resources_per_trial=trial_resources,
-            config=self.search_space,
-            search_alg=self.search_algo,
-            metric=self.tuning_config.tuning_parameters.metric,
-            mode=self.tuning_config.tuning_parameters.mode,
-            num_samples=self.tuning_config.num_samples,
-            scheduler=self.scheduler,
-            local_dir=str(self.trainer_factory.model_manager.get_tuning_dir()),
-            progress_reporter=CustomReporter(),
-            trial_dirname_creator=self._trial_dirname_string_creator
-        )
+            # Capture the time when the tuning run started.
+            self.tuning_start_time = datetime.datetime.now().replace(microsecond=0)
 
-        # Capture the time when the tuning run ended.
-        self.tuning_end_time = datetime.datetime.now().replace(microsecond=0)
+            # Perform the tuning run.
+            result = tune.run(
+                trainable,
+                resources_per_trial=trial_resources,
+                config=self.search_space,
+                search_alg=self.search_algo,
+                metric=self.tuning_config.tuning_parameters.metric,
+                mode=self.tuning_config.tuning_parameters.mode,
+                num_samples=self.tuning_config.num_samples,
+                scheduler=self.scheduler,
+                local_dir=str(self.trainer_factory.model_manager.get_tuning_dir()),
+                progress_reporter=CustomReporter(),
+                trial_dirname_creator=self._trial_dirname_string_creator
+            )
 
-        # Once tuning is complete, store the best result.
-        logger.info(f"The tuning run is complete. Storing the best result.")
-        self.best_result = result.get_best_trial(self.tuning_config.tuning_parameters.metric,
-                                                 self.tuning_config.tuning_parameters.mode,
-                                                 self.tuning_config.tuning_parameters.scope)
+            # Capture the time when the tuning run ended.
+            self.tuning_end_time = datetime.datetime.now().replace(microsecond=0)
 
-        # Retrieve the data from inside each trial's result.json file.
-        for trial in result.trials:
-            result_path = self.trainer_factory.model_manager.get_tuning_result_file(trial.logdir)
-            trial_data = jb_fs.load_json_lines(result_path)
+            # Once tuning is complete, store the best result.
+            logger.info(f"The tuning run is complete. Storing the best result.")
+            self.best_result = result.get_best_trial(self.tuning_config.tuning_parameters.metric,
+                                                     self.tuning_config.tuning_parameters.mode,
+                                                     self.tuning_config.tuning_parameters.scope)
 
-            # Add the trial's result data to the tuning output.
-            self.output_builder.append_trial_result(directory=trial.logdir, params=trial.config, trial_data=trial_data)
+            # Retrieve the data from inside each trial's result.json file.
+            for trial in result.trials:
+                result_path = self.trainer_factory.model_manager.get_tuning_result_file(trial.logdir)
+                trial_data = jb_fs.load_json_lines(result_path)
 
-        # Perform any final tuning steps, such as indicating the "best result".
-        self.finish_tuning()
+                # Add the trial's result data to the tuning output.
+                self.output_builder.append_trial_result(directory=trial.logdir, params=trial.config,
+                                                        trial_data=trial_data)
+
+            # Perform any final tuning steps, such as indicating the "best result".
+            self.finish_tuning()
 
     def _determine_trainable(self) -> tuple:
         """
