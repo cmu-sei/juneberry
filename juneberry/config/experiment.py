@@ -53,16 +53,16 @@ class ModelTest(Prodict):
 
 
 class Model(Prodict):
-    def init(self):
-        self.train = True
-        self.onnx = False
-
     filters: List[str]
     name: str
     onnx: bool
     tests: List[ModelTest]
     train: bool
     version: str
+
+    def init(self):
+        self.train = True
+        self.onnx = False
 
 
 class ReportTest(Prodict):

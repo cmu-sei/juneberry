@@ -39,7 +39,7 @@ and the generation of some number of reports from aggregates of the test results
                     "use_val_split": false
                 }
             ],
-            "train": <OPTONAL> - True to train the model, False to just use existing model.pt.  Default is True.
+            "train": <OPTONAL> - True to train the model, False to just use existing model file. Default is True.
             "version": <OPTIONAL - which version of the model to use>,
         }
     ],
@@ -125,8 +125,8 @@ jb_make_predictions is run. Since this field is not optional, set this property 
 want the predictions script to perform classifications. 
 
 ### train
-By default all models are trained before evaluation and reports are run. If this flag is setp to false,
-then we assume the model was training in some other fashion, and correspondingly we won't generate rules
+By default, all models are trained before evaluation and reports are run. When this flag is set to false,
+the model is assumed to have been trained outside of Juneberry, so no experiment rules will be generated 
 to train (or clean) the model.
 
 ### version

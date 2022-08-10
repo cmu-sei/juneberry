@@ -71,7 +71,7 @@ class PyTorchEvaluationOutput:
         if evaluator.model_manager.get_pytorch_model_path().exists():
             evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
 
-            # If the model Juneberry trained the model, a hash would have been calculated after training.
+            # If the Juneberry trained the model, a hash would have been calculated after training.
             # Compare that hash (if it exists) to the hash of the model being evaluated.
             jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
 
