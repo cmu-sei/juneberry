@@ -52,6 +52,7 @@
                             "required": [ "dataset_path", "tag" ]
                         }
                     },
+                    "train": { "type": "boolean" },
                     "tuning": { "type": "string" },
                     "version": { "type": "string" }
                 },

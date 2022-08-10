@@ -280,7 +280,7 @@ class ExperimentManager:
 
     def get_experiment_base_dataset(self):
         """ :return: The path to the experiment's base dataset config. """
-        return self.get_experiment_datasets_dir() / "base_data_set.json"
+        return self.experiment_dir_path / "base_data_set.json"
 
     def get_experiment_dataset_path(self, dataset_name: str):
         """ :return: The path to a dataset file inside the experiment's data_sets directory. """

@@ -67,12 +67,13 @@ class PyTorchEvaluationOutput:
         # Perform the common eval output processing steps for a classifier.
         jb_eval_utils.prepare_classification_eval_output(evaluator)
 
-        # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
+        # Calculate the hash of the model that was used to conduct the evaluation if we have a serialized one
+        if evaluator.model_manager.get_pytorch_model_path().exists():
+            evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
 
-        # If the model Juneberry trained the model, a hash would have been calculated after training.
-        # Compare that hash (if it exists) to the hash of the model being evaluated.
-        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
+            # If the Juneberry trained the model, a hash would have been calculated after training.
+            # Compare that hash (if it exists) to the hash of the model being evaluated.
+            jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:

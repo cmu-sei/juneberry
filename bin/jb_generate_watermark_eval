@@ -180,7 +180,7 @@ def generate_experiment(experiment_name: str, model_name: str, scales: list, tar
     exp_config.format_version = "0.2.0"
 
     # Add the model stanza with all the tests
-    exp_config.models = [Model(name=model_name, tests=test_list)]
+    exp_config.models = [Model(name=model_name, tests=test_list, train=False)]
 
     # Add the reports stanza
     report = Report(description="",
@@ -229,9 +229,6 @@ def main():
 
     # For now, we do ten sizes from 10% to 100%. We should probably allow switches/configs for this.
     scales = [round(0.1 * x, 1) for x in range(1, 11)]
-
-    for scale in scales:
-        print(type(scale))
 
     # Generate the dataset configs and experiment config
     generate_experiment(args.experimentName,
