@@ -267,7 +267,7 @@ def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
     # If Juneberry was used to train the model, retrieve the hash from the training output file
     # and verify the hash matches the hash of the model used to evaluate the data.
     training_output_file_path = evaluator.model_manager.get_training_out_file()
-    if training_output_file_path.is_file():
+    if training_output_file_path.exists():
         training_output = TrainingOutput.load(training_output_file_path)
 
         # Determine which hash to retrieve based on the ONNX boolean.

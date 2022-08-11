@@ -41,6 +41,7 @@ and the generation of some number of reports from aggregates of the test results
                     "use_val_split": false
                 }
             ],
+            "train": <OPTONAL> - True to train the model, False to just use existing model file. Default is True.
             "version": <OPTIONAL - which version of the model to use>,
         }
     ],
@@ -138,6 +139,11 @@ This is an integer value that will control how many of the top-K predicted class
 for each input in the predictions file. This value is used as the "--classify" argument when 
 jb_make_predictions is run. Since this field is not optional, set this property to zero if you do not 
 want the predictions script to perform classifications. 
+
+### train
+By default, all models are trained before evaluation and reports are run. When this flag is set to false,
+the model is assumed to have been trained outside of Juneberry, so no experiment rules will be generated 
+to train (or clean) the model.
 
 ### version
 **Optional** string that indicates which version of the model to use.

@@ -67,6 +67,10 @@ class RuleMaker:
 
     def add_training(self):
         for model in self.experiment_config.models:
+            # If they don't want this trained, then we are done.
+            if not model.train:
+                continue
+
             model_mgr = ModelManager(model.name)
             model_config = ModelConfig.load(model_mgr.get_model_config())
 
@@ -212,13 +216,16 @@ class RuleMaker:
 
             # Predictions
             if model.tests:
-                test_partitions = self.partition_test_groups(model.tests, model.maximum_evaluations)
-                for test_group in test_partitions:
-                    test = test_group[0]
-                    dataset_paths = [x.dataset_path for x in test_group]
-                    inputs = [model_mgr.get_model_path(), *dataset_paths]
-                    outputs = self.aggregate_outputs(model_mgr, dataset_paths)
-                    command = [JB_EVALUATE_COMMAND, model_mgr.model_name, *dataset_paths]
+                for test in model.tests:
+                    if model.train:
+                        inputs = [model_mgr.get_model_path(), test.dataset_path]
+                    else:
+                        # If the model isn't being trained, then a model file doesn't have to exist.
+                        # The model architecture can create a fully functional pretrained model from the
+                        # underlying platform such as torchvision pretrained models.
+                        inputs = [test.dataset_path]
+                    outputs = model_mgr.get_evaluation_output_list(test.dataset_path)
+                    command = [JB_EVALUATE_COMMAND, model_mgr.model_name, test.dataset_path]
                     if test.classify:
                         command.extend(["--topK", test.classify])
                     if test.use_train_split:
@@ -230,7 +237,10 @@ class RuleMaker:
                         command.append('--skip-exists')
                     doc = " ".join([str(x) for x in command])
                     clean_extras = model_mgr.get_predictions_clean_extras_list()
-                    requirements = [model['train_rule_id']]
+                    if 'train_rule_id' in model:
+                        requirements = [model['train_rule_id']]
+                    else:
+                        requirements = []
 
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
