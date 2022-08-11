@@ -54,7 +54,7 @@ RUN pip3 install llvmlite==0.38.0 --ignore-installed
 RUN pip3 install adversarial-robustness-toolbox \
     doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
     sklearn tensorboard \
-    torch==1.10.0 torchvision \
+    torch==1.12.0 torchvision \
     torch-summary\>=1.4.5 albumentations \
     pandas brambox pyyaml natsort \
     opacus==0.14.0 \
@@ -62,7 +62,8 @@ RUN pip3 install adversarial-robustness-toolbox \
     tf2onnx \
     opencv-python \
     tqdm \
-    pytest pylint
+    pytest pylint \
+    ray jsonpath-ng
 
 # ============ DETECTRON2 ============
 
@@ -94,7 +95,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v11"
+ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v12"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
