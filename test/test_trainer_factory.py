@@ -42,7 +42,7 @@ class TestTrainerFactory(TestCase):
     @pytest.fixture(autouse=True)
     def init_fixtures(self, tmp_path, caplog):
         """
-        The purpose of this method is to make the pytest tmp_path and caplog fixtures available inside of
+        The purpose of this method is to make certain fixtures available inside of
         the unittest.TestCase.
         """
         self.tmp_path = tmp_path
@@ -50,11 +50,6 @@ class TestTrainerFactory(TestCase):
 
         # Initialize a TrainerFactory.
         self.trainer_factory = TrainerFactory()
-
-        # Set up a workspace with some example files that can be used by the TrainerFactory.
-        with utils.set_directory(self.tmp_path):
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_dt2_workspace(self.tmp_path)
 
     def test_trainer_factory_attribute_init(self):
         """
@@ -81,35 +76,41 @@ class TestTrainerFactory(TestCase):
         self.trainer_factory.set_model_config()
         assert "no ModelManager associated with the TrainerFactory" in self.caplog.text
 
-        # Create a ModelManager and associate it with the TrainerFactory and attempt to
-        # set the model config again.
-        self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
-        self.trainer_factory.set_model_config()
+        # Create a temporary workspace in order to exercise the TrainerFactory's ability to load a
+        # ModelConfig using the ModelManager.
+        with utils.set_directory(self.tmp_path):
+            utils.setup_test_workspace(self.tmp_path)
+            utils.make_dt2_workspace(self.tmp_path)
 
-        # Verify that the TrainerFactory's model_config attribute has been set and that the
-        # model_config's values match expectations.
-        assert self.trainer_factory.model_config is not None
-        assert self.trainer_factory.model_config.model_architecture.module == "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
-        assert self.trainer_factory.model_config.epochs == 1
-        assert self.trainer_factory.model_config.validation.arguments.seed == 3554237221
+            # Create a ModelManager and associate it with the TrainerFactory and attempt to
+            # set the model config again.
+            self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
+            self.trainer_factory.set_model_config()
 
-        # Create a variation of the previous ModelConfig and make slight adjustments to some of
-        # its attributes.
-        model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
-        model_config.model_architecture.module = "new_value"
-        model_config.epochs = 10
-        model_config.validation.arguments.seed = 1234
+            # Verify that the TrainerFactory's model_config attribute has been set and that the
+            # model_config's attributes match expectations.
+            assert self.trainer_factory.model_config is not None
+            assert self.trainer_factory.model_config.model_architecture.module == "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+            assert self.trainer_factory.model_config.epochs == 1
+            assert self.trainer_factory.model_config.validation.arguments.seed == 3554237221
 
-        # Attempt to set the TrainerFactory's model_config attribute to the ModelConfig variation
-        # that was just created.
-        self.trainer_factory.set_model_config(model_config=model_config)
+            # Create a variation of the previous ModelConfig and make slight adjustments to some of
+            # its attributes.
+            model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
+            model_config.model_architecture.module = "new_value"
+            model_config.epochs = 10
+            model_config.validation.arguments.seed = 1234
 
-        # Confirm the model_config associated with the TrainerFactory reflects the previously
-        # adjusted values.
-        assert self.trainer_factory.model_config is not None
-        assert self.trainer_factory.model_config.model_architecture.module == "new_value"
-        assert self.trainer_factory.model_config.epochs == 10
-        assert self.trainer_factory.model_config.validation.arguments.seed == 1234
+            # Attempt to set the TrainerFactory's model_config attribute to the ModelConfig variation
+            # that was just created.
+            self.trainer_factory.set_model_config(model_config=model_config)
+
+            # Confirm the model_config associated with the TrainerFactory reflects the previously
+            # adjusted values.
+            assert self.trainer_factory.model_config is not None
+            assert self.trainer_factory.model_config.model_architecture.module == "new_value"
+            assert self.trainer_factory.model_config.epochs == 10
+            assert self.trainer_factory.model_config.validation.arguments.seed == 1234
 
     def test_trainer_factory_get_trainer(self):
         """
@@ -121,26 +122,31 @@ class TestTrainerFactory(TestCase):
         trainer = self.trainer_factory.get_trainer()
         assert trainer is None
 
-        # Now set the TrainerFactory attributes which are used to produce Trainers.
-        self.trainer_factory.lab = Lab(workspace=self.tmp_path, data_root=self.tmp_path)
-        self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
-        self.trainer_factory.model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
-        self.trainer_factory.dataset_config = DatasetConfig.load("data_sets/text_detect_val.json")
+        # Create a temporary workspace so that the file loading operations will work.
+        with utils.set_directory(self.tmp_path):
+            utils.setup_test_workspace(self.tmp_path)
+            utils.make_dt2_workspace(self.tmp_path)
 
-        # Get a Trainer from the TrainerFactory and verify some of its properties.
-        trainer = self.trainer_factory.get_trainer()
-        assert type(trainer) == Detectron2Trainer
-        assert trainer.resume is False
-        assert trainer.native is True
-        assert trainer.onnx is False
+            # Now set the TrainerFactory attributes which are used to produce Trainers.
+            self.trainer_factory.lab = Lab(workspace=self.tmp_path, data_root=self.tmp_path)
+            self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
+            self.trainer_factory.model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
+            self.trainer_factory.dataset_config = DatasetConfig.load("data_sets/text_detect_val.json")
 
-        # Get another Trainer from the TrainerFactory, only this time set the parameters of the
-        # 'get_trainer' method to the opposite of their default values. Verify the type of the
-        # resulting Trainer, and confirm the three Trainer attributes were set correctly.
-        trainer = self.trainer_factory.get_trainer(resume=True, native=False, onnx=True)
-        assert type(trainer) == Detectron2Trainer
-        assert trainer.resume is True
-        assert trainer.native is False
-        assert trainer.onnx is True
+            # Get a Trainer from the TrainerFactory and verify some of its properties.
+            trainer = self.trainer_factory.get_trainer()
+            assert type(trainer) == Detectron2Trainer
+            assert trainer.resume is False
+            assert trainer.native is True
+            assert trainer.onnx is False
+
+            # Get another Trainer from the TrainerFactory, only this time set the parameters of the
+            # 'get_trainer' method to the opposite of their default values. Verify the type of the
+            # resulting Trainer, and confirm the three Trainer attributes were set correctly.
+            trainer = self.trainer_factory.get_trainer(resume=True, native=False, onnx=True)
+            assert type(trainer) == Detectron2Trainer
+            assert trainer.resume is True
+            assert trainer.native is False
+            assert trainer.onnx is True
 
 

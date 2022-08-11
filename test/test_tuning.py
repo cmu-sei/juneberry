@@ -79,7 +79,7 @@ def make_basic_tuning_config():
 def verify_basic_tuning_config(tuning_config: TuningConfig):
     """
     This function examines a TuningConfig object and checks if its attributes match the properties
-    described in JSON content defined above in make_basic_tuning_config().
+    described in the JSON content defined above in make_basic_tuning_config().
     :param tuning_config: The Juneberry TuningConfig object to examine.
     :return: Nothing.
     """
@@ -133,7 +133,7 @@ class TestTuningConfig(TestCase):
         """
         This test exercises construction of a TuningConfig object using a dictionary of data.
         """
-        # Construct the TuningConfig object using the "contents of the JSON file".
+        # Construct the TuningConfig object using a dictionary of data.
         tuning_config = TuningConfig.construct(make_basic_tuning_config())
 
         # Verify the attributes in the TuningConfig.

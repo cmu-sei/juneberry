@@ -88,7 +88,7 @@ class TestBaseSprout(TestCase):
 
     def test_sprout_base_namespace(self):
         """
-        This test confirms every attributes in the Base Sprout is set properly when the corresponding
+        This test confirms every attribute in the Base Sprout is set properly when the corresponding
         arg is defined in the Namespace.
         """
         # Initialize a Base Sprout and feed it a fully-defined Namespace.
@@ -146,7 +146,7 @@ class TestTrainingSprout(TestCase):
         assert sprout.skip_native is None
         assert sprout.onnx is None
 
-        # Also check the attributes in the base Sprout.
+        # Check all of the Base Sprout attributes for the expected values.
         assert sprout.workspace_dir is None
         assert sprout.dataroot_dir is None
         assert sprout.tensorboard_dir is None
@@ -172,7 +172,7 @@ class TestTrainingSprout(TestCase):
         assert sprout.skip_native is False
         assert sprout.onnx is False
 
-        # Also check all of the Base Sprout attributes for the expected values.
+        # Check all of the Base Sprout attributes for the expected values.
         assert sprout.workspace_dir is None
         assert sprout.dataroot_dir is None
         assert sprout.tensorboard_dir is None
@@ -183,7 +183,7 @@ class TestTrainingSprout(TestCase):
 
     def test_training_sprout_training_namespace(self):
         """
-        This test confirms every attributes in the TrainingSprout is set properly when the corresponding
+        This test confirms every attribute in the TrainingSprout is set properly when the corresponding
         arg is defined in the Namespace.
         """
         # Initialize a TrainingSprout and feed it a fully-defined Namespace.
@@ -216,7 +216,7 @@ class TestTuningSprout(TestCase):
     @staticmethod
     def build_tuning_namespace():
         """
-        This method returns a Namespace similar to the Namespace you would received when running jb_tune.
+        This method returns a Namespace similar to the Namespace you would receive when running jb_tune.
         :return: A Namespace that sets all of the args expected by the TuningSprout to non-default values.
         """
         # Create a Namespace for args that are unique to the TuningSprout.
@@ -243,7 +243,7 @@ class TestTuningSprout(TestCase):
         assert sprout.model_name is None
         assert sprout.tuning_config is None
 
-        # Also check the attributes in the base Sprout.
+        # Check all of the Base Sprout attributes for the expected values.
         assert sprout.workspace_dir is None
         assert sprout.dataroot_dir is None
         assert sprout.tensorboard_dir is None
@@ -258,16 +258,15 @@ class TestTuningSprout(TestCase):
         attributes in the TuningSprout.
         """
         # Initialize a TuningSprout and feed it an empty Namespace.
-        args = Namespace()
         sprout = TuningSprout()
-        sprout.grow_from_args(args)
+        sprout.grow_from_args(Namespace())
 
         # Check all of the attributes that are unique to the TuningSprout for the expected values.
         assert sprout.dryrun is False
         assert sprout.model_name is None
         assert sprout.tuning_config is None
 
-        # Also check all of the Base Sprout attributes for the expected values.
+        # Check all of the Base Sprout attributes for the expected values.
         assert sprout.workspace_dir is None
         assert sprout.dataroot_dir is None
         assert sprout.tensorboard_dir is None
@@ -278,7 +277,7 @@ class TestTuningSprout(TestCase):
 
     def test_tuning_sprout_training_namespace(self):
         """
-        This test confirms every attributes in the TuningSprout is set properly when the corresponding
+        This test confirms every attribute in the TuningSprout is set properly when the corresponding
         arg is defined in the Namespace.
         """
         # Initialize a TuningSprout and feed it a fully-defined Namespace.
