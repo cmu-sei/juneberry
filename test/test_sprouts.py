@@ -275,7 +275,7 @@ class TestTuningSprout(TestCase):
         assert sprout.log_level == logging.INFO
         assert sprout.profile_name is None
 
-    def test_tuning_sprout_training_namespace(self):
+    def test_tuning_sprout_tuning_namespace(self):
         """
         This test confirms every attribute in the TuningSprout is set properly when the corresponding
         arg is defined in the Namespace.
