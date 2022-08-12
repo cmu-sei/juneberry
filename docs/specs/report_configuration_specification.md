@@ -1,6 +1,30 @@
 Report Configuration Specification
-==========
-
+========== 
+<!-- TOC -->
+* [Introduction](report_configuration_specification.md#introduction)
+* Report Config Structures
+  * [Basic Report Config Structure](report_configuration_specification.md#Basic-Report-Config-Structure)
+  * [Report Config Structure Extensions](report_configuration_specification.md#Report-Config-Structure-Extensions)
+    * [Experiment Outline](report_configuration_specification.md#report-config-structure-extensions---experiment-outline)
+    * [Experiments](report_configuration_specification.md#report-config-structure-extensions---experiments)
+  * [Report Specific Config Structures](report_configuration_specification.md#Report-Specific-Config-Structures)
+    * [ROC Report](report_configuration_specification.md#ROC-Report)
+    * [PR Report](report_configuration_specification.md#PR-Report)
+    * [Summary Report](report_configuration_specification.md#Summary-Report)
+  * [Plugin Structure](report_configuration_specification.md#Plugin-Structure)
+  * [Structure Adjustments in an Experiment Config](report_configuration_specification.md#Structure-Adjustments-in-an-Experiment-Config)
+    * [ROC Report](report_configuration_specification.md#Experiment-Config-ROC-Report-Stanza-Differences)
+    * [PR Report](report_configuration_specification.md#Experiment-Config-PR-Report-Stanza-Differences)
+    * [Summary Report](report_configuration_specification.md#Experiment-Config-Summary-Report-Stanza-Differences)
+    * [Custom Report](report_configuration_specification.md#Experiment-Config-Custom-Report-Stanza-Differences)
+* [Details](report_configuration_specification.md#Details)
+  * [Reports](report_configuration_specification.md#reports)
+  * [Experiment Outline Extensions](report_configuration_specification.md#details---experiment-outline-extensions)
+  * [Experiment Extensions](report_configuration_specification.md#details---experiment-extensions)
+  * [ROC Report](report_configuration_specification.md#details---roc-report)
+  * [PR Report](report_configuration_specification.md#details---pr-report)
+  * [Summary Report](report_configuration_specification.md#details---summary-report)
+<!-- TOC -->
 
 # Introduction
 This document describes the JSON format used in a Juneberry Report configuration file. Juneberry 
