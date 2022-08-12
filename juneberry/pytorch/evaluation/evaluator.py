@@ -30,6 +30,7 @@ import torch
 
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
@@ -38,6 +39,7 @@ from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
@@ -73,6 +75,19 @@ class Evaluator(EvaluatorBase):
 
         # These attributes relate to Pytorch's way of loading data from a dataloader.
         self.eval_loader = None
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.balanced_accuracy, "balanced_accuracy"
 
     # ==========================================================================
     def dry_run(self) -> None:
@@ -230,7 +245,7 @@ class Evaluator(EvaluatorBase):
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
         # Load the weights into the model.
-        model_path = self.model_manager.get_pytorch_model_path()
+        model_path = self.model_manager.get_model_path(PyTorchPlatformDefinitions())
         if model_path.exists():
             logger.info(f"Loading model weights...")
             self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)

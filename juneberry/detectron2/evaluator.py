@@ -36,6 +36,7 @@ from torchvision import transforms
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
@@ -46,6 +47,7 @@ from juneberry.jb_logging import setup_logger as jb_setup_logger, RemoveDuplicat
 from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.pytorch.processing as processing
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +72,19 @@ class Evaluator(EvaluatorBase):
 
         # Establish an evaluation output directory and save the detectron2 logging messages
         self.output_dir = self.eval_dir_mgr.root
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.bbox['mAP'], "mAP"
 
     # ==========================================================================
     def dry_run(self) -> None:
@@ -164,14 +179,14 @@ class Evaluator(EvaluatorBase):
 
         self.cfg = get_cfg()
 
-        # Add in the the configuration from the DT2 config file. These are in the DT2 package.
+        # Add in the configuration from the DT2 config file. These are in the DT2 package.
         self.cfg.merge_from_file(model_zoo.get_config_file(model_arch_name))
 
         # AOM - What is this for?
         # -- NV: This value is *way* too high; the blog post was kinda bogus
         # cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8  # set threshold for this model
 
-        self.cfg.MODEL.WEIGHTS = str(self.model_manager.get_pytorch_model_path())
+        self.cfg.MODEL.WEIGHTS = str(self.model_manager.get_model_path(self.get_platform_defs()))
         self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
 
         if self.num_gpus == 0:

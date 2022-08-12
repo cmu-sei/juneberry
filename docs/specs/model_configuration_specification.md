@@ -60,7 +60,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "module": <Fully qualified class name to the model architecture class>,
         "args": <Data structure passed to the model construction using keyword expansion>,
         "previous_model": <OPTIONAL: name of model directory from which to load weights before training>,
-        "previous_modelVersion": <OPTIONAL: version of the model directory from which to load weights>
     },  
     "model_transforms" : [ <array of plugins - see below> ],
     "platform": <DEPRECATED - The machine learning platform this config is compatible with
@@ -546,10 +545,6 @@ class <MyClass>
 ### previous_model
 **Optional:** This property lists another model directory from which to load weights into this model
 when constructed. No checks are done for model compatibility.
-
-### previous_modelVersion
-**Optional:** This property is used along with the previous_model property. This property controls the 
-version of the previous model that will be used.
 
 ## model_transforms
 **Optional:** This section includes a **chain** of transforms that will be applied to the model

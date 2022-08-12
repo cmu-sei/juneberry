@@ -74,17 +74,12 @@
                 "args": { "type": "object" },
                 "module": { "type": "string" },
                 "previous_model": { "type": "string" },
-                "previous_model_version": { "type": "string" }
             },
             "required": [ "module" ]
         },
         "model_transforms": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }
-        },
-        "platform": {
-            "type": "string",
-            "enum": [ "detectron2", "mmdetection", "pytorch", "pytorch_privacy", "tensorflow", "tfgloro" ]
         },
         "preprocessors": {
             "type": "array",
@@ -219,8 +214,10 @@
     },
     "required": [
         "batch_size",
+        "evaluator",
         "format_version",
         "model_architecture",
+        "trainer",
         "training_dataset_config_path",
         "validation"
     ]

@@ -108,6 +108,32 @@ class Trainer:
         self.native = True
         self.onnx = False
 
+    # ==========================
+
+    @classmethod
+    def get_platform_defs(cls):
+        """ :return: An object (PlatformDefinitions) that contains methods for various platform details. """
+        logger.error(f"get_platform_defs() must be defined as a static method on the trainer")
+        raise RuntimeError(f"get_platform_defs() must be defined as a static method on the trainer")
+
+    # ==========================
+
+    @staticmethod
+    def get_training_output_files(dryrun: bool) -> list:
+        """
+        Returns a list of files to clean from the training directory.
+        :param dryrun: True for files generated during dry run, false for during a standard run.
+        :return: The files to clean from the training directory.
+        """
+        return []
+
+    def get_default_metric_value(self):
+        """ :return: The value of the default metric in the results structure """
+        logger.error(f"get_default_metric_value() not implemented in {self.__class__}")
+        raise RuntimeError(f"get_default_metric_value() not implemented in {self.__class__}")
+
+    # ==========================
+
     def set_output_format(self, native: bool = True, onnx: bool = False):
         """
         This method can be used to set the Trainer's output format attributes. If no output format is

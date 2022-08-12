@@ -39,7 +39,7 @@ import logging
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.eval_output import EvaluationOutputBuilder
+from juneberry.config.eval_output import EvaluationOutputBuilder, EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
@@ -154,6 +154,20 @@ class EvaluatorBase:
     # |  __\ \/ / __/ _ \ '_ \/ __| |/ _ \| '_ \  |  __/ _ \| | '_ \| __/ __|
     # | |___>  <| ||  __/ | | \__ \ | (_) | | | | | | | (_) | | | | | |_\__ \
     # \____/_/\_\\__\___|_| |_|___/_|\___/|_| |_| \_|  \___/|_|_| |_|\__|___/
+
+    @classmethod
+    def get_platform_defs(cls):
+        """ :return: An object (PlatformDefinitions) containing methods for various platform details. """
+        logger.error(f"get_platform_defs() must be defined as a static method on the evaluator.")
+        raise RuntimeError(f"get_platform_defs() must be defined as a static method on the evaluator.")
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        # TODO: This should be able to be replaced using the first metrics from the results
+        #  when we change the evaluation output to be an array of results.
+        logger.error(f"get_default_metric_value() not implemented in {cls}")
+        raise RuntimeError(f"get_default_metric_value() not implemented in {cls}")
 
     def dry_run(self) -> None:
         """

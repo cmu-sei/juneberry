@@ -29,11 +29,13 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.evaluation.evaluator import EvaluatorBase
 import juneberry.evaluation.utils as jb_eval_utils
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
+from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
@@ -52,6 +54,21 @@ class Evaluator(EvaluatorBase):
         self.ort_session = None
         self.raw_output = []
         self.eval_loader = None
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return ONNXPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.accuracy, "accuracy"
+
+    # ==========================================================================
 
     def setup(self) -> None:
         """
@@ -81,7 +98,7 @@ class Evaluator(EvaluatorBase):
             error = True
 
         # Check if the model directory contains an ONNX model.
-        if not self.model_manager.get_onnx_model_path().exists():
+        if not self.model_manager.get_model_path(ONNXPlatformDefinitions()).exists():
             logger.error(f"An ONNX evaluation was requested for model '{self.model_manager.model_name}', however "
                          f"the model directory does not contain a 'model.onnx' file.")
             error = True
@@ -113,7 +130,7 @@ class Evaluator(EvaluatorBase):
         """
 
         # Load the ONNX model.
-        self.onnx_model = onnx.load(self.model_manager.get_onnx_model_path())
+        self.onnx_model = onnx.load(self.model_manager.get_model_path(ONNXPlatformDefinitions()))
 
         # Check that the ONNX model is well formed.
         onnx.checker.check_model(self.onnx_model)
@@ -130,7 +147,7 @@ class Evaluator(EvaluatorBase):
         """
 
         # Establish an onnxruntime inference session.
-        self.ort_session = ort.InferenceSession(str(self.model_manager.get_onnx_model_path()))
+        self.ort_session = ort.InferenceSession(str(self.model_manager.get_model_path(ONNXPlatformDefinitions())))
 
         # At this point the dry run should terminate since the next action is to conduct the evaluation.
         if self.dryrun:

@@ -45,7 +45,7 @@ import toml
 import yaml
 from yaml import Loader, Dumper
 
-from juneberry import Platforms
+from juneberry.platform import PlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -577,19 +577,17 @@ class EvalDirMgr:
     def get_path(root, dataset_name):
         return EvalDirMgr.get_base_path(root) / dataset_name if dataset_name else Path(root) / 'eval'
 
-    def __init__(self, root: str, platform: str, dataset_name: str = None) -> None:
+    def __init__(self, root: str, dataset_name: str = None) -> None:
         """
         Constructs an EvalDirMgr object rooted at the root path for the specified platform
         with the given name.
         NOTE: These are usually created via the ModelManager's "get_eval_dir_mgr" method.
         :param root: The root directory.
-        :param platform: The platform.
         :param dataset_name: The name of the evaluation dataset.
         """
         # TODO: Why should the eval dir manager point to the root eval directory?
         #  This seems like an error somewhere else
         self.root = EvalDirMgr.get_path(root, dataset_name)
-        self.platform = platform
 
     def setup(self):
         if not self.root.exists():
@@ -649,22 +647,12 @@ class EvalDirMgr:
 
 
 class ModelManager:
-    # TODO: See https://wiki-int.sei.cmu.edu/confluence/display/CYBINV/Juneberry+Refactoring+Sketchboard
-    def __init__(self, model_name, model_version=None, *, platform: str = None):
+    def __init__(self, model_name):
         """
         :param model_name: Name of model directory
-        :param model_version: The version of the model.
-        :param platform: The platform of the model. Useful when creating in-memory or new models.
         """
-        if model_version is None:
-            model_version = ""
         self.model_name = model_name
-        self.model_version = model_version
-        self.model_dir_path = Path('models') / self.model_name / self.model_version
-        if platform is not None:
-            self.model_platform = platform
-        else:
-            self.model_platform = self.set_model_platform()
+        self.model_dir_path = Path('models') / self.model_name
         self.model_task = self.set_model_task()
 
     def setup(self):
@@ -685,34 +673,14 @@ class ModelManager:
         """ :return: The path to the model directory within the workspace root. """
         return self.model_dir_path
 
-    def get_model_platform(self):
-        """ : return: The platform of the model. """
-        return self.model_platform
-
     def get_plots_dir(self):
         """ :return: The path to the plots directory within the model directory. """
         return self.model_dir_path / 'plots'
 
-    def get_model_path(self):
-        """ :return: The path to a pytorch-compatible model file. """
-        if self.model_platform in ['tensorflow']:
-            return self.get_tensorflow_model_path()
-        else:
-            return self.get_pytorch_model_path()
+    def get_model_path(self, platform_def: PlatformDefinitions):
+        return self.model_dir_path / platform_def.get_model_filename()
 
-    def get_pytorch_model_path(self):
-        """ :return: The path to a pytorch-compatible model file. """
-        return self.model_dir_path / 'model.pt'
-
-    def get_onnx_model_path(self):
-        """ :return: The path to an ONNX compatible model file. """
-        return self.model_dir_path / 'model.onnx'
-
-    def get_tensorflow_model_path(self):
-        """ :return: The path to a tensorflow-compatible model file. """
-        return self.model_dir_path / 'model.h5'
-
-    def get_pytorch_model_summary_path(self):
+    def get_model_summary_path(self):
         """ :return: The path to model summary file. """
         return self.model_dir_path / 'model_summary.txt'
 
@@ -756,13 +724,12 @@ class ModelManager:
         """ :return: The path to the model's training dryrun log. """
         return self.get_train_root_dir() / 'log_dryrun.txt'
 
-    def get_platform_training_config(self, extension: str = 'json') -> Path:
-        """ :return: Path to the config (after modification) that was actually used to train. """
-        # TODO: Add in sensitivity to platform for extension, for now we take it as
-        #  an optional argument as a compromise.
-        if self.model_platform == Platforms.DT2:
-            return self.get_train_root_dir() / "platform_config.yaml"
-        return self.get_train_root_dir() / ("platform_config." + extension)
+    def get_platform_training_config(self, platform_defs: PlatformDefinitions) -> Path:
+        """
+        :param platform_defs: The definitions for the platform
+        :return: Path to the platform config (after modification) that was actually used to train.
+        """
+        return self.get_train_root_dir() / f"platform_config{platform_defs.get_config_suffix()}"
 
     def get_training_data_manifest_path(self) -> Path:
         """ :return: Path to a file that contains a manifest of the data to use for training. """
@@ -817,33 +784,18 @@ class ModelManager:
                 dataset_arg = Path(*p.parts[1:-1]) / p.stem
             else:
                 dataset_arg = Path(*p.parts[:-1]) / p.stem
-        return EvalDirMgr(self.model_dir_path, self.model_platform, dataset_arg)
+        return EvalDirMgr(self.model_dir_path, dataset_arg)
 
     def iter_eval_dirs(self):
         """
-        :return: A generator over the eval directory return eval dir managers.
+        :return: A generator over the eval directory which returns EvalDirMgrs.
         """
         eval_dir = EvalDirMgr.get_base_path(self.model_dir_path)
         for item in eval_dir.iterdir():
             if item.is_dir():
-                yield EvalDirMgr(self.model_dir_path, self.model_platform, item.name)
+                yield EvalDirMgr(self.model_dir_path, item.name)
 
     # ============ Misc ============
-
-    def set_model_platform(self):
-        """ :return: The platform of the model, e.g. pytorch, detectron2, others."""
-        if self.get_model_config().exists():
-            # We need to know the "platform" because it changes the layout.
-            # We get the platform from the file but we don't want to do a full ModelConfig instantiation
-            # so we just peek into the data as a struct.
-            data = load_file(self.get_model_config())
-            platform = data.get('platform', None)
-            if platform not in ['pytorch', 'detectron2', 'mmdetection', 'pytorch_privacy', 'tensorflow']:
-                # TODO: Should this be an error? We need to try it and run full tests
-                logger.warning(f"Unknown platform '{platform}' found in: {self.get_model_config()}")
-            return platform
-        else:
-            return None
 
     def set_model_task(self):
         """: return: The task the model is for, e.g. classification, objectDetection."""
@@ -883,27 +835,22 @@ class ModelManager:
             logger.error(f"Model directory '{self.model_dir_path}' does not exist!! EXITING!!")
             exit(-1)
 
-    def get_training_output_list(self):
+    def get_training_output_list(self, platform_defs: PlatformDefinitions) -> list:
         """
+        :param platform_defs: Various platform specific definitions.
         :return: A list of files or glob patterns of files generated during training.
         """
-        files = [self.get_model_path(),
+        files = [self.get_model_path(platform_defs),
                  self.get_training_out_file(),
                  self.get_training_log(),
                  self.get_train_root_dir(),
                  self.get_training_summary_plot()]
 
-        if self.model_platform in ['detectron2', 'mmdetection']:
-            ext = "py" if self.model_platform == Platforms.MMD else "yaml"
-            more_files = [self.get_platform_training_config(ext),
-                          self.get_training_data_manifest_path(),
-                          self.get_validation_data_manifest_path()]
-            files.extend(more_files)
+        if platform_defs.has_platform_config():
+            files.append(self.get_platform_training_config(platform_defs))
 
-        elif self.model_platform in ['tensorflow']:
-            more_files = [self.get_training_data_manifest_path(),
-                          self.get_validation_data_manifest_path()]
-            files.extend(more_files)
+        files.extend([self.get_training_data_manifest_path(),
+                      self.get_validation_data_manifest_path()])
 
         return files
 
@@ -914,18 +861,16 @@ class ModelManager:
         """
         return []
 
-    def get_dry_run_output_list(self):
+    def get_dry_run_output_list(self) -> list:
         """
         :return: A list of files or glob patterns of files generated during a dry run.
         """
-
-        files = [self.get_pytorch_model_summary_path(),
+        files = [self.get_model_summary_path(),
                  self.get_training_dryrun_log_path(),
-                 self.get_dryrun_imgs_dir()]
+                 self.get_dryrun_imgs_dir(),
+                 self.get_training_data_manifest_path(),
+                 self.get_validation_data_manifest_path()]
 
-        if self.model_platform in ['tensorflow']:
-            files.extend([self.get_training_data_manifest_path(),
-                          self.get_validation_data_manifest_path()])
         return files
 
     def get_dry_run_clean_extras_list(self) -> list:
@@ -934,7 +879,7 @@ class ModelManager:
         """
         return [self.get_dryrun_imgs_path("*")]
 
-    def get_evaluation_output_list(self, data_set):
+    def get_evaluation_output_list(self, data_set) -> list:
         """
         :return: A list of files or glob patterns of files that are produced during an evaluation.
         """
@@ -953,11 +898,11 @@ class ModelManager:
         """
         return []
 
-    def clean(self, dry_run=False):
+    def clean(self, platform_defs: PlatformDefinitions, dry_run=False):
         files_to_clean = []
 
         cwd = Path('.')
-        for data_list in (self.get_training_output_list(),
+        for data_list in (self.get_training_output_list(platform_defs),
                           self.get_dry_run_output_list(),
                           self.get_evaluation_output_list("*")):
             for item in data_list:
@@ -1007,42 +952,6 @@ class ModelManager:
         time_str = datetime.datetime.now().strftime('%m%d_%H%M') + '_'
         hostname_str = socket.gethostname() + '_'
         return os.path.join(tensorboard_root, time_str + hostname_str + self.model_name)
-
-
-class DataManager:
-    def __init__(self, data_config, version=None):
-        # TODO: This should be dataGroupName
-        # TODO: This needs to be added to docs.
-        # TODO: Should we accept the data root or data roots?
-        if 'dataSetPath' in data_config.keys():
-            self.name = data_config["dataSetPath"]
-        else:
-            self.name = ''
-
-        # version is passed in separately from data_config to allow for for the same data conf
-        # to be used in different versions of the experiment.
-        self.version = version
-        if self.version is None:
-            self.version = ''
-
-        self.version_path = Path(self.name) / self.version
-
-    def get_directory_path(self, directory):
-        """
-        Generates and returns the Path of the directory holding desired files.
-        :param directory: Data directory for files
-        :return: Path object for directory holding files
-        """
-        return self.version_path / directory
-
-    def get_file_path(self, directory, relative_path):
-        """
-        Generates and returns the Path of the file under the directory and path given
-        :param directory: Data directory for files
-        :param relative_path: Path from directory to cached file
-        :return: Path object for file
-        """
-        return self.get_directory_path(directory) / relative_path
 
 
 def generate_file_hash(filepath):

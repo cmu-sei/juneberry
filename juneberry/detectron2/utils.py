@@ -22,34 +22,19 @@
 #
 # ======================================================================================================================
 
-import logging
-import sys
-import tensorflow as tf
-
-from juneberry.platform import PlatformDefinitions
-import juneberry.utils as jb_utils
-
-logger = logging.getLogger(__name__)
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 
-class TensorFlowPlatformDefinitions(PlatformDefinitions):
-    def get_model_filename(self) -> str:
-        """ :return: The name of the model file that the trainer saves and what evaluators should load"""
-        return "model.h5"
+class DT2PlatformDefinitions(PyTorchPlatformDefinitions):
+    def get_config_suffix(self) -> str:
+        """
+        Before training we emit the fully realized configuration file used by the platform. Different backend platforms
+        use different file types, and while we name them all "platform_config", they need to have the correct
+        suffix and format. This routine returns the suffix used by the platform, such as ".json" or ".yaml." The
+        default format is ".json"
+        :return: The suffix used when saving realized platform_config file before training.
+        """
+        return ".yaml"
 
-
-def save_summary(model, summary_file_path):
-    orig = sys.stdout
-    sys.stdout = open(summary_file_path, 'w+', encoding="utf-8")
-    model.summary()
-    sys.stdout = orig
-
-
-def set_tensorflow_seeds(seed: int):
-    """
-    Sets all the random seeds used by all the various pieces.
-    :param seed: A random seed to use. Can not be None.
-    """
-    jb_utils.set_seeds(seed)
-    logger.info(f"Setting TensorFlow seed to: {str(seed)}")
-    tf.random.set_seed(seed)
+    def has_platform_config(self) -> bool:
+        return True

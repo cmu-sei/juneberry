@@ -45,6 +45,7 @@ from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab
 import juneberry.mmdetection.utils as mmd_utils
+from juneberry.mmdetection.utils import MMDPlatformDefinitions
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
@@ -90,6 +91,14 @@ class MMDTrainer(Trainer):
         #                 'val_loss_rpn_bbox', 'val_loss_rpn_cls']
         for key in results_keys:
             self.output.results.update({key: []})
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return MMDPlatformDefinitions()
+
+    # ==========================================================================
 
     def dry_run(self) -> None:
         # Setup saves the config file which is really what we want for now.
@@ -259,7 +268,7 @@ class MMDTrainer(Trainer):
 
         # Save the entire config to the working dir.  At this point we should be able to
         # use the mmdetection "train.py" script with the config file.
-        config_out = self.model_manager.get_platform_training_config('py')
+        config_out = self.model_manager.get_platform_training_config(MMDTrainer.get_platform_defs())
         with open(config_out, "w") as out_cfg:
             logger.info(f"Writing out final config to: {config_out}")
             out_cfg.write(cfg.pretty_text)
@@ -325,7 +334,7 @@ class MMDTrainer(Trainer):
         else:
             # The first task is to rename the trained model file to the Juneberry standard.
             src = self.model_manager.get_mmd_latest_model_path()
-            dst = self.model_manager.get_pytorch_model_path()
+            dst = self.model_manager.get_model_path(self.get_platform_defs())
             logger.info(f"Moving output model '{src}' -> '{dst}'")
             # The resolve turns the link into the full path.
             src.resolve().rename(dst)
@@ -336,7 +345,8 @@ class MMDTrainer(Trainer):
                 plot_training_summary_chart(self.output, self.model_manager)
 
             # Compute the model hash.
-            self.output.results.model_hash = generate_file_hash(self.model_manager.get_pytorch_model_path())
+            model_path = self.model_manager.get_model_path(self.get_platform_defs())
+            self.output.results.model_hash = generate_file_hash(model_path)
 
             # Add the training time information to the output.
             self.output.times.start_time = self.train_start_time.isoformat()

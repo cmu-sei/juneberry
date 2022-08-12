@@ -110,10 +110,10 @@ def test_model_config_saving(tmp_path):
     model_data.timestamp = datetime.datetime.now
 
     lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
-    save_path = lab.save_model_config(model_data, 'test_model', model_version='v1')
+    save_path = lab.save_model_config(model_data, 'test_model')
 
     assert save_path.exists()
-    assert save_path == tmp_path / 'workspace' / 'models' / 'test_model' / 'v1' / 'config.json'
+    assert save_path == tmp_path / 'workspace' / 'models' / 'test_model' / 'config.json'
 
 
 def test_dataset_config_saving(tmp_path):
