@@ -42,7 +42,7 @@ from juneberry.tensorflow.evaluation.evaluator import Evaluator as TFEvaluator
 
 
 class EvalTestHelper:
-    def __init__(self, tmp_path, platform:str):
+    def __init__(self, tmp_path, platform: str):
         self.model_config = ModelConfig()
 
         # The TensorFlow evaluator needs these to be defined.
@@ -55,8 +55,7 @@ class EvalTestHelper:
             "mmdetection": "juneberry.mmdetection.evaluator.Evaluator",
             "tensorflow": "juneberry.tensorflow.evaluation.evaluator.Evaluator",
         }
-        self.model_config.evaluator = { 'fqcn': platform_map[platform] }
-
+        self.model_config.evaluator = {'fqcn': platform_map[platform]}
 
         self.lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
         self.lab_profile = LabProfile()

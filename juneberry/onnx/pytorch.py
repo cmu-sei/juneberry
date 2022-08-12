@@ -71,7 +71,7 @@ class DataLoader:
         construct the evaluation dataloader.
         """
         # Create a PytorchEvaluator and use it to build a PyTorch dataloader for the input data.
-        pyt_evaluator = PyTorchEvaluator(evaluator.lab, evaluator.model_config, evaluator.model_manager,
+        pyt_evaluator = PyTorchEvaluator(evaluator.model_config, evaluator.lab, evaluator.model_manager,
                                          evaluator.eval_dir_mgr, evaluator.eval_dataset_config, None)
         pyt_evaluator.obtain_dataset()
         evaluator.eval_loader = pyt_evaluator.eval_loader

@@ -25,6 +25,7 @@
 import logging
 import importlib
 import inspect
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +98,7 @@ def extract_kwarg_names(func):
 def split_fully_qualified_name(fully_qualified_name: str):
     """
     Splits the fully qualified dotted name into path and name parts.
-    :param fully_qualified_name:
+    :param fully_qualified_name: A string of the fully qualified to be split.
     :return: Tuple of path part and name part
     """
     class_data = fully_qualified_name.split(".")
@@ -107,11 +108,11 @@ def split_fully_qualified_name(fully_qualified_name: str):
     return path_part, name_part
 
 
-def load_class(fqcn):
+def load_class(fqcn: str):
     """
-    Loads the class from the FQCN.  The module and class are expected to exist and if not, then we exit.
-    :param fqcn: The fully qualified class name.
-    :return: The class.
+    Loads the class from the FQCN. The module and class are expected to exist and if not, then we exit.
+    :param fqcn: A string indicating which fully qualified class name to load.
+    :return: The class or False when the class cannot be found.
     """
     module_path, class_name = split_fully_qualified_name(fqcn)
 
@@ -119,12 +120,12 @@ def load_class(fqcn):
         mod = importlib.import_module(module_path)
     except ModuleNotFoundError:
         logger.error(f"Failed to find module '{module_path}'")
-        return False
+        sys.exit(-1)
 
     # Make sure we have the class
     if not hasattr(mod, class_name):
         logger.error(f"Missing class '{class_name}' in module='{module_path}'")
-        return False
+        sys.exit(-1)
 
     return getattr(mod, class_name)
 

@@ -244,7 +244,7 @@ class AttackMaker:
         # Now that the model config has the correct training dataset, save the model config.
         model_config.save(self.attack_manager.get_private_model_config(disjoint=disjoint))
 
-        # Get the class of the trainer so we know what the outputs are
+        # Get the class of the trainer so we know what the outputs are.
         trainer_class = jb_loader.load_class(model_config.trainer.fqcn)
 
         # Fill out the components for building a rule to train the private model.
@@ -422,7 +422,7 @@ class AttackMaker:
             # Save the ModelConfig for the shadow model to the shadow model directory.
             shadow_model_cfg.save(shadow_model_mgr.get_model_config())
 
-            # Get the class of the trainer so we know what the outputs are
+            # Get the class of the trainer so we know what the outputs are.
             trainer_class = jb_loader.load_class(shadow_model_cfg.trainer.fqcn)
 
             # Fill out the components for building a rule to train the shadow model.
@@ -544,7 +544,7 @@ class AttackMaker:
         # Save the meta model config file (with the updated dataset config values) to the meta model directory.
         meta_model_cfg.save(meta_model_mgr.get_model_config())
 
-        # Get the class of the trainer so we know what the outputs are
+        # Get the class of the trainer so we know what the outputs are.
         trainer_class = jb_loader.load_class(meta_model_cfg.trainer.fqcn)
 
         # Fill out the components for building a rule to train the meta model.

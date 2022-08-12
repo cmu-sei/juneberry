@@ -29,7 +29,6 @@ import sys
 from typing import Union
 
 import numpy as np
-
 import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
@@ -52,6 +51,7 @@ from juneberry.trainer import EpochTrainer
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
+
 
 class ClassifierTrainer(EpochTrainer):
     def __init__(self, lab, model_manager, model_config, dataset_config, log_level):
@@ -322,8 +322,8 @@ class ClassifierTrainer(EpochTrainer):
             self.history['model_hash'] = jbfs.generate_file_hash(model_path)
 
         if self.onnx:
-            self.history['onnx_model_hash'] = jbfs.generate_file_hash(
-                self.model_manager.get_model_path(ONNXPlatformDefinitions()))
+            model_path = self.model_manager.get_model_path(ONNXPlatformDefinitions())
+            self.history['onnx_model_hash'] = jbfs.generate_file_hash(model_path)
 
         logger.info("Generating and saving output...")
         history_to_results(self.history, self.results, self.native, self.onnx)

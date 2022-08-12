@@ -99,7 +99,7 @@ class Lab:
         :param tensorboard: OPTIONAL: tensorboard directory
         :param profile_name: OPTIONAL: Name of the profile to use.
         :param model_zoo: OPTIONAL: Model zoo url.
-        :param cache_path: OPTIONAL: Path to the cache directory.
+        :param cache: OPTIONAL: Path to the cache directory.
         :return:
         """
         errors = 0

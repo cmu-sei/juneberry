@@ -29,8 +29,8 @@ class DT2PlatformDefinitions(PyTorchPlatformDefinitions):
     def get_config_suffix(self) -> str:
         """
         Before training we emit the fully realized configuration file used by the platform. Different backend platforms
-        used different file types and while we name them all "platform_config" then need to havet the correct
-        suffix (and format.) This routine returns the suffix used by the type such as ".json" or ".yaml." The
+        use different file types, and while we name them all "platform_config", they need to have the correct
+        suffix and format. This routine returns the suffix used by the platform, such as ".json" or ".yaml." The
         default format is ".json"
         :return: The suffix used when saving realized platform_config file before training.
         """

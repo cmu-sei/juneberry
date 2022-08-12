@@ -29,6 +29,7 @@ import sys
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.evaluation.evaluator import EvaluatorBase
 import juneberry.evaluation.utils as jb_eval_utils
@@ -53,6 +54,21 @@ class Evaluator(EvaluatorBase):
         self.ort_session = None
         self.raw_output = []
         self.eval_loader = None
+
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return ONNXPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.accuracy
+
+    # ==========================================================================
 
     def setup(self) -> None:
         """

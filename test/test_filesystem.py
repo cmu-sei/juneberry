@@ -30,6 +30,7 @@ from pathlib import Path
 import juneberry.filesystem as jbfs
 from juneberry.platform import PlatformDefinitions
 
+
 def test_eval_dir():
     mm = jbfs.ModelManager('TestModel')
     root = Path('models') / 'TestModel'

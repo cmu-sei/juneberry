@@ -84,13 +84,14 @@ class TestTrainerFactory(TestCase):
 
             # Create a ModelManager and associate it with the TrainerFactory and attempt to
             # set the model config again.
-            self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
+            self.trainer_factory.model_manager = ModelManager('text_detect/dt2/ut')
             self.trainer_factory.set_model_config()
 
             # Verify that the TrainerFactory's model_config attribute has been set and that the
             # model_config's attributes match expectations.
             assert self.trainer_factory.model_config is not None
-            assert self.trainer_factory.model_config.model_architecture.module == "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+            assert self.trainer_factory.model_config.model_architecture.module == "COCO-Detection/faster_rcnn_R_50_" \
+                                                                                  "FPN_1x.yaml"
             assert self.trainer_factory.model_config.epochs == 1
             assert self.trainer_factory.model_config.validation.arguments.seed == 3554237221
 
@@ -129,7 +130,7 @@ class TestTrainerFactory(TestCase):
 
             # Now set the TrainerFactory attributes which are used to produce Trainers.
             self.trainer_factory.lab = Lab(workspace=self.tmp_path, data_root=self.tmp_path)
-            self.trainer_factory.model_manager = ModelManager('text_detect', 'dt2/ut')
+            self.trainer_factory.model_manager = ModelManager('text_detect/dt2/ut')
             self.trainer_factory.model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
             self.trainer_factory.dataset_config = DatasetConfig.load("data_sets/text_detect_val.json")
 
@@ -148,5 +149,3 @@ class TestTrainerFactory(TestCase):
             assert trainer.resume is True
             assert trainer.native is False
             assert trainer.onnx is True
-
-

@@ -41,7 +41,6 @@ from types import SimpleNamespace
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutputBuilder, EvaluationOutput
 from juneberry.config.model import ModelConfig
-from juneberry.config.training_output import TrainingOutput
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 
@@ -158,15 +157,15 @@ class EvaluatorBase:
 
     @classmethod
     def get_platform_defs(cls):
-        """ :return: And object (PlatformDefinitions) that contains method for various platform details. """
+        """ :return: An object (PlatformDefinitions) containing methods for various platform details. """
         logger.error(f"get_platform_defs() must be defined as a static method on the evaluator.")
         raise RuntimeError(f"get_platform_defs() must be defined as a static method on the evaluator.")
 
     @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):
-        """ :return: The name of the metric produced in results structure """
-        # TODO: This should be able to be replaced using a the first metrics from the results
-        # when we change the evaluation output to be an array of results.
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        # TODO: This should be able to be replaced using the first metrics from the results
+        #  when we change the evaluation output to be an array of results.
         logger.error(f"get_default_metric_value() not implemented in {cls}")
         raise RuntimeError(f"get_default_metric_value() not implemented in {cls}")
 

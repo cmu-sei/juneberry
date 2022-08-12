@@ -69,8 +69,8 @@ class TFEvaluationOutput:
         """
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(
-            evaluator.model_manager.get_model_path(TensorFlowPlatformDefinitions()))
+        model_path = evaluator.model_manager.get_model_path(TensorFlowPlatformDefinitions())
+        evaluated_model_hash = jbfs.generate_file_hash(model_path)
 
         # If the model Juneberry trained the model, a hash would have been calculated after training.
         # Compare that hash (if it exists) to the hash of the model being evaluated.

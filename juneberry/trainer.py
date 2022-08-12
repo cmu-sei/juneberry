@@ -112,13 +112,14 @@ class Trainer:
 
     @classmethod
     def get_platform_defs(cls):
-        """ :return: And object (PlatformDefinitions) that contains method for various platform details. """
+        """ :return: An object (PlatformDefinitions) that contains methods for various platform details. """
         logger.error(f"get_platform_defs() must be defined as a static method on the trainer")
         raise RuntimeError(f"get_platform_defs() must be defined as a static method on the trainer")
 
     # ==========================
 
-    def get_training_output_files(self, dryrun: bool) -> list:
+    @staticmethod
+    def get_training_output_files(dryrun: bool) -> list:
         """
         Returns a list of files to clean from the training directory.
         :param dryrun: True for files generated during dry run, false for during a standard run.
@@ -127,7 +128,7 @@ class Trainer:
         return []
 
     def get_default_metric_value(self):
-        """ :return: The name of the metric produced in results structure """
+        """ :return: The value of the default metric in the results structure """
         logger.error(f"get_default_metric_value() not implemented in {self.__class__}")
         raise RuntimeError(f"get_default_metric_value() not implemented in {self.__class__}")
 

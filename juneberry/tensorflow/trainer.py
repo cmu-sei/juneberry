@@ -90,7 +90,6 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # The values generated during train.
         self.history = None
 
-
     # ==========================================================================
 
     @classmethod

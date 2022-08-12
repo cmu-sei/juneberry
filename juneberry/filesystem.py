@@ -38,7 +38,6 @@ import os
 from pathlib import Path
 import socket
 import sys
-from typing import Type, Union
 
 import hjson
 import numpy as np
@@ -725,10 +724,10 @@ class ModelManager:
         """ :return: The path to the model's training dryrun log. """
         return self.get_train_root_dir() / 'log_dryrun.txt'
 
-    def get_platform_training_config(self, platform_defs) -> Path:
+    def get_platform_training_config(self, platform_defs: PlatformDefinitions) -> Path:
         """
         :param platform_defs: The definitions for the platform
-        :return: Path to the config (after modification) that was actually used to train.
+        :return: Path to the platform config (after modification) that was actually used to train.
         """
         return self.get_train_root_dir() / f"platform_config{platform_defs.get_config_suffix()}"
 
@@ -789,7 +788,7 @@ class ModelManager:
 
     def iter_eval_dirs(self):
         """
-        :return: A generator over the eval directory return eval dir managers.
+        :return: A generator over the eval directory which returns EvalDirMgrs.
         """
         eval_dir = EvalDirMgr.get_base_path(self.model_dir_path)
         for item in eval_dir.iterdir():
@@ -836,7 +835,7 @@ class ModelManager:
             logger.error(f"Model directory '{self.model_dir_path}' does not exist!! EXITING!!")
             exit(-1)
 
-    def get_training_output_list(self, platform_defs: PlatformDefinitions):
+    def get_training_output_list(self, platform_defs: PlatformDefinitions) -> list:
         """
         :param platform_defs: Various platform specific definitions.
         :return: A list of files or glob patterns of files generated during training.
@@ -862,7 +861,7 @@ class ModelManager:
         """
         return []
 
-    def get_dry_run_output_list(self):
+    def get_dry_run_output_list(self) -> list:
         """
         :return: A list of files or glob patterns of files generated during a dry run.
         """
@@ -880,7 +879,7 @@ class ModelManager:
         """
         return [self.get_dryrun_imgs_path("*")]
 
-    def get_evaluation_output_list(self, data_set):
+    def get_evaluation_output_list(self, data_set) -> list:
         """
         :return: A list of files or glob patterns of files that are produced during an evaluation.
         """
@@ -899,7 +898,7 @@ class ModelManager:
         """
         return []
 
-    def clean(self, platform_defs, dry_run=False):
+    def clean(self, platform_defs: PlatformDefinitions, dry_run=False):
         files_to_clean = []
 
         cwd = Path('.')

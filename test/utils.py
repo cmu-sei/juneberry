@@ -77,7 +77,7 @@ tabular_model_config = {
     'task': 'classification',
     'timestamp': '2021-03-01T10:00:00',
     'trainer': {
-        'fqcn': 'juneberry.dummy.evaluator'
+        'fqcn': 'juneberry.dummy.trainer'
     },
     'training_dataset_config_path': 'data_sets/train_data_config.json',
     'training_transforms': [

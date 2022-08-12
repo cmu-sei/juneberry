@@ -24,21 +24,18 @@
 
 import argparse
 import logging
-from typing import Tuple
 from pathlib import Path
 import re
-
-import juneberry.onnx.utils
-from juneberry.onnx.utils import ONNXPlatformDefinitions
-import juneberry.pytorch.utils
-from juneberry.pytorch.utils import PyTorchPlatformDefinitions
-import juneberry.tensorflow.utils
-from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
-import requests
+from typing import Tuple
 from zipfile import ZipFile
 
-from juneberry.lab import Lab
+import requests
+
 import juneberry.filesystem as jbfs
+from juneberry.lab import Lab
+from juneberry.onnx.utils import ONNXPlatformDefinitions
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
+from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +64,7 @@ If the model name has slashes in it, then the last part is the part before the z
 def cache_models_dir(lab: Lab) -> Path:
     """
     Returns the directory to the cache from the lab object
-    :param lab: The lab objcect
+    :param lab: The lab object
     :return: Path object to the models directory in the cache
     """
     return lab.cache / 'models'
@@ -97,7 +94,7 @@ def ensure_cache_dir(lab: Lab, model_name) -> None:
 
 def _setup_zoo_and_model_name(lab: Lab, model_name: str) -> Tuple[str, str]:
     """
-    If a model name contains an URL split it into a zoo path or model name.
+    If a model name contains a URL, split it into a zoo path or model name.
     We assume the word models exists at least once and we split the path
     based on the LAST location of models into the zoo portion and model name.
     If the model name is just the model, use it and the zoo from the lab
@@ -178,7 +175,7 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
     # By this point we are going to pull things and put into the cache.
     # The cache dir needs to exist.
     if lab.cache is None:
-        logger.error(f"Cache directory not defined.  Please set the JUNEBERRY_CACHE value or use --cache switch.")
+        logger.error(f"Cache directory not defined. Please set the JUNEBERRY_CACHE value or use --cache switch.")
         raise RuntimeError("No juneberry cache defined, can't download model.")
 
     # If not in cache or "no_cache" then pull to cache
@@ -192,8 +189,7 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
 
 def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = True) -> str:
     """
-    Prepares a model and config into an archive for being placed into a zoo for downlaod.
-    :param lab: The lab object.
+    Prepares a model and config into an archive for being placed into a zoo for download.
     :param model_name: The name of the model. The config from this directory will be placed in the archive.
     :param staging_zoo_dir: A directory that mirrors the deployed "models" directory in which to place the zipped
     model and maps to the "zoo-url" root. The model path will be created inside the directory as appropriate.
@@ -215,7 +211,7 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
         zip_file.write(model_mgr.get_model_config(), "config.json")
 
         # TODO: This is fragile in that we won't zip just anything. We need some better way
-        # to do this. Of course, the user can just zip it themselves, so this is just a convenience.
+        #  to do this. Of course, the user can just zip it themselves, so this is just a convenience.
         path = model_mgr.get_model_path(PyTorchPlatformDefinitions())
         if path.exists():
             zip_file.write(path, PyTorchPlatformDefinitions().get_model_filename())
