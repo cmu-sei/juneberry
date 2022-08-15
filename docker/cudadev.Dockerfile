@@ -20,8 +20,8 @@
 #
 # ======================================================================================================================
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_22-05.html
-# CUDA 11.7.0, Driver 515 or later, Python 3.8.?, pytorch 1.12.0a0+8a1a93a
-FROM nvcr.io/nvidia/pytorch:22.05-py3
+# CUDA 11.6.2, Driver 510 or later, Python 3.8.?, pytorch 1.12.0a0+bd13bc6
+FROM nvcr.io/nvidia/pytorch:22.04-py3
 
 # ============ BASE PLATFORM ============
 
@@ -97,7 +97,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v12"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v12.1"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
