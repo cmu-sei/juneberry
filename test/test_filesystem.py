@@ -46,10 +46,10 @@ def test_eval_dir():
     assert eval_dir_mgr.get_manifest_path() == str(eval_dir_root / "eval_manifest.json")
     assert eval_dir_mgr.get_detections_path() == str(eval_dir_root / "detections.json")
     assert eval_dir_mgr.get_detections_anno_path() == str(eval_dir_root / "detections_anno.json")
-    assert eval_dir_mgr.get_log_path() == str(eval_dir_root / "log.txt")
-    assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_root / "log_TestTool.txt")
-    assert eval_dir_mgr.get_dryrun_log_path() == str(eval_dir_root / "log_dryrun.txt")
-    assert eval_dir_mgr.get_dryrun_log_path("TestTool") == str(eval_dir_root / "log_dryrun_TestTool.txt")
+    assert eval_dir_mgr.get_log_path() == str(eval_dir_mgr.log_dir / "log.txt")
+    assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_mgr.log_dir / "log_TestTool.txt")
+    assert eval_dir_mgr.get_dryrun_log_path() == str(eval_dir_mgr.log_dir / "log_dryrun.txt")
+    assert eval_dir_mgr.get_dryrun_log_path("TestTool") == str(eval_dir_mgr.log_dir / "log_dryrun_TestTool.txt")
     assert eval_dir_mgr.get_metrics_path() == str(eval_dir_root / "metrics.json")
     assert eval_dir_mgr.get_predictions_path() == str(eval_dir_root / "predictions.json")
     assert eval_dir_mgr.get_sample_detections_dir() == str(eval_dir_root / "sample_detections")
@@ -80,8 +80,8 @@ def test_model_manager():
     assert mm.get_model_diagram() == root / 'model_diagram.png'
     assert mm.get_training_out_file() == root / 'train' / 'output.json'
     assert mm.get_training_summary_plot() == root / 'train' / 'output.png'
-    assert mm.get_training_log() == root / 'train' / 'log.txt'
-    assert mm.get_training_dryrun_log_path() == root / 'train' / 'log_dryrun.txt'
+    assert mm.get_training_log() == mm.get_train_log_dir() / 'log.txt'
+    assert mm.get_training_dryrun_log_path() == mm.get_train_log_dir() / 'log_dryrun.txt'
 
     assert mm.get_model_path(DummyPlatformDefinitions()) == root / 'foo.txt'
 
@@ -151,7 +151,7 @@ def test_experiment_manager_clean():
 
     em.clean()
     assert em.get_experiment_config().exists()
-    assert not em.get_dryrun_log_path().exists()
+    assert em.get_dryrun_log_path().exists()
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()

@@ -36,6 +36,7 @@ import pytest
 
 from juneberry.config.report import ReportConfig
 from juneberry.reporting.report import Report
+from juneberry.reporting.summary import REPORT_FILES_DIRNAME
 import juneberry.reporting.utils as jb_report_utils
 from test_experiment_config import make_basic_config as make_experiment_config
 from test_model_config import make_basic_config as make_model_config
@@ -610,9 +611,9 @@ class TestSummaryReport(TestCase):
         assert md_file_content[1] == "Model | Duration (seconds) | Eval Dataset | Accuracy | Train Chart"
         assert md_file_content[2] == "--- | --- | --- | --- | ---"
         assert md_file_content[3] == f"model_0 | 10.0 | config_0.json | 10.00% | " \
-                                     f"[Training Chart](./report_files/model_0_output.png)"
+                                     f"[Training Chart](./{REPORT_FILES_DIRNAME}/model_0_output.png)"
         assert md_file_content[4] == f"model_1 | 20.0 | config_1.json | 20.00% | " \
-                                     f"[Training Chart](./report_files/model_1_output.png)"
+                                     f"[Training Chart](./{REPORT_FILES_DIRNAME}/model_1_output.png)"
 
         # Load the CSV file that was created by the Summary Report.
         csv_path = self.tmp_path / "summary.csv"

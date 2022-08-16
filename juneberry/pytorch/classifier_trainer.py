@@ -116,6 +116,41 @@ class ClassifierTrainer(EpochTrainer):
 
     # ==========================================================================
 
+    @classmethod
+    def get_training_output_files(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the training directory. This list should contain ONLY
+        files or directories that were produced by the training command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_model_summary_path(),
+                    model_mgr.get_dryrun_imgs_dir()]
+        else:
+            return [model_mgr.get_model_path(cls.get_platform_defs()),
+                    model_mgr.get_model_path(ONNXPlatformDefinitions()),
+                    model_mgr.get_training_out_file(),
+                    model_mgr.get_training_summary_plot()]
+
+    @classmethod
+    def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_train_root_dir()]
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================================================================
+
     def dry_run(self) -> None:
         # Setup is the same for dry run
         self.setup()
@@ -123,7 +158,7 @@ class ClassifierTrainer(EpochTrainer):
         summary_path = self.model_manager.get_model_summary_path()
         if self.dataset_config.is_image_type():
             # Save some sample images to verify augmentations
-            image_shape = pyt_utils.generate_sample_images(self.training_iterable, 5,
+            image_shape = pyt_utils.generate_sample_images(self.training_iterable, 3,
                                                            self.model_manager.get_dryrun_imgs_dir())
             pyt_utils.output_summary_file(self.model, image_shape, summary_path)
 
@@ -133,7 +168,7 @@ class ClassifierTrainer(EpochTrainer):
             pyt_utils.output_summary_file(self.model, data[0].shape, summary_path)
 
         else:
-            logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. EXITING")
+            logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. Exiting.")
 
     # ==========================================================================
 

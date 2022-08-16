@@ -100,6 +100,44 @@ class MMDTrainer(Trainer):
 
     # ==========================================================================
 
+    @classmethod
+    def get_training_output_files(cls, model_mgr: ModelManager, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the training directory. This list should contain ONLY
+        files or directories that were produced by the training command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The files to clean from the training directory.
+        """
+        common_files = [model_mgr.get_training_data_manifest_path(),
+                        model_mgr.get_validation_data_manifest_path(),
+                        model_mgr.get_platform_training_config(cls.get_platform_defs()),
+                        model_mgr.get_train_scratch_path()]
+
+        if dryrun:
+            return common_files
+        else:
+            return common_files + [model_mgr.get_model_path(cls.get_platform_defs()),
+                                   model_mgr.get_training_out_file(),
+                                   model_mgr.get_training_summary_plot()]
+
+    @classmethod
+    def get_training_clean_extras(cls, model_mgr: ModelManager, dryrun: bool = False):
+        """
+        Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_train_root_dir()]
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================================================================
+
     def dry_run(self) -> None:
         # Setup saves the config file which is really what we want for now.
         self.dryrun = True

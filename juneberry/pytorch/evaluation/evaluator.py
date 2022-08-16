@@ -26,6 +26,7 @@ import logging
 import sys
 from types import SimpleNamespace
 
+from pathlib import Path
 import torch
 
 import juneberry.config.dataset as jb_dataset
@@ -85,6 +86,44 @@ class Evaluator(EvaluatorBase):
     # ==========================================================================
 
     @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dryrun_imgs_dir(),
+                    eval_dir_mgr.get_dir()]
+        else:
+            return [eval_dir_mgr.get_predictions_path(),
+                    eval_dir_mgr.get_metrics_path(),
+                    eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dir()]
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_dir().parent]
+        else:
+            return [eval_dir_mgr.get_dir().parent]
+
+    @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):
         """ :return: The value of the Evaluator's default metric as found in the results structure """
         return eval_data.results.metrics.balanced_accuracy, "balanced_accuracy"
@@ -96,7 +135,7 @@ class Evaluator(EvaluatorBase):
 
         # Write out a few dry run images
         if self.eval_dataset_config.is_image_type():
-            _ = pyt_utils.generate_sample_images(self.eval_loader, 5, self.eval_dir_mgr.get_dryrun_imgs_dir())
+            _ = pyt_utils.generate_sample_images(self.eval_loader, 5, Path(self.eval_dir_mgr.get_dryrun_imgs_dir()))
 
         self.obtain_model()
 
