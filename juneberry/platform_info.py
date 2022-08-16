@@ -25,6 +25,7 @@
 import importlib
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -89,7 +90,7 @@ def capture_versions():
                 versions[pkg] = mod.__version__
             else:
                 versions[pkg] = "No version"
-        except ModuleNotFoundError:
+        except (ModuleNotFoundError, AttributeError, ImportError):
             versions[pkg] = "Not found"
     return versions
 
@@ -121,6 +122,46 @@ def make_report(show_cuda=True):
     # Get nvidia settings
     report.cuda.nvidia_smi_version = locate_nvidia_smi()
     report.gpu_list = get_cuda_devices()
+
+    return report
+
+
+def make_minimum_report():
+    report = make_report()
+
+    # Strip down the pip freeze
+    wanted = [
+        "brambox",
+        "detectron2",
+        "mmdetection",
+        "numpy",
+        "onnx",
+        "opacus",
+        "pandas",
+        "pycocotools",
+        "tensorflow"
+        "tensorflow-datasets",
+        "tensorflow-macos",
+        "tf2onnx",
+        "torch",
+        "torchvision",
+        "ray"
+    ]
+
+    frozen = report['pip_freeze']
+    new_frozen = []
+    for package in frozen:
+        for k in wanted:
+            if re.search(k, package):
+                new_frozen.append(package)
+                wanted.remove(k)
+                continue
+    report['pip_freeze'] = new_frozen
+
+    unwanted = ['environment', 'python_path']
+    for k in unwanted:
+        if k in report:
+            del report[k]
 
     return report
 
