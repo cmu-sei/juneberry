@@ -75,7 +75,7 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     :param lab: The Juneberry Lab in which this operation occurs.
     :param ds_cfg: The data set config that describes the data.
     :param model_cfg: A Juneberry ModelConfig object that may contain transforms and validation options.
-    :param data_lst: The data list to load.
+    :param data_lst: The data list to load, shuffled.
     :param split_lst: The list of data to load that was split from the main dataset.
     :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
     :param collate_fn: Function that controls how samples are collated into batches.
@@ -148,7 +148,7 @@ def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transf
     1) Construct a transform manager (if transforms is not None)
     2) Construct the appropriate dataset
     :param dataset_config: The dataset configuration file used to construct the data list.
-    :param data_list: The data list to load, shuffled
+    :param data_list: The data list to load, shuffled.
     :param transform_manager: A transform manager to add to the data set.
     :param no_paging: Boolean indicating if paging should be disabled.
     :return: PyTorch dataset
