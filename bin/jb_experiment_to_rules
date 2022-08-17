@@ -119,15 +119,18 @@ class RuleMaker:
                 model_mgr = ModelManager(tuning_run.model)
                 model_config = ModelConfig.load(model_mgr.get_model_config())
 
+                # Get the class of the tuner so we know what the outputs are.
+                tuner_class = jb_loader.load_class('juneberry.tuning.tuner.Tuner')
+
                 # Tuning rules
                 workflow = self.builder.get_workflow("main")
                 inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
                           tuning_run.tuning_config]
-                outputs = model_mgr.get_tuning_output_list()
+                outputs = tuner_class.get_tuning_output_files(model_mgr=model_mgr)
                 command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config]
 
                 doc = " ".join([str(x) for x in command])
-                clean_extras = model_mgr.get_tuning_clean_extras_list()
+                clean_extras = tuner_class.get_tuning_clean_extras(model_mgr=model_mgr)
                 requirements = []
 
                 # Add a temporary property for now
@@ -138,10 +141,10 @@ class RuleMaker:
                 workflow = self.builder.get_workflow("dryrun")
                 inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
                           tuning_run.tuning_config]
-                outputs = model_mgr.get_tuning_dryrun_output_list()
+                outputs = tuner_class.get_tuning_output_files(model_mgr=model_mgr, dryrun=True)
                 command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config, '--dryrun']
                 doc = " ".join([str(x) for x in command])
-                clean_extras = model_mgr.get_tuning_dryrun_clean_extras_list()
+                clean_extras = tuner_class.get_tuning_clean_extras(model_mgr=model_mgr, dryrun=True)
                 requirements = []
 
                 # Add a temporary property for now

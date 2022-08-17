@@ -81,6 +81,24 @@ class Tuner:
         self.tuning_start_time = None
         self.tuning_end_time = None
 
+    # ==========================
+
+    @staticmethod
+    def get_tuning_output_files(model_mgr: jb_fs.ModelManager, dryrun: bool = False):
+        if dryrun:
+            return []
+        else:
+            return [model_mgr.get_tuning_dir()]
+
+    @staticmethod
+    def get_tuning_clean_extras(model_mgr: jb_fs.ModelManager, dryrun: bool = False):
+        if dryrun:
+            return []
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================
+
     def _build_tuning_components(self) -> None:
         """
         This method is responsible for assembling various tuning components and setting the
