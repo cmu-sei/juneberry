@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+import sys
 from types import SimpleNamespace
 
 import tensorflow as tf
@@ -110,6 +111,7 @@ class Evaluator(EvaluatorBase):
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
         self.obtain_model()
@@ -138,13 +140,27 @@ class Evaluator(EvaluatorBase):
             self.use_train_split, self.use_val_split)
 
     def obtain_model(self) -> None:
+        # Identify the model file.
         hdf5_file = self.model_manager.get_model_path(TensorFlowPlatformDefinitions())
+
+        # If the model file exists, load the weights.
         if hdf5_file.exists():
             logger.info(f"Loading model {hdf5_file}...")
             self.model = tf.keras.models.load_model(hdf5_file)
             logger.info("...complete")
+
+        # If the model file doesn't exist...
         else:
-            logger.warning(f"Failed to load model. File may not exist: {hdf5_file}")
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {hdf5_file} does not exist.")
+
+            # If there's no model file and it's not a dryrun, then this Evaluator will eventually
+            # fail log an error and exit.
+            else:
+                logger.error(f"Failed to load model. File does not exist: {hdf5_file}")
+                sys.exit(-1)
 
     def evaluate_data(self) -> None:
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")

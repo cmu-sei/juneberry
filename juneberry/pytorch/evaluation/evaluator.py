@@ -130,6 +130,7 @@ class Evaluator(EvaluatorBase):
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
 
@@ -283,14 +284,28 @@ class Evaluator(EvaluatorBase):
         else:
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
-        # Load the weights into the model.
+        # Identify the model file.
         model_path = self.model_manager.get_model_path(PyTorchPlatformDefinitions())
+
+        # If the model file exists, load the weights.
         if model_path.exists():
             logger.info(f"Loading model weights...")
             self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)
+
+        # If the model file doesn't exist...
         else:
-            logger.warning(f"No 'model.pt' found, running with default model produced from model architecture. "
-                           f"Expected to find: {model_path}")
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {model_path} does not exist.")
+                return
+
+            # If there's no model file and it's not a dryrun, then there's still a chance to get model
+            # weights if the model architecture specifies a pretrained model. So log a warning and attempt
+            # to proceed.
+            else:
+                logger.warning(f"No 'model.pt' found, running with default model produced from model architecture. "
+                               f"Expected to find: {model_path}")
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

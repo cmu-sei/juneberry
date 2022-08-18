@@ -134,6 +134,7 @@ class Evaluator(EvaluatorBase):
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
         self.obtain_model()
@@ -203,8 +204,13 @@ class Evaluator(EvaluatorBase):
         # training output instead of the mmdetection trained checkpoint.
         model_path = self.model_manager.get_model_path(self.get_platform_defs())
         if not model_path.exists():
-            logger.error(f"Trained model {model_path} does not exist. EXITING.")
-            sys.exit(-1)
+            if self.dryrun:
+                logger.warning(f"{model_path} does not currently exist. "
+                               f"The model would need to be trained prior to evaluation.")
+                logger.warning(f"This dryrun could not test loading the model.")
+            else:
+                logger.error(f"Trained model {model_path} does not exist. Exiting.")
+                sys.exit(-1)
         # This does NOT actually get the file loaded.
         cfg.load_from = str(model_path.resolve())
 
@@ -262,16 +268,17 @@ class Evaluator(EvaluatorBase):
         model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
         model.CLASSES = self.dataset.CLASSES
 
-        # The "load_from" does not actually load the values! WE MUST do this.
-        checkpoint = load_checkpoint(model, cfg.load_from, map_location='cpu')
+        if not self.dryrun:
+            # The "load_from" does not actually load the values! WE MUST do this.
+            checkpoint = load_checkpoint(model, cfg.load_from, map_location='cpu')
 
-        # Right now we only support single CPU/GPU.
-        # NOTE: If we are in CPU mode (not GPUs) this just seems to figure it out by itself.
-        # So, we just always use dataparallel with a device of 0.
-        # TODO: See what happens if we do NOT use MMDataParallel in CPU mode.
-        # if self.num_gpus == 1:
-        #     self.model = MMDataParallel(model, device_ids=[0])
-        self.model = MMDataParallel(model, device_ids=[0])
+            # Right now we only support single CPU/GPU.
+            # NOTE: If we are in CPU mode (not GPUs) this just seems to figure it out by itself.
+            # So, we just always use dataparallel with a device of 0.
+            # TODO: See what happens if we do NOT use MMDataParallel in CPU mode.
+            # if self.num_gpus == 1:
+            #     self.model = MMDataParallel(model, device_ids=[0])
+            self.model = MMDataParallel(model, device_ids=[0])
 
     def evaluate_data(self) -> None:
         self.raw_output = single_gpu_test(model=self.model,

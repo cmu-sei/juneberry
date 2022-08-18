@@ -263,6 +263,39 @@ class RuleMaker:
 
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
+                    # Dry run rule
+                    workflow = self.builder.get_workflow("dryrun")
+                    if model.train:
+                        inputs = [test.dataset_path]
+                    else:
+                        # If the model isn't being trained, then a model file doesn't have to exist.
+                        # The model architecture can create a fully functional pretrained model from the
+                        # underlying platform such as torchvision pretrained models.
+                        inputs = [test.dataset_path]
+                    outputs = self.aggregate_outputs(eval_class, model_mgr, dataset_paths)
+
+                    command = [JB_EVALUATE_COMMAND, model_mgr.model_name, *dataset_paths, '--dryrun']
+                    if test.classify:
+                        command.extend(["--topK", test.classify])
+                    if test.use_train_split:
+                        command.append('--useTrainSplit')
+                    if test.use_val_split:
+                        command.append('--useValSplit')
+                    # If they allow more than one, add the skip exists switch
+                    if model.maximum_evaluations is not None and model.maximum_evaluations != 1:
+                        command.append('--skip-exists')
+
+                    doc = " ".join([str(x) for x in command])
+                    clean_extras = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, extras=True)
+                    if 'train_rule_id' in model:
+                        requirements = [model['train_rule_id']]
+                    else:
+                        requirements = []
+
+                    # Add a temporary property for now
+                    model['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                                requirements)
+
                     # Save the rule id and file for the report
                     eval_dir_mgr = model_mgr.get_eval_dir_mgr(test.dataset_path)
                     self.tag_map[test.tag] = {
@@ -636,9 +669,9 @@ class RuleMaker:
         :return: Nothing.
         """
         # Set up some lists to track some information for pydoit.
-        inputs = []
+        inputs = [str(report_json_path)]
         requirements = []
-        outputs = [str(report_json_path)]
+        outputs = []
 
         # Create the individual JSON file for this report and add the rule to the workflow.
         self._finalize_report(report, report_json_path, inputs, requirements, outputs)
@@ -703,8 +736,18 @@ class RuleMaker:
 
         clean_extras = []
 
-        # Get the workflow and add the rule.
+        # Add a rule to the main workflow.
         workflow = self.builder.get_workflow("main")
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+        # Add a rule to the dryrun workflow.
+        workflow = self.builder.get_workflow("dryrun")
+
+        # The report dependencies probably don't exist for the dryrun, so clear out the inputs.
+        inputs = []
+
+        command = [JB_REPORT_COMMAND, '-f', str(report_file_path), '-l', str(experiment_log_dir), '--dryrun']
+        doc = " ".join([str(x) for x in command])
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
     # ==============================================================================================

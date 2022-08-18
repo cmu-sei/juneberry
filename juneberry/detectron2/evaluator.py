@@ -24,6 +24,7 @@
 
 import logging
 from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 # import some common detectron2 utilities
@@ -126,6 +127,7 @@ class Evaluator(EvaluatorBase):
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
         dryrun_path.mkdir(parents=True, exist_ok=True)
 
@@ -224,10 +226,26 @@ class Evaluator(EvaluatorBase):
         # -- NV: This value is *way* too high; the blog post was kinda bogus
         # cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8  # set threshold for this model
 
+        # Identify the model file.
         model_path = self.model_manager.get_model_path(self.get_platform_defs())
 
-        self.cfg.MODEL.WEIGHTS = str(model_path)
-        self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
+        # If the model file exists, load the weights.
+        if model_path.exists():
+            self.cfg.MODEL.WEIGHTS = str(model_path)
+            self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
+
+        # If the model file doesn't exist...
+        else:
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {model_path} does not exist.")
+
+            # If there's no model file and it's not a dryrun, then this Evaluator will eventually
+            # fail log an error and exit.
+            else:
+                logger.error(f"Failed to load model. File does not exist: {model_path}")
+                sys.exit(-1)
 
         if self.num_gpus == 0:
             self.cfg.MODEL.DEVICE = "cpu"
