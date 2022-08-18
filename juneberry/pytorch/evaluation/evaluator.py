@@ -247,15 +247,18 @@ class Evaluator(EvaluatorBase):
             # The eval list is the already a list of name and targets
             self.eval_name_targets = eval_list
 
-            # NOTE: In the process of making the data loader we shuffle the data.
-            self.eval_loader = pyt_data.make_eval_data_loader(self.lab, self.eval_dataset_config, self.model_config,
-                                                              eval_list)
+            logger.info(f"...shuffling manifest with seed {self.model_config.seed}...")
+            jb_data.shuffle_manifest(self.model_config.seed, eval_list)
 
             # Save the manifest
             if self.eval_dataset_config.is_image_type():
-                jb_data.save_path_label_manifest(eval_list,
-                                                 self.eval_dir_mgr.get_manifest_path(),
-                                                 self.lab.data_root())
+                eval_manifest_path = self.eval_dir_mgr.get_manifest_path()
+                logger.info(f"...saving eval manifest to {eval_manifest_path}")
+                jb_data.save_path_label_manifest(eval_list, eval_manifest_path, self.lab.data_root())
+
+            logger.info(f"...making data loaders...")
+            self.eval_loader = pyt_data.make_eval_data_loader(self.lab, self.eval_dataset_config, self.model_config,
+                                                              eval_list)
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")

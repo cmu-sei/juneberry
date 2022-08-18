@@ -434,12 +434,27 @@ class ClassifierTrainer(EpochTrainer):
                 sampler_args=sampler_args)
 
         else:
+            logger.info(f"...converting dataspec to manifests...")
             train_list, val_list = jbdata.dataspec_to_manifests(
                 self.lab,
                 dataset_config=self.dataset_config,
                 splitting_config=self.model_config.get_validation_split_config(),
                 preprocessors=TransformManager(self.model_config.preprocessors))
 
+            # Shuffle the data sets
+            logger.info(f"...shuffling manifests with seed {self.model_config.seed}...")
+            jbdata.shuffle_manifest(self.model_config.seed, train_list)
+            jbdata.shuffle_manifest(self.model_config.seed, val_list)
+
+            if self.dataset_config.is_image_type():
+                # Save the manifest files for traceability
+                logger.info(f"...saving manifests to disk...")
+                jbdata.save_path_label_manifest(train_list, self.model_manager.get_training_data_manifest_path(),
+                                                self.lab.data_root())
+                jbdata.save_path_label_manifest(val_list, self.model_manager.get_validation_data_manifest_path(),
+                                                self.lab.data_root())
+
+            logger.info(f"...making data loaders...")
             self.training_iterable, self.evaluation_iterable = \
                 pyt_data.make_training_data_loaders(self.lab,
                                                     self.dataset_config,
