@@ -1229,9 +1229,9 @@ def check_num_classes(args: dict, num_model_classes: int) -> None:
 
 def shuffle_manifest(seed: int, data_list: list) -> None:
     """
-    Shuffles the specified data list based on the random seed
-    :param seed: The random seed to use for shuffling
-    :param data_list: The data list to shuffle
+    Shuffles the specified data list based on the random seed.
+    :param seed: The random seed to use for shuffling.
+    :param data_list: The data list to shuffle.
     :return: None
     """
     randomizer = random.Random(seed)
