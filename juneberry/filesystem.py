@@ -682,6 +682,7 @@ class ModelManager:
     def setup_tuning(self):
         """ Prepares a model directory for tuning. """
         self.get_tuning_dir().mkdir(parents=True, exist_ok=True)
+        (self.model_log_dir_path / 'train' / 'tuning').mkdir(parents=True, exist_ok=True)
 
     def get_model_name(self):
         """ :return: The name of the model. """
@@ -769,14 +770,21 @@ class ModelManager:
         """ :return: Path to a directory containing files related to hyperparameter tuning. """
         return self.get_train_root_dir() / "tuning"
 
+    def get_tuning_log_dir(self) -> Path:
+        """ :return: Path to a directory containing a copy of the tuning log files. """
+        return self.get_train_log_dir() / "tuning"
+
     def get_tuning_log(self) -> Path:
         """ :return: The path to the model's tuning log. """
         return self.get_tuning_dir() / "log.txt"
 
     @staticmethod
-    def get_relocated_tuning_log(target_dir: str) -> Path:
+    def get_relocated_tuning_log(target_dir: str, prefix: str = None) -> Path:
         """ :return: The path for a tuning log file that's been relocated to a target directory. """
-        return Path(target_dir) / "log.txt"
+        if prefix:
+            return Path(target_dir) / f"{prefix}_log.txt"
+        else:
+            return Path(target_dir) / "log.txt"
 
     @staticmethod
     def get_relocated_tuning_output(target_dir: str) -> Path:

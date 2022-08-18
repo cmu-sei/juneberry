@@ -401,8 +401,17 @@ class Tuner:
                     f"{self.best_result.last_result[self.tuning_config.tuning_parameters.metric]}")
 
         # Move the Juneberry tuning log into the tuning directory for this run.
-        new_log_path = self.trainer_factory.model_manager.get_relocated_tuning_log(self.best_result.local_dir)
-        self.trainer_factory.model_manager.get_tuning_log().rename(new_log_path)
+        log_dest = self.trainer_factory.model_manager.get_relocated_tuning_log(self.best_result.local_dir)
+        logger.info(f"Moving log file to {log_dest}")
+        self.trainer_factory.model_manager.get_tuning_log().rename(log_dest)
+
+        # Save a copy of the tuning log to the log directory. The prefix helps identify when the
+        # tuning run took place.
+        tuning_log_dir = self.trainer_factory.lab.workspace() / self.trainer_factory.model_manager.get_tuning_log_dir()
+        prefix = str(self.best_result.local_dir).split("/")[-1]
+        log_copy = self.trainer_factory.model_manager.get_relocated_tuning_log(target_dir=tuning_log_dir, prefix=prefix)
+        logger.info(f"Copying log file to {log_copy}")
+        log_copy.write_text(log_dest.read_text())
 
         # Store some data in the tuning output, then save the tuning output file.
         logger.info(f"Generating Tuning Output...")
