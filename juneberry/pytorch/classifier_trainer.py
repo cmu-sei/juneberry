@@ -128,12 +128,16 @@ class ClassifierTrainer(EpochTrainer):
         """
         if dryrun:
             return [model_mgr.get_model_summary_path(),
-                    model_mgr.get_dryrun_imgs_dir()]
+                    model_mgr.get_dryrun_imgs_dir(),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path()]
         else:
             return [model_mgr.get_model_path(cls.get_platform_defs()),
                     model_mgr.get_model_path(ONNXPlatformDefinitions()),
                     model_mgr.get_training_out_file(),
-                    model_mgr.get_training_summary_plot()]
+                    model_mgr.get_training_summary_plot(),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path()]
 
     @classmethod
     def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
