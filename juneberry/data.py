@@ -749,7 +749,7 @@ def split_data_sets(dataset_list, splitter_algo: str, splitter_args, randomizer)
         before = [len(dataset['train']), len(dataset['valid'])]
         dataset['valid'] = split_list(dataset['train'], splitter_algo, splitter_args, randomizer)
         after = [len(dataset['train']), len(dataset['valid'])]
-        logger.info(f"...split (train/valid) from {before} to {after}")
+        logger.info(f"...split (train/valid) for {dataset['label']} from {before} to {after}")
 
 
 def split_list(source_list, algo: str, args, randomizer):
@@ -1225,6 +1225,17 @@ def check_num_classes(args: dict, num_model_classes: int) -> None:
             logger.error(f"The number of classes in the training config: '{args['num_classes']}' "
                          f"does not match the number of classes in the dataset: '{num_model_classes}'. EXITING.")
             sys.exit(-1)
+
+
+def shuffle_manifest(seed: int, data_list: list) -> None:
+    """
+    Shuffles the specified data list based on the random seed.
+    :param seed: The random seed to use for shuffling.
+    :param data_list: The data list to shuffle.
+    :return: None
+    """
+    randomizer = random.Random(seed)
+    randomizer.shuffle(data_list)
 
 
 def save_path_label_manifest(data_list, filename, relative_to: Path = None) -> None:

@@ -186,6 +186,8 @@ class PyTorchClassificationImageProcessor(DatasetProcessor):
             transform_mgr = TransformManager(self.ds_cfg.data_transforms.transforms, opt_args)
         else:
             transform_mgr = None
+
+        # NOTE: This does NOT output shuffled data.
         self.dataloader = pyt_data.make_data_loader(self.lab, self.ds_cfg, data_list,
                                                     transform_mgr, batch_size=1)
 
