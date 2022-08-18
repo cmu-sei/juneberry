@@ -27,6 +27,7 @@ import logging
 import sys
 
 import juneberry.filesystem as jbfs
+import juneberry.platform_info
 import juneberry.scripting as jbscripting
 from juneberry.script_tools.training_sprout import TrainingSprout
 from juneberry.training.trainer_factory import TrainerFactory
@@ -82,6 +83,9 @@ def main():
         log_prefix=jbscripting.standard_line_prefix(sprout.dryrun),
         model_name=sprout.model_name,
         banner_msg=">>> Juneberry Trainer <<<")
+
+    # Show the abbreviated platform info
+    logger.info(f"Platform Info: {juneberry.platform_info.make_minimum_report()}")
 
     # Kick off the logging
     logger.info(f"Beginning training with model: {sprout.model_name}")
