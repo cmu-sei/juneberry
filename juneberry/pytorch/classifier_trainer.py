@@ -453,10 +453,10 @@ class ClassifierTrainer(EpochTrainer):
             if self.dataset_config.is_image_type():
                 # Save the manifest files for traceability
                 logger.info(f"...saving manifests to disk...")
-                jbdata.save_path_label_manifest(train_list, self.model_manager.get_training_data_manifest_path(),
-                                                self.lab.data_root())
-                jbdata.save_path_label_manifest(val_list, self.model_manager.get_validation_data_manifest_path(),
-                                                self.lab.data_root())
+                train_manifest_path = self.lab.workspace() / self.model_manager.get_training_data_manifest_path()
+                val_manifest_path = self.lab.workspace() / self.model_manager.get_validation_data_manifest_path()
+                jbdata.save_path_label_manifest(train_list, train_manifest_path, self.lab.data_root())
+                jbdata.save_path_label_manifest(val_list, val_manifest_path, self.lab.data_root())
 
             logger.info(f"...making data loaders...")
             self.training_iterable, self.evaluation_iterable = \
