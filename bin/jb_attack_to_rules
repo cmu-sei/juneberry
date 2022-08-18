@@ -249,10 +249,10 @@ class AttackMaker:
 
         # Fill out the components for building a rule to train the private model.
         inputs = [model_mgr.get_model_config(), dataset_config_path]
-        outputs = [str(x) for x in model_mgr.get_training_output_list(trainer_class.get_platform_defs())]
+        outputs = trainer_class.get_training_output_files(model_mgr=model_mgr)
         command = [JB_TRAIN_COMMAND, model_name]
         doc = f"{JB_TRAIN_COMMAND} {model_name} with {private_model_arg} and training watermarks."
-        clean_extras = model_mgr.get_training_clean_extras_list()
+        clean_extras = trainer_class.get_training_clean_extras(model_mgr=model_mgr)
         requirements = []
 
         # Add the rule for training the private model to the workflow.
@@ -427,10 +427,10 @@ class AttackMaker:
 
             # Fill out the components for building a rule to train the shadow model.
             inputs = [shadow_model_mgr.get_model_config(), training_dataset_path]
-            outputs = shadow_model_mgr.get_training_output_list(trainer_class.get_platform_defs())
+            outputs = trainer_class.get_training_output_files(model_mgr=shadow_model_mgr)
             command = [JB_TRAIN_COMMAND, shadow_model_name]
             doc = f"{JB_TRAIN_COMMAND} {shadow_model_name} with {selection}."
-            clean_extras = shadow_model_mgr.get_training_clean_extras_list()
+            clean_extras = trainer_class.get_training_clean_extras(model_mgr=shadow_model_mgr)
             requirements = []
 
             # Add a rule to train the shadow model to the workflow.
@@ -549,10 +549,10 @@ class AttackMaker:
 
         # Fill out the components for building a rule to train the meta model.
         inputs = [str(meta_model_mgr.get_model_config()), train_cfg_dest, val_cfg_dest]
-        outputs = meta_model_mgr.get_training_output_list(trainer_class.get_platform_defs())
+        outputs = trainer_class.get_training_output_files(model_mgr=meta_model_mgr)
         command = [JB_TRAIN_COMMAND, meta_model_name]
         doc = f"{JB_TRAIN_COMMAND} {meta_model_name}"
-        clean_extras = meta_model_mgr.get_training_clean_extras_list()
+        clean_extras = trainer_class.get_training_clean_extras(model_mgr=meta_model_mgr)
         requirements = []
 
         # Add the rule for training the meta model to the workflow.
