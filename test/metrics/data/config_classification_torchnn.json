@@ -1,5 +1,5 @@
 {
-  "evaluation_metrics": [
+  "metrics": [
     {
       "fqcn": "juneberry.metrics.torchnn.metrics.Metrics",
       "kwargs": {

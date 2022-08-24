@@ -51,15 +51,15 @@ with open(config_nn_filename, 'r') as f:
     config_nn_data = json.load(f)
 
 evaluation_tm_metrics: List[Plugin] = []
-for cd in config_tm_data["evaluation_metrics"]:
+for cd in config_tm_data["metrics"]:
     evaluation_tm_metrics.append(Plugin.from_dict(cd))
 
 evaluation_sk_metrics: List[Plugin] = []
-for cd in config_sk_data["evaluation_metrics"]:
+for cd in config_sk_data["metrics"]:
     evaluation_sk_metrics.append(Plugin.from_dict(cd))
 
 evaluation_nn_metrics: List[Plugin] = []
-for cd in config_nn_data["evaluation_metrics"]:
+for cd in config_nn_data["metrics"]:
     evaluation_nn_metrics.append(Plugin.from_dict(cd))
 
 output = torch.load(output_data_filename)
