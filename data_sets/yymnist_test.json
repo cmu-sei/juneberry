@@ -1,0 +1,30 @@
+{
+    "data_type": "image",
+    "description": "Juneberry metadata files created using detectron2 text detection.",
+    "format_version": "0.2.0",
+    "image_data": {
+        "sources": [
+            {
+                "directory": "yymnist/coco_test250.json"
+            }
+        ],
+        "task_type": "object_detection"
+    },
+    "label_names": {
+        "0": "Zero",
+        "1": "One",
+        "2": "Two",
+        "3": "Three",
+        "4": "Four",
+        "5": "Five",
+        "6": "Six",
+        "7": "Seven",
+        "8": "Eight",
+        "9": "Nine"
+    },
+    "num_model_classes": 10,
+    "sampling": {
+        "algorithm": "none",
+        "arguments": {}
+    }
+}

@@ -1,0 +1,104 @@
+{
+    "batch_size": 10,
+    "description": "Trains an object detector using the YYMNIST TextDetection data set.",
+    "detectron2": {
+        "overrides": [
+            "SOLVER.BASE_LR",
+            0.001,
+            "SOLVER.REFERENCE_WORLD_SIZE",
+            1
+        ]
+    }, 
+    "epochs": 10,
+    "evaluation_metrics": [
+        {
+            "fqcn": "juneberry.metrics.metrics.Coco",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "max_det": 100,
+                "tqdm": false
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.metrics.Summary",
+            "kwargs": {
+                "iou_threshold": 0.5,
+                "tp_threshold": 0.8
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.metrics.Tide",
+            "kwargs": {
+                "pos_thresh": 0.5,
+                "bg_thresh": 0.5,
+                "max_det": 100,
+                "area_range_min": 0,
+                "area_range_max": 100000,
+                "tqdm": false
+            }
+        }
+    ],
+    "evaluation_metrics_formatter": {
+        "fqcn": "juneberry.metrics.format.DefaultFormatter",
+        "kwargs": {
+        }
+    },
+    "evaluation_transforms": [
+        {
+            "fqcn": "juneberry.detectron2.transforms.DT2Logger",
+            "kwargs": {
+                "msg": "eval"
+            }
+        }
+    ],
+    "evaluator": {
+        "fqcn": "juneberry.detectron2.evaluator.Evaluator"
+    },
+    "format_version": "0.2.0",
+    "model_architecture": {
+        "args": {
+            "num_classes": 10
+        },
+        "module": "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
+    },
+    "pytorch": {
+        "deterministic": true
+    },
+    "seed": 4210592948,
+    "task": "objectDetection",
+    "trainer": {
+        "fqcn": "juneberry.detectron2.trainer.Detectron2Trainer"
+    },
+    "training_dataset_config_path": "data_sets/yymnist_train.json",
+    "training_transforms": [
+        {
+            "fqcn": "juneberry.detectron2.transforms.DT2Logger",
+            "kwargs": {
+                "msg": "train"
+            }
+        }
+    ],
+    "validation": {
+        "algorithm": "from_file",
+        "arguments": {
+            "file_path": "data_sets/yymnist_val.json"
+        }
+    }, 
+    "reports": [
+        {
+            "description": "eval report",
+            "fqcn": "juneberry.reporting.pr.PRCurve",
+            "kwargs": {
+                "output_dir": "models/yymnist_R50/report",
+                "iou": 0.5,
+                "tp_threshold": 0.8,
+                "curve_sources": [
+                    {
+                        "model": "yymnist_R50",
+                        "dataset": "yymnist_test"
+                    }
+                ]
+            }
+        }
+    ]
+}
