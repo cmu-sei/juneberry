@@ -1,0 +1,14 @@
+{
+  "evaluation_metrics": [
+    {
+      "fqcn": "juneberry.metrics.torchmetrics.metrics.Metrics",
+      "kwargs": {
+        "fqn": "torchmetrics.functional.accuracy",
+        "binary": false,
+        "kwargs": {
+          "top_k": 2
+        }
+      }
+    }
+  ]
+}

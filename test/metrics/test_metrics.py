@@ -72,9 +72,9 @@ metrics_all = metrics_mgr_all(gt_data, det_data)
 metrics_mgr_default_formatted = mm.MetricsManager(evaluation_metrics_default, evaluation_metrics_default_formatter)
 metrics_default_formatted = metrics_mgr_default_formatted(gt_data, det_data)
 
-coco_metrics = metrics_all["juneberry.metrics.metrics.Coco"]
-tide_metrics = metrics_all["juneberry.metrics.metrics.Tide"]
-summary_metrics = metrics_all["juneberry.metrics.metrics.Summary"]
+coco_metrics = metrics_all["juneberry.metrics.objectdetection.brambox.metrics.Coco"]
+tide_metrics = metrics_all["juneberry.metrics.objectdetection.brambox.metrics.Tide"]
+summary_metrics = metrics_all["juneberry.metrics.objectdetection.brambox.metrics.Summary"]
 
 expected_coco_metrics = {
     "mAP_coco": 0.236,

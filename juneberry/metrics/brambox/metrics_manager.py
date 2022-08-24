@@ -22,12 +22,11 @@
 #
 # ======================================================================================================================
 
+from enum import Enum
 import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List
-
-import torch
 
 from juneberry.config.model import Plugin
 import juneberry.loader as loader
@@ -82,7 +81,7 @@ class MetricsManager:
                 entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
                 self.metrics_entries.append(entry)
 
-    def __call__(self, target: torch.Tensor, preds: torch.Tensor, labels: List = None) -> Dict[str, Any]:
+    def __call__(self, anno: Dict, det: Dict) -> Dict[str, Any]:
         """
         Compute metrics given annotations and detections in dicts.
         :param anno: Annotations dict in COCO format
@@ -91,15 +90,16 @@ class MetricsManager:
         """
         results = {}
 
-        if target == None:
+        if not anno["annotations"]:
             logger.info("There are no annotations; cannot populate metrics output!")
         else:
             # For each metrics plugin we've created, use the annotations and
             # detections to compute the metrics and add to our results.
             for entry in self.metrics_entries:
-                if not entry.fqcn in results:
-                    results[entry.fqcn] = {}
-                results[entry.fqcn][entry.kwargs["fqn"]] = entry.metrics(target, preds, labels=labels)
+                results[entry.fqcn] = entry.metrics(anno, det)
+
+            if self.formatter:
+                results = self.formatter(results)
 
         return results
 
