@@ -169,6 +169,33 @@ class EvaluatorBase:
         logger.error(f"get_default_metric_value() not implemented in {cls}")
         raise RuntimeError(f"get_default_metric_value() not implemented in {cls}")
 
+    @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        logger.error(f"get_evaluation_output_files() must be defined as a static method on the evaluator")
+        raise RuntimeError(f"get_evaluation_output_files() must be defined as a static method on the evaluator")
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        logger.error(f"get_evaluation_clean_extras() must be defined as a static method on the evaluator")
+        raise RuntimeError(f"get_evaluation_clean_extras() must be defined as a static method on the evaluator")
+
     def dry_run(self) -> None:
         """
         Executes a "dryrun" of the evaluation, checking for model viability, dataset properties, etc.

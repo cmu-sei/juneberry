@@ -47,6 +47,7 @@ def setup_args(parser) -> None:
     group.add_argument('-f', '--file', action='append', help='Name of one or more JSON files containing a reports '
                                                              'stanza. These files do not need to be affiliated with a '
                                                              'particular experiment or model.')
+    parser.add_argument('--dryrun', default=False, action='store_true', help='Flag to initiate dry run mode. ')
 
 
 def main():
@@ -74,6 +75,8 @@ def main():
 
     if report_list is not None:
         for report in report_list:
+            if args.dryrun:
+                continue
             report_obj = jb_report_utils.construct_report(report.fqcn, report.kwargs)
             report_obj.create_report()
     else:

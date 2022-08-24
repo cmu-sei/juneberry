@@ -74,7 +74,7 @@ def main():
     # The model manager helps us find all the files and directories
     # NOTE: We can use the default constructor because this model MUST be in the default (current) workspace.
     model_manager = jbfs.ModelManager(sprout.model_name)
-    model_manager.setup()
+    model_manager.setup_training()
 
     # Use the config file to set up the workspace, data and logging
     lab = jbscripting.setup_workspace_and_model(

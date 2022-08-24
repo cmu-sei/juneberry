@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+import sys
 from types import SimpleNamespace
 
 import tensorflow as tf
@@ -67,12 +68,50 @@ class Evaluator(EvaluatorBase):
     # ==========================================================================
 
     @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dir()]
+        else:
+            return [eval_dir_mgr.get_predictions_path(),
+                    eval_dir_mgr.get_metrics_path(),
+                    eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dir()]
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_dir().parent]
+        else:
+            return [eval_dir_mgr.get_dir().parent]
+
+    @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):
         """ :return: The value of the Evaluator's default metric as found in the results structure """
         return eval_data.results.metrics.accuracy, "accuracy"
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
         self.obtain_model()
@@ -101,10 +140,27 @@ class Evaluator(EvaluatorBase):
             self.use_train_split, self.use_val_split)
 
     def obtain_model(self) -> None:
+        # Identify the model file.
         hdf5_file = self.model_manager.get_model_path(TensorFlowPlatformDefinitions())
-        logger.info(f"Loading model {hdf5_file}...")
-        self.model = tf.keras.models.load_model(hdf5_file)
-        logger.info("...complete")
+
+        # If the model file exists, load the weights.
+        if hdf5_file.exists():
+            logger.info(f"Loading model {hdf5_file}...")
+            self.model = tf.keras.models.load_model(hdf5_file)
+            logger.info("...complete")
+
+        # If the model file doesn't exist...
+        else:
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {hdf5_file} does not exist.")
+
+            # If there's no model file and it's not a dryrun, then this Evaluator will eventually
+            # fail log an error and exit.
+            else:
+                logger.error(f"Failed to load model. File does not exist: {hdf5_file}")
+                sys.exit(-1)
 
     def evaluate_data(self) -> None:
         logger.info(f"Generating EVALUATION data according to {self.eval_method}")

@@ -116,6 +116,45 @@ class ClassifierTrainer(EpochTrainer):
 
     # ==========================================================================
 
+    @classmethod
+    def get_training_output_files(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the training directory. This list should contain ONLY
+        files or directories that were produced by the training command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_model_summary_path(),
+                    model_mgr.get_dryrun_imgs_dir(),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path()]
+        else:
+            return [model_mgr.get_model_path(cls.get_platform_defs()),
+                    model_mgr.get_model_path(ONNXPlatformDefinitions()),
+                    model_mgr.get_training_out_file(),
+                    model_mgr.get_training_summary_plot(),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path()]
+
+    @classmethod
+    def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_train_root_dir()]
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================================================================
+
     def dry_run(self) -> None:
         # Setup is the same for dry run
         self.setup()
@@ -133,7 +172,7 @@ class ClassifierTrainer(EpochTrainer):
             pyt_utils.output_summary_file(self.model, data[0].shape, summary_path)
 
         else:
-            logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. EXITING")
+            logger.error("Dry run doesn't support anything beyond IMAGE or TABULAR type. Exiting.")
 
     # ==========================================================================
 
@@ -414,10 +453,10 @@ class ClassifierTrainer(EpochTrainer):
             if self.dataset_config.is_image_type():
                 # Save the manifest files for traceability
                 logger.info(f"...saving manifests to disk...")
-                jbdata.save_path_label_manifest(train_list, self.model_manager.get_training_data_manifest_path(),
-                                                self.lab.data_root())
-                jbdata.save_path_label_manifest(val_list, self.model_manager.get_validation_data_manifest_path(),
-                                                self.lab.data_root())
+                train_manifest_path = self.lab.workspace() / self.model_manager.get_training_data_manifest_path()
+                val_manifest_path = self.lab.workspace() / self.model_manager.get_validation_data_manifest_path()
+                jbdata.save_path_label_manifest(train_list, train_manifest_path, self.lab.data_root())
+                jbdata.save_path_label_manifest(val_list, val_manifest_path, self.lab.data_root())
 
             logger.info(f"...making data loaders...")
             self.training_iterable, self.evaluation_iterable = \

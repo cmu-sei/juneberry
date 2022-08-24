@@ -24,6 +24,7 @@
 
 import logging
 from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 # import some common detectron2 utilities
@@ -82,12 +83,54 @@ class Evaluator(EvaluatorBase):
     # ==========================================================================
 
     @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_dryrun_imgs_dir(),
+                    eval_dir_mgr.get_manifest_path()]
+        else:
+            return [eval_dir_mgr.get_sample_detections_dir(),
+                    eval_dir_mgr.get_detections_path(),
+                    eval_dir_mgr.get_detections_anno_path(),
+                    eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_instances_predictions_file(),
+                    eval_dir_mgr.get_metrics_path()]
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_dir(),
+                    eval_dir_mgr.get_dir().parent]
+        else:
+            return [eval_dir_mgr.get_dir(),
+                    eval_dir_mgr.get_dir().parent]
+
+    @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):
         """ :return: The value of the Evaluator's default metric as found in the results structure """
         return eval_data.results.metrics.bbox['mAP'], "mAP"
 
     # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         dryrun_path = Path(self.eval_dir_mgr.get_dryrun_imgs_dir())
         dryrun_path.mkdir(parents=True, exist_ok=True)
 
@@ -186,8 +229,26 @@ class Evaluator(EvaluatorBase):
         # -- NV: This value is *way* too high; the blog post was kinda bogus
         # cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8  # set threshold for this model
 
-        self.cfg.MODEL.WEIGHTS = str(self.model_manager.get_model_path(self.get_platform_defs()))
-        self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
+        # Identify the model file.
+        model_path = self.model_manager.get_model_path(self.get_platform_defs())
+
+        # If the model file exists, load the weights.
+        if model_path.exists():
+            self.cfg.MODEL.WEIGHTS = str(model_path)
+            self.cfg.MODEL.ROI_HEADS.NUM_CLASSES = self.dataset_config.num_model_classes
+
+        # If the model file doesn't exist...
+        else:
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {model_path} does not exist.")
+
+            # If there's no model file and it's not a dryrun, then this Evaluator will eventually
+            # fail log an error and exit.
+            else:
+                logger.error(f"Failed to load model. File does not exist: {model_path}")
+                sys.exit(-1)
 
         if self.num_gpus == 0:
             self.cfg.MODEL.DEVICE = "cpu"
@@ -196,7 +257,11 @@ class Evaluator(EvaluatorBase):
             if "overrides" in self.model_config.detectron2:
                 self.cfg.merge_from_list(self.model_config.detectron2['overrides'])
 
-        self.predictor = DefaultPredictor(self.cfg)
+        if model_path.exists():
+            self.predictor = DefaultPredictor(self.cfg)
+        else:
+            logger.warning(f"Model weights could not be loaded because the following model file was not "
+                           f"found: {model_path}")
 
     def evaluate_data(self) -> None:
         evaluator = COCOEvaluator(dataset_name=dt2_data.EVAL_DS_NAME, distributed=False, output_dir=self.output_dir)

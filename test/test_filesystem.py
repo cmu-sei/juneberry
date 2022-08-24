@@ -46,10 +46,10 @@ def test_eval_dir():
     assert eval_dir_mgr.get_manifest_path() == str(eval_dir_root / "eval_manifest.json")
     assert eval_dir_mgr.get_detections_path() == str(eval_dir_root / "detections.json")
     assert eval_dir_mgr.get_detections_anno_path() == str(eval_dir_root / "detections_anno.json")
-    assert eval_dir_mgr.get_log_path() == str(eval_dir_root / "log.txt")
-    assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_root / "log_TestTool.txt")
-    assert eval_dir_mgr.get_dryrun_log_path() == str(eval_dir_root / "log_dryrun.txt")
-    assert eval_dir_mgr.get_dryrun_log_path("TestTool") == str(eval_dir_root / "log_dryrun_TestTool.txt")
+    assert eval_dir_mgr.get_log_path() == str(eval_dir_mgr.log_dir / "log.txt")
+    assert eval_dir_mgr.get_log_path("TestTool") == str(eval_dir_mgr.log_dir / "log_TestTool.txt")
+    assert eval_dir_mgr.get_dryrun_log_path() == str(eval_dir_mgr.log_dir / "log_dryrun.txt")
+    assert eval_dir_mgr.get_dryrun_log_path("TestTool") == str(eval_dir_mgr.log_dir / "log_dryrun_TestTool.txt")
     assert eval_dir_mgr.get_metrics_path() == str(eval_dir_root / "metrics.json")
     assert eval_dir_mgr.get_predictions_path() == str(eval_dir_root / "predictions.json")
     assert eval_dir_mgr.get_sample_detections_dir() == str(eval_dir_root / "sample_detections")
@@ -80,40 +80,10 @@ def test_model_manager():
     assert mm.get_model_diagram() == root / 'model_diagram.png'
     assert mm.get_training_out_file() == root / 'train' / 'output.json'
     assert mm.get_training_summary_plot() == root / 'train' / 'output.png'
-    assert mm.get_training_log() == root / 'train' / 'log.txt'
-    assert mm.get_training_dryrun_log_path() == root / 'train' / 'log_dryrun.txt'
+    assert mm.get_training_log() == mm.get_train_log_dir() / 'log.txt'
+    assert mm.get_training_dryrun_log_path() == mm.get_train_log_dir() / 'log_dryrun.txt'
 
     assert mm.get_model_path(DummyPlatformDefinitions()) == root / 'foo.txt'
-
-
-def test_model_manager_clean():
-    mm = jbfs.ModelManager('TestModel')
-    root = Path('models') / 'TestModel' / '1999'
-    test_dir = root / 'test_dir'
-    woot_file = root / 'woot.txt'
-    ok_file = test_dir / 'ok.txt'
-
-    if not test_dir.exists():
-        test_dir.mkdir(parents=True)
-    mm.get_model_config().touch()
-    mm.get_model_path(DummyPlatformDefinitions()).touch()
-    woot_file.touch()
-    ok_file.touch()
-
-    mm.clean(DummyPlatformDefinitions(), dry_run=True)
-    assert mm.get_model_config().exists()
-    assert mm.get_model_path(DummyPlatformDefinitions()).exists()
-    assert ok_file.exists()
-    assert woot_file.exists()
-
-    mm.clean(DummyPlatformDefinitions())
-    assert mm.get_model_config().exists()
-    assert not mm.get_model_path(DummyPlatformDefinitions()).exists()
-    assert ok_file.exists()
-    assert woot_file.exists()
-
-    import shutil
-    shutil.rmtree(Path('models') / 'TestModel')
 
 
 def test_experiment_manager():
@@ -135,6 +105,13 @@ def test_experiment_manager_clean():
     woot_file = root / 'woot.txt'
     ok_file = test_dir / 'ok.txt'
 
+    # Create experiment files and directories.
+    exp_files = [em.get_experiment_db_file(), em.get_experiment_rules(), em.get_experiment_dodo('main'),
+                 em.get_experiment_dodo('dryrun')]
+    for file in exp_files:
+        file.touch()
+    em.get_experiment_reports_dir().mkdir(parents=True, exist_ok=True)
+
     if not test_dir.exists():
         test_dir.mkdir(parents=True)
     em.get_experiment_config().touch()
@@ -148,13 +125,19 @@ def test_experiment_manager_clean():
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()
+    # Confirm the experiment files still exist.
+    for file in exp_files:
+        assert file.exists()
 
     em.clean()
     assert em.get_experiment_config().exists()
-    assert not em.get_dryrun_log_path().exists()
+    assert em.get_dryrun_log_path().exists()
     assert ok_file.exists()
     assert woot_file.exists()
     assert test_dir.exists()
+    # Confirm the experiment files have been cleaned.
+    for file in exp_files:
+        assert not file.exists()
 
     import shutil
     shutil.rmtree(Path('experiments') / 'millikan_oil_drop')
