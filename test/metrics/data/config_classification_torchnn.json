@@ -4,7 +4,6 @@
       "fqcn": "juneberry.metrics.torchnn.metrics.Metrics",
       "kwargs": {
         "fqn": "torch.nn.CrossEntropyLoss",
-        "binary": false,
         "kwargs": {}
       }
     }

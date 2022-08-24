@@ -42,10 +42,8 @@ class Metrics:
 
     def __init__(self,
                  fqn: str,
-                 binary: bool,
                  kwargs: Dict = None) -> None:
         self.fqn = fqn
-        self.binary = binary
         self.kwargs = kwargs
 
 
