@@ -96,13 +96,14 @@ class Evaluator(EvaluatorBase):
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
         if dryrun:
             return [eval_dir_mgr.get_dryrun_imgs_dir(),
-                    eval_dir_mgr.get_manifest_path(),
-                    eval_dir_mgr.get_dir()]
+                    eval_dir_mgr.get_manifest_path()]
         else:
-            return [eval_dir_mgr.get_predictions_path(),
-                    eval_dir_mgr.get_metrics_path(),
+            return [eval_dir_mgr.get_sample_detections_dir(),
+                    eval_dir_mgr.get_detections_path(),
+                    eval_dir_mgr.get_detections_anno_path(),
                     eval_dir_mgr.get_manifest_path(),
-                    eval_dir_mgr.root]
+                    eval_dir_mgr.get_instances_predictions_file(),
+                    eval_dir_mgr.get_metrics_path()]
 
     @classmethod
     def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
@@ -116,9 +117,11 @@ class Evaluator(EvaluatorBase):
         """
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
         if dryrun:
-            return [eval_dir_mgr.get_dir().parent]
+            return [eval_dir_mgr.get_dir(),
+                    eval_dir_mgr.get_dir().parent]
         else:
-            return [eval_dir_mgr.get_dir().parent]
+            return [eval_dir_mgr.get_dir(),
+                    eval_dir_mgr.get_dir().parent]
 
     @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):

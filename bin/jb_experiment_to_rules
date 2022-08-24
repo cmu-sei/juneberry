@@ -203,14 +203,14 @@ class RuleMaker:
         return groups
 
     @staticmethod
-    def aggregate_outputs(eval_class, model_mgr, dataset_paths, extras: bool = False):
+    def aggregate_outputs(eval_class, model_mgr, dataset_paths, extras: bool = False, dryrun: bool = False):
         all_outs = set()
         for ds_path in dataset_paths:
             if extras:
-                for x in eval_class.get_eval_clean_extras(model_mgr, ds_path):
+                for x in eval_class.get_eval_clean_extras(model_mgr, ds_path, dryrun=dryrun):
                     all_outs.add(str(x))
             else:
-                for x in eval_class.get_eval_output_files(model_mgr, ds_path):
+                for x in eval_class.get_eval_output_files(model_mgr, ds_path, dryrun=dryrun):
                     all_outs.add(str(x))
         return sorted(all_outs)
 
@@ -272,7 +272,7 @@ class RuleMaker:
                         # The model architecture can create a fully functional pretrained model from the
                         # underlying platform such as torchvision pretrained models.
                         inputs = [test.dataset_path]
-                    outputs = self.aggregate_outputs(eval_class, model_mgr, dataset_paths)
+                    outputs = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, dryrun=True)
 
                     command = [JB_EVALUATE_COMMAND, model_mgr.model_name, *dataset_paths, '--dryrun']
                     if test.classify:
@@ -286,7 +286,8 @@ class RuleMaker:
                         command.append('--skip-exists')
 
                     doc = " ".join([str(x) for x in command])
-                    clean_extras = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, extras=True)
+                    clean_extras = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, extras=True,
+                                                          dryrun=True)
                     if 'train_rule_id' in model:
                         requirements = [model['train_rule_id']]
                     else:

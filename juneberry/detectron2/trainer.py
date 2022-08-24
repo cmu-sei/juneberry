@@ -144,7 +144,6 @@ class Detectron2Trainer(Trainer):
                                    model_mgr.get_training_out_file(),
                                    model_mgr.get_training_summary_plot()]
 
-
     @classmethod
     def get_training_clean_extras(cls, model_mgr: ModelManager, dryrun: bool = False):
         """

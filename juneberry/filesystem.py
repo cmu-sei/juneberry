@@ -658,6 +658,11 @@ class EvalDirMgr:
     def get_sample_detections_dir(self):
         return str(self.root / "sample_detections")
 
+    def get_instances_predictions_file(self):
+        """ :return: The location to the instances_predictions file generated during a
+        Detectron2 evaluation. """
+        return str(self.root / "instances_predictions.pth")
+
 
 class ModelManager:
     def __init__(self, model_name):
