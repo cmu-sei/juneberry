@@ -57,7 +57,7 @@ class MetricsManager:
             self.fqcn = fqcn
             self.kwargs = kwargs
 
-    def __init__(self, metrics_config: List[Plugin], opt_args: Dict = None) -> None:
+    def __init__(self, metrics_config: List[Plugin], formatter_config: Plugin = None, opt_args: Dict = None) -> None:
         """
         Populate an Entry for each metrics plugin listed in the "evaluation_metrics" section of
         the model config. Also create a metrics formatter if an "evaluation_metrics_formatter" entry
@@ -69,6 +69,7 @@ class MetricsManager:
         :return: None
         """
         self.metrics_entries = []
+        self.formatter = None
 
         # For each metrics plugin entry in the config,
         # instantiate a metrics plugin object and add to the list of metrics
@@ -82,7 +83,11 @@ class MetricsManager:
                 entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
                 self.metrics_entries.append(entry)
 
-    def __call__(self, target: torch.Tensor, preds: torch.Tensor) -> Dict[str, Any]:
+            if formatter_config:
+                self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
+
+    # TODO to work with brambox, can't have typing here; target, preds could be files, tensors, etc.
+    def __call__(self, target, preds):
         """
         Compute metrics given annotations and detections in dicts.
         :param anno: Annotations dict in COCO format
@@ -91,7 +96,9 @@ class MetricsManager:
         """
         results = {}
 
-        if target == None:
+        # TODO detecting type of target is bad here, but have to do it for now, since
+        #   target may be a Tensor, can't call in on that
+        if target == None or (type(target) is dict and "annotations" in target and not target["annotations"]):
             logger.info("There are no annotations; cannot populate metrics output!")
         else:
             # For each metrics plugin we've created, use the annotations and
@@ -99,7 +106,15 @@ class MetricsManager:
             for entry in self.metrics_entries:
                 if not entry.fqcn in results:
                     results[entry.fqcn] = {}
-                results[entry.fqcn][entry.kwargs["fqn"]] = entry.metrics(target, preds)
+                if "fqn" in entry.kwargs:
+                    results[entry.fqcn][entry.kwargs["fqn"]] = entry.metrics(target, preds)
+                else:
+                    results[entry.fqcn] = entry.metrics(target, preds)
+
+            # TODO this is for the brambox results formatter; this should move or be eliminated
+            if self.formatter:
+                results = self.formatter(results)
+
 
         return results
 

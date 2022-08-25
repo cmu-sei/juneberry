@@ -35,9 +35,9 @@ class DefaultFormatter:
         pass
 
     def __call__(self, metrics: Dict):
-        coco_metrics = metrics["juneberry.metrics.metrics.Coco"]
-        tide_metrics = metrics["juneberry.metrics.metrics.Tide"]
-        summary_metrics = metrics["juneberry.metrics.metrics.Summary"]
+        coco_metrics = metrics["juneberry.metrics.brambox.metrics.Coco"]
+        tide_metrics = metrics["juneberry.metrics.brambox.metrics.Tide"]
+        summary_metrics = metrics["juneberry.metrics.brambox.metrics.Summary"]
 
         result = Metrics()
         result.bbox = {}
