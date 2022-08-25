@@ -1,0 +1,39 @@
+{
+  "training_metrics": [
+    {
+      "fqcn": "juneberry.metrics.sklearn.metrics.Metrics",
+      "kwargs": {
+        "fqn": "sklearn.metrics.accuracy_score",
+        "binary": false,
+        "kwargs": {
+          "normalize": false
+        }
+      }
+    },
+    {
+      "fqcn": "juneberry.metrics.torchmetrics.metrics.Metrics",
+      "kwargs": {
+        "fqn": "torchmetrics.functional.accuracy",
+        "kwargs": {
+          "top_k": 2
+        }
+      }
+    },
+    {
+      "fqcn": "juneberry.metrics.torchmetrics.metrics.Metrics",
+      "kwargs": {
+        "fqn": "torchmetrics.Accuracy",
+        "kwargs": {
+          "top_k": 2
+        }
+      }
+    },
+    {
+      "fqcn": "juneberry.metrics.torchnn.metrics.Metrics",
+      "kwargs": {
+        "fqn": "torch.nn.CrossEntropyLoss",
+        "kwargs": {}
+      }
+    }
+  ]
+}

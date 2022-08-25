@@ -49,6 +49,18 @@ class Metrics:
 
     def __call__(self, target, preds, labels=None):
         target, preds = formatter.format_input(target, preds)
+
+        # torchmetrics has class-based and functional versions of its metrics
+        # TODO this instantiation and calling bit is clunky
         metrics_function = load_verify_fqn_function(self.fqn, {**{"preds": [], "target": []}, **self.kwargs})
-        result = metrics_function(preds, target, **self.kwargs) # torchmetrics takes arguments in preds, target order
+        if not metrics_function:
+            metrics_function = construct_instance(self.fqn, self.kwargs)
+
+        # if still not metrics_function at this point, blow up
+
+        if inspect.isfunction(metrics_function):
+            result = metrics_function(preds, target, **self.kwargs)
+        else:
+            result = metrics_function(preds, target)
+
         return formatter.format_output(result)
