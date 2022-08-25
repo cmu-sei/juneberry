@@ -82,7 +82,7 @@ class MetricsManager:
                 entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
                 self.metrics_entries.append(entry)
 
-    def __call__(self, target: torch.Tensor, preds: torch.Tensor, labels: List = None) -> Dict[str, Any]:
+    def __call__(self, target: torch.Tensor, preds: torch.Tensor) -> Dict[str, Any]:
         """
         Compute metrics given annotations and detections in dicts.
         :param anno: Annotations dict in COCO format
@@ -99,7 +99,7 @@ class MetricsManager:
             for entry in self.metrics_entries:
                 if not entry.fqcn in results:
                     results[entry.fqcn] = {}
-                results[entry.fqcn][entry.kwargs["fqn"]] = entry.metrics(target, preds, labels=labels)
+                results[entry.fqcn][entry.kwargs["fqn"]] = entry.metrics(target, preds)
 
         return results
 

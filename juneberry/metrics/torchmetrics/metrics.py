@@ -47,7 +47,7 @@ class Metrics:
         self.kwargs = kwargs
 
 
-    def __call__(self, target, preds, labels=None):
+    def __call__(self, target, preds):
         target, preds = formatter.format_input(target, preds)
 
         # torchmetrics has class-based and functional versions of its metrics

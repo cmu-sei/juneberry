@@ -55,7 +55,7 @@ class Coco:
         self.max_det = max_det
         self.tqdm = tqdm
 
-    def __call__(self, anno: Dict, det: Dict, labels = None):
+    def __call__(self, anno: Dict, det: Dict):
         anno_df, det_df = get_df(anno, det)
         self.coco = bb.eval.COCO(det_df, anno_df, max_det=self.max_det, tqdm=self.tqdm)
         return self.get_metrics()
@@ -98,7 +98,7 @@ class Tide:
         self.bg_thresh = bg_thresh
         self.tqdm = tqdm
 
-    def __call__(self, anno: Dict, det: Dict, labels = None) -> dict:
+    def __call__(self, anno: Dict, det: Dict) -> dict:
         anno_df, det_df = get_df(anno, det)
 
         self.tide = bb.eval.TIDE(det_df,
@@ -129,7 +129,7 @@ class Summary:
         self.iou_threshold = iou_threshold
         self.tp_threshold = tp_threshold
 
-    def __call__(self, anno: Dict, det: Dict, labels = None) -> dict:
+    def __call__(self, anno: Dict, det: Dict) -> dict:
         self.anno_df, self.det_df = get_df(anno, det)
         return self.get_metrics(self.tp_threshold)
 
