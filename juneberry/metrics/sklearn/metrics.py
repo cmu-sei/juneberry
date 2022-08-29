@@ -36,16 +36,14 @@ class Metrics:
     def __init__(self,
                  fqn: str,
                  name: str,
-                 binary: bool,
                  kwargs: Dict = None) -> None:
         self.fqn = fqn
         self.name = name
-        self.binary = binary
         self.kwargs = kwargs
 
 
-    def __call__(self, target, preds):
-        y_true, y_pred = formatter.format_input(target, preds, self.binary)
+    def __call__(self, target, preds, binary):
+        y_true, y_pred = formatter.format_input(target, preds, binary)
         metrics_function = load_verify_fqn_function(self.fqn, { **{ "y_pred": [], "y_true": [] }, **self.kwargs })
         result = metrics_function(y_true, y_pred, **self.kwargs)
         return formatter.format_output(result)

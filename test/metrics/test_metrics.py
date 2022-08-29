@@ -67,10 +67,10 @@ for cd in default_metrics_config_data["evaluation_metrics"]:
 evaluation_metrics_default_formatter = Plugin.from_dict(default_metrics_config_data["evaluation_metrics_formatter"])
 
 metrics_mgr_all = mm.MetricsManager(evaluation_metrics_all)
-metrics_all = metrics_mgr_all(gt_data, det_data)
+metrics_all = metrics_mgr_all(gt_data, det_data, binary=False)
 
 metrics_mgr_default_formatted = mm.MetricsManager(evaluation_metrics_default, evaluation_metrics_default_formatter)
-metrics_default_formatted = metrics_mgr_default_formatted(gt_data, det_data)
+metrics_default_formatted = metrics_mgr_default_formatted(gt_data, det_data, binary=False)
 
 coco_metrics = metrics_all["juneberry.metrics.brambox.metrics.Coco"]
 tide_metrics = metrics_all["juneberry.metrics.brambox.metrics.Tide"]
@@ -161,7 +161,7 @@ def test_tide_metrics():
 
 
 def test_create_with_empty_annos():
-    assert(metrics_mgr_all(gt_no_annos_data, det_data)) == {}
+    assert(metrics_mgr_all(gt_no_annos_data, det_data, binary=False)) == {}
 
 
 def test_prc_df():

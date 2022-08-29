@@ -34,6 +34,7 @@ from typing import Dict
 
 from juneberry.loader import construct_instance, load_verify_fqn_function
 import juneberry.metrics.torchmetrics.formatter as formatter
+import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +50,10 @@ class Metrics:
         self.kwargs = kwargs
 
 
-    def __call__(self, target, preds):
+    def __call__(self, target, preds, binary):
         target, preds = formatter.format_input(target, preds)
         metrics_function = construct_instance(self.fqn, self.kwargs)
+        if binary:
+            metrics_function = pyt_utils.function_wrapper_unsqueeze_1(metrics_function)
         result = metrics_function(preds, target, **self.kwargs)
         return formatter.format_output(result)

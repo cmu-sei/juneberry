@@ -5,7 +5,6 @@
       "kwargs": {
         "fqn": "sklearn.metrics.accuracy_score",
         "name": "accuracy_score",
-        "binary": false,
         "kwargs": {
           "normalize": false
         }

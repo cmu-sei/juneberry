@@ -51,7 +51,7 @@ local_labels = torch.load(local_labels_data_filename)
 
 metrics_mgr = mm.MetricsManager(training_metrics)
 
-metrics = metrics_mgr(local_labels, output)
+metrics = metrics_mgr(local_labels, output, binary = False)
 
 def approx(expected_val):
     return pytest.approx(expected_val, abs=5e-3)

@@ -87,7 +87,7 @@ class MetricsManager:
                 self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
 
     # TODO to work with brambox, can't have typing here; target, preds could be files, tensors, etc.
-    def __call__(self, target, preds):
+    def __call__(self, target, preds, binary):
         """
         Compute metrics given annotations and detections in dicts.
         :param anno: Annotations dict in COCO format
@@ -109,7 +109,7 @@ class MetricsManager:
                 # TODO if we have an fqn, we have to have a name
                 #   need to merge the Brambox / classification metrics ways of doing things
                 if "fqn" in entry.kwargs:
-                    results[entry.kwargs["name"]] = entry.metrics(target, preds)
+                    results[entry.kwargs["name"]] = entry.metrics(target, preds, binary)
                 else:
                     results[entry.fqcn] = entry.metrics(target, preds)
 
