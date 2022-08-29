@@ -50,7 +50,7 @@ class Metrics:
         self.kwargs = kwargs
 
 
-    def __call__(self, target, preds, binary):
+    def __call__(self, target, preds, binary=False):
         target, preds = formatter.format_input(target, preds)
         metrics_function = construct_instance(self.fqn, self.kwargs)
         if binary:

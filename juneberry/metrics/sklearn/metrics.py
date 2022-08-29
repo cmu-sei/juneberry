@@ -42,7 +42,7 @@ class Metrics:
         self.kwargs = kwargs
 
 
-    def __call__(self, target, preds, binary):
+    def __call__(self, target, preds, binary=False):
         y_true, y_pred = formatter.format_input(target, preds, binary)
         metrics_function = load_verify_fqn_function(self.fqn, { **{ "y_pred": [], "y_true": [] }, **self.kwargs })
         result = metrics_function(y_true, y_pred, **self.kwargs)

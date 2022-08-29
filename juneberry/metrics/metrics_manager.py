@@ -87,7 +87,7 @@ class MetricsManager:
                 self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
 
     # TODO to work with brambox, can't have typing here; target, preds could be files, tensors, etc.
-    def __call__(self, target, preds, binary):
+    def __call__(self, target, preds, binary=False):
         """
         Compute metrics given annotations and detections in dicts.
         :param anno: Annotations dict in COCO format

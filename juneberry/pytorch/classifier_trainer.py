@@ -206,7 +206,6 @@ class ClassifierTrainer(EpochTrainer):
         metrics_mgr = mm.MetricsManager(training_metrics)
         metrics = metrics_mgr(local_labels, output, self.dataset_config.is_binary)
 
-        # Compute and store loss and accuracy based on the provided functions
         loss = metrics["loss"]
         accuracy = metrics["accuracy"]
 
