@@ -154,17 +154,28 @@ def construct_instance(fq_name, kwargs: dict, optional_kwargs: dict = None):
     else:
         kwargs = dict(kwargs)
 
-    # Load the thing that makes the other callable
+    # Load the thing that makes the other callable. By default assume it is a function,
+    # and the thing we call and inspect is the same.
     module = importlib.import_module(module_path)
     try:
         direct_callable = getattr(module, leaf_part)
+        inspection_point = direct_callable
     except AttributeError as e:
         logger.error(f"Error when trying to load {leaf_part} from module path {module_path}")
         raise e
 
+    # Now, if this is NOT a function then we assume it is an object that we construct.
+    # Get the init dunder so we can inspect it
+    if not inspect.isfunction(inspection_point):
+        try:
+            inspection_point = getattr(direct_callable, "__init__")
+        except AttributeError as e:
+            logger.error(f"Error when trying to load get __init__ from non-function: {inspection_point}")
+            raise e
+
     # Get all the parameter names from the signature of the callable
     # and then add any optional kwargs if in the signature
-    add_optional_args(kwargs, optional_kwargs, direct_callable)
+    add_optional_args(kwargs, optional_kwargs, inspection_point)
 
     # Call the callable and get the callable
     return direct_callable(**kwargs)

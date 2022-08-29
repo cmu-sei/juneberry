@@ -544,7 +544,7 @@ class RuleMaker:
                            f"in the experiment config. Setting the output_filename to the default.")
             default_md_filename = self.experiment_manager.experiment_dir_path / "summary.md"
             logger.warning(f"  Setting 'output_filename' to {default_md_filename}")
-            report.kwargs.output_filename = str(default_md_filename)
+            report.kwargs.md_filename = str(default_md_filename)
             logger.warning(f"To avoid this warning in the future, add an md_filename to the kwargs in the "
                            f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()}")
 

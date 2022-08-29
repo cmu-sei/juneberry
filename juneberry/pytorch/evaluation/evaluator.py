@@ -220,8 +220,7 @@ class Evaluator(EvaluatorBase):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(
-                self.lab.profile, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
