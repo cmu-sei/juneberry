@@ -4,6 +4,7 @@
       "fqcn": "juneberry.metrics.sklearn.metrics.Metrics",
       "kwargs": {
         "fqn": "sklearn.metrics.accuracy_score",
+        "name": "accuracy_score",
         "binary": false,
         "kwargs": {
           "normalize": false
@@ -14,6 +15,7 @@
       "fqcn": "juneberry.metrics.torchmetrics.metrics.Metrics",
       "kwargs": {
         "fqn": "torchmetrics.functional.accuracy",
+        "name": "func_accuracy",
         "kwargs": {
           "top_k": 2
         }
@@ -23,6 +25,7 @@
       "fqcn": "juneberry.metrics.torchmetrics.metrics.Metrics",
       "kwargs": {
         "fqn": "torchmetrics.Accuracy",
+        "name": "obj_accuracy",
         "kwargs": {
           "top_k": 2
         }
@@ -32,6 +35,7 @@
       "fqcn": "juneberry.metrics.torchnn.metrics.Metrics",
       "kwargs": {
         "fqn": "torch.nn.CrossEntropyLoss",
+        "name": "loss",
         "kwargs": {}
       }
     }

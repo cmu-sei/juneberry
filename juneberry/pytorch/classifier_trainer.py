@@ -40,6 +40,7 @@ from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCrit
 import juneberry.data as jbdata
 import juneberry.filesystem as jbfs
 from juneberry.jb_logging import setup_logger
+import juneberry.metrics.metrics_manager as mm
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
 import juneberry.pytorch.data as pyt_data
@@ -201,9 +202,13 @@ class ClassifierTrainer(EpochTrainer):
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
+        training_metrics = self.model_config.training_metrics
+        metrics_mgr = mm.MetricsManager(training_metrics)
+        metrics = metrics_mgr(local_labels, output)
+
         # Compute and store loss and accuracy based on the provided functions
-        loss = self.loss_function(output, local_labels)
-        accuracy = self.accuracy_function(output, local_labels)
+        loss = metrics["loss"]
+        accuracy = metrics["accuracy"]
 
         return loss, accuracy
 

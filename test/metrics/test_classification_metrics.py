@@ -57,18 +57,18 @@ def approx(expected_val):
     return pytest.approx(expected_val, abs=5e-3)
 
 def test_torchmetrics_functional():
-    assert metrics["juneberry.metrics.torchmetrics.metrics.Metrics"]["torchmetrics.functional.accuracy"] == approx(0.6)
+    assert metrics["func_accuracy"] == approx(0.6)
 
 def test_torchmetrics_classbased():
-    assert metrics["juneberry.metrics.torchmetrics.metrics.Metrics"]["torchmetrics.Accuracy"] == approx(0.6)
+    assert metrics["obj_accuracy"] == approx(0.6)
 
 def test_torchnn():
     # not sure how to create correct tensor (tensor(2.1329, grad_fn=<NllLossBackward>) for testing
     # can compare data?
-    assert metrics["juneberry.metrics.torchnn.metrics.Metrics"]["torch.nn.CrossEntropyLoss"] == torch.tensor(2.1329)
+    assert metrics["loss"] == torch.tensor(2.1329)
     # assert metrics["juneberry.metrics.torchnn.metrics.Metrics"]["torch.nn.CrossEntropyLoss"].data == torch.tensor(2.1329)
     # assert torch.equal(metrics["juneberry.metrics.torchnn.metrics.Metrics"]["torch.nn.CrossEntropyLoss"].data, torch.tensor(2.1329))
 
 def test_sklearn_metrics():
-    assert metrics["juneberry.metrics.sklearn.metrics.Metrics"]["sklearn.metrics.accuracy_score"] == approx(10)
+    assert metrics["accuracy_score"] == approx(10)
 

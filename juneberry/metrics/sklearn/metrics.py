@@ -35,9 +35,11 @@ class Metrics:
 
     def __init__(self,
                  fqn: str,
+                 name: str,
                  binary: bool,
                  kwargs: Dict = None) -> None:
         self.fqn = fqn
+        self.name = name
         self.binary = binary
         self.kwargs = kwargs
 
