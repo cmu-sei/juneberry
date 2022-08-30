@@ -298,12 +298,11 @@ class ClassifierTrainer(EpochTrainer):
             self.lr_scheduler.step()
 
     def summarize_metrics(self, train, metrics) -> None:
-        if train:
-            self.history['loss'].append(float(np.mean(metrics['loss_list'])))
-            self.history['accuracy'].append(float(np.mean(metrics['accuracy_list'])))
-        else:
-            self.history['val_loss'].append(float(np.mean(metrics['loss_list'])))
-            self.history['val_accuracy'].append(float(np.mean(metrics['accuracy_list'])))
+        for k, v in metrics.items():
+            history_key = k[:-5]  # ends with "_list"
+            if not train:
+                history_key = f"val_{history_key}"
+            self.history[history_key].append(float(np.mean(metrics[k])))
 
     def end_epoch(self, tuning_mode: bool = False) -> Union[str, dict]:
         if self.lr_scheduler is not None:
