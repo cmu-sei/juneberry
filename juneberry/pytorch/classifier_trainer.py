@@ -59,8 +59,6 @@ class ClassifierTrainer(EpochTrainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         # Assigned during setup
-        self.loss_function = None
-        self.accuracy_function = None
         self.lr_scheduler = None
         self.optimizer = None
         self.evaluator = None
@@ -108,6 +106,9 @@ class ClassifierTrainer(EpochTrainer):
         self.history_key = None
         self.direction = None
         self.abs_tol = None
+
+        # Contains name and results for each metric
+        self.metrics = None
 
     # ==========================================================================
 
@@ -197,17 +198,22 @@ class ClassifierTrainer(EpochTrainer):
         self.setup_data_loaders()
         self.setup_model()
 
-        self.loss_function = pyt_utils.make_loss(self.pytorch_options, self.model, self.binary)
         self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
         self.lr_scheduler = pyt_utils.make_lr_scheduler(self.pytorch_options, self.optimizer, self.model_config.epochs)
-        self.accuracy_function = pyt_utils.make_accuracy(self.pytorch_options, self.binary)
         self.setup_acceptance_checker()
         if self.pytorch_options.lr_step_frequency == LRStepFrequency.BATCH:
             self.lr_step_frequency = LRStepFrequency.BATCH
 
         self.num_batches = len(self.training_iterable)
 
-        self.history = {'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': [], 'epoch_duration': [], 'lr': []}
+        self.metrics = self.model_config.training_metrics
+
+        for tm in self.metrics:
+            self.history[tm["kwargs"]["name"]] = []
+            self.history["val_" + tm["kwargs"]["name"]] = []
+
+        self.history['epoch_duration'] = []
+        self.history['lr'] = []
 
     def finish(self):
         super().finish()
@@ -218,6 +224,8 @@ class ClassifierTrainer(EpochTrainer):
     # ==========================================================================
 
     def start_epoch_phase(self, train: bool):
+        result = {}
+
         if train:
             self.model.train()
             torch.set_grad_enabled(True)
@@ -233,12 +241,18 @@ class ClassifierTrainer(EpochTrainer):
 
         # In distributed training, each process will have a different loss/accuracy value. These lists are used to
         # collect the values from each process, so we need one tensor in the list for every process in the "world".
+        # TODO can we generalize this? loss and accuracy have different types, how can you know the type if
+        #   you don't know the metric beforehand?
         if self.distributed:
             self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
             self.training_accuracy_list = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
 
         # Start off with empty metrics
-        return {'losses': [], 'accuracies': []}
+
+        for m in self.metrics:
+            result[m["kwargs"]["name"] + "_list"]  = []
+
+        return result
 
     def process_batch(self, train: bool, data, targets):
 
@@ -248,18 +262,16 @@ class ClassifierTrainer(EpochTrainer):
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
-        training_metrics = self.model_config.training_metrics
-        metrics_mgr = mm.MetricsManager(training_metrics)
+        metrics_mgr = mm.MetricsManager(self.metrics)
         metrics = metrics_mgr(local_labels, output, self.dataset_config.is_binary)
 
-        loss = metrics["loss"]
-        accuracy = metrics["accuracy"]
-
-        return loss, accuracy
+        return metrics
 
     def update_metrics(self, train: bool, metrics, results) -> None:
         # Unpack the results we returned on process batch
-        loss, accuracy = results
+        # TODO loss, accuracy still hardcoded (plugins must be loss, accuracy)
+        loss = results["loss"]
+        accuracy = results["accuracy"]
 
         # If we're doing distributed training, the process is a little different.
         if self.distributed:
@@ -276,19 +288,24 @@ class ClassifierTrainer(EpochTrainer):
             dist.all_gather(self.training_accuracy_list, acc_tensor)
 
             # Take the value from each tensor in the tensor list and place it in the corresponding metric.
+            # TODO do something about training_loss / training_accuracy lists
+            #   for now not testing distributed but revisit
             for tensor in self.training_loss_list:
-                metrics['losses'].append(tensor.item())
+                metrics['loss_list'].append(tensor.item())
             for tensor in self.training_accuracy_list:
-                metrics['accuracies'].append(tensor.item())
+                metrics['accuracy_list'].append(tensor.item())
             return
 
         # Record the loss/accuracy values in the metrics dictionary.
-        metrics['losses'].append(loss.item())
-        metrics['accuracies'].append(accuracy)
+        # TODO how do I know the type of the results (loss is a Tensor, accuracy is a number) ?!
+        #   do I need to?
+        metrics['loss_list'].append(loss.item())
+        metrics['accuracy_list'].append(accuracy)
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
-        loss, _ = results
+        # TODO hardcoded loss here
+        loss = results["loss"]
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -299,11 +316,11 @@ class ClassifierTrainer(EpochTrainer):
 
     def summarize_metrics(self, train, metrics) -> None:
         if train:
-            self.history['loss'].append(float(np.mean(metrics['losses'])))
-            self.history['accuracy'].append(float(np.mean(metrics['accuracies'])))
+            self.history['loss'].append(float(np.mean(metrics['loss_list'])))
+            self.history['accuracy'].append(float(np.mean(metrics['accuracy_list'])))
         else:
-            self.history['val_loss'].append(float(np.mean(metrics['losses'])))
-            self.history['val_accuracy'].append(float(np.mean(metrics['accuracies'])))
+            self.history['val_loss'].append(float(np.mean(metrics['loss_list'])))
+            self.history['val_accuracy'].append(float(np.mean(metrics['accuracy_list'])))
 
     def end_epoch(self, tuning_mode: bool = False) -> Union[str, dict]:
         if self.lr_scheduler is not None:
