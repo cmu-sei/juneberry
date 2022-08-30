@@ -104,8 +104,6 @@ class MetricsManager:
             # For each metrics plugin we've created, use the annotations and
             # detections to compute the metrics and add to our results.
             for entry in self.metrics_entries:
-                if not entry.fqcn in results:
-                    results[entry.fqcn] = {}
                 # TODO if we have an fqn, we have to have a name
                 #   need to merge the Brambox / classification metrics ways of doing things
                 if "fqn" in entry.kwargs:

@@ -97,8 +97,7 @@ class ClassifierTrainer(EpochTrainer):
         self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
 
         # These properties are used for DistributedDataParallel (if necessary)
-        self.training_loss_list = None
-        self.training_accuracy_list = None
+        self.training_list = {}
 
         self.lr_step_frequency = LRStepFrequency.EPOCH
 
@@ -234,14 +233,6 @@ class ClassifierTrainer(EpochTrainer):
             if isinstance(self.evaluation_iterable.dataset, pyt_utils.EpochDataset):
                 self.evaluation_iterable.dataset.set_epoch(self.epoch)
 
-        # In distributed training, each process will have a different loss/accuracy value. These lists are used to
-        # collect the values from each process, so we need one tensor in the list for every process in the "world".
-        # TODO can we generalize this? loss and accuracy have different types, how can you know the type if
-        #   you don't know the metric beforehand?
-        if self.distributed:
-            self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
-            self.training_accuracy_list = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
-
         for m in self.metrics_plugins:
             result[m["kwargs"]["name"] + "_list"] = []
 
@@ -261,39 +252,38 @@ class ClassifierTrainer(EpochTrainer):
         return metrics
 
     def update_metrics(self, train: bool, metrics, results) -> None:
-        # Unpack the results we returned on process batch
-        # TODO loss, accuracy still hardcoded (plugins must be loss, accuracy)
-        loss = results["loss"]
-        accuracy = results["accuracy"]
-
+        tensor_results = {}
         # If we're doing distributed training, the process is a little different.
-        if self.distributed:
-            # Convert the accuracy to a tensor, so it can be gathered.
-            acc_tensor = torch.from_numpy(np.asarray(accuracy, dtype=float)).to(self.device)
 
-            # Make sure the loss can be gathered
-            loss_on_device = loss.to(self.device)
+        # In distributed training, each process will have a different loss/accuracy value. These lists are used to
+        # collect the values from each process, so we need one tensor in the list for every process in the "world".
+        # TODO I need to know the value type before initializing the training list. I don't like it.
+        if self.distributed:
+            for k, v in results.items():
+                if torch.is_tensor(v):
+                    if k not in self.training_list:
+                        self.training_list[k] = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
+                    tensor_results[k] = results[k].to(self.device)
+                else:
+                    if k not in self.training_list:
+                        self.training_list[k] = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
+                    tensor_results[k] = torch.from_numpy(np.asarray(results[k], dtype=float)).to(self.device)
 
             # Create a barrier to wait for all processes to reach this point. Once they do, gather up
             # the loss and accuracy from each process and place it in the appropriate tensor list.
             dist.barrier()
-            dist.all_gather(self.training_loss_list, loss_on_device)
-            dist.all_gather(self.training_accuracy_list, acc_tensor)
+            for k, v in tensor_results.items():
+                dist.all_gather(self.training_list[k], tensor_results[k])
 
             # Take the value from each tensor in the tensor list and place it in the corresponding metric.
-            # TODO do something about training_loss / training_accuracy lists
-            #   for now not testing distributed but revisit
-            for tensor in self.training_loss_list:
-                metrics['loss_list'].append(tensor.item())
-            for tensor in self.training_accuracy_list:
-                metrics['accuracy_list'].append(tensor.item())
+            for k, v in self.training_list.items():
+                for val in self.training_list[k]:
+                    metrics[f"{k}_list"].append(val.item())
             return
 
         # Record the loss/accuracy values in the metrics dictionary.
-        # TODO how do I know the type of the results (loss is a Tensor, accuracy is a number) ?!
-        #   do I need to?
-        metrics['loss_list'].append(loss.item())
-        metrics['accuracy_list'].append(accuracy)
+        for k, v in results.items():
+            metrics[f"{k}_list"].append(results[k].item())
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
