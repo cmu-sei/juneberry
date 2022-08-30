@@ -45,6 +45,7 @@ import numpy as np
 
 import juneberry.config.coco_utils as coco_utils
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
@@ -56,6 +57,7 @@ from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
 import juneberry.mmdetection.utils as mmd_utils
 import juneberry.pytorch.processing as processing
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +79,62 @@ class Evaluator(EvaluatorBase):
         self.eval_options = eval_options
 
     # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+
+        common_files = [eval_dir_mgr.get_manifest_path(),
+                        eval_dir_mgr.get_platform_config(suffix='.py')]
+
+        if dryrun:
+            return common_files
+        else:
+            return common_files + [eval_dir_mgr.get_detections_path(),
+                                   eval_dir_mgr.get_detections_anno_path(),
+                                   eval_dir_mgr.get_metrics_path(),
+                                   eval_dir_mgr.get_sample_detections_dir(),
+                                   eval_dir_mgr.root]
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.root.parent]
+        else:
+            return [eval_dir_mgr.root.parent]
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.bbox['mAP'], "mAP"
+
+    # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
         self.obtain_model()
@@ -145,10 +202,15 @@ class Evaluator(EvaluatorBase):
 
         # Similar to trainer using the predefined model architecture, but this time use the
         # training output instead of the mmdetection trained checkpoint.
-        model_path = self.model_manager.get_pytorch_model_path()
+        model_path = self.model_manager.get_model_path(self.get_platform_defs())
         if not model_path.exists():
-            logger.error(f"Trained model {model_path} does not exist. EXITING.")
-            sys.exit(-1)
+            if self.dryrun:
+                logger.warning(f"{model_path} does not currently exist. "
+                               f"The model would need to be trained prior to evaluation.")
+                logger.warning(f"This dryrun could not test loading the model.")
+            else:
+                logger.error(f"Trained model {model_path} does not exist. Exiting.")
+                sys.exit(-1)
         # This does NOT actually get the file loaded.
         cfg.load_from = str(model_path.resolve())
 
@@ -206,16 +268,17 @@ class Evaluator(EvaluatorBase):
         model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
         model.CLASSES = self.dataset.CLASSES
 
-        # The "load_from" does not actually load the values! WE MUST do this.
-        checkpoint = load_checkpoint(model, cfg.load_from, map_location='cpu')
+        if not self.dryrun:
+            # The "load_from" does not actually load the values! WE MUST do this.
+            checkpoint = load_checkpoint(model, cfg.load_from, map_location='cpu')
 
-        # Right now we only support single CPU/GPU.
-        # NOTE: If we are in CPU mode (not GPUs) this just seems to figure it out by itself.
-        # So, we just always use dataparallel with a device of 0.
-        # TODO: See what happens if we do NOT use MMDataParallel in CPU mode.
-        # if self.num_gpus == 1:
-        #     self.model = MMDataParallel(model, device_ids=[0])
-        self.model = MMDataParallel(model, device_ids=[0])
+            # Right now we only support single CPU/GPU.
+            # NOTE: If we are in CPU mode (not GPUs) this just seems to figure it out by itself.
+            # So, we just always use dataparallel with a device of 0.
+            # TODO: See what happens if we do NOT use MMDataParallel in CPU mode.
+            # if self.num_gpus == 1:
+            #     self.model = MMDataParallel(model, device_ids=[0])
+            self.model = MMDataParallel(model, device_ids=[0])
 
     def evaluate_data(self) -> None:
         self.raw_output = single_gpu_test(model=self.model,

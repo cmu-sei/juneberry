@@ -99,7 +99,7 @@ class Lab:
         :param tensorboard: OPTIONAL: tensorboard directory
         :param profile_name: OPTIONAL: Name of the profile to use.
         :param model_zoo: OPTIONAL: Model zoo url.
-        :param cache_path: OPTIONAL: Path to the cache directory.
+        :param cache: OPTIONAL: Path to the cache directory.
         :return:
         """
         errors = 0
@@ -141,9 +141,9 @@ class Lab:
         self._data_roots[dr_key] = data_root
 
     @staticmethod
-    def model_manager(model_name: str, model_version=None) -> jbfs.ModelManager:
+    def model_manager(model_name: str) -> jbfs.ModelManager:
         """ :return: The ModelManager for this model. """
-        return jbfs.ModelManager(model_name, model_version)
+        return jbfs.ModelManager(model_name)
 
     @staticmethod
     def experiment_manager(experiment_name: str) -> jbfs.ExperimentManager:
@@ -202,8 +202,8 @@ class Lab:
         """
         return self.ws_config.get_profile(self.profile_name, model_name)
 
-    def save_model_config(self, model_config, model_name, model_version=None, ws_key='default'):
-        mm = self.model_manager(model_name, model_version)
+    def save_model_config(self, model_config, model_name, ws_key='default'):
+        mm = self.model_manager(model_name)
         ws = self.workspace(ws_key)
 
         model_dir_path = ws / mm.get_model_dir()

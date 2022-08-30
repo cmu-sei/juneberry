@@ -28,7 +28,7 @@ import juneberry.evaluation.utils as jb_eval_utils
 import juneberry.filesystem as jbfs
 import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
 from juneberry.pytorch.evaluation.evaluator import Evaluator
-
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -67,12 +67,14 @@ class PyTorchEvaluationOutput:
         # Perform the common eval output processing steps for a classifier.
         jb_eval_utils.prepare_classification_eval_output(evaluator)
 
-        # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_pytorch_model_path())
+        # Calculate the hash of the model that was used to conduct the evaluation if we have a serialized one
+        model_path = evaluator.model_manager.get_model_path(PyTorchPlatformDefinitions())
+        if model_path.exists():
+            evaluated_model_hash = jbfs.generate_file_hash(model_path)
 
-        # If the model Juneberry trained the model, a hash would have been calculated after training.
-        # Compare that hash (if it exists) to the hash of the model being evaluated.
-        jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
+            # If the Juneberry trained the model, a hash would have been calculated after training.
+            # Compare that hash (if it exists) to the hash of the model being evaluated.
+            jb_eval_utils.verify_model_hash(evaluator, evaluated_model_hash)
 
         # If requested, get the top K classes predicted for each input.
         if evaluator.top_k:

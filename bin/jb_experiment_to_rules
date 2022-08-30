@@ -27,14 +27,17 @@
 import argparse
 import json
 import logging
-from pathlib import Path
 import sys
+
+from pathlib import Path
 
 from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig
 from juneberry.config.report import ReportConfig
 from juneberry.config.rule_list import RuleListBuilder
 from juneberry.filesystem import ExperimentManager, ModelManager
+import juneberry.loader as jb_loader
+from juneberry.reporting.summary import REPORT_FILES_DIRNAME
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +70,20 @@ class RuleMaker:
 
     def add_training(self):
         for model in self.experiment_config.models:
+            # If they don't want this trained, then we are done.
+            if not model.train:
+                continue
+
             model_mgr = ModelManager(model.name)
             model_config = ModelConfig.load(model_mgr.get_model_config())
+
+            # Get the class of the trainer so we know what the outputs are
+            trainer_class = jb_loader.load_class(model_config.trainer.fqcn)
 
             # Training rules
             workflow = self.builder.get_workflow("main")
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
-            outputs = model_mgr.get_training_output_list()
+            outputs = trainer_class.get_training_output_files(model_mgr=model_mgr)
             command = [JB_TRAIN_COMMAND, model_mgr.model_name]
 
             # Add the "--onnx" option to jb_train if an ONNX model was requested.
@@ -81,7 +91,7 @@ class RuleMaker:
                 command.append("--onnx")
 
             doc = " ".join([str(x) for x in command])
-            clean_extras = model_mgr.get_training_clean_extras_list()
+            clean_extras = trainer_class.get_training_clean_extras(model_mgr=model_mgr)
             requirements = []
 
             # Add a temporary property for now
@@ -90,10 +100,10 @@ class RuleMaker:
             # Dry run rules
             workflow = self.builder.get_workflow("dryrun")
             inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path]
-            outputs = model_mgr.get_dry_run_output_list()
+            outputs = trainer_class.get_training_output_files(model_mgr=model_mgr, dryrun=True)
             command = [JB_TRAIN_COMMAND, model_mgr.model_name, '--dryrun']
             doc = " ".join([str(x) for x in command])
-            clean_extras = model_mgr.get_dry_run_clean_extras_list()
+            clean_extras = trainer_class.get_training_clean_extras(model_mgr=model_mgr, dryrun=True)
             requirements = []
 
             # Add a temporary property for now
@@ -109,15 +119,18 @@ class RuleMaker:
                 model_mgr = ModelManager(tuning_run.model)
                 model_config = ModelConfig.load(model_mgr.get_model_config())
 
+                # Get the class of the tuner so we know what the outputs are.
+                tuner_class = jb_loader.load_class('juneberry.tuning.tuner.Tuner')
+
                 # Tuning rules
                 workflow = self.builder.get_workflow("main")
                 inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
                           tuning_run.tuning_config]
-                outputs = model_mgr.get_tuning_output_list()
+                outputs = tuner_class.get_tuning_output_files(model_mgr=model_mgr)
                 command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config]
 
                 doc = " ".join([str(x) for x in command])
-                clean_extras = model_mgr.get_tuning_clean_extras_list()
+                clean_extras = tuner_class.get_tuning_clean_extras(model_mgr=model_mgr)
                 requirements = []
 
                 # Add a temporary property for now
@@ -128,10 +141,10 @@ class RuleMaker:
                 workflow = self.builder.get_workflow("dryrun")
                 inputs = [model_mgr.get_model_config(), model_config.training_dataset_config_path,
                           tuning_run.tuning_config]
-                outputs = model_mgr.get_tuning_dryrun_output_list()
+                outputs = tuner_class.get_tuning_output_files(model_mgr=model_mgr, dryrun=True)
                 command = [JB_TUNE_COMMAND, model_mgr.model_name, tuning_run.tuning_config, '--dryrun']
                 doc = " ".join([str(x) for x in command])
-                clean_extras = model_mgr.get_tuning_dryrun_clean_extras_list()
+                clean_extras = tuner_class.get_tuning_clean_extras(model_mgr=model_mgr, dryrun=True)
                 requirements = []
 
                 # Add a temporary property for now
@@ -190,11 +203,15 @@ class RuleMaker:
         return groups
 
     @staticmethod
-    def aggregate_outputs(model_mgr, dataset_paths):
+    def aggregate_outputs(eval_class, model_mgr, dataset_paths, extras: bool = False, dryrun: bool = False):
         all_outs = set()
         for ds_path in dataset_paths:
-            for x in model_mgr.get_evaluation_output_list(ds_path):
-                all_outs.add(str(x))
+            if extras:
+                for x in eval_class.get_eval_clean_extras(model_mgr, ds_path, dryrun=dryrun):
+                    all_outs.add(str(x))
+            else:
+                for x in eval_class.get_eval_output_files(model_mgr, ds_path, dryrun=dryrun):
+                    all_outs.add(str(x))
         return sorted(all_outs)
 
     def add_eval(self):
@@ -202,6 +219,8 @@ class RuleMaker:
 
         for model in self.experiment_config.models:
             model_mgr = ModelManager(model.name)
+            model_config = ModelConfig.load(model_mgr.get_model_config())
+            eval_class = jb_loader.load_class(model_config.evaluator.fqcn)
 
             workflow = self.builder.get_workflow("main")
             """
@@ -216,9 +235,16 @@ class RuleMaker:
                 for test_group in test_partitions:
                     test = test_group[0]
                     dataset_paths = [x.dataset_path for x in test_group]
-                    inputs = [model_mgr.get_model_path(), *dataset_paths]
-                    outputs = self.aggregate_outputs(model_mgr, dataset_paths)
+                    if model.train:
+                        inputs = [model_mgr.get_model_path(eval_class.get_platform_defs()), test.dataset_path]
+                    else:
+                        # If the model isn't being trained, then a model file doesn't have to exist.
+                        # The model architecture can create a fully functional pretrained model from the
+                        # underlying platform such as torchvision pretrained models.
+                        inputs = [test.dataset_path]
+                    outputs = self.aggregate_outputs(eval_class, model_mgr, dataset_paths)
                     command = [JB_EVALUATE_COMMAND, model_mgr.model_name, *dataset_paths]
+
                     if test.classify:
                         command.extend(["--topK", test.classify])
                     if test.use_train_split:
@@ -229,10 +255,47 @@ class RuleMaker:
                     if model.maximum_evaluations is not None and model.maximum_evaluations != 1:
                         command.append('--skip-exists')
                     doc = " ".join([str(x) for x in command])
-                    clean_extras = model_mgr.get_predictions_clean_extras_list()
-                    requirements = [model['train_rule_id']]
+                    clean_extras = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, extras=True)
+                    if 'train_rule_id' in model:
+                        requirements = [model['train_rule_id']]
+                    else:
+                        requirements = []
 
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+                    # Dry run rule
+                    workflow = self.builder.get_workflow("dryrun")
+                    if model.train:
+                        inputs = [test.dataset_path]
+                    else:
+                        # If the model isn't being trained, then a model file doesn't have to exist.
+                        # The model architecture can create a fully functional pretrained model from the
+                        # underlying platform such as torchvision pretrained models.
+                        inputs = [test.dataset_path]
+                    outputs = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, dryrun=True)
+
+                    command = [JB_EVALUATE_COMMAND, model_mgr.model_name, *dataset_paths, '--dryrun']
+                    if test.classify:
+                        command.extend(["--topK", test.classify])
+                    if test.use_train_split:
+                        command.append('--useTrainSplit')
+                    if test.use_val_split:
+                        command.append('--useValSplit')
+                    # If they allow more than one, add the skip exists switch
+                    if model.maximum_evaluations is not None and model.maximum_evaluations != 1:
+                        command.append('--skip-exists')
+
+                    doc = " ".join([str(x) for x in command])
+                    clean_extras = self.aggregate_outputs(eval_class, model_mgr, dataset_paths, extras=True,
+                                                          dryrun=True)
+                    if 'train_rule_id' in model:
+                        requirements = [model['train_rule_id']]
+                    else:
+                        requirements = []
+
+                    # Add a temporary property for now
+                    model['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                                requirements)
 
                     # Save the rule id and file for the report
                     eval_dir_mgr = model_mgr.get_eval_dir_mgr(test.dataset_path)
@@ -481,7 +544,7 @@ class RuleMaker:
                            f"in the experiment config. Setting the output_filename to the default.")
             default_md_filename = self.experiment_manager.experiment_dir_path / "summary.md"
             logger.warning(f"  Setting 'output_filename' to {default_md_filename}")
-            report.kwargs.output_filename = str(default_md_filename)
+            report.kwargs.md_filename = str(default_md_filename)
             logger.warning(f"To avoid this warning in the future, add an md_filename to the kwargs in the "
                            f"{report.fqcn} Report found in {self.experiment_manager.get_experiment_config()}")
 
@@ -504,6 +567,11 @@ class RuleMaker:
 
         # The md_filename for this report is a product of this process, so add it to the list of outputs.
         outputs.append(report.kwargs.md_filename)
+
+        # Include the location of the directory which may contain files attached to the summary in the list
+        # of outputs.
+        summary_files_dir = Path(report.kwargs.md_filename).parent / REPORT_FILES_DIRNAME
+        outputs.append(str(summary_files_dir))
 
         # The CSV file is optional, so only adjust the filename (potentially) if a csv_filename was provided.
         if "csv_filename" in report.kwargs:
@@ -602,9 +670,9 @@ class RuleMaker:
         :return: Nothing.
         """
         # Set up some lists to track some information for pydoit.
-        inputs = []
+        inputs = [str(report_json_path)]
         requirements = []
-        outputs = [str(report_json_path)]
+        outputs = []
 
         # Create the individual JSON file for this report and add the rule to the workflow.
         self._finalize_report(report, report_json_path, inputs, requirements, outputs)
@@ -669,8 +737,18 @@ class RuleMaker:
 
         clean_extras = []
 
-        # Get the workflow and add the rule.
+        # Add a rule to the main workflow.
         workflow = self.builder.get_workflow("main")
+        workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
+
+        # Add a rule to the dryrun workflow.
+        workflow = self.builder.get_workflow("dryrun")
+
+        # The report dependencies probably don't exist for the dryrun, so clear out the inputs.
+        inputs = []
+
+        command = [JB_REPORT_COMMAND, '-f', str(report_file_path), '-l', str(experiment_log_dir), '--dryrun']
+        doc = " ".join([str(x) for x in command])
         workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
     # ==============================================================================================

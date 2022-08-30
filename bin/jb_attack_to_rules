@@ -34,6 +34,7 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.rule_list import RuleListBuilder
 import juneberry.filesystem as jbfs
+import juneberry.loader as jb_loader
 import juneberry.scripting as jbscripting
 
 logger = logging.getLogger("juneberry.jb_attack_to_rules")
@@ -243,12 +244,15 @@ class AttackMaker:
         # Now that the model config has the correct training dataset, save the model config.
         model_config.save(self.attack_manager.get_private_model_config(disjoint=disjoint))
 
+        # Get the class of the trainer so we know what the outputs are.
+        trainer_class = jb_loader.load_class(model_config.trainer.fqcn)
+
         # Fill out the components for building a rule to train the private model.
         inputs = [model_mgr.get_model_config(), dataset_config_path]
-        outputs = [str(x) for x in model_mgr.get_training_output_list()]
+        outputs = trainer_class.get_training_output_files(model_mgr=model_mgr)
         command = [JB_TRAIN_COMMAND, model_name]
         doc = f"{JB_TRAIN_COMMAND} {model_name} with {private_model_arg} and training watermarks."
-        clean_extras = model_mgr.get_training_clean_extras_list()
+        clean_extras = trainer_class.get_training_clean_extras(model_mgr=model_mgr)
         requirements = []
 
         # Add the rule for training the private model to the workflow.
@@ -418,12 +422,15 @@ class AttackMaker:
             # Save the ModelConfig for the shadow model to the shadow model directory.
             shadow_model_cfg.save(shadow_model_mgr.get_model_config())
 
+            # Get the class of the trainer so we know what the outputs are.
+            trainer_class = jb_loader.load_class(shadow_model_cfg.trainer.fqcn)
+
             # Fill out the components for building a rule to train the shadow model.
             inputs = [shadow_model_mgr.get_model_config(), training_dataset_path]
-            outputs = shadow_model_mgr.get_training_output_list()
+            outputs = trainer_class.get_training_output_files(model_mgr=shadow_model_mgr)
             command = [JB_TRAIN_COMMAND, shadow_model_name]
             doc = f"{JB_TRAIN_COMMAND} {shadow_model_name} with {selection}."
-            clean_extras = shadow_model_mgr.get_training_clean_extras_list()
+            clean_extras = trainer_class.get_training_clean_extras(model_mgr=shadow_model_mgr)
             requirements = []
 
             # Add a rule to train the shadow model to the workflow.
@@ -537,12 +544,15 @@ class AttackMaker:
         # Save the meta model config file (with the updated dataset config values) to the meta model directory.
         meta_model_cfg.save(meta_model_mgr.get_model_config())
 
+        # Get the class of the trainer so we know what the outputs are.
+        trainer_class = jb_loader.load_class(meta_model_cfg.trainer.fqcn)
+
         # Fill out the components for building a rule to train the meta model.
         inputs = [str(meta_model_mgr.get_model_config()), train_cfg_dest, val_cfg_dest]
-        outputs = meta_model_mgr.get_training_output_list()
+        outputs = trainer_class.get_training_output_files(model_mgr=meta_model_mgr)
         command = [JB_TRAIN_COMMAND, meta_model_name]
         doc = f"{JB_TRAIN_COMMAND} {meta_model_name}"
-        clean_extras = meta_model_mgr.get_training_clean_extras_list()
+        clean_extras = trainer_class.get_training_clean_extras(model_mgr=meta_model_mgr)
         requirements = []
 
         # Add the rule for training the meta model to the workflow.

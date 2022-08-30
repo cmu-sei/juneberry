@@ -552,7 +552,7 @@ def generate_model_configs(experiment_outline: ExperimentOutline) -> list:
     """
 
     # Load the baseline model config
-    model_manager = ModelManager(experiment_outline.baseline_config, "")
+    model_manager = ModelManager(experiment_outline.baseline_config)
     baseline_config = ModelConfig.load(model_manager.get_model_config())
 
     # Now we're going to do some work with the variables in the experiment.
@@ -586,7 +586,7 @@ def generate_model_configs(experiment_outline: ExperimentOutline) -> list:
         # combo name for those changes, and create a model manager for this combo.
         config_changes = dict(zip(variable_names, combo))
         combo_name = get_combo_name(config_changes, variables)
-        model_manager = ModelManager(os.path.join(experiment_outline.experiment_name, combo_name), "")
+        model_manager = ModelManager(os.path.join(experiment_outline.experiment_name, combo_name))
         model_dir = model_manager.get_model_dir()
 
         # Create the directory for this combination if it doesn't exist.

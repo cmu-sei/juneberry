@@ -75,7 +75,7 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     :param lab: The Juneberry Lab in which this operation occurs.
     :param ds_cfg: The data set config that describes the data.
     :param model_cfg: A Juneberry ModelConfig object that may contain transforms and validation options.
-    :param data_lst: The data list to load. Pre-shuffled.
+    :param data_lst: The data list to load, shuffled.
     :param split_lst: The list of data to load that was split from the main dataset.
     :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
     :param collate_fn: Function that controls how samples are collated into batches.
@@ -105,7 +105,7 @@ def make_eval_data_loader(lab, dataset_config, model_config, data_lst, *,
     :param lab: The Juneberry Lab in which this operation occurs.
     :param dataset_config: The data set config that describes the data.
     :param model_config: A Juneberry ModelConfig object that may contain transforms and validation options.
-    :param data_lst: The data list to load. Pre-shuffled.
+    :param data_lst: The data list to load, shuffled.
     :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
     :param collate_fn: Function that controls how samples are collated into batches.
     :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used; None for no sampler
@@ -123,12 +123,11 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
                      *, no_paging=False, collate_fn=None, sampler_args=None):
     """
     A convenience method to:
-    1) Shuffle the data
-    2) Construct the appropriate pytorch data set with a transform manager
-    3) Wrap the data set in a data loader.
+    1) Construct the appropriate pytorch data set with a transform manager
+    2) Wrap the data set in a data loader.
     :param lab: The Juneberry Lab in which this operation occurs.
     :param dataset_config: The data set configuration file used to construct the data list.
-    :param data_list: The data list to load. Pre-shuffled.
+    :param data_list: The data list to load, shuffled.
     :param transform_manager: A transform manager to use.
     :param batch_size: The batch size.
     :param no_paging: Should the loader not page data
@@ -146,18 +145,14 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
 def manifest_to_pytorch_dataset(dataset_config: DatasetConfig, data_list, transform_manager, *, no_paging=False):
     """
     Wraps the data_list in a Juneberry specific custom pytorch dataset:
-    1) Shuffle the data
-    2) Construct a transform manager (if transforms is not None)
-    3) Construct the appropriate dataset
+    1) Construct a transform manager (if transforms is not None)
+    2) Construct the appropriate dataset
     :param dataset_config: The dataset configuration file used to construct the data list.
-    :param data_list: The data list to load. Pre-shuffled.
+    :param data_list: The data list to load, shuffled.
     :param transform_manager: A transform manager to add to the data set.
     :param no_paging: Boolean indicating if paging should be disabled.
     :return: PyTorch dataset
     """
-    logger.info(f"...shuffling data...")
-    random.shuffle(data_list)
-
     if dataset_config.data_type == DataType.IMAGE and dataset_config.image_data.task_type == TaskType.CLASSIFICATION:
         logger.info(f"...constructing ImageDataset...")
         dataset = ImageDataset(data_list, transform_manager, no_paging)

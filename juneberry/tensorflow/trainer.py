@@ -39,10 +39,12 @@ import juneberry.filesystem as jbfs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
+from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.plotting
 import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
+from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 import juneberry.trainer
 
 logger = logging.getLogger(__name__)
@@ -88,7 +90,52 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         # The values generated during train.
         self.history = None
 
-    # ==========================
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return TensorFlowPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_training_output_files(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the training directory. This list should contain ONLY
+        files or directories that were produced by the training command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_model_summary_path(),
+                    model_mgr.get_dryrun_imgs_dir(),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path()]
+        else:
+            return [model_mgr.get_model_path(cls.get_platform_defs()),
+                    model_mgr.get_model_path(ONNXPlatformDefinitions()),
+                    model_mgr.get_training_data_manifest_path(),
+                    model_mgr.get_validation_data_manifest_path(),
+                    model_mgr.get_training_out_file(),
+                    model_mgr.get_training_summary_plot()]
+
+    @classmethod
+    def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+        """
+        Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_train_root_dir()]
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================================================================
 
     def dry_run(self) -> None:
         # Set the seeds
@@ -111,7 +158,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         self.setup_model()
 
         # TODO: Change "get_pytorch_model_summary_path"
-        tf_utils.save_summary(self.model, self.model_manager.get_pytorch_model_summary_path())
+        tf_utils.save_summary(self.model, self.model_manager.get_model_summary_path())
 
     # ==========================
 
@@ -178,7 +225,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
 
         history_to_results(history, self.results)
 
-        out_model_filename = self.model_manager.get_tensorflow_model_path()
+        out_model_filename = self.model_manager.get_model_path(self.get_platform_defs())
 
         # Both the native and onnx output formats require this version of the model file to exist.
         self.model.save(str(out_model_filename))
@@ -190,7 +237,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         if self.onnx:
             model = tf.keras.models.load_model(out_model_filename)
             tf.saved_model.save(model, "tmp_model")
-            onnx_outfile = self.model_manager.get_onnx_model_path()
+            onnx_outfile = self.model_manager.get_model_path(ONNXPlatformDefinitions())
             logger.info(f"Saving ONNX version of the model to {onnx_outfile}")
             os.system(f"python -m tf2onnx.convert --saved-model tmp_model --output {onnx_outfile}")
             self.results['results']['onnx_model_hash'] = jbfs.generate_file_hash(onnx_outfile)

@@ -55,6 +55,7 @@ from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 import juneberry.detectron2.data as dt2_data
 from juneberry.detectron2.loss_evaluator import DT2LossEvaluator
+from juneberry.detectron2.utils import DT2PlatformDefinitions
 from juneberry.filesystem import generate_file_hash, ModelManager
 from juneberry.jb_logging import log_banner, setup_logger
 from juneberry.lab import Lab
@@ -113,17 +114,63 @@ class Detectron2Trainer(Trainer):
         self.output_dir = self.model_manager.get_train_scratch_path()
         self.final_model_path = self.output_dir / 'model_final.pth'
 
+    # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return DT2PlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_training_output_files(cls, model_mgr: ModelManager, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the training directory. This list should contain ONLY
+        files or directories that were produced by the training command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The files to clean from the training directory.
+        """
+        common_files = [model_mgr.get_training_data_manifest_path(),
+                        model_mgr.get_validation_data_manifest_path(),
+                        model_mgr.get_platform_training_config(cls.get_platform_defs()),
+                        model_mgr.get_train_scratch_path()]
+
+        if dryrun:
+            return common_files
+        else:
+            return common_files + [model_mgr.get_model_path(cls.get_platform_defs()),
+                                   model_mgr.get_training_out_file(),
+                                   model_mgr.get_training_summary_plot()]
+
+    @classmethod
+    def get_training_clean_extras(cls, model_mgr: ModelManager, dryrun: bool = False):
+        """
+        Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        if dryrun:
+            return [model_mgr.get_train_root_dir()]
+        else:
+            return [model_mgr.get_train_root_dir()]
+
+    # ==========================================================================
+
     def dry_run(self) -> None:
         self.node_setup()
         self.setup()
 
-    # ==========================
+    # ==========================================================================
 
     def node_setup(self) -> None:
         log_banner(logger, "Node Setup")
 
         # Make sure we have the appropriate directory structure
-        self.model_manager.setup()
+        self.model_manager.setup_training()
 
         # NOTE: This isn't going to use proper logging
         train_list, val_list = jb_data.make_split_metadata_manifest_files(
@@ -303,8 +350,9 @@ class Detectron2Trainer(Trainer):
             logger.info(f"Only the rank 0 process is responsible for saving the model file.")
 
         else:
-            logger.info(f"Renaming {self.final_model_path} to {self.model_manager.get_pytorch_model_path()}")
-            self.final_model_path.rename(self.model_manager.get_pytorch_model_path())
+            new_path = self.model_manager.get_model_path(self.get_platform_defs())
+            logger.info(f"Renaming {self.final_model_path} to {new_path}")
+            self.final_model_path.rename(new_path)
 
             # Retrieve the metrics from the dt2 metrics log.
             if self.model_config.epochs > 0:
@@ -312,7 +360,7 @@ class Detectron2Trainer(Trainer):
                 plot_training_summary_chart(self.output, self.model_manager)
 
             # Compute the model hash.
-            self.output.results.model_hash = generate_file_hash(self.model_manager.get_pytorch_model_path())
+            self.output.results.model_hash = generate_file_hash(new_path)
 
             # Add the training time information to the output.
             self.output.times.start_time = self.train_start_time.isoformat()
@@ -618,7 +666,7 @@ def default_setup(model_manager: ModelManager, cfg, args):
         # Note: some of our scripts may expect the existence of
         # config.yaml in output directory
         # path = Path(output_dir, "config.yaml")
-        path = Path(model_manager.get_platform_training_config())
+        path = Path(model_manager.get_platform_training_config(Detectron2Trainer.get_platform_defs()))
         with open(path, "w") as f:
             f.write(cfg.dump())
         dt2_logger.info("Full config saved to {}".format(path))

@@ -27,13 +27,12 @@ import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
-from typing import Dict, List
+from typing import List
 
 import torch
 from tqdm import tqdm
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig, Plugin
 from juneberry.config.training_output import TrainingOutput
 from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
@@ -96,43 +95,10 @@ def create_evaluator(model_config: ModelConfig, lab: Lab, model_manager: ModelMa
     :param log_file: A string indicating the location of the current log file.
     """
 
-    platform_map = {
-        "pytorch": "juneberry.pytorch.evaluation.evaluator.Evaluator",
-        "pytorch_privacy": "juneberry.pytorch.evaluation.evaluator.Evaluator",
-        "detectron2": "juneberry.detectron2.evaluator.Evaluator",
-        "mmdetection": "juneberry.mmdetection.evaluator.Evaluator",
-        "tensorflow": "juneberry.tensorflow.evaluation.evaluator.Evaluator",
-        "tfgloro": "juneberry.tensorflow.gloro.evaluator.Evaluator"
-    }
-
-    # If the model config does not specify an evaluator to use, determine the default
-    # evaluator using the platform map.
-    if model_config.evaluator is None:
-
-        # If the platform is not in the platform map, then there is no default evaluator for the
-        # platform.
-        if model_config.platform not in platform_map:
-            logger.error(f"Evaluation not supported for the requested platform ({model_config.platform}). "
-                         f"Supported platforms: {list(platform_map.keys())}. EXITING.")
-            sys.exit(-1)
-
-        # Obtain the fqcn from the platform map and warn the user.
-        else:
-            fqcn = platform_map[model_config.platform]
-
+    kw_args = model_config.evaluator.kwargs
+    if kw_args is None:
         kw_args = {}
-        logger.warning("Found deprecated platform/task configuration for loading the evaluator. "
-                       "Consider updating the model config to use the evaluator stanza.")
-        logger.warning('"evaluator": {')
-        logger.warning(f'    "fqcn": "{fqcn}"')
-        logger.warning('}')
-
-    # Handle the situation where the model config has an evaluator stanza.
-    else:
-        kw_args = model_config.evaluator.kwargs
-        if kw_args is None:
-            kw_args = {}
-        fqcn = model_config.evaluator.fqcn
+    fqcn = model_config.evaluator.fqcn
 
     # If kw_args doesn't contain a required arg, substitute in the local variable for that kw_arg.
     reqd_args = ['lab', 'model_config', 'dataset', 'model_manager', 'eval_dir_mgr', 'eval_options', 'log_file']
@@ -267,7 +233,7 @@ def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
     # If Juneberry was used to train the model, retrieve the hash from the training output file
     # and verify the hash matches the hash of the model used to evaluate the data.
     training_output_file_path = evaluator.model_manager.get_training_out_file()
-    if training_output_file_path.is_file():
+    if training_output_file_path.exists():
         training_output = TrainingOutput.load(training_output_file_path)
 
         # Determine which hash to retrieve based on the ONNX boolean.

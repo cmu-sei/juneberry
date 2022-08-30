@@ -32,8 +32,14 @@ from mmdet.apis import set_random_seed
 
 from juneberry.config.model import ModelConfig
 import juneberry.pytorch.utils as pyt_utils
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
+
+
+class MMDPlatformDefinitions(PyTorchPlatformDefinitions):
+    def has_platform_config(self) -> bool:
+        return True
 
 
 def find_mmdetection():

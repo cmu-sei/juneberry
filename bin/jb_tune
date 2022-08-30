@@ -97,7 +97,7 @@ def main():
     tuner.sprout = sprout
 
     # Perform hyperparameter tuning on the model.
-    tuner.tune()
+    tuner.tune(dryrun=sprout.dryrun)
 
     logger.info(f"jb_tune is done.")
 

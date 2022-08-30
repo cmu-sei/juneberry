@@ -26,10 +26,12 @@ import logging
 import sys
 from types import SimpleNamespace
 
+from pathlib import Path
 import torch
 
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
+from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
@@ -38,6 +40,7 @@ from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
@@ -75,13 +78,65 @@ class Evaluator(EvaluatorBase):
         self.eval_loader = None
 
     # ==========================================================================
+
+    @classmethod
+    def get_platform_defs(cls):
+        return PyTorchPlatformDefinitions()
+
+    # ==========================================================================
+
+    @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dryrun_imgs_dir(),
+                    eval_dir_mgr.get_dir()]
+        else:
+            return [eval_dir_mgr.get_predictions_path(),
+                    eval_dir_mgr.get_metrics_path(),
+                    eval_dir_mgr.get_manifest_path(),
+                    eval_dir_mgr.get_dir()]
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool = False):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path)
+        if dryrun:
+            return [eval_dir_mgr.get_dir().parent]
+        else:
+            return [eval_dir_mgr.get_dir().parent]
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        return eval_data.results.metrics.balanced_accuracy, "balanced_accuracy"
+
+    # ==========================================================================
     def dry_run(self) -> None:
+        self.dryrun = True
         self.setup()
         self.obtain_dataset()
 
         # Write out a few dry run images
         if self.eval_dataset_config.is_image_type():
-            _ = pyt_utils.generate_sample_images(self.eval_loader, 5, self.eval_dir_mgr.get_dryrun_imgs_dir())
+            _ = pyt_utils.generate_sample_images(self.eval_loader, 5, Path(self.eval_dir_mgr.get_dryrun_imgs_dir()))
 
         self.obtain_model()
 
@@ -165,8 +220,7 @@ class Evaluator(EvaluatorBase):
                     self.eval_name_targets.append([i, int(v)])
 
             # NOTE: We do NOT shuffle the data here because it HAS to match the order from above
-            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(
-                self.lab.profile, val_dataset, self.model_config.batch_size)
+            self.eval_loader = pyt_data.wrap_dataset_in_dataloader(self.lab, val_dataset, self.model_config.batch_size)
 
         else:
             logger.info(f"Creating EVALUATION dataloader and list of EVALUATION files")
@@ -192,15 +246,18 @@ class Evaluator(EvaluatorBase):
             # The eval list is the already a list of name and targets
             self.eval_name_targets = eval_list
 
-            # NOTE: In the process of making the data loader we shuffle the data.
-            self.eval_loader = pyt_data.make_eval_data_loader(self.lab, self.eval_dataset_config, self.model_config,
-                                                              eval_list)
+            logger.info(f"...shuffling manifest with seed {self.model_config.seed}...")
+            jb_data.shuffle_manifest(self.model_config.seed, eval_list)
 
             # Save the manifest
             if self.eval_dataset_config.is_image_type():
-                jb_data.save_path_label_manifest(eval_list,
-                                                 self.eval_dir_mgr.get_manifest_path(),
-                                                 self.lab.data_root())
+                eval_manifest_path = self.eval_dir_mgr.get_manifest_path()
+                logger.info(f"...saving eval manifest to {eval_manifest_path}")
+                jb_data.save_path_label_manifest(eval_list, eval_manifest_path, self.lab.data_root())
+
+            logger.info(f"...making data loaders...")
+            self.eval_loader = pyt_data.make_eval_data_loader(self.lab, self.eval_dataset_config, self.model_config,
+                                                              eval_list)
 
         logger.info(f"EVALUATION dataloader created.")
         logger.info(f"There are {len(self.eval_name_targets)} pieces of data in the evaluation list.")
@@ -229,10 +286,28 @@ class Evaluator(EvaluatorBase):
         else:
             logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
-        # Load the weights into the model.
-        logger.info(f"Loading model weights...")
-        self.model = pyt_utils.load_model(self.model_manager.get_pytorch_model_path(), self.model,
-                                          self.model_config.pytorch.strict)
+        # Identify the model file.
+        model_path = self.model_manager.get_model_path(PyTorchPlatformDefinitions())
+
+        # If the model file exists, load the weights.
+        if model_path.exists():
+            logger.info(f"Loading model weights...")
+            self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)
+
+        # If the model file doesn't exist...
+        else:
+            # A missing model file is not a big deal for a dryrun, just inform that the weights
+            # could not be loaded.
+            if self.dryrun:
+                logger.info(f"Did not load model weights. {model_path} does not exist.")
+                return
+
+            # If there's no model file and it's not a dryrun, then there's still a chance to get model
+            # weights if the model architecture specifies a pretrained model. So log a warning and attempt
+            # to proceed.
+            else:
+                logger.warning(f"No 'model.pt' found, running with default model produced from model architecture. "
+                               f"Expected to find: {model_path}")
 
         # If a GPU is present, wrap the model in DataParallel.
         if self.use_cuda:

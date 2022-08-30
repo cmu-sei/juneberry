@@ -31,7 +31,6 @@ from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
-from juneberry.onnx.default import OnnxEvaluationOutput
 from juneberry.onnx.evaluator import Evaluator as OnnxEvaluatorBase
 from juneberry.tensorflow.evaluation.evaluator import Evaluator as TensorFlowEvaluator
 

@@ -42,11 +42,20 @@ from juneberry.tensorflow.evaluation.evaluator import Evaluator as TFEvaluator
 
 
 class EvalTestHelper:
-    def __init__(self, tmp_path):
+    def __init__(self, tmp_path, platform: str):
         self.model_config = ModelConfig()
 
         # The TensorFlow evaluator needs these to be defined.
         self.model_config.model_architecture = {'args': {'img_height': 0, 'img_width': 0, 'channels': 0}}
+
+        platform_map = {
+            "pytorch": "juneberry.pytorch.evaluation.evaluator.Evaluator",
+            "pytorch_privacy": "juneberry.pytorch.evaluation.evaluator.Evaluator",
+            "detectron2": "juneberry.detectron2.evaluator.Evaluator",
+            "mmdetection": "juneberry.mmdetection.evaluator.Evaluator",
+            "tensorflow": "juneberry.tensorflow.evaluation.evaluator.Evaluator",
+        }
+        self.model_config.evaluator = {'fqcn': platform_map[platform]}
 
         self.lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
         self.lab_profile = LabProfile()
@@ -140,8 +149,7 @@ class EvaluatorHarness(EvaluatorBase):
 
 
 def test_pytorch_evaluator(tmp_path):
-    helper = EvalTestHelper(tmp_path)
-    helper.model_config.platform = "pytorch"
+    helper = EvalTestHelper(tmp_path, "pytorch")
     evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, PyTorchEvaluator)
@@ -152,8 +160,7 @@ def test_pytorch_evaluator(tmp_path):
 
 
 def test_detectron2_evaluator(tmp_path):
-    helper = EvalTestHelper(tmp_path)
-    helper.model_config.platform = "detectron2"
+    helper = EvalTestHelper(tmp_path, "detectron2")
     evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, Detectron2Evaluator)
@@ -164,8 +171,7 @@ def test_detectron2_evaluator(tmp_path):
 
 
 def test_mmdetection_evaluator(tmp_path):
-    helper = EvalTestHelper(tmp_path)
-    helper.model_config.platform = "mmdetection"
+    helper = EvalTestHelper(tmp_path, "mmdetection")
     evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, MMDEvaluator)
@@ -176,8 +182,7 @@ def test_mmdetection_evaluator(tmp_path):
 
 
 def test_tensorflow_evaluator(tmp_path):
-    helper = EvalTestHelper(tmp_path)
-    helper.model_config.platform = "tensorflow"
+    helper = EvalTestHelper(tmp_path, "tensorflow")
     evaluator = helper.build_evaluator()
 
     assert isinstance(evaluator, TFEvaluator)

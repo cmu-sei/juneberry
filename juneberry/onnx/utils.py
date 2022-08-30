@@ -22,34 +22,10 @@
 #
 # ======================================================================================================================
 
-import logging
-import sys
-import tensorflow as tf
-
 from juneberry.platform import PlatformDefinitions
-import juneberry.utils as jb_utils
-
-logger = logging.getLogger(__name__)
 
 
-class TensorFlowPlatformDefinitions(PlatformDefinitions):
-    def get_model_filename(self) -> str:
+class ONNXPlatformDefinitions(PlatformDefinitions):
+    def get_model_filename(self):
         """ :return: The name of the model file that the trainer saves and what evaluators should load"""
-        return "model.h5"
-
-
-def save_summary(model, summary_file_path):
-    orig = sys.stdout
-    sys.stdout = open(summary_file_path, 'w+', encoding="utf-8")
-    model.summary()
-    sys.stdout = orig
-
-
-def set_tensorflow_seeds(seed: int):
-    """
-    Sets all the random seeds used by all the various pieces.
-    :param seed: A random seed to use. Can not be None.
-    """
-    jb_utils.set_seeds(seed)
-    logger.info(f"Setting TensorFlow seed to: {str(seed)}")
-    tf.random.set_seed(seed)
+        return "model.onnx"

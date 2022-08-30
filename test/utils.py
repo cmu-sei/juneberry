@@ -51,6 +51,9 @@ tabular_model_config = {
     'batch_size': 1024,
     'description': 'Sample config for unit testing',
     'epochs': 100,
+    'evaluator': {
+        'fqcn': 'juneberry.dummy.evaluator'
+    },
     'evaluation_transforms': [
         {
             'fqcn': 'juneberry.transforms.tabular.RemoveColumns',
@@ -73,6 +76,9 @@ tabular_model_config = {
     'seed': 4210592948,
     'task': 'classification',
     'timestamp': '2021-03-01T10:00:00',
+    'trainer': {
+        'fqcn': 'juneberry.dummy.trainer'
+    },
     'training_dataset_config_path': 'data_sets/train_data_config.json',
     'training_transforms': [
         {
@@ -164,13 +170,13 @@ def setup_test_workspace(tmp_path) -> None:
     ws_path = Path(tmp_path)
     model_dir_path = ws_path / "models"
     tbs_dir_path = model_dir_path / "tabular_binary_sample"
-    tbs_dir_path.mkdir(parents=True)
+    tbs_dir_path.mkdir(parents=True, exist_ok=True)
 
     dt_conf_path = model_dir_path / "text_detect" / "dt2" / "ut"
-    dt_conf_path.mkdir(parents=True)
+    dt_conf_path.mkdir(parents=True, exist_ok=True)
 
     data_sets_path = ws_path / "data_sets"
-    data_sets_path.mkdir()
+    data_sets_path.mkdir(exist_ok=True)
 
 
 def make_tabular_workspace(tmp_path) -> None:

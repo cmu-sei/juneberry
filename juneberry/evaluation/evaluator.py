@@ -39,7 +39,7 @@ import logging
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.eval_output import EvaluationOutputBuilder
+from juneberry.config.eval_output import EvaluationOutputBuilder, EvaluationOutput
 from juneberry.config.model import ModelConfig
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
@@ -154,6 +154,47 @@ class EvaluatorBase:
     # |  __\ \/ / __/ _ \ '_ \/ __| |/ _ \| '_ \  |  __/ _ \| | '_ \| __/ __|
     # | |___>  <| ||  __/ | | \__ \ | (_) | | | | | | | (_) | | | | | |_\__ \
     # \____/_/\_\\__\___|_| |_|___/_|\___/|_| |_| \_|  \___/|_|_| |_|\__|___/
+
+    @classmethod
+    def get_platform_defs(cls):
+        """ :return: An object (PlatformDefinitions) containing methods for various platform details. """
+        logger.error(f"get_platform_defs() must be defined as a static method on the evaluator.")
+        raise RuntimeError(f"get_platform_defs() must be defined as a static method on the evaluator.")
+
+    @classmethod
+    def get_default_metric_value(cls, eval_data: EvaluationOutput):
+        """ :return: The value of the Evaluator's default metric as found in the results structure """
+        # TODO: This should be able to be replaced using the first metrics from the results
+        #  when we change the evaluation output to be an array of results.
+        logger.error(f"get_default_metric_value() not implemented in {cls}")
+        raise RuntimeError(f"get_default_metric_value() not implemented in {cls}")
+
+    @classmethod
+    def get_eval_output_files(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool):
+        """
+        Returns a list of files to clean from the eval directory. This list should contain ONLY
+        files or directories that were produced by the evaluate command. Directories in this list
+        will be deleted even if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Evaluator.
+        :return: The files to clean from the eval directory.
+        """
+        logger.error(f"get_evaluation_output_files() must be defined as a static method on the evaluator")
+        raise RuntimeError(f"get_evaluation_output_files() must be defined as a static method on the evaluator")
+
+    @classmethod
+    def get_eval_clean_extras(cls, model_mgr: ModelManager, dataset_path: str, dryrun: bool):
+        """
+        Returns a list of extra "evaluation" files to clean. Directories in this list will NOT
+        be deleted if they are not empty.
+        :param model_mgr: A ModelManager to help locate files.
+        :param dataset_path: A string indicating the name of the dataset being evaluated.
+        :param dryrun: When True, returns a list of files created during a dryrun of the Trainer.
+        :return: The extra files to clean from the training directory.
+        """
+        logger.error(f"get_evaluation_clean_extras() must be defined as a static method on the evaluator")
+        raise RuntimeError(f"get_evaluation_clean_extras() must be defined as a static method on the evaluator")
 
     def dry_run(self) -> None:
         """

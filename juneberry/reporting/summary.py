@@ -37,7 +37,7 @@ from juneberry.reporting.utils import determine_report_path
 
 logger = logging.getLogger(__name__)
 
-REPORT_FILES_DIRNAME = "report_files"
+REPORT_FILES_DIRNAME = "summary_report_files"
 
 
 class Summary(Report):

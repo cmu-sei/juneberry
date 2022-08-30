@@ -37,6 +37,7 @@ from juneberry.evaluation.utils import get_histogram, populate_metrics
 from juneberry.filesystem import EvalDirMgr, generate_file_hash, ModelManager
 from juneberry.lab import Lab
 from juneberry.onnx.evaluator import Evaluator as OnnxEvaluatorBase
+from juneberry.onnx.utils import ONNXPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +260,7 @@ class EvaluationOutput:
         logger.info(f"Detections saved.")
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = generate_file_hash(evaluator.model_manager.get_onnx_model_path())
+        evaluated_model_hash = generate_file_hash(evaluator.model_manager.get_model_path(ONNXPlatformDefinitions()))
         logger.info(f"Hash of the ONNX model that was evaluated: '{evaluated_model_hash}'")
 
         # Record the hash of the model used for evaluation to the output.

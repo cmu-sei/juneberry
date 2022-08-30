@@ -26,10 +26,13 @@ import logging
 from pathlib import Path
 import sys
 
+from functools import reduce
+
 import torch
 from torchsummary import summary
 
 import juneberry.filesystem as jbfs
+from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +67,7 @@ class LoadModel:
             logger.info(f"LoadModel transform loading model: {self.model_name}.")
             # Construct a model manager so we can get the model path.
             model_manager = jbfs.ModelManager(self.model_name)
-            model_path = model_manager.get_pytorch_model_path()
+            model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
             if not Path(model_path).exists():
                 logger.error(f"Model path {model_path} does not exist! EXITING.")
                 sys.exit(-1)
@@ -161,7 +164,7 @@ class SaveModel:
                 logger.error(f"Model directory {model_dir} does not exist! EXITING.")
                 sys.exit(-1)
 
-            model_path = model_manager.get_pytorch_model_path()
+            model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
             if Path(model_path).exists() and not self.overwrite:
                 logger.error(
                     f"Model file already exists and 'overwrite' setting is False. Model: {model_path} EXITING.")
@@ -212,13 +215,29 @@ class ReplaceFC:
         self.num_classes = num_classes
         self.fc_name = fc_name
         self.fc_bias = fc_bias
-    
+        
+    def get_module_by_name(self, module, access_string):
+        names = access_string.split(sep='.')
+        return reduce(getattr, names, module)
+
+    def set_module_by_name(self, module, access_string, value):
+        names = access_string.split(sep='.')
+        x = module
+        for (i, name) in enumerate(names):
+            if (i == len(names)-1):
+                x = setattr( x, name, value )
+            else:
+                x = getattr( x, name )
+        return module
+
     def __call__(self, model):
-        original_layer = getattr(model, self.fc_name)
+        
+        # Find the last linear layer
+        original_layer = self.get_module_by_name(model, self.fc_name) 
         in_features = original_layer.in_features
         new_layer = torch.nn.modules.linear.Linear(in_features=in_features, out_features=self.num_classes,
                                                    bias=self.fc_bias)
-        setattr(model, self.fc_name, new_layer)
+        model = self.set_module_by_name(model, self.fc_name, new_layer)
         
         return model
 

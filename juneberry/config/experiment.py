@@ -58,8 +58,13 @@ class Model(Prodict):
     name: str
     onnx: bool
     tests: List[ModelTest]
+    train: bool
     tuning: str
     version: str
+
+    def init(self):
+        self.train = True
+        self.onnx = False
 
 
 class ReportTest(Prodict):

@@ -19,10 +19,9 @@
 # DM21-0884
 #
 # ======================================================================================================================
-#
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_21-08.html
-# CUDA 11.4.1, Driver 470 or later, Python 3.8.?, pytorch 1.10.0a0+3fd9dvf
-FROM nvcr.io/nvidia/pytorch:21.08-py3
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_22-05.html
+# CUDA 11.6.2, Driver 510 or later, Python 3.8.?, pytorch 1.12.0a0+bd13bc6
+FROM nvcr.io/nvidia/pytorch:22.04-py3
 
 # ============ BASE PLATFORM ============
 
@@ -62,7 +61,11 @@ RUN pip3 install adversarial-robustness-toolbox \
     tf2onnx \
     opencv-python==4.5.5.62 \
     tqdm \
-    pytest pylint
+    pytest pylint \
+    ray jsonpath-ng
+
+# Necessary to install Pillow.libs?
+RUN pip3 install --upgrade Pillow
 
 # ============ DETECTRON2 ============
 
@@ -94,7 +97,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v11"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v12.1"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
