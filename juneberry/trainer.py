@@ -108,6 +108,8 @@ class Trainer:
         self.native = True
         self.onnx = False
 
+        self.metrics_plugins = self.model_config.training_metrics
+
     # ==========================
 
     @classmethod

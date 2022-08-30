@@ -107,9 +107,6 @@ class ClassifierTrainer(EpochTrainer):
         self.direction = None
         self.abs_tol = None
 
-        # Contains name and results for each metric
-        self.metrics = None
-
     # ==========================================================================
 
     @classmethod
@@ -206,9 +203,7 @@ class ClassifierTrainer(EpochTrainer):
 
         self.num_batches = len(self.training_iterable)
 
-        self.metrics = self.model_config.training_metrics
-
-        for tm in self.metrics:
+        for tm in self.metrics_plugins:
             self.history[tm["kwargs"]["name"]] = []
             self.history["val_" + tm["kwargs"]["name"]] = []
 
@@ -247,10 +242,8 @@ class ClassifierTrainer(EpochTrainer):
             self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
             self.training_accuracy_list = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
 
-        # Start off with empty metrics
-
-        for m in self.metrics:
-            result[m["kwargs"]["name"] + "_list"]  = []
+        for m in self.metrics_plugins:
+            result[m["kwargs"]["name"] + "_list"] = []
 
         return result
 
@@ -262,7 +255,7 @@ class ClassifierTrainer(EpochTrainer):
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
-        metrics_mgr = mm.MetricsManager(self.metrics)
+        metrics_mgr = mm.MetricsManager(self.metrics_plugins)
         metrics = metrics_mgr(local_labels, output, self.dataset_config.is_binary)
 
         return metrics
