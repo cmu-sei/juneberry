@@ -232,16 +232,18 @@ class ReplaceFC:
         self.fc_name = fc_name
         self.fc_bias = fc_bias
 
-    def get_module_by_name(self, module, access_string):
+    @staticmethod
+    def get_module_by_name(module, access_string):
         names = access_string.split(sep='.')
         return reduce(getattr, names, module)
 
-    def set_module_by_name(self, module, access_string, value):
+    @staticmethod
+    def set_module_by_name(module, access_string, value):
         names = access_string.split(sep='.')
         x = module
         for (i, name) in enumerate(names):
-            if (i == len(names) - 1):
-                x = setattr(x, name, value)
+            if i == len(names) - 1:
+                setattr(x, name, value)
             else:
                 x = getattr(x, name)
         return module
