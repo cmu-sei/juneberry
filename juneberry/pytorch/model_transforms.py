@@ -200,11 +200,8 @@ class LogModelSummary:
     def __call__(self, model):
         orig = sys.stdout
         sys.stdout.write = logger.info
-        try:
-            with torch.no_grad():
-                summary(model, self.image_shape)
-        except Exception:
-            logger.error("Failed to write torch summary.")
+        with torch.no_grad():
+            summary(model, self.image_shape)
         sys.stdout = orig
         return model
 
@@ -221,10 +218,8 @@ class PrintModel:
 
     def __call__(self, model):
         orig = sys.stdout
-        sys.stdout.write = logger.info
         with torch.no_grad():
             print(model)
-        sys.stdout = orig
         return model
 
 
