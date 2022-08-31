@@ -62,6 +62,7 @@ from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.trainer import Trainer
+from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -508,6 +509,11 @@ class Detectron2Trainer(Trainer):
         # =======
         # Set up the model
         self.model = build_model(cfg)
+
+        # Apply model transforms.
+        if self.model_config.model_transforms is not None:
+            transforms = TransformManager(self.model_config.model_transforms)
+            self.model = transforms.transform(self.model)
 
         # If we are using DDP we don't want to serialize the fields added by DDP, so save
         # a reference to a raw model

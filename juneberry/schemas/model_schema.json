@@ -120,10 +120,6 @@
             },
             "required": [ ]
         },
-        "task": {
-            "type": "string",
-            "enum": [ "classification", "objectDetection" ]
-        },
         "tensorflow": {
             "type": "object",
             "properties": {
