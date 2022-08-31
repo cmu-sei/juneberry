@@ -217,7 +217,6 @@ class PrintModel:
         """
 
     def __call__(self, model):
-        orig = sys.stdout
         with torch.no_grad():
             print(model)
         return model
