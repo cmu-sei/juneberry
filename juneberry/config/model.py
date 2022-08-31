@@ -229,19 +229,19 @@ class ModelConfig(Prodict):
         model_arch = self.model_architecture
         if model_arch.module is not None:
             if model_arch.fqcn is not None:
-                logger.warning("On the model_architecture 'module' (deprecated) AND 'fqcn' are specified. "
+                logger.warning("In the model_architecture 'module' (deprecated) AND 'fqcn' are both pecified. "
                                "Using new 'fqcn.'")
             else:
                 logger.warning("Found use of deprecated 'module' on model_architecture. Switch to using 'fqcn'")
-            model_arch.fqcn = model_arch.module
+                model_arch.fqcn = model_arch.module
 
-        if model_arch.kwargs is not None:
-            if model_arch.args is not None:
-                logger.warning("On the model_architecture 'args' (deprecated) AND 'kwargs' are specified. "
-                               "Using new 'args.'")
+        if model_arch.args is not None:
+            if model_arch.kwargs is not None:
+                logger.warning("In the model_architecture 'args' (deprecated) AND 'kwargs' are both specified. "
+                               "Using new 'kwargs.'")
             else:
                 logger.warning("Found use of deprecated 'args' on model_architecture. Switch to using 'kwargs'")
-            model_arch.kwargs = model_arch.args
+                model_arch.kwargs = model_arch.args
 
 
     @staticmethod
