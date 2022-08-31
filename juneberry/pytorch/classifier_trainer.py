@@ -341,14 +341,15 @@ class ClassifierTrainer(EpochTrainer):
 
         # Make a nice metric message for the epoch output
         metric_str = ""
-        for x in self.history:
-            if len(self.history[x]) > 0:
-                if 'accuracy' in x or 'loss' in x:
-                    metric_str += f"{x}: {self.history[x][-1]:.4f}, "
-                else:
-                    metric_str += f"{x}: {self.history[x][-1]:.2E}, "
+        metrics_history, non_metrics_history = _separate_metrics_history(self.history)
+        for x in metrics_history:
+            if metrics_history[x] and len(metrics_history[x]) > 0:
+                metric_str += f"{x}: {metrics_history[x][-1]:.4f}, "
+        for x in non_metrics_history:
+            if non_metrics_history[x] and len(non_metrics_history[x]) > 0:
+                metric_str += f"{x}: {non_metrics_history[x][-1]:.2E}, "
 
-        return metric_str
+        return metric_str[:-2]  # remove trailing ", "
 
     def finalize_results(self) -> None:
         # If we're in distributed mode, only one process needs to perform these actions (since all processes should
@@ -588,9 +589,17 @@ def history_to_results(history, results, native, onnx):
     if onnx:
         results['results']['onnx_model_hash'] = history['onnx_model_hash']
 
-    metrics_history = {k: history[k] for k in history.keys() - {'lr', 'model_hash', 'onnx_model_hash', 'epoch_duration'}}
+    metrics_history, _ = _separate_metrics_history(history)
     for k in metrics_history.keys():
         results['results'][k] = metrics_history[k]
+
+
+def _separate_metrics_history(history):
+    non_metrics_keys = {"lr", "model_hash", "onnx_model_hash", "epoch_duration"}
+    metrics_keys = history.keys() - non_metrics_keys
+    metrics_history = {k: history.get(k) for k in metrics_keys}
+    non_metrics_history = {k: history.get(k) for k in non_metrics_keys}
+    return metrics_history, non_metrics_history
 
 
 def main():
