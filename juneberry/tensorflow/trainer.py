@@ -304,14 +304,14 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
 
     def construct_model(self):
         # Construct the basic model from the model architecture.
-        args = self.model_config.model_architecture.args
+        args = self.model_config.model_architecture.kwargs
         if not args:
             args = {}
         label_names = jb_data.get_label_mapping(model_manager=self.model_manager, model_config=self.model_config,
                                                 train_config=self.dataset_config)
         optional_kwargs = {'labels': label_names}
         jb_data.check_num_classes(args, self.dataset_config.num_model_classes)
-        self.model = jb_loader.invoke_call_function_on_class(self.model_config.model_architecture.module, args,
+        self.model = jb_loader.invoke_call_function_on_class(self.model_config.model_architecture.fqcn, args,
                                                              optional_kwargs)
 
     def make_learning_rate(self):
