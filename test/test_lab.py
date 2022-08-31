@@ -106,7 +106,6 @@ def test_dataset_loading(tmp_path):
 
 def test_model_config_saving(tmp_path):
     model_data = ModelConfig.construct(test_model_config.make_basic_config())
-    model_data.task = 'object_detection'
     model_data.timestamp = datetime.datetime.now
 
     lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
