@@ -588,11 +588,9 @@ def history_to_results(history, results, native, onnx):
     if onnx:
         results['results']['onnx_model_hash'] = history['onnx_model_hash']
 
-    results['results']['loss'] = history['loss']
-    results['results']['accuracy'] = history['accuracy']
-
-    results['results']['val_loss'] = history['val_loss']
-    results['results']['val_accuracy'] = history['val_accuracy']
+    metrics_history = {k: history[k] for k in history.keys() - {'lr', 'model_hash', 'onnx_model_hash', 'epoch_duration'}}
+    for k in metrics_history.keys():
+        results['results'][k] = metrics_history[k]
 
 
 def main():
