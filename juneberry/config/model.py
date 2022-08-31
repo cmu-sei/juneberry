@@ -69,7 +69,7 @@ class ModelArchitecture(Prodict):
 
     def get_shape_hwc(self):
         """ :return The height, width and channels in a named tuple. """
-        return ShapeHWC(self.args['img_height'], self.args['img_width'], self.args['channels'])
+        return ShapeHWC(self.kwargs['img_height'], self.kwargs['img_width'], self.kwargs['channels'])
 
 
 class StoppingCriteria(Prodict):

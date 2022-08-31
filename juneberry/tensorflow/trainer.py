@@ -56,9 +56,9 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         # Grab these out of the model architecture for convenience.
-        self.width = self.model_config.model_architecture.args['img_width']
-        self.height = self.model_config.model_architecture.args['img_height']
-        self.channels = self.model_config.model_architecture.args['channels']
+        self.width = self.model_config.model_architecture.kwargs['img_width']
+        self.height = self.model_config.model_architecture.kwargs['img_height']
+        self.channels = self.model_config.model_architecture.kwargs['channels']
 
         self.train_ds = None
         self.val_ds = None
