@@ -62,8 +62,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "previous_model": <OPTIONAL: name of model directory from which to load weights before training>,
     },  
     "model_transforms" : [ <array of plugins - see below> ],
-    "platform": <DEPRECATED - The machine learning platform this config is compatible with
-                 Currently supported platforms: ["detectron2", "mmdetection", "pytorch", "pytorch_privacy", tensorflow"]>,
     "preprocessors": [ <array of plugins - see below> ],
     "pytorch": {
         "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>,
@@ -77,7 +75,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "optimizer_fn": <FQCN of an optimizer: e.g. torch.optim.SGD>,
         "strict": <OPTIONAL When loading a model, should we use strict flag. Default is true.>
     },
-    "reports": [ <array of Report plugins - see below ],
+    "reports": [ OPTIONAL <array of Report plugins - see below ],
     "seed": <OPTIONAL integer seed value for controlling randomization>,
     "stopping_criteria": {
         "direction": <OPTIONAL direction of comparison.  Should be 'le' (default) or 'ge'.>,
@@ -87,8 +85,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "threshold": <OPTIONAL minimum value reached>,
     },
     "summary_info": { <OPTIONAL set of descriptive properties to use when making summary outputs.> },
-    "task": <OPTIONAL type of task the model is compatible with
-             Currently supported tasks: ["classification", "objectDetection"]>,
     "tensorflow": {
         "callbacks": [ <array of callbacks - see below>],
         "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
@@ -573,11 +569,6 @@ This is the fully qualified name of the class to be constructed.
 This stanza contains all the arguments that are to be passed into the `__init__` method of
 the transform upon construction.
 
-## platform
-**DEPRECATED** Use the trainer and evaluator extension points instead.
-Describes the ML Platform the model is compatible with. 
-Supported platforms: ['pytorch'] 
-
 ## preprocessors
 
 **Optional:** This section only applies to image datasets.
@@ -724,12 +715,6 @@ threshold is reached or when the maximum number of epochs occurs, whichever occu
 **Optional:** a dictionary produced during experiment generation that identifies which variables 
 were chosen for a particular model configuration. This dictionary is primarily used to identify 
 the unique properties of the model when summarizing all the models belonging to an experiment.
-
-## task
-**DEPRECATED** Use the trainer and evaluator extension points instead.
-**Optional:** This string indicates the type of training this configuration file will perform. 
-Supported values for this field are: "classification" or "objectDetection". When this field is not provided, 
-Juneberry will assume that the task is "classification".
 
 ## tensorflow
 Specific parameters for TensorFlow usage. NOTE: Fully qualified paths for tensorflow must start with

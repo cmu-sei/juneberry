@@ -158,7 +158,6 @@ class ModelConfig(Prodict):
     seed: typing.Union[int, None]
     stopping_criteria: StoppingCriteria
     summary_info: Prodict
-    task: str
     tensorflow: TensorFlow
     timestamp: str
     trainer: Plugin
@@ -172,7 +171,6 @@ class ModelConfig(Prodict):
         This is NOT init. This is a similar method called by Prodict to set defaults
         on values BEFORE to_dict is called.
         """
-        self.task = "classification"
 
     def _finish_init(self, file_path: str = None):
         """
