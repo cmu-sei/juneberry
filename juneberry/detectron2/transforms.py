@@ -31,26 +31,22 @@ logger = logging.getLogger(__name__)
 
 class DT2NoOp:
     """
-    Sample no-operation transformer with ALL operations for copy-pasting
+    Example of a (no-operation) transformer which demonstrates ALL available extension points when
+    building your own DT2 Transform class.
     """
-    @staticmethod
-    def apply_image(img: np.ndarray) -> np.ndarray:
+    def apply_image(self, img: np.ndarray) -> np.ndarray:
         return img
 
-    @staticmethod
-    def apply_box(box: np.ndarray) -> np.ndarray:
+    def apply_box(self, box: np.ndarray) -> np.ndarray:
         return box
 
-    @staticmethod
-    def apply_coords(coords: np.ndarray) -> np.ndarray:
+    def apply_coords(self, coords: np.ndarray) -> np.ndarray:
         return coords
 
-    @staticmethod
-    def apply_polygons(polygons: list) -> list:
+    def apply_polygons(self, polygons: list) -> list:
         return polygons
 
-    @staticmethod
-    def apply_segmentation(segmentation: np.ndarray) -> np.ndarray:
+    def apply_segmentation(self, segmentation: np.ndarray) -> np.ndarray:
         return segmentation
 
 
