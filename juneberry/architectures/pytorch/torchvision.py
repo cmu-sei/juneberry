@@ -33,12 +33,12 @@ class Wrapper:
     Basic wrapper for torchvision models classes
     """
 
-    def __call__(self, class_name, class_args, num_classes):
+    def __call__(self, className, classArgs, num_classes):
         logger.warning("This class is deprecated! Please use:")
         logger.warning("  juneberry.pytorch.torchvision.Wrapper.")
         logger.warning("NOTE! The kwargs names change as well:")
         logger.warning("  className -> class_name")
         logger.warning("  classArgs -> class_args")
         mod = importlib.import_module('torchvision.models')
-        my_class = getattr(mod, class_name)
-        return my_class(**class_args)
+        my_class = getattr(mod, className)
+        return my_class(**classArgs)
