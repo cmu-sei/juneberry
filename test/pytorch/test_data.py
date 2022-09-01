@@ -25,7 +25,7 @@
 import random
 
 from juneberry.config.dataset import SamplingAlgo, SamplingConfig
-from juneberry.config.model import PytorchOptions, SplittingConfig
+from juneberry.config.model import SplittingConfig
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
 

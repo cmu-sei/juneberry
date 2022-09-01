@@ -25,6 +25,7 @@
 """
 Unit tests for operations related to Juneberry Reports.
 """
+
 import csv
 import json
 import os

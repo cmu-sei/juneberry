@@ -21,14 +21,15 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
 import os
 from pathlib import Path
+import requests
 from types import SimpleNamespace
 from zipfile import ZipFile
 
 from juneberry.lab import Lab
 import juneberry.zoo as zoo
-import requests
 
 
 def setup_tmp_dir(tmp_path: Path):

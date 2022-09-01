@@ -21,6 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
 import datetime
 import json
 from pathlib import Path
@@ -33,7 +34,7 @@ from ray.tune.suggest.basic_variant import BasicVariantGenerator
 
 from juneberry.config.tuning import TuningConfig
 import juneberry.config.tuning_output as tuning_output
-from juneberry.script_tools.tuning_sprout import TuningSprout
+from juneberry.scripting.tuning_sprout import TuningSprout
 from juneberry.tuning.tuner import Tuner
 from test_sprouts import TestTuningSprout
 

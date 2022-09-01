@@ -31,7 +31,7 @@ from typing import List
 from juneberry.config.attack import PropertyInferenceAttackConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.training_output import TrainingOutput
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.reporting.report import Report
 from juneberry.reporting.utils import determine_report_path
 
@@ -54,7 +54,7 @@ class AttackSummary(Report):
             sys.exit(-1)
 
         # Establish the AttackManager for the Attack directory.
-        self.attack_mgr = jbfs.AttackManager(experiment_name)
+        self.attack_mgr = jb_fs.AttackManager(experiment_name)
 
     def create_report(self):
         """
@@ -98,7 +98,7 @@ class AttackSummary(Report):
         :return: A list of all the accuracy values used in the summary statistics row.
         """
         # Construct a model manager for the model and locate the model's training image.
-        model_mgr = jbfs.ModelManager(model_name)
+        model_mgr = jb_fs.ModelManager(model_name)
         train_img_str = model_mgr.get_training_summary_plot()
 
         # Load the model's training output file and retrieve the accuracy values inside.
@@ -109,7 +109,7 @@ class AttackSummary(Report):
 
         # Construct an eval directory manager for the model, focusing on the evaluation of the
         # query dataset. Load the eval output file and retrieve the accuracy value inside.
-        eval_dir_mgr = jbfs.EvalDirMgr(model_mgr.model_dir_path, dataset_name="query_dataset_config")
+        eval_dir_mgr = jb_fs.EvalDirMgr(model_mgr.model_dir_path, dataset_name="query_dataset_config")
         eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
         test_acc = eval_output.results.metrics.accuracy
 
@@ -151,14 +151,14 @@ class AttackSummary(Report):
         output_file.write(f"{model_name}")
 
         # Create a model manager for the model.
-        model_mgr = jbfs.ModelManager(model_name)
+        model_mgr = jb_fs.ModelManager(model_name)
 
         # Retrieve eval data from both the superset and disjoint evals.
         datasets = ["superset", "disjoint"]
         for dataset in datasets:
             # Construct the dataset name and use it to build the correct eval directory manager.
             dataset_name = f"in_out_{dataset}_private_test_dataset_config"
-            eval_dir_mgr = jbfs.EvalDirMgr(model_mgr.model_dir_path, dataset_name=dataset_name)
+            eval_dir_mgr = jb_fs.EvalDirMgr(model_mgr.model_dir_path, dataset_name=dataset_name)
 
             # Load the eval output file, retrieve the accuracy value, and write the data to the row.
             eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())

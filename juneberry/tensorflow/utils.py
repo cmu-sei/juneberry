@@ -24,6 +24,7 @@
 
 import logging
 import sys
+
 import tensorflow as tf
 
 from juneberry.platform import PlatformDefinitions

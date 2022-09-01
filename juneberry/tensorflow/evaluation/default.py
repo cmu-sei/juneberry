@@ -25,7 +25,7 @@
 import logging
 
 import juneberry.evaluation.utils as jb_eval_utils
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.tensorflow.evaluation.evaluator import Evaluator
 from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 
@@ -70,7 +70,7 @@ class TFEvaluationOutput:
 
         # Calculate the hash of the model that was used to conduct the evaluation.
         model_path = evaluator.model_manager.get_model_path(TensorFlowPlatformDefinitions())
-        evaluated_model_hash = jbfs.generate_file_hash(model_path)
+        evaluated_model_hash = jb_fs.generate_file_hash(model_path)
 
         # If the model Juneberry trained the model, a hash would have been calculated after training.
         # Compare that hash (if it exists) to the hash of the model being evaluated.

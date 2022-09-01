@@ -24,14 +24,11 @@
 
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw
 
-import numpy as np
-
-import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import TensorFlowData
-import juneberry.config.model as jb_model
-from juneberry.config.model import Validation, ValidationArgs
+from juneberry.config.model import SplittingAlgo, Validation, ValidationArgs
 import juneberry.tensorflow.data as tf_data
 
 
@@ -150,7 +147,7 @@ def test_prep_tfds_load_args():
 def test_make_tfds_split_args():
     # Tensorflow and split args
     val_stanza = Validation()
-    val_stanza.algorithm = jb_model.SplittingAlgo.TENSORFLOW.value
+    val_stanza.algorithm = SplittingAlgo.TENSORFLOW.value
     val_stanza.arguments = {}
     load_args = {'split': ["foo", "bar"]}
 
@@ -162,7 +159,7 @@ def test_make_tfds_split_args():
     # ===========================
     # Random fraction and NO split (so use the default train split)
     val_stanza = Validation()
-    val_stanza.algorithm = jb_model.SplittingAlgo.RANDOM_FRACTION.value
+    val_stanza.algorithm = SplittingAlgo.RANDOM_FRACTION.value
     val_stanza.arguments = ValidationArgs()
     val_stanza.arguments.fraction = 0.3
     load_args = {}

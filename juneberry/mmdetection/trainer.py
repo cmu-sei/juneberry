@@ -28,27 +28,25 @@ from pathlib import Path
 import sys
 
 import hjson
-import torch
-
 from mmcv import Config
 from mmcv.utils.logging import logger_initialized
-
 from mmdet.apis import train_detector
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
+import torch
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutputBuilder
 import juneberry.data as jb_data
 from juneberry.filesystem import generate_file_hash, ModelManager
-from juneberry.jb_logging import log_banner, setup_logger
+from juneberry.logging import log_banner, setup_logger
 from juneberry.lab import Lab
-import juneberry.mmdetection.utils as mmd_utils
+import juneberry.mmdetection.utils as jb_mmd_utils
 from juneberry.mmdetection.utils import MMDPlatformDefinitions
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.trainer import Trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +57,7 @@ class MMDTrainer(Trainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         self.working_dir = model_manager.get_train_scratch_path()
-        self.mm_home = mmd_utils.find_mmdetection()
+        self.mm_home = jb_mmd_utils.find_mmdetection()
 
         self.cfg = None
         self.datasets = None
@@ -215,7 +213,7 @@ class MMDTrainer(Trainer):
         # TODO: Should we adjust base pipelines and just repoint? Based on
         #       https://mmdetection.readthedocs.io/en/latest/tutorials/config.html
         #       this seems the way to go.
-        mmd_utils.adjust_pipelines(self.model_config, cfg)
+        jb_mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # ============ Setup Datasets
 
@@ -284,7 +282,7 @@ class MMDTrainer(Trainer):
         cfg.lr_config.warmup = None
 
         # Set seed thus the results are more reproducible.
-        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
+        jb_mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # We set this for non-distributed.
         cfg.gpu_ids = range(self.num_gpus)
@@ -302,7 +300,7 @@ class MMDTrainer(Trainer):
         cfg.runner.max_epochs = self.model_config.epochs
 
         # Add in the overrides if they have any, which they usually do.
-        mmd_utils.add_config_overrides(self.model_config, cfg)
+        jb_mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # Save the entire config to the working dir.  At this point we should be able to
         # use the mmdetection "train.py" script with the config file.
@@ -434,7 +432,7 @@ class MMDTrainer(Trainer):
         # JSON format for each phase of training that was recorded.
         with open(file, 'r') as log_file:
             for line in log_file:
-                # TODO: Should this be routed through the jbfs load chokepoint?
+                # TODO: Should this be routed through the jb_fs load chokepoint?
                 content = hjson.loads(line)
 
                 # If it's a summary of training metrics, add the values to the appropriate lists.

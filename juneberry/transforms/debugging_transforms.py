@@ -28,8 +28,9 @@ size and mode and the transformer just checks.
 """
 
 import logging
-from numpy.random import default_rng
 import random as python_random
+
+from numpy.random import default_rng
 import torch
 
 logger = logging.getLogger(__name__)

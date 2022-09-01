@@ -23,10 +23,11 @@
 # ======================================================================================================================
 
 import logging
-from opacus import PrivacyEngine
 import sys
 
-from juneberry.pytorch.classifier_trainer import ClassifierTrainer
+from opacus import PrivacyEngine
+
+from juneberry.pytorch.trainer import ClassifierTrainer
 
 logger = logging.getLogger(__name__)
 

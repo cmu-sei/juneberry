@@ -23,13 +23,12 @@
 # ======================================================================================================================
 
 import argparse
-import json
 import logging
 import sys
 
 import juneberry.pytorch.utils as pyt_utils
-from juneberry.transform_manager import TransformManager
-import juneberry.filesystem as jbfs
+from juneberry.transforms.transform_manager import TransformManager
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger("juneberry.jb_model_transform")
 
@@ -59,7 +58,7 @@ def main():
     args = parser.parse_args()
 
     # NOTE: We do NOT use the ModelConfig loader, because we do not require a full config at this time.
-    config = jbfs.load_file(args.config_path)
+    config = jb_fs.load_file(args.config_path)
 
     if 'model_architecture' not in config:
         logger.error("Config does not have stanza 'model_architecture'. EXITING.")

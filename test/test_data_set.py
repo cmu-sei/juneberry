@@ -23,18 +23,16 @@
 # ======================================================================================================================
 
 from pathlib import Path
-import numpy as np
 import unittest
 
+import numpy as np
 import torch
 import torch.utils.data.dataloader
 
-from juneberry.config.dataset import DatasetConfigBuilder
-from juneberry.config.dataset import DatasetConfig, DataType, TaskType, SamplingAlgo
+from juneberry.config.dataset import DatasetConfigBuilder, DatasetConfig, DataType, TaskType, SamplingAlgo
 from juneberry.config.model import ModelConfig
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
-
 import test_model_config
 
 

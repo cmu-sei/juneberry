@@ -23,10 +23,11 @@
 # ======================================================================================================================
 
 import logging
-import onnx
-import onnxruntime as ort
 import sys
 from types import SimpleNamespace
+
+import onnx
+import onnxruntime as ort
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput

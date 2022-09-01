@@ -23,12 +23,12 @@
 # ======================================================================================================================
 
 import logging
-import numpy as np
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import sys
 from types import SimpleNamespace
 from typing import List
 
+import numpy as np
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import torch
 from tqdm import tqdm
 
@@ -39,7 +39,6 @@ from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-
 
 logger = logging.getLogger(__name__)
 

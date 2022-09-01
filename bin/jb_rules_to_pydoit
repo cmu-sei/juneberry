@@ -39,7 +39,7 @@ import argparse
 from pathlib import Path
 
 from juneberry.config.rule_list import RulesList
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 
 
 def stringify(some_list, ):
@@ -179,7 +179,7 @@ def main():
         rules_path = Path(args.rules)
         dodo_path = str(rules_path.parent / f"{args.workflow}_dodo.py")
     else:
-        experiment_manager = jbfs.ExperimentManager(args.experimentName)
+        experiment_manager = jb_fs.ExperimentManager(args.experimentName)
         rules_path = experiment_manager.get_experiment_rules()
         dodo_path = str(experiment_manager.get_experiment_dodo(args.workflow))
 

@@ -36,7 +36,7 @@ import numpy as np
 from juneberry.config.dataset import DatasetConfig
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
-import juneberry.loader as loader
+import juneberry.loader as jb_loader
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ def create_mapper(cfg, transforms, is_train: bool) -> DatasetMapper:
         for entry in transforms:
             # Construct the transform mapper directly.  Note, we do not support
             # optional arguments when calling these transforms because dt2 doesn't do that.
-            transform = loader.construct_instance(entry.fqcn, entry.kwargs)
+            transform = jb_loader.construct_instance(entry.fqcn, entry.kwargs)
             if isinstance(transform, Augmentation) or isinstance(transform, Transform):
                 aug_list.append(transform)
             else:

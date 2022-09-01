@@ -33,12 +33,11 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
-import juneberry
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
-import juneberry.data as jbdata
-import juneberry.filesystem as jbfs
-from juneberry.jb_logging import setup_logger
+import juneberry.data as jb_data
+import juneberry.filesystem as jb_fs
+from juneberry.logging import setup_logger
 from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
@@ -46,9 +45,9 @@ import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
-import juneberry.tensorboard as jbtb
-from juneberry.trainer import EpochTrainer
-from juneberry.transform_manager import TransformManager
+import juneberry.tensorboard as jb_tb
+from juneberry.training.trainer import EpochTrainer
+from juneberry.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +116,7 @@ class ClassifierTrainer(EpochTrainer):
     # ==========================================================================
 
     @classmethod
-    def get_training_output_files(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+    def get_training_output_files(cls, model_mgr: jb_fs.ModelManager, dryrun: bool = False):
         """
         Returns a list of files to clean from the training directory. This list should contain ONLY
         files or directories that were produced by the training command. Directories in this list
@@ -140,7 +139,7 @@ class ClassifierTrainer(EpochTrainer):
                     model_mgr.get_validation_data_manifest_path()]
 
     @classmethod
-    def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+    def get_training_clean_extras(cls, model_mgr: jb_fs.ModelManager, dryrun: bool = False):
         """
         Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
         be deleted if they are not empty.
@@ -188,7 +187,7 @@ class ClassifierTrainer(EpochTrainer):
 
         # Construct helper objects
         if self.lab.tensorboard:
-            self.tb_mgr = jbtb.TensorBoardManager(self.lab.tensorboard, self.model_manager)
+            self.tb_mgr = jb_tb.TensorBoardManager(self.lab.tensorboard, self.model_manager)
 
         pyt_utils.set_pytorch_seeds(self.model_config.seed)
 
@@ -358,11 +357,11 @@ class ClassifierTrainer(EpochTrainer):
         # Add a hash of the model.
         if self.native:
             model_path = self.model_manager.get_model_path(self.get_platform_defs())
-            self.history['model_hash'] = jbfs.generate_file_hash(model_path)
+            self.history['model_hash'] = jb_fs.generate_file_hash(model_path)
 
         if self.onnx:
             model_path = self.model_manager.get_model_path(ONNXPlatformDefinitions())
-            self.history['onnx_model_hash'] = jbfs.generate_file_hash(model_path)
+            self.history['onnx_model_hash'] = jb_fs.generate_file_hash(model_path)
 
         logger.info("Generating and saving output...")
         history_to_results(self.history, self.results, self.native, self.onnx)
@@ -439,7 +438,7 @@ class ClassifierTrainer(EpochTrainer):
 
         else:
             logger.info(f"...converting dataspec to manifests...")
-            train_list, val_list = jbdata.dataspec_to_manifests(
+            train_list, val_list = jb_data.dataspec_to_manifests(
                 self.lab,
                 dataset_config=self.dataset_config,
                 splitting_config=self.model_config.get_validation_split_config(),
@@ -447,16 +446,16 @@ class ClassifierTrainer(EpochTrainer):
 
             # Shuffle the data sets
             logger.info(f"...shuffling manifests with seed {self.model_config.seed}...")
-            jbdata.shuffle_manifest(self.model_config.seed, train_list)
-            jbdata.shuffle_manifest(self.model_config.seed, val_list)
+            jb_data.shuffle_manifest(self.model_config.seed, train_list)
+            jb_data.shuffle_manifest(self.model_config.seed, val_list)
 
             if self.dataset_config.is_image_type():
                 # Save the manifest files for traceability
                 logger.info(f"...saving manifests to disk...")
                 train_manifest_path = self.lab.workspace() / self.model_manager.get_training_data_manifest_path()
                 val_manifest_path = self.lab.workspace() / self.model_manager.get_validation_data_manifest_path()
-                jbdata.save_path_label_manifest(train_list, train_manifest_path, self.lab.data_root())
-                jbdata.save_path_label_manifest(val_list, val_manifest_path, self.lab.data_root())
+                jb_data.save_path_label_manifest(train_list, train_manifest_path, self.lab.data_root())
+                jb_data.save_path_label_manifest(val_list, val_manifest_path, self.lab.data_root())
 
             logger.info(f"...making data loaders...")
             self.training_iterable, self.evaluation_iterable = \
@@ -491,7 +490,7 @@ class ClassifierTrainer(EpochTrainer):
         if previous_model is not None:
             logger.info(f"Loading weights from previous model: {previous_model}")
 
-            prev_model_manager = jbfs.ModelManager(previous_model)
+            prev_model_manager = jb_fs.ModelManager(previous_model)
 
             pyt_utils.load_weights_from_model(prev_model_manager, self.model, self.model_config.pytorch.strict)
 

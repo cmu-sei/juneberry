@@ -27,8 +27,8 @@ import logging
 
 from juneberry.config.tuning import TuningConfig
 import juneberry.filesystem as jb_fs
-from juneberry.script_tools.tuning_sprout import TuningSprout
-import juneberry.scripting as jb_scripting_utils
+from juneberry.scripting.tuning_sprout import TuningSprout
+import juneberry.scripting.utils as jb_scripting_utils
 from juneberry.training.trainer_factory import TrainerFactory
 from juneberry.tuning.tuner import Tuner
 

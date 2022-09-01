@@ -23,6 +23,7 @@
 # ======================================================================================================================
 
 import logging
+
 from prodict import Prodict
 
 from juneberry.config.plugin import Plugin

@@ -24,11 +24,11 @@
 
 import logging
 
-from juneberry.onnx.evaluator import Evaluator
 import juneberry.evaluation.utils as jb_eval_utils
-import juneberry.filesystem as jbfs
-import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
+import juneberry.filesystem as jb_fs
+from juneberry.onnx.evaluator import Evaluator
 from juneberry.onnx.utils import ONNXPlatformDefinitions
+import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,8 @@ class OnnxEvaluationOutput:
         jb_eval_utils.prepare_classification_eval_output(evaluator)
 
         # Calculate the hash of the model that was used to conduct the evaluation.
-        evaluated_model_hash = jbfs.generate_file_hash(evaluator.model_manager.get_model_path(ONNXPlatformDefinitions()))
+        model_path = evaluator.model_manager.get_model_path(ONNXPlatformDefinitions())
+        evaluated_model_hash = jb_fs.generate_file_hash(model_path)
 
         # If the model Juneberry trained the model, a hash would have been calculated after training.
         # Compare that hash (if it exists) to the hash of the model being evaluated.

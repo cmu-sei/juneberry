@@ -27,6 +27,7 @@ A set of plotting utilities.
 """
 
 import logging
+
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)

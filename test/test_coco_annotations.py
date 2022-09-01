@@ -22,8 +22,8 @@
 #
 # ======================================================================================================================
 
-
 import unittest
+
 from juneberry.config.coco_anno import CocoAnnotations
 
 

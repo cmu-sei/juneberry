@@ -23,10 +23,11 @@
 # ======================================================================================================================
 
 import logging
+from types import SimpleNamespace
+
 import numpy as np
 from torch import split
 from tqdm import tqdm
-from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig

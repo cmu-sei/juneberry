@@ -21,6 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
 from dataclasses import dataclass
 import logging
 from typing import Union
@@ -30,7 +31,7 @@ from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
-from juneberry.trainer import Trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 

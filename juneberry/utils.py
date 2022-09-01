@@ -27,11 +27,12 @@ General utilities.
 """
 
 import logging
-import numpy as np
 from pathlib import Path
 import random
 import re
 import sys
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 

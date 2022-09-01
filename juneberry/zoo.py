@@ -31,7 +31,7 @@ from zipfile import ZipFile
 
 import requests
 
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 from juneberry.onnx.utils import ONNXPlatformDefinitions
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
@@ -205,7 +205,7 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
         model_parent_dir.mkdir(parents=True)
 
     # We assume that the workspace is the cwd.
-    model_mgr = jbfs.ModelManager(model_name)
+    model_mgr = jb_fs.ModelManager(model_name)
 
     with ZipFile(model_zip_path, "w") as zip_file:
         zip_file.write(model_mgr.get_model_config(), "config.json")

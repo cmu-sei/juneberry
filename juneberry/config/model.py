@@ -34,9 +34,9 @@ from jsonpath_ng.ext import parse
 from prodict import List, Prodict
 
 from juneberry.config.plugin import Plugin
-import juneberry.config.util as conf_utils
+import juneberry.config.util as jb_conf_utils
 from juneberry.config.workspace import LabProfile
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +209,7 @@ class ModelConfig(Prodict):
             # If label_mapping is a string, we want to read the file at that path and get the
             # dictionary from inside the indicated file.
             if type(self.label_mapping) is str:
-                file_content = jbfs.load_json(self.label_mapping)
+                file_content = jb_fs.load_json(self.label_mapping)
                 if 'labelNames' in file_content:
                     self.label_dict = file_content['labelNames']
                 else:
@@ -225,22 +225,20 @@ class ModelConfig(Prodict):
         if self.training_dataset_config_path is not None:
             self.training_dataset_config_path = Path(self.training_dataset_config_path)
 
-        # For model_architecture if they specified model/args convert to fqcn and kwargs and provide info message
+        # For model_architecture if they specified model/args, convert to fqcn/kwargs and provide a warning.
         model_arch = self.model_architecture
         if model_arch.module is not None:
             if model_arch.fqcn is not None:
-                logger.warning("In the model_architecture 'module' (deprecated) AND 'fqcn' are both pecified. "
-                               "Using new 'fqcn.'")
+                logger.warning("The model_architecture contains both 'module' (deprecated) AND 'fqcn'. Using 'fqcn.'")
             else:
-                logger.warning("Found use of deprecated 'module' on model_architecture. Switch to using 'fqcn'")
+                logger.warning("Found 'module' (deprecated) in the model_architecture. Converting it to 'fqcn'.")
                 model_arch.fqcn = model_arch.module
 
         if model_arch.args is not None:
             if model_arch.kwargs is not None:
-                logger.warning("In the model_architecture 'args' (deprecated) AND 'kwargs' are both specified. "
-                               "Using new 'kwargs.'")
+                logger.warning("The model_architecture contains 'args' (deprecated) AND 'kwargs'. Using 'kwargs.'")
             else:
-                logger.warning("Found use of deprecated 'args' on model_architecture. Switch to using 'kwargs'")
+                logger.warning("Found 'args' (deprecated) in the model_architecture. Converting it to 'kwargs'.")
                 model_arch.kwargs = model_arch.args
 
 
@@ -253,10 +251,10 @@ class ModelConfig(Prodict):
         :return: A constructed and validated object.
         """
         # We currently don't do a version check because we don't have any breaking version changes.
-        # conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
+        # jb_conf_utils.require_version(data, ModelConfig.FORMAT_VERSION, file_path, 'ModelConfig')
 
         # Validate
-        if not conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
+        if not jb_conf_utils.validate_schema(data, ModelConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in ModelConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
 
@@ -274,7 +272,7 @@ class ModelConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading MODEL CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
         return ModelConfig.construct(data, data_path)
@@ -285,11 +283,11 @@ class ModelConfig(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, ModelConfig.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, ModelConfig.SCHEMA_NAME)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to CURRENT json"""
-        as_dict = conf_utils.prodict_to_dict(self)
+        as_dict = jb_conf_utils.prodict_to_dict(self)
 
         ignore_attrs = ["file_path", "label_dict"]
         for attr_name in ignore_attrs:

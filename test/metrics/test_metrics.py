@@ -30,8 +30,8 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
-import juneberry.metrics.metrics_manager as mm
 from juneberry.config.model import Plugin
+import juneberry.metrics.metrics_manager as mm
 
 
 test_data_dir = Path(__file__).resolve().parent / "data"

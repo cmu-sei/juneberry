@@ -24,26 +24,30 @@
 from argparse import Namespace
 from dataclasses import dataclass
 import logging
-from juneberry.script_tools.sprout import Sprout
 
+from juneberry.scripting.sprout import Sprout
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class TuningSprout(Sprout):
+@dataclass()
+class TrainingSprout(Sprout):
     """
-    The TuningSprout class extends the Sprout class to include args related to model tuning.
+    The TrainingSprout class extends the base Sprout class to include attributes related to training
+    models in Juneberry.
     """
     # ========== SCRIPT ARGS ==========
     # ===== EXECUTION MODE ARGS =====
     dryrun: bool = None
+    num_gpus: int = None
+    resume: bool = None
+
+    # ===== OUTPUT FORMAT ARGS =====
+    onnx: bool = None
+    skip_native: bool = None
 
     # ===== MODEL ARGS =====
     model_name: str = None
-
-    # ===== TUNING ARGS =====
-    tuning_config: str = None
 
     def grow_from_args(self, args: Namespace) -> None:
         """
@@ -54,7 +58,10 @@ class TuningSprout(Sprout):
         # Start by setting the attributes in the base Sprout.
         super().grow_from_args(args)
 
-        # Now set the attributes listed in the TuningSprout.
-        self.dryrun = getattr(args, "dryrun", False)
+        # Now set the attributes stored in the TrainingSprout.
         self.model_name = getattr(args, "modelName", None)
-        self.tuning_config = getattr(args, "tuningConfig", None)
+        self.num_gpus = getattr(args, "num_gpus", None)
+        self.dryrun = getattr(args, "dryrun", False)
+        self.resume = getattr(args, "resume", False)
+        self.skip_native = getattr(args, "skipNative", False)
+        self.onnx = getattr(args, "onnx", False)

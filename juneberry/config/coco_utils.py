@@ -36,7 +36,7 @@ from PIL import Image, ImageDraw
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.coco_anno import CocoAnnotations
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -357,7 +357,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
         coco_path = dataset.image_data.sources[0]['directory']
         coco_data = CocoAnnotations.load(data_root / coco_path)
 
-    predictions = jbfs.load_file(predict_file)
+    predictions = jb_fs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
     coco_out.save(str(output_file))

@@ -29,7 +29,7 @@ from typing import List
 from juneberry.config.experiment import ExperimentConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.report import ReportConfig
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 import juneberry.loader as jb_loader
 from juneberry.reporting.report import Report
 
@@ -58,7 +58,7 @@ def extract_experiment_reports(experiment_name: str) -> List:
     """
     # Create an ExperimentManager for the target Experiment and use it to load the
     # experiment config.
-    experiment_manager = jbfs.ExperimentManager(experiment_name)
+    experiment_manager = jb_fs.ExperimentManager(experiment_name)
     experiment_config = ExperimentConfig.load(experiment_manager.get_experiment_config())
 
     # Return the "reports" stanza from the experiment config.
@@ -74,7 +74,7 @@ def extract_model_reports(model_name: str) -> List:
     :return: A List of all the "reports" found inside the Model's config.json.
     """
     # Create a ModelManager for the target Model and use it to load the model config.
-    model_manager = jbfs.ModelManager(model_name)
+    model_manager = jb_fs.ModelManager(model_name)
     model_config = ModelConfig.load(model_manager.get_model_config())
 
     # Return the "reports" stanza from the model config.

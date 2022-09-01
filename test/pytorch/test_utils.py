@@ -24,12 +24,6 @@
 
 from juneberry.config.model import PytorchOptions
 import juneberry.pytorch.utils as pyt_utils
-import random
-
-from juneberry.config.dataset import SamplingAlgo, SamplingConfig
-from juneberry.config.model import PytorchOptions, SplittingConfig
-from juneberry.lab import Lab
-import juneberry.pytorch.utils as pyt_utils
 
 
 class DummyLoss:

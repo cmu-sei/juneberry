@@ -24,8 +24,8 @@
 
 import logging
 
-from opacus.utils import module_modification
 from opacus.dp_model_inspector import DPModelInspector
+from opacus.utils import module_modification
 
 logger = logging.getLogger(__name__)
 

@@ -24,14 +24,14 @@
 
 from collections import namedtuple
 import logging
-import numpy as np
 from pathlib import Path
 import random
-from sklearn.metrics import balanced_accuracy_score
 import sys
-import torch
 import traceback
 
+import numpy as np
+from sklearn.metrics import balanced_accuracy_score
+import torch
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 import torch.utils.data as torch_data
@@ -42,12 +42,11 @@ from torchvision import transforms
 from juneberry.config.model import PytorchOptions
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
-import juneberry.loader as jbloader
-import juneberry.loader as model_loader
+import juneberry.loader as jb_loader
 from juneberry.onnx.utils import ONNXPlatformDefinitions
 from juneberry.platform import PlatformDefinitions
-import juneberry.transform_manager as jbtm
 from juneberry.pytorch.evaluation.utils import compute_accuracy
+import juneberry.transforms.transform_manager as jb_tm
 import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
@@ -84,7 +83,7 @@ def set_random_state(random_state: RandomState) -> None:
     torch.set_rng_state(random_state.pytorch)
 
 
-class PyTorchStagedTransform(jbtm.StagedTransformManager):
+class PyTorchStagedTransform(jb_tm.StagedTransformManager):
     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
         super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
         self.random_state: RandomState
@@ -144,11 +143,11 @@ def construct_model(arch_config, num_model_classes):
     args = arch_config.get('kwargs', {})
     jb_data.check_num_classes(args, num_model_classes)
 
-    return model_loader.invoke_method(module_path=module_path,
-                                      class_name=class_str,
-                                      method_name="__call__",
-                                      method_args=args,
-                                      dry_run=False)
+    return jb_loader.invoke_method(module_path=module_path,
+                                   class_name=class_str,
+                                   method_name="__call__",
+                                   method_args=args,
+                                   dry_run=False)
 
 
 def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -> None:
@@ -290,7 +289,7 @@ def make_loss(config: PytorchOptions, model, binary):
 
         if function_name is not None:
             logger.info(f"Constructing loss function '{function_name}' with args '{function_args}'")
-            loss_fn = jbloader.construct_instance(function_name, function_args, optional_args)
+            loss_fn = jb_loader.construct_instance(function_name, function_args, optional_args)
 
     if loss_fn is None:
         logger.warning("No loss function specified. Defaulting to torch.nn.CrossEntropyLoss with default arguments")
@@ -317,7 +316,7 @@ def make_optimizer(config: PytorchOptions, model):
         if opt_fn is not None:
             logger.info(f"Constructing optimizer '{opt_fn}' with args {opt_args}")
             opt_args['params'] = model.parameters()
-            return jbloader.construct_instance(opt_fn, opt_args)
+            return jb_loader.construct_instance(opt_fn, opt_args)
 
     logger.warning("No optimizer specified. Defaulting to torch.optim.SGD with lr=0.01")
     return torch.optim.SGD(model.parameters(), lr=0.01)
@@ -360,19 +359,19 @@ def make_lr_scheduler(config: PytorchOptions, optimizer, max_epochs):
                                                      step_size_up=lr_args['step_size_up'])
 
         elif lr_name == 'LambdaLR':
-            args = jbloader.extract_kwargs(lr_args)
+            args = jb_loader.extract_kwargs(lr_args)
             if args is None:
                 logger.error(f"Failed to extract args for 'LambdaLR' scheduler. args={args}. Exiting.")
                 sys.exit(-1)
             args['kwargs']['epochs'] = max_epochs
-            fn_obj = jbloader.construct_instance(**args)
+            fn_obj = jb_loader.construct_instance(**args)
             return torch.optim.lr_scheduler.LambdaLR(optimizer, fn_obj)
 
         else:
             # Add our optimizer to the lr_args and then any additional ones they want.
             # lr_args['optimizer'] = optimizer
             lr_args['optimizer'] = optimizer
-            return jbloader.construct_instance(lr_name, lr_args, {'epochs': max_epochs})
+            return jb_loader.construct_instance(lr_name, lr_args, {'epochs': max_epochs})
 
     except KeyError as missing_key:
         logger.error(f"Key named {missing_key} not found in learning rate scheduler args {lr_args}. Exiting.")
@@ -394,7 +393,7 @@ def make_accuracy(config: PytorchOptions, binary):
         signature_args['y_true'] = []
 
         logger.info(f"Constructing accuracy function '{acc_name}' with optional args '{acc_args}'")
-        acc_fn = jbloader.load_verify_fqn_function(acc_name, signature_args)
+        acc_fn = jb_loader.load_verify_fqn_function(acc_name, signature_args)
         if acc_fn is None:
             logger.error(f"Failed to load accuracy function '{acc_name}'. See log for details. EXITING!!")
             sys.exit(-1)
@@ -492,7 +491,7 @@ def invoke_evaluator_method(evaluator, module_name: str):
     class_name = split_name[-1]
     args = {"evaluator": evaluator}
 
-    jbloader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
+    jb_loader.invoke_method(module_path=module_path, class_name=class_name, method_name="__call__", method_args=args)
 
 
 class EpochDataset(torch_data.Dataset):

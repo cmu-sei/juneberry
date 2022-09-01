@@ -28,18 +28,17 @@ import datetime
 import itertools
 import logging
 import os
-from prodict import Prodict
 import random
 import sys
 
+from prodict import Prodict
+
 import juneberry.config.experiment as jb_experiment
-from juneberry.config.experiment import ExperimentConfig, ReportFQCN
 import juneberry.config.experiment_outline as jb_exp_outline
-from juneberry.config.experiment_outline import ExperimentOutline
 from juneberry.config.model import ModelConfig
 from juneberry.config.plugin import Plugin
 from juneberry.filesystem import ExperimentCreator, ModelManager, save_json
-import juneberry.scripting as jbscripting
+import juneberry.scripting.utils as jb_scripting
 
 logger = logging.getLogger("juneberry.jb_generate_experiments")
 
@@ -81,7 +80,7 @@ def generate_combined_roc(in_report: Prodict, models: list) -> list:
     out_report = Plugin()
     out_report.classes = in_report.classes
     out_report.description = in_report.description
-    out_report.fqcn = ReportFQCN.PLOT_ROC.value
+    out_report.fqcn = jb_experiment.ReportFQCN.PLOT_ROC.value
 
     # Retain the kwargs in the new Report if any were provided in the input Report.
     out_report.kwargs = in_report.kwargs if in_report.kwargs is not None else {}
@@ -148,7 +147,7 @@ def generate_combined_pr(in_report: Prodict, models: list) -> list:
     # from the input Report.
     out_report = Plugin()
     out_report.description = in_report.description
-    out_report.fqcn = ReportFQCN.PLOT_PR.value
+    out_report.fqcn = jb_experiment.ReportFQCN.PLOT_PR.value
     out_report.kwargs = in_report.kwargs if in_report is not None else {}
 
     # Set an appropriately named output directory based on the test tag.
@@ -198,7 +197,7 @@ def generate_pr_reports(in_report: Prodict, models: list) -> list:
     return pr_report_list
 
 
-def generate_reports_list(outline: ExperimentOutline, model_names: list) -> list:
+def generate_reports_list(outline: jb_exp_outline.ExperimentOutline, model_names: list) -> list:
     """
     This function is responsible for generating the list of reports that will go into the
     experiment config.
@@ -222,21 +221,21 @@ def generate_reports_list(outline: ExperimentOutline, model_names: list) -> list
 
         # If the report is for a ROC plot, we want to generate a version of that
         # report for every model in the experiment.
-        if report.fqcn == ReportFQCN.PLOT_ROC:
+        if report.fqcn == jb_experiment.ReportFQCN.PLOT_ROC:
             reports_list.extend(generate_roc_reports(report, model_names))
 
-        elif report.fqcn == ReportFQCN.ALL_ROC:
+        elif report.fqcn == jb_experiment.ReportFQCN.ALL_ROC:
             reports_list.extend(generate_combined_roc(report, model_names))
 
-        elif report.fqcn == ReportFQCN.PLOT_PR:
+        elif report.fqcn == jb_experiment.ReportFQCN.PLOT_PR:
             reports_list.extend(generate_pr_reports(report, model_names))
 
-        elif report.fqcn == ReportFQCN.ALL_PR:
+        elif report.fqcn == jb_experiment.ReportFQCN.ALL_PR:
             reports_list.extend(generate_combined_pr(report, model_names))
 
         # If the report type is a summary , we only need one and can use the
         # parameters as-is.
-        elif report.fqcn == ReportFQCN.SUMMARY:
+        elif report.fqcn == jb_experiment.ReportFQCN.SUMMARY:
             reports_list.append(report)
             logger.info(f"Added 1 summary report for this experiment.")
 
@@ -250,7 +249,7 @@ def generate_reports_list(outline: ExperimentOutline, model_names: list) -> list
     return reports_list
 
 
-def generate_models_list(outline: ExperimentOutline, experiment_name: str, model_names: list) -> list:
+def generate_models_list(outline: jb_exp_outline.ExperimentOutline, experiment_name: str, model_names: list) -> list:
     """
     This function is responsible for generating the list of models that will go into the
     experiment config.
@@ -300,7 +299,7 @@ def generate_models_list(outline: ExperimentOutline, experiment_name: str, model
     return models_list
 
 
-def generate_experiment_config(experiment_creator: ExperimentCreator, outline: ExperimentOutline,
+def generate_experiment_config(experiment_creator: ExperimentCreator, outline: jb_exp_outline.ExperimentOutline,
                                experiment_name: str, model_names: list) -> None:
     """
     This function is responsible for producing the content that will go into the config.json
@@ -319,7 +318,7 @@ def generate_experiment_config(experiment_creator: ExperimentCreator, outline: E
     out_config.description = "Generated using jb_generate_experiments"
     out_config.models = generate_models_list(outline, experiment_name, model_names)
     out_config.reports = generate_reports_list(outline, model_names)
-    out_config.format_version = ExperimentConfig.FORMAT_VERSION
+    out_config.format_version = jb_experiment.ExperimentConfig.FORMAT_VERSION
     out_config.timestamp = str(datetime.datetime.now().replace(microsecond=0).isoformat())
     out_config.filters = outline.filters
 
@@ -542,7 +541,7 @@ def generate_combinations(variables: list) -> (list, list, list):
     return every_variable_name, every_nickname_list, combinations
 
 
-def generate_model_configs(experiment_outline: ExperimentOutline) -> list:
+def generate_model_configs(experiment_outline: jb_exp_outline.ExperimentOutline) -> list:
     """
     This function is responsible for producing the various combinations of
     ModelConfig objects and saving them to the appropriate JSON file.
@@ -632,22 +631,23 @@ def main():
                                                  "run an experiment. Also creates the experiment config file "
                                                  "which can run the full experiment.")
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting.setup_args(parser)
     args = parser.parse_args()
     experiment_creator = ExperimentCreator(args.experimentName)
 
     # Set up the workspace, logging and general environment
-    lab = jbscripting.setup_workspace(
+    lab = jb_scripting.setup_workspace(
         args,
         log_file=experiment_creator.get_log_path(args.dryrun),
-        log_prefix=jbscripting.standard_line_prefix(args.dryrun))
+        log_prefix=jb_scripting.standard_line_prefix(args.dryrun))
 
     # Initial log message for this operation
     logger.info("Creating the experiment files for the following experiment: " + args.experimentName)
 
     # Load the experiment definition file
     logger.info(f"Loading experiment definition file...")
-    experiment_outline = ExperimentOutline.load(experiment_creator.get_experiment_outline(), args.experimentName)
+    experiment_outline = jb_exp_outline.ExperimentOutline.load(experiment_creator.get_experiment_outline(),
+                                                               args.experimentName)
 
     # Perform a dry run if the option was provided
     if args.dryrun:

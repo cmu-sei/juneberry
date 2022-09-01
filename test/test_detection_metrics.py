@@ -1,55 +1,33 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
 from collections import defaultdict
-import json
 import gzip
+import json
 
-import juneberry.detection_metrics
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
+import juneberry.metrics.detection_metrics
 
 
 def ltwh2ltrb(ltwh):
@@ -74,11 +52,11 @@ def load_coco_truth(gt_path, wanted_images):
     #         },
 
     if gt_path.endswith(".gz"):
-        # TODO: Switch over to using jbfs.load_file once gzip support has been implemented.
+        # TODO: Switch over to using jb_fs.load_file once gzip support has been implemented.
         with gzip.open(gt_path) as json_file:
             data = json.load(json_file, 'json')
     else:
-        data = jbfs.load_file(gt_path)
+        data = jb_fs.load_file(gt_path)
 
     truths = []
     for item in data['annotations']:
@@ -108,11 +86,11 @@ def load_coco_results(results_path):
     results = []
 
     if results_path.endswith(".gz"):
-        # TODO: Switch over to using jbfs.load_file once gzip support has been implemented.
+        # TODO: Switch over to using jb_fs.load_file once gzip support has been implemented.
         with gzip.open(results_path) as json_file:
             data = json.load(json_file)
     else:
-        data = jbfs.load_file(results_path)
+        data = jb_fs.load_file(results_path)
 
     #     {
     #         "image_id": 42,
@@ -186,7 +164,7 @@ def test_iou():
     union = 100 + 100 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Not at origin
@@ -196,7 +174,7 @@ def test_iou():
     union = 100 + 100 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Different sizes
@@ -206,7 +184,7 @@ def test_iou():
     union = 100 + 121 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Pure overlay
@@ -216,7 +194,7 @@ def test_iou():
     union = 100 + 100 - 100
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
 
@@ -284,7 +262,7 @@ def test_find_detect():
     truths = make_test_truths()
     detects = make_test_detect()
 
-    evals = juneberry.detection_metrics.find_best_detects(truths, detects)
+    evals = juneberry.metrics.detection_metrics.find_best_detects(truths, detects)
     # DEBUGGING
     # print(f"truths: {json.dumps(truths, indent=4)}")
     # print(f"detects: {json.dumps(detects, indent=4)}")
@@ -292,7 +270,7 @@ def test_find_detect():
 
     # Check results
     for i in range(3):
-        iou = juneberry.detection_metrics.iou_bbox(truths[0]['ltrb'], detects[i]['ltrb'])
+        iou = juneberry.metrics.detection_metrics.iou_bbox(truths[0]['ltrb'], detects[i]['ltrb'])
         assert evals[i]['detect_id'] == i
         assert evals[i]['score'] == detects[i]['confidence']
         assert evals[i]['iou'] == iou
@@ -307,7 +285,7 @@ def test_find_detect():
 
 
 def test_evaluator_single():
-    evaluator = juneberry.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
     evaluator.add_ground_truth([make_truth(1817255, 42, 18, [214.15, 41.29, 348.26, 243.78])])
     evaluator.add_detections([make_detect(0, 42, 18, 0.236, [258.15, 41.29, 348.26, 243.78])])
     assert round(evaluator.mean_average_precision(), 5) == 1.0
@@ -315,7 +293,7 @@ def test_evaluator_single():
 
 def test_evaluator_two_truth_one_detect():
     print("TWO TRUTH, one DETECT")
-    evaluator = juneberry.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
 
     # Two motorcycle (cat4) truths
     evaluator.add_ground_truth([
@@ -328,7 +306,7 @@ def test_evaluator_two_truth_one_detect():
 
 
 def test_evaluator_two_truth_one_detect_one_bogus():
-    evaluator = juneberry.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
 
     # Two motorcycle (cat4) truths
     evaluator.add_ground_truth([
@@ -347,7 +325,7 @@ def evalutor_test_from_files(gt_path, dt_path, map50):
     truth = load_coco_truth(gt_path, wanted)
 
     # Build evaluator
-    evaluator = juneberry.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
 
     # Add in ground truths
     evaluator.add_ground_truth(truth)
@@ -380,7 +358,7 @@ def test_compute_precision_and_recall():
         {'true_positive': 1},
         {'true_positive': 0},
     ]
-    juneberry.detection_metrics.compute_precision_and_recall(evals, 5)
+    juneberry.metrics.detection_metrics.compute_precision_and_recall(evals, 5)
     assert evals[0]['precision'] == 1.0
     assert evals[0]['recall'] == 0.2
     assert evals[1]['precision'] == 0.5
@@ -423,7 +401,7 @@ def test_convert_to_thresholds():
         },
     ]
     # This is (0.0 * 5 + 1.0 * 6)/11
-    assert round(juneberry.detection_metrics.interpolated_stepped_average(data, 11), 6) == round(0.5454545454545454, 6)
+    assert round(juneberry.metrics.detection_metrics.interpolated_stepped_average(data, 11), 6) == round(0.5454545454545454, 6)
 
 
 def main():

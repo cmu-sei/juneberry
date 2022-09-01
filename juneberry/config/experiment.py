@@ -29,8 +29,8 @@ import sys
 
 from prodict import Prodict, List
 
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class ExperimentConfig(Prodict):
 
         for i, model in enumerate(self.models):
             # At this point it must exist.
-            model_manager = jbfs.ModelManager(model.name)
+            model_manager = jb_fs.ModelManager(model.name)
             if not model_manager.get_model_dir().exists():
                 logger.error(f"Model not found: {model_manager.get_model_dir()}")
                 error_count += 1
@@ -178,7 +178,7 @@ class ExperimentConfig(Prodict):
 
         if self.tuning is not None:
             for i, trial in enumerate(self.tuning):
-                model_manager = jbfs.ModelManager(trial.model)
+                model_manager = jb_fs.ModelManager(trial.model)
                 tuning_config_path = Path(trial.tuning_config)
                 if not model_manager.get_model_dir().exists():
                     logger.error(f"Model not found: {model_manager.get_model_dir()}")
@@ -199,8 +199,8 @@ class ExperimentConfig(Prodict):
         :return: The constructed object.
         """
         # Validate with our schema
-        conf_utils.require_version(data, ExperimentConfig.FORMAT_VERSION, file_path, 'ExperimentConfig')
-        if not conf_utils.validate_schema(data, ExperimentConfig.SCHEMA_NAME):
+        jb_conf_utils.require_version(data, ExperimentConfig.FORMAT_VERSION, file_path, 'ExperimentConfig')
+        if not jb_conf_utils.validate_schema(data, ExperimentConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in {file_path}. See log. EXITING.")
             sys.exit(-1)
 
@@ -218,7 +218,7 @@ class ExperimentConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading EXPERIMENT CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Construct the config.
         return ExperimentConfig.construct(data, data_path)
@@ -229,8 +229,8 @@ class ExperimentConfig(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, ExperimentConfig.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, ExperimentConfig.SCHEMA_NAME)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json"""
-        return conf_utils.prodict_to_dict(self)
+        return jb_conf_utils.prodict_to_dict(self)

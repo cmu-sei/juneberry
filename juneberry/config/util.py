@@ -26,26 +26,26 @@
 Common utilities used by config parsers and generators.
 """
 
-import jsonschema
 import logging
 from pathlib import Path
-import pkg_resources
 import pkgutil
-from prodict import Prodict
 import sys
 
 import hjson
+import jsonschema
+import pkg_resources
+from prodict import Prodict
 
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.utils import none_stripper
-import juneberry.version_system as jbvs
+import juneberry.version_system as jb_vs
 
 logger = logging.getLogger(__name__)
 
 
 def require_version(data, min_version, file_path: str, module_str: str):
-    data_version = jbvs.VersionNumber(data['format_version'])
-    min_version = jbvs.VersionNumber(min_version)
+    data_version = jb_vs.VersionNumber(data['format_version'])
+    min_version = jb_vs.VersionNumber(min_version)
 
     if data_version < min_version:
         logger.error(f"{module_str} at {file_path} has version {data_version} and we require {min_version}. EXITING.")
@@ -72,7 +72,7 @@ def require_tags(label, data: dict, tags: list) -> int:
 
 def validate_schema(data, schema_name, die_on_error=False):
     # Load the schema.
-    # TODO: Should this be routed through the jbfs load chokepoint?
+    # TODO: Should this be routed through the jb_fs load chokepoint?
     schema = hjson.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
 
     # Set up a reference resolver to simplify how Juneberry schema files reference each other.
@@ -130,4 +130,4 @@ def validate_and_save_json(json_data: dict, data_path: str, schema_name: str) ->
         validate_schema(json_data, schema_name, die_on_error=True)
 
     # Use the filesystem to figure out how to save it
-    jbfs.save_json(json_data, data_path)
+    jb_fs.save_json(json_data, data_path)

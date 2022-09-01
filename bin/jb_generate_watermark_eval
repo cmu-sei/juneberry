@@ -31,7 +31,7 @@ import sys
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.experiment import ExperimentConfig, Model, ModelTest, Report, ReportTest
 from juneberry.filesystem import ExperimentManager
-import juneberry.scripting as jb_scripting
+import juneberry.scripting.utils as jb_scripting
 
 # DESIGN
 # We assume the following layout:
