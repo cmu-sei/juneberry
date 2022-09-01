@@ -30,7 +30,7 @@ import sys
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.workspace import LabProfile, WorkspaceConfig
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -141,19 +141,19 @@ class Lab:
         self._data_roots[dr_key] = data_root
 
     @staticmethod
-    def model_manager(model_name: str) -> jbfs.ModelManager:
+    def model_manager(model_name: str) -> jb_fs.ModelManager:
         """ :return: The ModelManager for this model. """
-        return jbfs.ModelManager(model_name)
+        return jb_fs.ModelManager(model_name)
 
     @staticmethod
-    def experiment_manager(experiment_name: str) -> jbfs.ExperimentManager:
+    def experiment_manager(experiment_name: str) -> jb_fs.ExperimentManager:
         """ :return: The ExperimentManager for this experiment. """
-        return jbfs.ExperimentManager(experiment_name)
+        return jb_fs.ExperimentManager(experiment_name)
 
     @staticmethod
-    def experiment_creator(experiment_name: str) -> jbfs.ExperimentCreator:
+    def experiment_creator(experiment_name: str) -> jb_fs.ExperimentCreator:
         """ :return: The ExperimentCreator for this experiment. """
-        return jbfs.ExperimentCreator(experiment_name)
+        return jb_fs.ExperimentCreator(experiment_name)
 
     # Setup commands
     def setup_lab_profile(self, *, model_name: str = None, model_config: ModelConfig = None) -> None:
@@ -213,7 +213,7 @@ class Lab:
 
         model_config.timestamp = str(datetime.datetime.now())
         content = model_config.to_json()
-        jbfs.save_json(content, model_config_path)
+        jb_fs.save_json(content, model_config_path)
         return model_config_path
 
     def save_dataset_config(self, dataset_config_path: str, dataset_config: DatasetConfig, ws_key='default'):

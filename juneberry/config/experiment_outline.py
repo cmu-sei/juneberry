@@ -23,12 +23,13 @@
 # ======================================================================================================================
 
 import logging
-from prodict import Prodict, List
 import sys
 import typing
 
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+from prodict import Prodict, List
+
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,8 @@ class ExperimentOutline(Prodict):
         :return: A constructed object.
         """
         # Validate with our schema
-        conf_utils.require_version(data, ExperimentOutline.FORMAT_VERSION, file_path, 'ExperimentOutline')
-        if not conf_utils.validate_schema(data, ExperimentOutline.SCHEMA_NAME):
+        jb_conf_utils.require_version(data, ExperimentOutline.FORMAT_VERSION, file_path, 'ExperimentOutline')
+        if not jb_conf_utils.validate_schema(data, ExperimentOutline.SCHEMA_NAME):
             logger.error(f"Validation errors in {file_path}. See log. Exiting.")
             sys.exit(-1)
 
@@ -155,7 +156,7 @@ class ExperimentOutline(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading EXPERIMENT OUTLINE from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
         return ExperimentOutline.construct(data, experiment_name, data_path)
@@ -166,9 +167,9 @@ class ExperimentOutline(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, ExperimentOutline.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, ExperimentOutline.SCHEMA_NAME)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json"""
-        return conf_utils.prodict_to_dict(self)
+        return jb_conf_utils.prodict_to_dict(self)
 

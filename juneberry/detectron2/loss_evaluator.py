@@ -26,12 +26,10 @@ import datetime
 import logging
 import time
 
-import numpy as np
-
-import torch
-
 import detectron2.utils.comm as comm
 from detectron2.utils.logger import log_every_n_seconds
+import numpy as np
+import torch
 
 logger = logging.getLogger(__name__)
 

@@ -22,12 +22,12 @@
 #
 # ======================================================================================================================
 
-import matplotlib.pyplot as plt
 import logging
-from pandas.core.frame import DataFrame
 from pathlib import Path
 from typing import Dict
 
+import matplotlib.pyplot as plt
+from pandas.core.frame import DataFrame
 
 logger = logging.getLogger(__name__)
 

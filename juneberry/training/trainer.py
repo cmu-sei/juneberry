@@ -42,11 +42,10 @@ from tqdm import tqdm
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.training_output import TrainingOutput
-import juneberry.config.training_output
+from juneberry.config.training_output import Options, Results, Times, TrainingOutput
 from juneberry.filesystem import ModelManager
-import juneberry.filesystem as jbfs
-from juneberry.jb_logging import log_banner
+import juneberry.filesystem as jb_fs
+from juneberry.logging import log_banner
 from juneberry.lab import Lab
 from juneberry.timing import Berryometer
 
@@ -98,10 +97,10 @@ class Trainer:
         # This is where all the results of the training process are placed
         # that we can serialize at the end.
         self.results = TrainingOutput()
-        self.results.options = juneberry.config.training_output.Options()
-        self.results.times = juneberry.config.training_output.Times()
+        self.results.options = Options()
+        self.results.times = Times()
         self.results.times.epoch_duration_sec = []
-        self.results.results = juneberry.config.training_output.Results()
+        self.results.results = Results()
 
         # These booleans control which format(s) will be used when saving the trained model. All Trainers support
         # some kind of native format, but not all trainers will support the ONNX format.
@@ -285,7 +284,7 @@ class Trainer:
 
         else:
             logger.info(f"Writing output file: {self.model_manager.get_training_out_file()}")
-            jbfs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
+            jb_fs.save_json(self.results.to_json(), self.model_manager.get_training_out_file())
 
 
 #  _____                  _   _____          _

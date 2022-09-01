@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 
 import juneberry.config.coco_utils as coco_utils
-import juneberry.scripting as jb_scripting
+import juneberry.scripting.utils as jb_scripting
 
 logger = logging.getLogger("juneberry.coco_image_use.py")
 

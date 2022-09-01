@@ -30,11 +30,6 @@ import sys
 import types
 from typing import Optional
 
-import hjson
-
-import torch
-from torch.nn.parallel import DistributedDataParallel
-
 from detectron2 import model_zoo
 from detectron2.checkpoint import DetectionCheckpointer, PeriodicCheckpointer
 from detectron2.config import get_cfg
@@ -48,6 +43,9 @@ from detectron2.utils.collect_env import collect_env_info
 import detectron2.utils.comm as comm
 from detectron2.utils.env import seed_all_rng
 from detectron2.utils.events import EventStorage, CommonMetricPrinter, JSONWriter, TensorboardXWriter
+import hjson
+import torch
+from torch.nn.parallel import DistributedDataParallel
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
@@ -57,11 +55,11 @@ import juneberry.detectron2.data as dt2_data
 from juneberry.detectron2.loss_evaluator import DT2LossEvaluator
 from juneberry.detectron2.utils import DT2PlatformDefinitions
 from juneberry.filesystem import generate_file_hash, ModelManager
-from juneberry.jb_logging import log_banner, setup_logger
+from juneberry.logging import log_banner, setup_logger
 from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
-from juneberry.trainer import Trainer
+from juneberry.training.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
@@ -573,7 +571,7 @@ class Detectron2Trainer(Trainer):
         # Open the dt2 metrics log and read each line. Currently only fast_rcnn accuracies are supported.
         with open(file, 'r') as log_file:
             for line in log_file:
-                # TODO: Should this be routed through the jbfs load chokepoint?
+                # TODO: Should this be routed through the jb_fs load chokepoint?
                 content = hjson.loads(line)
                 self.append_metric(content, self.output.results.accuracy, 'fast_rcnn/cls_accuracy')
                 self.append_metric(content, self.output.results.false_negative, 'fast_rcnn/false_negative')

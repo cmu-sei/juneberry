@@ -28,8 +28,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from juneberry.config.model import Plugin
-import juneberry.loader as loader
 from juneberry.filesystem import EvalDirMgr
+import juneberry.loader as jb_loader
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +77,11 @@ class MetricsManager:
                 # Create a metrics plugin for each entry in the config
                 entry = MetricsManager.Entry(i.fqcn, i.kwargs)
                 logger.info(f"Constructing metrics: {entry.fqcn} with args: {entry.kwargs}")
-                entry.metrics = loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
+                entry.metrics = jb_loader.construct_instance(entry.fqcn, entry.kwargs, opt_args)
                 self.metrics_entries.append(entry)
 
             if formatter_config:
-                self.formatter = loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
+                self.formatter = jb_loader.construct_instance(formatter_config.fqcn, formatter_config.kwargs, opt_args)
 
     def __call__(self, anno: Dict, det: Dict) -> Dict[str, Any]:
         """

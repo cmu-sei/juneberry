@@ -25,7 +25,7 @@
 import logging
 
 import juneberry.evaluation.utils as jb_eval_utils
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 import juneberry.pytorch.evaluation.utils as jb_pytorch_eval_utils
 from juneberry.pytorch.evaluation.evaluator import Evaluator
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
@@ -70,7 +70,7 @@ class PyTorchEvaluationOutput:
         # Calculate the hash of the model that was used to conduct the evaluation if we have a serialized one
         model_path = evaluator.model_manager.get_model_path(PyTorchPlatformDefinitions())
         if model_path.exists():
-            evaluated_model_hash = jbfs.generate_file_hash(model_path)
+            evaluated_model_hash = jb_fs.generate_file_hash(model_path)
 
             # If the Juneberry trained the model, a hash would have been calculated after training.
             # Compare that hash (if it exists) to the hash of the model being evaluated.

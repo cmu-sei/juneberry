@@ -26,7 +26,7 @@ import logging
 import sys
 from typing import Any
 
-import juneberry.loader as loader
+import juneberry.loader as jb_loader
 import juneberry.utils as jb_utils
 
 logger = logging.getLogger(__name__)
@@ -80,10 +80,10 @@ class TransformManager:
 
             # Load the instance
             logger.info(f"Constructing transform: {fqcn} with args: {kwargs}")
-            self.transform = loader.construct_instance(fqcn, kwargs, opt_args)
+            self.transform = jb_loader.construct_instance(fqcn, kwargs, opt_args)
 
             # Grab all the extra arguments so we can call it with those
-            self.extra_params = loader.extract_kwarg_names(self.transform)
+            self.extra_params = jb_loader.extract_kwarg_names(self.transform)
             logger.info(f"... wants extra params {self.extra_params}")
 
         def __call__(self, obj: Any, **kwargs) -> Any:

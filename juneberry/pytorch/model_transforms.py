@@ -22,16 +22,15 @@
 #
 # ======================================================================================================================
 
+from functools import reduce
 import logging
 from pathlib import Path
 import sys
 
-from functools import reduce
-
 import torch
 from torchsummary import summary
 
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 logger = logging.getLogger(__name__)
@@ -66,7 +65,7 @@ class LoadModel:
         if self.model_name is not None:
             logger.info(f"LoadModel transform loading model: {self.model_name}.")
             # Construct a model manager so we can get the model path.
-            model_manager = jbfs.ModelManager(self.model_name)
+            model_manager = jb_fs.ModelManager(self.model_name)
             model_path = model_manager.get_model_path(PyTorchPlatformDefinitions())
             if not Path(model_path).exists():
                 logger.error(f"Model path {model_path} does not exist! EXITING.")
@@ -158,7 +157,7 @@ class SaveModel:
         if self.model_name is not None:
             logger.info(f"SaveModel transform saving model: {self.model_name}.")
             # Construct a model manager so we can get the model path.
-            model_manager = jbfs.ModelManager(self.model_name)
+            model_manager = jb_fs.ModelManager(self.model_name)
             model_dir = model_manager.get_model_dir()
             if not Path(model_dir).exists():
                 logger.error(f"Model directory {model_dir} does not exist! EXITING.")

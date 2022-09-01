@@ -39,15 +39,13 @@ from typing import Any, Dict, List, Tuple, Union
 
 from juneberry.config.coco_anno import CocoAnnotations
 import juneberry.config.coco_utils as coco_utils
-from juneberry.config.coco_utils import COCOImageHelper
-import juneberry.config.dataset as jb_dataset
-from juneberry.config.dataset import DatasetConfig
+from juneberry.config.dataset import DatasetConfig, SamplingAlgo
 from juneberry.config.model import ModelConfig, SplittingConfig
 from juneberry.config.training_output import TrainingOutput
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
-from juneberry.transform_manager import TransformManager, LabeledTransformManager
+from juneberry.transforms.transform_manager import TransformManager, LabeledTransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -165,10 +163,10 @@ def make_split_metadata_manifest_files(lab: Lab,
 
     # Serialize
     train_path = model_manager.get_training_data_manifest_path()
-    jbfs.save_json(train_coco_meta, train_path)
+    jb_fs.save_json(train_coco_meta, train_path)
 
     split_path = model_manager.get_validation_data_manifest_path()
-    jbfs.save_json(split_coco_meta, split_path)
+    jb_fs.save_json(split_coco_meta, split_path)
 
     # TODO: JB should output manifests
     logger.info(f"Saving training data manifest: {train_path}")
@@ -216,7 +214,7 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 
     label_names = get_label_mapping(model_manager=model_manager, model_config=model_config, train_config=dataset_config)
     coco_style = coco_utils.convert_jbmeta_to_coco(eval_list, label_names)
-    jbfs.save_json(coco_style, output_path)
+    jb_fs.save_json(coco_style, output_path)
 
     logger.info(f"Saving evaluation data manifest: {output_path}")
 
@@ -423,7 +421,7 @@ class CocoMetadataMarshal(DatasetMarshal):
                 self.ds_config.update_label_names(int_labels)
 
         # Now that we have the file loaded let's load the values
-        helper = COCOImageHelper(data)
+        helper = coco_utils.COCOImageHelper(data)
         if remove_image_ids:
             [helper.remove_image(img_id) for img_id in remove_image_ids]
         new_values.extend(helper.to_image_list())
@@ -522,7 +520,7 @@ def get_num_classes(data_config_files):
     """
     num_classes = []
     for config_file in data_config_files:
-        config = jbfs.load_file(config_file)
+        config = jb_fs.load_file(config_file)
         if 'num_model_classes' not in config.keys():
             logger.error(f"Config file {config_file} does not specify the number of classes.")
             exit(-1)
@@ -580,7 +578,7 @@ def load_preprocess_metadata(source_list, preprocessors=None):
             input_paths = source[dataset_type]
             source[dataset_type] = []
             for entry in input_paths:
-                data = jbfs.load_file(entry)
+                data = jb_fs.load_file(entry)
 
                 if preprocessors is not None:
                     data = transformers(data)
@@ -649,7 +647,7 @@ def sample_data_list(data_list, algo: str, args, randomizer):
     :param randomizer: Randomizer if needed
     :return: The sampled (reduced) data list.
     """
-    if algo == jb_dataset.SamplingAlgo.RANDOM_FRACTION:
+    if algo == SamplingAlgo.RANDOM_FRACTION:
         fraction = args['fraction']
         if fraction > 1:
             logger.error(f"The random fraction must be less than 1. It is {fraction}. Exiting.")
@@ -661,13 +659,13 @@ def sample_data_list(data_list, algo: str, args, randomizer):
         if count < len(data_list):
             data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
 
-    elif algo == jb_dataset.SamplingAlgo.RANDOM_QUANTITY:
+    elif algo == SamplingAlgo.RANDOM_QUANTITY:
         count = args['count']
         if count < len(data_list):
             data_list = sample_list(data_list, count, randomizer, args.get('omit', False))
 
     # Randomize list, split list into groups, return position item from each group
-    elif algo == jb_dataset.SamplingAlgo.ROUND_ROBIN:
+    elif algo == SamplingAlgo.ROUND_ROBIN:
         groups = args["groups"]
         position = args["position"]
         if position < 0 or position > (groups - 1):
@@ -677,7 +675,7 @@ def sample_data_list(data_list, algo: str, args, randomizer):
         select_indexs = [y for y in range(position, len(data_list), groups)]
         randomizer.shuffle(randomized_indexs)
         data_list = [data_list[randomized_indexs[i]] for i in select_indexs]
-    elif algo == jb_dataset.SamplingAlgo.NONE or algo is None:
+    elif algo == SamplingAlgo.NONE or algo is None:
         pass
     else:
         logger.error(f"Unknown sampling algorithm: {algo} Returning all files.")
@@ -931,7 +929,7 @@ def load_coco_json(filepath, output: list) -> None:
     :return: None
     """
     data = CocoAnnotations.load(filepath)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
     output.extend(helper.to_image_list())
 
 
@@ -946,7 +944,7 @@ def get_label_dict(label_val: Union[dict, str], key: str = 'labelNames'):
     """
     if label_val:
         if isinstance(label_val, str) or isinstance(label_val, Path):
-            file_content = jbfs.load_json(str(label_val))
+            file_content = jb_fs.load_json(str(label_val))
             if key in file_content:
                 stanza = file_content[key]
                 return convert_dict(stanza)
@@ -1120,7 +1118,7 @@ def check_category_list(category_list: list, eval_manifest_path: Path, show_sour
     :param source_path: The path to the file from which the category list was retrieved.
     :return: The list of categories and the source from which the category list was retrieved (optional).
     """
-    eval_manifest = jbfs.load_file(str(eval_manifest_path))
+    eval_manifest = jb_fs.load_file(str(eval_manifest_path))
     eval_manifest_categories = eval_manifest["categories"]
     if category_list != eval_manifest_categories:
         logger.warning("The evaluation category list does not match that of the eval_manifest:"
@@ -1155,7 +1153,7 @@ def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = No
         # Check the training manifest
         training_manifest_path = model_manager.get_training_data_manifest_path()
         if training_manifest_path.exists():
-            train_manifest_data = jbfs.load_file(str(training_manifest_path))
+            train_manifest_data = jb_fs.load_file(str(training_manifest_path))
             category_list = train_manifest_data.get('categories', None)
             if category_list:
                 return check_category_list(category_list, eval_manifest_path, show_source, "train manifest",
@@ -1164,7 +1162,7 @@ def get_category_list(eval_manifest_path: Path, model_manager: ModelManager = No
         # Check the validation manifest
         validation_manifest_path = model_manager.get_validation_data_manifest_path()
         if validation_manifest_path.exists():
-            val_manifest_data = jbfs.load_file(str(validation_manifest_path))
+            val_manifest_data = jb_fs.load_file(str(validation_manifest_path))
             category_list = val_manifest_data.get('categories', None)
             if category_list:
                 return check_category_list(category_list, eval_manifest_path, show_source, "val manifest",
@@ -1268,7 +1266,7 @@ def load_path_label_manifest(filename, relative_to: Path = None):
     :return: A list of pairs of [path, label].
     """
     pairs = []
-    data = jbfs.load_file(filename)
+    data = jb_fs.load_file(filename)
 
     for row in data:
         path = row['path']

@@ -25,15 +25,16 @@
 import json
 import logging
 import numpy as np
+from types import SimpleNamespace
+
 from PIL import Image
 from tqdm import tqdm
-from types import SimpleNamespace
 
 import juneberry.config.coco_utils as jb_coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
-from juneberry.evaluation.utils import get_histogram, populate_metrics
+from juneberry.evaluation.utils import get_histogram
 from juneberry.filesystem import EvalDirMgr, generate_file_hash, ModelManager
 from juneberry.lab import Lab
 from juneberry.onnx.evaluator import Evaluator as OnnxEvaluatorBase
@@ -268,7 +269,7 @@ class EvaluationOutput:
 
         # Calculate the metrics.
         logger.info(f"Calculating the metrics for this evaluation...")
-        populate_metrics(evaluator.model_manager, evaluator.eval_dir_mgr, evaluator.output)
+        evaluator.populate_metrics()
 
         # Create the COCO version of the detections file.
         logger.info(f"Converting the detections to COCO-style annotations...")

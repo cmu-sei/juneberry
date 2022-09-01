@@ -25,9 +25,10 @@
 import csv
 import logging
 from pathlib import Path
-from prodict import List, Prodict
 from shutil import copy
 import sys
+
+from prodict import List, Prodict
 
 from juneberry.config.eval_output import EvaluationOutput, Metrics
 from juneberry.config.training_output import TrainingOutput

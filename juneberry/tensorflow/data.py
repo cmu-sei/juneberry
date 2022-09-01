@@ -40,8 +40,8 @@ from juneberry.config.model import ModelConfig, ShapeHWC
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
-import juneberry.transform_manager as jbtm
-from juneberry.transform_manager import TransformManager
+import juneberry.transforms.transform_manager as jb_tm
+from juneberry.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
 #                                                                 |_|   |_|
 
 
-class TFTorchStagedTransform(jbtm.StagedTransformManager):
+class TFTorchStagedTransform(jb_tm.StagedTransformManager):
     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
         super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
         self.numpy_state = None
@@ -135,7 +135,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
     """
     Constructs the appropriate transform manager for the this data.
     :param model_cfg: The model config.
-    :param ds_cfg: The datasett config.
+    :param ds_cfg: The dataset config.
     :param set_size: The size of the data set.
     :param opt_args: Optional args to pass into the construction of the plugin.
     :param eval_mode: Are we in train (False) or eval mode (True).

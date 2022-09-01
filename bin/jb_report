@@ -26,7 +26,7 @@ import argparse
 import logging
 
 import juneberry.reporting.utils as jb_report_utils
-import juneberry.scripting as jbscripting
+import juneberry.scripting.utils as jb_scripting
 
 logger = logging.getLogger("juneberry.jb_report")
 
@@ -53,11 +53,11 @@ def setup_args(parser) -> None:
 def main():
     parser = argparse.ArgumentParser(description='This script generates report files for models and experiments.')
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting.setup_args(parser)
     args = parser.parse_args()
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args)
+    jb_scripting.setup_logging_for_script(args)
 
     report_list = None
 

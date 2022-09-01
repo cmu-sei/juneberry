@@ -41,7 +41,7 @@ import juneberry.pytorch.data as pyt_data
 import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
-from juneberry.transform_manager import TransformManager
+from juneberry.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 

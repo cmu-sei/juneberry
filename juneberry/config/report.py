@@ -23,12 +23,13 @@
 # ======================================================================================================================
 
 import logging
-from prodict import List, Prodict
 import sys
 
+from prodict import List, Prodict
+
 from juneberry.config.plugin import Plugin
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class ReportConfig(Prodict):
         """
 
         # Validate
-        if not conf_utils.validate_schema(data, ReportConfig.SCHEMA_NAME):
+        if not jb_conf_utils.validate_schema(data, ReportConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in ReportConfig from {file_path}. See log. Exiting.")
             sys.exit(-1)
 
@@ -65,7 +66,7 @@ class ReportConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading REPORT CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
         return ReportConfig.construct(data, data_path)

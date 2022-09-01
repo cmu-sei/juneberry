@@ -27,9 +27,8 @@
 import argparse
 import json
 import logging
-import sys
-
 from pathlib import Path
+import sys
 
 from juneberry.config.experiment import ExperimentConfig, Filter, Report, ReportFQCN
 from juneberry.config.model import ModelConfig

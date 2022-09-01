@@ -21,13 +21,14 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
 from argparse import Namespace
 import logging
 from unittest import TestCase
 
-from juneberry.script_tools.sprout import Sprout
-from juneberry.script_tools.training_sprout import TrainingSprout
-from juneberry.script_tools.tuning_sprout import TuningSprout
+from juneberry.scripting.sprout import Sprout
+from juneberry.scripting.training_sprout import TrainingSprout
+from juneberry.scripting.tuning_sprout import TuningSprout
 
 
 class TestBaseSprout(TestCase):

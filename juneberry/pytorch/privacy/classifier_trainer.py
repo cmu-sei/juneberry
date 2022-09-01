@@ -23,8 +23,9 @@
 # ======================================================================================================================
 
 import logging
-from opacus import PrivacyEngine
 import sys
+
+from opacus import PrivacyEngine
 
 from juneberry.pytorch.classifier_trainer import ClassifierTrainer
 

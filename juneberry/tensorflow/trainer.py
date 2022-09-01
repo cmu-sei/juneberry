@@ -23,19 +23,19 @@
 # ======================================================================================================================
 
 import logging
-import numpy as np
 import os
 from pathlib import Path
 import random
 import sys
 
+import numpy as np
 import tensorflow as tf
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
@@ -45,12 +45,12 @@ import juneberry.tensorflow.callbacks as tf_callbacks
 import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
 from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
-import juneberry.trainer
+import juneberry.training.trainer
 
 logger = logging.getLogger(__name__)
 
 
-class ClassifierTrainer(juneberry.trainer.Trainer):
+class ClassifierTrainer(juneberry.training.trainer.Trainer):
     def __init__(self, lab: Lab, model_manager: ModelManager, model_config: ModelConfig,
                  dataset_config: DatasetConfig, log_level):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
@@ -99,7 +99,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
     # ==========================================================================
 
     @classmethod
-    def get_training_output_files(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+    def get_training_output_files(cls, model_mgr: jb_fs.ModelManager, dryrun: bool = False):
         """
         Returns a list of files to clean from the training directory. This list should contain ONLY
         files or directories that were produced by the training command. Directories in this list
@@ -122,7 +122,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
                     model_mgr.get_training_summary_plot()]
 
     @classmethod
-    def get_training_clean_extras(cls, model_mgr: jbfs.ModelManager, dryrun: bool = False):
+    def get_training_clean_extras(cls, model_mgr: jb_fs.ModelManager, dryrun: bool = False):
         """
         Returns a list of extra "training" files/directories to clean. Directories in this list will NOT
         be deleted if they are not empty.
@@ -232,7 +232,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
 
         if self.native:
             logger.info(f"Saving model to '{out_model_filename}'")
-            self.results['results']['model_hash'] = jbfs.generate_file_hash(out_model_filename)
+            self.results['results']['model_hash'] = jb_fs.generate_file_hash(out_model_filename)
 
         if self.onnx:
             model = tf.keras.models.load_model(out_model_filename)
@@ -240,7 +240,7 @@ class ClassifierTrainer(juneberry.trainer.Trainer):
             onnx_outfile = self.model_manager.get_model_path(ONNXPlatformDefinitions())
             logger.info(f"Saving ONNX version of the model to {onnx_outfile}")
             os.system(f"python -m tf2onnx.convert --saved-model tmp_model --output {onnx_outfile}")
-            self.results['results']['onnx_model_hash'] = jbfs.generate_file_hash(onnx_outfile)
+            self.results['results']['onnx_model_hash'] = jb_fs.generate_file_hash(onnx_outfile)
 
             # If the native TF output format was not requested, discard the native version of the model.
             if not self.native:
@@ -396,7 +396,8 @@ def history_to_results(history, output: TrainingOutput):
     :param output: Where to store the information so it can be retrieved when constructing the final output.
     """
     # TODO: Move in time from timing callback - epoch_duration_sec
-    # TODO: Why handle type conversion here? Wouldn't it be better to assume that a metric must return a correctly typed value?
+    # TODO: Why handle type conversion here? Wouldn't it be better to assume that a metric must return a
+    #  correctly typed value?
     from typing import Iterable
     for k, v in history.items():
         if isinstance(v, Iterable):

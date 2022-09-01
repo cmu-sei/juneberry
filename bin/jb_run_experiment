@@ -30,14 +30,12 @@ a set of reports.
 
 import argparse
 import logging
+from pathlib import Path
 import sys
 
-from pathlib import Path
-
-# Utilities
-import juneberry.filesystem as jbfs
-import juneberry.scripting as jbscripting
-import juneberry.workflow as jbworkflow
+import juneberry.filesystem as jb_fs
+import juneberry.scripting.utils as jb_scripting
+import juneberry.workflow as jb_workflow
 
 logger = logging.getLogger("juneberry.jb_run_experiment")
 
@@ -92,15 +90,15 @@ def main():
                                                  "be passed to the pydoit command.")
 
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting.setup_args(parser)
     args, unknown = parser.parse_known_args()
     show_command = args.showcmd
 
-    experiment_manager = jbfs.ExperimentManager(args.experimentName)
+    experiment_manager = jb_fs.ExperimentManager(args.experimentName)
     log_file = experiment_manager.get_log_path(args.dryrun)
 
     # Set up the workspace, logging and general environment
-    lab = jbscripting.setup_workspace(
+    lab = jb_scripting.setup_workspace(
         args,
         log_file=log_file,
         log_prefix="<<LIVE>> " if args.commit else "<<PREVIEW>> ",
@@ -114,7 +112,7 @@ def main():
     workflow = "dryrun" if args.dryrun else "main"
 
     # Determine the location of the experiment outline file.
-    exp_creator = jbfs.ExperimentCreator(args.experimentName)
+    exp_creator = jb_fs.ExperimentCreator(args.experimentName)
     outline_path = Path(exp_creator.get_experiment_outline())
 
     # If a regen was requested, try to delete the experiment config, rules file, and main_dodo file so
@@ -134,7 +132,7 @@ def main():
     if not config_path.exists() and outline_path.exists():
         logger.info(f"config.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment config.json file for {args.experimentName}.")
-        jbworkflow.run_command(
+        jb_workflow.run_command(
             dependencies=[],
             args=[bin_dir / "jb_generate_experiments", args.experimentName],
             show_command=show_command,
@@ -145,19 +143,19 @@ def main():
     if not rules_path.exists() and config_path.exists():
         logger.info(f"rules.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment rules.json file for {args.experimentName}.")
-        jbworkflow.run_command(
+        jb_workflow.run_command(
             dependencies=[],
             args=[bin_dir / "jb_experiment_to_rules", args.experimentName],
             show_command=show_command,
         )
 
     # Alternative method to generate rules.json using an attack config.
-    attack_mgr = jbfs.AttackManager(args.experimentName)
+    attack_mgr = jb_fs.AttackManager(args.experimentName)
     attack_path = attack_mgr.get_experiment_attack_file()
     if not rules_path.exists() and attack_path.exists():
         logger.info(f"rules.json in experiment {args.experimentName} not found.")
         logger.info(f"Generating experiment rules.json file for {args.experimentName} using the attack config.")
-        jbworkflow.run_command(
+        jb_workflow.run_command(
             dependencies=[],
             args=[bin_dir / "jb_attack_to_rules", args.experimentName],
             show_command=show_command)
@@ -169,7 +167,7 @@ def main():
         cmd_args = [bin_dir / "jb_rules_to_pydoit", args.experimentName, workflow]
         if args.processes and args.processes > 0:
             cmd_args.append('--parallel')
-        jbworkflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
+        jb_workflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
 
     # Develop pydoit command
     cmd_args = ["python", "-m", "doit", "-d", str(lab.workspace()), "-f", str(dodo_path.resolve())]
@@ -213,7 +211,7 @@ def main():
             cmd_args.append(arg)
 
     # Run PyDoit command
-    jbworkflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
+    jb_workflow.run_command(dependencies=[], args=cmd_args, show_command=show_command)
     if not args.commit:
         logger.info("Add --commit or -X to execute changes.")
 

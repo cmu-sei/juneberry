@@ -1,46 +1,24 @@
 #! /usr/bin/env python3
 
 # ======================================================================================================================
-#  Copyright 2021 Carnegie Mellon University.
+# Juneberry - General Release
 #
-#  NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
-#  BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
-#  INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
-#  FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
-#  FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
+# Copyright 2021 Carnegie Mellon University.
 #
-#  Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
+# NO WARRANTY. THIS CARNEGIE MELLON UNIVERSITY AND SOFTWARE ENGINEERING INSTITUTE MATERIAL IS FURNISHED ON AN "AS-IS"
+# BASIS. CARNEGIE MELLON UNIVERSITY MAKES NO WARRANTIES OF ANY KIND, EITHER EXPRESSED OR IMPLIED, AS TO ANY MATTER
+# INCLUDING, BUT NOT LIMITED TO, WARRANTY OF FITNESS FOR PURPOSE OR MERCHANTABILITY, EXCLUSIVITY, OR RESULTS OBTAINED
+# FROM USE OF THE MATERIAL. CARNEGIE MELLON UNIVERSITY DOES NOT MAKE ANY WARRANTY OF ANY KIND WITH RESPECT TO FREEDOM
+# FROM PATENT, TRADEMARK, OR COPYRIGHT INFRINGEMENT.
 #
-#  [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.
-#  Please see Copyright notice for non-US Government use and distribution.
+# Released under a BSD (SEI)-style license, please see license.txt or contact permission@sei.cmu.edu for full terms.
 #
-#  This Software includes and/or makes use of the following Third-Party Software subject to its own license:
+# [DISTRIBUTION STATEMENT A] This material has been approved for public release and unlimited distribution.  Please see
+# Copyright notice for non-US Government use and distribution.
 #
-#  1. PyTorch (https://github.com/pytorch/pytorch/blob/master/LICENSE) Copyright 2016 facebook, inc..
-#  2. NumPY (https://github.com/numpy/numpy/blob/master/LICENSE.txt) Copyright 2020 Numpy developers.
-#  3. Matplotlib (https://matplotlib.org/3.1.1/users/license.html) Copyright 2013 Matplotlib Development Team.
-#  4. pillow (https://github.com/python-pillow/Pillow/blob/master/LICENSE) Copyright 2020 Alex Clark and contributors.
-#  5. SKlearn (https://github.com/scikit-learn/sklearn-docbuilder/blob/master/LICENSE) Copyright 2013 scikit-learn 
-#      developers.
-#  6. torchsummary (https://github.com/TylerYep/torch-summary/blob/master/LICENSE) Copyright 2020 Tyler Yep.
-#  7. pytest (https://docs.pytest.org/en/stable/license.html) Copyright 2020 Holger Krekel and others.
-#  8. pylint (https://github.com/PyCQA/pylint/blob/main/LICENSE) Copyright 1991 Free Software Foundation, Inc..
-#  9. Python (https://docs.python.org/3/license.html#psf-license) Copyright 2001 python software foundation.
-#  10. doit (https://github.com/pydoit/doit/blob/master/LICENSE) Copyright 2014 Eduardo Naufel Schettino.
-#  11. tensorboard (https://github.com/tensorflow/tensorboard/blob/master/LICENSE) Copyright 2017 The TensorFlow 
-#                  Authors.
-#  12. pandas (https://github.com/pandas-dev/pandas/blob/master/LICENSE) Copyright 2011 AQR Capital Management, LLC,
-#             Lambda Foundry, Inc. and PyData Development Team.
-#  13. pycocotools (https://github.com/cocodataset/cocoapi/blob/master/license.txt) Copyright 2014 Piotr Dollar and
-#                  Tsung-Yi Lin.
-#  14. brambox (https://gitlab.com/EAVISE/brambox/-/blob/master/LICENSE) Copyright 2017 EAVISE.
-#  15. pyyaml  (https://github.com/yaml/pyyaml/blob/master/LICENSE) Copyright 2017 Ingy döt Net ; Kirill Simonov.
-#  16. natsort (https://github.com/SethMMorton/natsort/blob/master/LICENSE) Copyright 2020 Seth M. Morton.
-#  17. prodict  (https://github.com/ramazanpolat/prodict/blob/master/LICENSE.txt) Copyright 2018 Ramazan Polat
-#               (ramazanpolat@gmail.com).
-#  18. jsonschema (https://github.com/Julian/jsonschema/blob/main/COPYING) Copyright 2013 Julian Berman.
+# This Software includes and/or makes use of Third-Party Software subject to its own license.
 #
-#  DM21-0689
+# DM21-0884
 #
 # ======================================================================================================================
 
@@ -50,8 +28,8 @@ import sys
 
 from prodict import Prodict, List
 
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +67,8 @@ class RulesList(Prodict):
         :return: The constructed object.
         """
         # Validate with our schema
-        conf_utils.require_version(data, RulesList.FORMAT_VERSION, file_path, 'RulesList')
-        if not conf_utils.validate_schema(data, RulesList.SCHEMA_NAME):
+        jb_conf_utils.require_version(data, RulesList.FORMAT_VERSION, file_path, 'RulesList')
+        if not jb_conf_utils.validate_schema(data, RulesList.SCHEMA_NAME):
             logger.error(f"Validation errors in {file_path}. See log. EXITING")
             sys.exit(-1)
 
@@ -107,7 +85,7 @@ class RulesList(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading RULES LIST from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Construct the config.
         return RulesList.construct(data, data_path)
@@ -118,11 +96,11 @@ class RulesList(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, RulesList.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, RulesList.SCHEMA_NAME)
 
     def to_json(self) -> dict:
         """ :return: A pure dictionary version suitable for serialization to json."""
-        return conf_utils.prodict_to_dict(self)
+        return jb_conf_utils.prodict_to_dict(self)
 
     def get_workflow(self, name: str) -> Workflow:
         for workflow in self.workflows:

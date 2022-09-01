@@ -28,7 +28,7 @@ A set of general image conversions.
 
 from PIL import Image
 
-import juneberry.image as iutils
+import juneberry.image as jb_img_utils
 
 
 class ConvertMode:
@@ -62,7 +62,7 @@ class ResizePad:
         self.color = pad_color
 
     def __call__(self, image):
-        return iutils.resize_image(image, self.width, self.height, self.color)
+        return jb_img_utils.resize_image(image, self.width, self.height, self.color)
 
 
 class ChangeAllLabelsTo:
@@ -87,10 +87,10 @@ class Watermark:
         tmp_img: Image = self.watermark.copy()
 
         # Transform watermark
-        tmp_img = iutils.transform_image(tmp_img, (self.min_scale, self.max_scale), self.rotation, self.blur)
+        tmp_img = jb_img_utils.transform_image(tmp_img, (self.min_scale, self.max_scale), self.rotation, self.blur)
 
         # Insert at a random location
-        x, y = iutils.make_random_insert_position(tmp_img.size, image.size)
-        image = iutils.insert_watermark_at_position(image, tmp_img, (x, y))
+        x, y = jb_img_utils.make_random_insert_position(tmp_img.size, image.size)
+        image = jb_img_utils.insert_watermark_at_position(image, tmp_img, (x, y))
 
         return image

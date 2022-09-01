@@ -29,7 +29,7 @@ import platform
 from pathlib import Path
 import sys
 
-import juneberry.jb_logging as jblogging
+import juneberry.logging as jb_logging
 from juneberry.lab import Lab
 
 logger = logging.getLogger(__name__)
@@ -217,12 +217,12 @@ def setup_workspace(args, *, log_file, log_prefix="", name="juneberry", banner_m
     level = logging.DEBUG if args.verbose else logging.INFO
 
     # Set up logging now that we have a workspace to log to.
-    jblogging.setup_logger(log_file, log_prefix=log_prefix, log_to_console=not args.silent, level=level, name=name)
+    jb_logging.setup_logger(log_file, log_prefix=log_prefix, log_to_console=not args.silent, level=level, name=name)
 
     # =======================================
     # Log away!
     if banner_msg:
-        jblogging.log_banner(logger, banner_msg)
+        jb_logging.log_banner(logger, banner_msg)
 
     logger.info(f"Changing directory to workspace: '{lab.workspace()}'")
     if log_file:
@@ -260,7 +260,7 @@ def setup_logging_for_script(args, script_name: str = None):
 
     # Set the logging level and setup the logger.
     level = logging.DEBUG if args.verbose else logging.INFO
-    jblogging.setup_logger(log_file, log_prefix="", log_to_console=not args.silent, level=level)
+    jb_logging.setup_logger(log_file, log_prefix="", log_to_console=not args.silent, level=level)
 
     # A simple test message indicating where the log messages are being saved to.
     logger.info(f"Logging initialized for {Path(sys.argv[0]).absolute()}")

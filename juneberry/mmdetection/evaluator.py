@@ -43,19 +43,19 @@ from mmdet.datasets.coco import CocoDataset
 from mmdet.models import build_detector
 import numpy as np
 
-import juneberry.config.coco_utils as coco_utils
+import juneberry.config.coco_utils as jb_coco_utils
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.config.model import ModelConfig
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_config, get_default_od_metrics_formatter
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 from juneberry.filesystem import EvalDirMgr, ModelManager
-from juneberry.jb_logging import setup_logger as jb_setup_logger, RemoveDuplicatesFilter
+from juneberry.logging import setup_logger as jb_setup_logger, RemoveDuplicatesFilter
 from juneberry.lab import Lab
 from juneberry.metrics.metrics_manager import MetricsManager
-import juneberry.mmdetection.utils as mmd_utils
+import juneberry.mmdetection.utils as jb_mmd_utils
 import juneberry.pytorch.processing as processing
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
@@ -67,7 +67,7 @@ class Evaluator(EvaluatorBase):
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
-        self.mm_home = mmd_utils.find_mmdetection()
+        self.mm_home = jb_mmd_utils.find_mmdetection()
 
         # The mmdetection cfg
         self.cfg = None
@@ -215,7 +215,7 @@ class Evaluator(EvaluatorBase):
         cfg.load_from = str(model_path.resolve())
 
         # Set seed, thus the results are more reproducible.
-        mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
+        jb_mmd_utils.add_reproducibility_configuration(self.model_config, cfg)
 
         # For eval, we only do one gpu.
         cfg.gpu_ids = range(1)
@@ -228,10 +228,10 @@ class Evaluator(EvaluatorBase):
         cfg.data.samples_per_gpu = 1
 
         # Add in the pipelines overrides.
-        mmd_utils.adjust_pipelines(self.model_config, cfg)
+        jb_mmd_utils.adjust_pipelines(self.model_config, cfg)
 
         # Bring all the user defined configuration.
-        mmd_utils.add_config_overrides(self.model_config, cfg)
+        jb_mmd_utils.add_config_overrides(self.model_config, cfg)
 
         # This output should be EXACTLY what we used, so we should be able to feed
         # this into mmdetection's test.py.
@@ -304,15 +304,15 @@ class Evaluator(EvaluatorBase):
 
         instances_path = self.eval_dir_mgr.get_detections_path()
         logger.info(f"Saving coco detections to: {instances_path}")
-        jbfs.save_json(coco_annotations['annotations'], instances_path)
+        jb_fs.save_json(coco_annotations['annotations'], instances_path)
 
         instances_anno_path = self.eval_dir_mgr.get_detections_anno_path()
         logger.info(f"Saving coco detections (anno format) to: {instances_anno_path}")
-        jbfs.save_json(coco_annotations, instances_anno_path)
+        jb_fs.save_json(coco_annotations, instances_anno_path)
 
         # Sample some images from the annotations file.
         sample_dir = self.eval_dir_mgr.get_sample_detections_dir()
-        coco_utils.generate_bbox_images(instances_anno_path, self.lab, sample_dir, sample_limit=20, shuffle=True)
+        jb_coco_utils.generate_bbox_images(instances_anno_path, self.lab, sample_dir, sample_limit=20, shuffle=True)
 
         # For now just print the results.
         # Now output the bbox evaluation.

@@ -23,7 +23,6 @@
 # ======================================================================================================================
 
 from juneberry.config.coco_anno import CocoAnnotations
-from juneberry.config.coco_utils import COCOImageHelper
 import juneberry.config.coco_utils as coco_utils
 
 IMAGE_IDS = [2, 4, 8, 20]
@@ -67,7 +66,7 @@ def make_sample_coco(image_ids, object_ids) -> CocoAnnotations:
 
 def test_coco_helper_reading():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
     assert len(helper) == 4
     for image_id, count in zip(IMAGE_IDS, [len(x) for x in OBJECT_IDS]):
         assert len(helper[image_id][1]) == count
@@ -78,7 +77,7 @@ def test_coco_helper_writing():
     # The goal of the helper is to provide access to the underlying data in a different way.
     # So, if we change something using the get method, it should reflect in the underlying structure.
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     # Remember the access of the helper is by image_id not index.
     helper[4].annotations[2]['category_id'] = 1234
@@ -87,7 +86,7 @@ def test_coco_helper_writing():
 
 def test_coco_iteration():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     # Pairs should give us everything.
     idx = 0
@@ -99,7 +98,7 @@ def test_coco_iteration():
 
 def test_coco_key_iter():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     idx = 0
     for k in helper:
@@ -109,7 +108,7 @@ def test_coco_key_iter():
 
 def test_remove_image():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     helper.remove_image(4)
     assert len(helper.keys()) == 3
@@ -124,7 +123,7 @@ def test_remove_image():
 
 def test_add_annotation():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     new_anno = {
         "image_id": 8,
@@ -146,7 +145,7 @@ def test_add_annotation():
 
 def test_to_image_list():
     data = make_sample_coco(IMAGE_IDS, OBJECT_IDS)
-    helper = COCOImageHelper(data)
+    helper = coco_utils.COCOImageHelper(data)
 
     image_list = helper.to_image_list()
     assert len(image_list) == 4

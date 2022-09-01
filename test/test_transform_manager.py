@@ -22,7 +22,7 @@
 #
 # ======================================================================================================================
 
-import juneberry.transform_manager
+import juneberry.transforms.transform_manager
 
 
 def test_init_with_args():
@@ -37,7 +37,7 @@ def test_init_with_args():
         }
     ]
 
-    ttm = juneberry.transform_manager.TransformManager(config)
+    ttm = juneberry.transforms.transform_manager.TransformManager(config)
     assert len(ttm) == 1
     assert ttm.get_fqn(0) == 'moddir.simple_mod.ClassWithInitAndUnaryCall'
     assert ttm.transform("baggins") == 'frodo baggins'
@@ -56,7 +56,7 @@ def test_inti_with_opt_args() -> None:
 
     # NOTE: 'name' is expected but bar isn't, but 'bar' should be filtered out.
     opt_args = {"name": "frodo", "bar": 1234}
-    ttm = juneberry.transform_manager.TransformManager(config, opt_args)
+    ttm = juneberry.transforms.transform_manager.TransformManager(config, opt_args)
     assert len(ttm) == 1
     assert ttm.get_fqn(0) == 'moddir.simple_mod.ClassWithInitAndUnaryCall'
     assert ttm.transform("baggins") == 'frodo baggins'
@@ -77,7 +77,7 @@ def test_call_with_opt_args():
         }
     ]
 
-    ttm = juneberry.transform_manager.TransformManager(config)
+    ttm = juneberry.transforms.transform_manager.TransformManager(config)
     opt_args = {'opt1': 'gamgee', 'opt2': 'hobbit', 'other': 'unused'}
     assert len(ttm) == 2
     assert ttm.get_fqn(0) == 'moddir.simple_mod.ClassWithUnaryCallWithOptArg1'
@@ -104,7 +104,7 @@ def test_labeled_transforms():
         }
     ]
 
-    ttm = juneberry.transform_manager.LabeledTransformManager(config)
+    ttm = juneberry.transforms.transform_manager.LabeledTransformManager(config)
     opt_args = {'opt1': 'took', 'opt2': 'hobbit', 'label': 3, 'other': 'unused'}
     assert len(ttm) == 2
     assert ttm.get_fqn(0) == 'moddir.simple_mod.LabeledTransformExample'
@@ -116,7 +116,7 @@ def test_labeled_transforms():
     assert ttm.transform("peregrine", **opt_args) == ('peregrine took hobbit', 4)
 
 
-class StagedTransformManagerHarness(juneberry.transform_manager.StagedTransformManager):
+class StagedTransformManagerHarness(juneberry.transforms.transform_manager.StagedTransformManager):
     def __init__(self, consistent_seed: int, consistent, per_epoch_seed: int, per_epoch):
         super().__init__(consistent_seed, consistent, per_epoch_seed, per_epoch)
         self.save_called = False

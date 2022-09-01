@@ -23,14 +23,14 @@
 # ======================================================================================================================
 
 import logging
+import re
+import sys
 
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
 from prodict import List, Prodict
-import re
 from sklearn.metrics import auc, roc_curve
-import sys
 
 from juneberry.config.eval_output import EvaluationOutput
 from juneberry.reporting.report import Report

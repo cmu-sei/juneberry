@@ -25,12 +25,14 @@
 from collections import defaultdict
 import logging
 from pathlib import Path
-from prodict import Prodict, List
 import re
 import sys
 
-import juneberry.filesystem as jbfs
-import juneberry.config.util as conf_utils
+from prodict import Prodict, List
+
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
+
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +127,7 @@ class WorkspaceConfig(Prodict):
         :return: The constructed object.
         """
         # Validate
-        if not conf_utils.validate_schema(data, WorkspaceConfig.SCHEMA_NAME):
+        if not jb_conf_utils.validate_schema(data, WorkspaceConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in ModelConfig from {file_path}. See log. Exiting.")
             sys.exit(-1)
 
@@ -173,7 +175,7 @@ class WorkspaceConfig(Prodict):
         # Load the raw file.
         logger.info(f"Loading WORKSPACE CONFIG from {data_path}")
         if Path(data_path).exists():
-            data = jbfs.load_file(data_path)
+            data = jb_fs.load_file(data_path)
         else:
             data = {}
 

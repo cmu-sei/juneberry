@@ -21,20 +21,21 @@
 # DM21-0884
 #
 # ======================================================================================================================
+
 import datetime
 import logging
 import os
 
 from ray import tune
-from ray.tune.integration.torch import DistributedTrainableCreator, distributed_checkpoint_dir
+from ray.tune.integration.torch import distributed_checkpoint_dir
 import torch
 
 from juneberry.config.tuning_output import TuningOutputBuilder
 import juneberry.filesystem as jb_fs
 import juneberry.loader as jb_loader
-import juneberry.jb_logging as jb_logging
-import juneberry.scripting as jb_scripting_utils
-from juneberry.trainer import Trainer
+import juneberry.logging as jb_logging
+import juneberry.scripting.utils as jb_scripting_utils
+from juneberry.training.trainer import Trainer
 from juneberry.tuning.reporter import CustomReporter
 
 logger = logging.getLogger(__name__)

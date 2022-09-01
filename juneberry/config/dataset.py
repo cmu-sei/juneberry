@@ -27,13 +27,14 @@ import datetime
 from enum import Enum
 import logging
 from pathlib import Path
-from prodict import Prodict, List
 import random
 import sys
 
+from prodict import Prodict, List
+
 from juneberry.config.plugin import Plugin
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -173,10 +174,10 @@ class DatasetConfig(Prodict):
         """
 
         # We currently do not have any non-compatible versions
-        # conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
+        # jb_conf_utils.require_version(data, DatasetConfig.FORMAT_VERSION, file_path, 'DatasetConfig')
 
         # Validate with our schema
-        if not conf_utils.validate_schema(data, DatasetConfig.SCHEMA_NAME):
+        if not jb_conf_utils.validate_schema(data, DatasetConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in DatasetConfig from {file_path}. See log. EXITING!")
             sys.exit(-1)
 
@@ -195,14 +196,14 @@ class DatasetConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading DATASET CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
         return DatasetConfig.construct(data, relative_path, data_path)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json."""
-        as_dict = conf_utils.prodict_to_dict(self)
+        as_dict = jb_conf_utils.prodict_to_dict(self)
 
         # Strip our some other stuff
         ignore_attrs = ["found_errors", "valid", "relative_path", "file_path"]
@@ -218,7 +219,7 @@ class DatasetConfig(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, DatasetConfig.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, DatasetConfig.SCHEMA_NAME)
 
     def retrieve_label_names(self) -> dict:
         """ :return: The label names as a dict of int -> string."""
@@ -462,7 +463,7 @@ class DatasetConfigBuilder:
         self.config.sampling = Sampling.from_dict({'algorithm': algorithm.value, 'arguments': arguments})
 
     def validate_config(self):
-        return conf_utils.validate_schema(self.config, 'dataset_schema.json')
+        return jb_conf_utils.validate_schema(self.config, 'dataset_schema.json')
 
     def to_json(self):
         return self.config.to_json()

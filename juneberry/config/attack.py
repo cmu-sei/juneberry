@@ -23,12 +23,13 @@
 # ======================================================================================================================
 
 import logging
-from prodict import List, Prodict
 import sys
 
+from prodict import List, Prodict
+
 from juneberry.config.plugin import Plugin
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,8 @@ class PropertyInferenceAttackConfig(Prodict):
         :return: A constructed and validated object.
         """
 
-        conf_utils.require_version(data, PropertyInferenceAttackConfig.FORMAT_VERSION, file_path, 'AttackConfig')
-        if not conf_utils.validate_schema(data, PropertyInferenceAttackConfig.SCHEMA_NAME):
+        jb_conf_utils.require_version(data, PropertyInferenceAttackConfig.FORMAT_VERSION, file_path, 'AttackConfig')
+        if not jb_conf_utils.validate_schema(data, PropertyInferenceAttackConfig.SCHEMA_NAME):
             logger.error(f"Validation errors in AttackConfig from {file_path}. See log. EXITING.")
             sys.exit(-1)
 
@@ -98,7 +99,7 @@ class PropertyInferenceAttackConfig(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading ATTACK CONFIG from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the attack config.
         return PropertyInferenceAttackConfig.construct(data, data_path)

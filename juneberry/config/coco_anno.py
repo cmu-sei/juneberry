@@ -23,11 +23,12 @@
 # ======================================================================================================================
 
 import logging
-from prodict import List, Prodict
 import sys
 
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+from prodict import List, Prodict
+
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ class CocoAnnotations(Prodict):
             data["licenses"] = []
 
         # Validate with our schema
-        if not conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):
+        if not jb_conf_utils.validate_schema(data, CocoAnnotations.SCHEMA_NAME):
             logger.error(f"Validation errors in {file_path}. See log. EXITING.")
             sys.exit(-1)
 
@@ -130,7 +131,7 @@ class CocoAnnotations(Prodict):
         """
         # Load the raw file.
         logger.info(f"Loading COCO ANNOTATIONS from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Construct the config.
         return CocoAnnotations.construct(data, data_path)
@@ -141,8 +142,8 @@ class CocoAnnotations(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, CocoAnnotations.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, CocoAnnotations.SCHEMA_NAME)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to json"""
-        return conf_utils.prodict_to_dict(self)
+        return jb_conf_utils.prodict_to_dict(self)

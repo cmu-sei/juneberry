@@ -26,7 +26,7 @@ import logging
 from pathlib import Path
 import tempfile
 
-import juneberry.jb_logging as jb_logging
+import juneberry.logging as jb_logging
 
 
 def test_filter_repeated_messages():

@@ -30,7 +30,7 @@ import json
 from pathlib import Path
 
 from juneberry.config.model import ModelConfig
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 
 
 def make_basic_config_old():
@@ -149,7 +149,7 @@ def test_basic_loading(tmp_path):
     with open(config_path, 'w') as out_file:
         json.dump(config, out_file, indent=4)
 
-    data = jbfs.load_json(str(config_path))
+    data = jb_fs.load_json(str(config_path))
     mc = ModelConfig.construct(data=data, file_path=str(config_path))
 
     mc2 = ModelConfig.load(str(config_path))

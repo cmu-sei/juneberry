@@ -24,14 +24,15 @@
 
 from datetime import datetime
 import logging
-from prodict import Prodict
 import sys
 from typing import Union
 
+from prodict import Prodict
+
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-import juneberry.config.util as conf_utils
-import juneberry.filesystem as jbfs
+import juneberry.config.util as jb_conf_utils
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +108,8 @@ class TrainingOutput(Prodict):
         :return: A constructed object.
         """
         # Validate with our schema
-        conf_utils.require_version(data, TrainingOutput.FORMAT_VERSION, file_path, 'TrainingOutput')
-        if not conf_utils.validate_schema(data, TrainingOutput.SCHEMA_NAME):
+        jb_conf_utils.require_version(data, TrainingOutput.FORMAT_VERSION, file_path, 'TrainingOutput')
+        if not jb_conf_utils.validate_schema(data, TrainingOutput.SCHEMA_NAME):
             logger.error(f"Validation errors in TrainingOutput from {file_path}. See log. EXITING!")
             sys.exit(-1)
 
@@ -122,7 +123,7 @@ class TrainingOutput(Prodict):
         :return: Loaded, validated and constructed object.
         """
         logger.info(f"Loading TRAINING OUTPUT from {data_path}")
-        data = jbfs.load_file(data_path)
+        data = jb_fs.load_file(data_path)
 
         # Validate and construct the model.
         return TrainingOutput.construct(data)
@@ -133,10 +134,10 @@ class TrainingOutput(Prodict):
         :param data_path: The path to the resource.
         :return: None
         """
-        conf_utils.validate_and_save_json(self.to_json(), data_path, TrainingOutput.SCHEMA_NAME)
+        jb_conf_utils.validate_and_save_json(self.to_json(), data_path, TrainingOutput.SCHEMA_NAME)
 
     def to_json(self):
-        return conf_utils.prodict_to_dict(self)
+        return jb_conf_utils.prodict_to_dict(self)
 
 
 class TrainingOutputBuilder:
@@ -193,11 +194,11 @@ class TrainingOutputBuilder:
 
     def to_dict(self) -> dict:
         """ :return: Returns a pure version of the data structure as a dict. """
-        return conf_utils.prodict_to_dict(self.output)
+        return jb_conf_utils.prodict_to_dict(self.output)
 
     def to_json(self):
         """ :return: A pure dictionary version suitable for serialization to CURRENT json"""
-        as_dict = conf_utils.prodict_to_dict(self.output)
+        as_dict = jb_conf_utils.prodict_to_dict(self.output)
 
         return as_dict
 

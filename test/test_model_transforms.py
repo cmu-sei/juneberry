@@ -22,12 +22,13 @@
 #
 # ======================================================================================================================
 
-import juneberry.pytorch.model_transforms
 from pathlib import Path
+
 import torch
 import torchvision
 
-from juneberry import filesystem as jbfs
+from juneberry import filesystem as jb_fs
+import juneberry.pytorch.model_transforms
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 
@@ -71,7 +72,7 @@ def test_load_model_from_url():
 
 
 def test_load_model_from_model_name():
-    model_mgr = jbfs.ModelManager("model_transform_test")
+    model_mgr = jb_fs.ModelManager("model_transform_test")
     kwargs = {
         "modelName": "model_transform_test",
         "excludePatterns": ['fc.weight'],
@@ -185,7 +186,7 @@ def test_save_model_path(tmpdir):
 
 
 def test_save_model_name(tmpdir):
-    model_mgr = jbfs.ModelManager("model_transform_test")
+    model_mgr = jb_fs.ModelManager("model_transform_test")
     if not model_mgr.get_model_dir().exists():
         model_mgr.get_model_dir().mkdir()
 

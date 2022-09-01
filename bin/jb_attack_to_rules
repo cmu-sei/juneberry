@@ -33,9 +33,9 @@ import juneberry.config.attack as jb_attack
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
 from juneberry.config.rule_list import RuleListBuilder
-import juneberry.filesystem as jbfs
+import juneberry.filesystem as jb_fs
 import juneberry.loader as jb_loader
-import juneberry.scripting as jbscripting
+import juneberry.scripting.utils as jb_scripting
 
 logger = logging.getLogger("juneberry.jb_attack_to_rules")
 
@@ -55,7 +55,7 @@ class AttackMaker:
 
     def __init__(self, args):
         self.experiment_name = args.experimentName
-        self.attack_manager = jbfs.AttackManager(self.experiment_name)
+        self.attack_manager = jb_fs.AttackManager(self.experiment_name)
         self.attack_config = jb_attack.PropertyInferenceAttackConfig()
         self.builder = RuleListBuilder("")
         self.dryrun = args.dryrun
@@ -75,10 +75,10 @@ class AttackMaker:
             else self.attack_manager.get_attack_setup_log()
 
         # Set up the workspace, logging and general environment
-        jbscripting.setup_workspace(
+        jb_scripting.setup_workspace(
             args,
             log_file=log_file,
-            log_prefix=jbscripting.standard_line_prefix(self.dryrun))
+            log_prefix=jb_scripting.standard_line_prefix(self.dryrun))
 
         # Load the attack config for the experiment.
         self.attack_config = self.attack_config.load(self.attack_manager.get_experiment_attack_file())
@@ -198,7 +198,7 @@ class AttackMaker:
         # Retrieve the desired model to serve as the baseline for the private models and construct
         # its ModelManager.
         baseline_model_name = self.attack_config.models.private
-        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+        baseline_model_mgr = jb_fs.ModelManager(baseline_model_name)
 
         # Retrieve the property choice for the private model, the universe of possible choices, and set
         # a string to indicate which universe this private model is for.
@@ -221,7 +221,7 @@ class AttackMaker:
         # Get the model name for the private model and set up its ModelManager.
         logger.info(f"*** Building rule for training the PRIVATE {type_str.upper()} model. ***")
         model_name = self.attack_manager.get_private_model_name(disjoint=disjoint)
-        model_mgr = jbfs.ModelManager(model_name)
+        model_mgr = jb_fs.ModelManager(model_name)
         logger.info(f"Private {type_str} model directory: models/{model_name}")
 
         # Copy the baseline model config into the appropriate private model directory, and load
@@ -274,7 +274,7 @@ class AttackMaker:
         # Retrieve the desired model to serve as the baseline for the private models and construct
         # its ModelManager.
         private_model_name = self.attack_manager.get_private_model_name(disjoint=disjoint)
-        private_model_mgr = jbfs.ModelManager(private_model_name)
+        private_model_mgr = jb_fs.ModelManager(private_model_name)
 
         # Establish the baseline query dataset.
         baseline_query_dataset = self.attack_config.data_configs.query_data
@@ -324,7 +324,7 @@ class AttackMaker:
         in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
         in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
         plugin_file = self.attack_manager.get_plugin_file(disjoint=disjoint)
-        jbfs.save_json(in_out_builder, plugin_file)
+        jb_fs.save_json(in_out_builder, plugin_file)
 
         # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
         logger.info(f"*** Adding a rule to build the PRIVATE {universe_str} in_out datasets. ***")
@@ -370,7 +370,7 @@ class AttackMaker:
 
         # Establish the baseline model and the baseline query dataset.
         baseline_model_name = self.attack_config.models.shadow
-        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+        baseline_model_mgr = jb_fs.ModelManager(baseline_model_name)
         baseline_query_dataset = self.attack_config.data_configs.query_data
         baseline_query_dataset_config = DatasetConfig.load(baseline_query_dataset)
 
@@ -390,7 +390,7 @@ class AttackMaker:
             shadow_model_name = self.attack_manager.get_shadow_model_name(i, disjoint=disjoint)
             shadow_model_dir = self.attack_manager.get_shadow_model_dir(i, disjoint=disjoint)
             shadow_model_dir.mkdir(parents=True, exist_ok=True)
-            shadow_model_mgr = jbfs.ModelManager(shadow_model_name)
+            shadow_model_mgr = jb_fs.ModelManager(shadow_model_name)
             logger.info(f"Adding a training rule for the following shadow model directory: models/{shadow_model_name}")
 
             # Copy over the baseline model config to the new shadow model directory. Load the ModelConfig
@@ -510,7 +510,7 @@ class AttackMaker:
         in_out_builder.kwargs['val_config_destination'] = val_cfg_dest
         in_out_builder.kwargs['test_config_destination'] = test_cfg_dest
         plugin_file = self.attack_manager.get_plugin_file(meta=True, disjoint=disjoint)
-        jbfs.save_json(in_out_builder, plugin_file)
+        jb_fs.save_json(in_out_builder, plugin_file)
 
         # Fill out the components for building a rule to run the Plugin that will build the in_out datasets.
         logger.info(f"*** Adding a rule to build the META {universe_str} in_out datasets. ***")
@@ -528,13 +528,13 @@ class AttackMaker:
         # The next step is to add a rule to train the meta classifier. Establish the baseline model.
         logger.info(f"*** Adding a rule to train the {universe_str.upper()} META model. ***")
         baseline_model_name = self.attack_config.models.meta
-        baseline_model_mgr = jbfs.ModelManager(baseline_model_name)
+        baseline_model_mgr = jb_fs.ModelManager(baseline_model_name)
 
         # Copy the baseline model config over to the correct meta model subdirectory. Determine the model name
         # for the meta model and establish its ModelManager.
         shutil.copy(baseline_model_mgr.get_model_config(), self.attack_manager.get_meta_subdir(disjoint=disjoint))
         meta_model_name = self.attack_manager.get_meta_model_name(disjoint=disjoint)
-        meta_model_mgr = jbfs.ModelManager(meta_model_name)
+        meta_model_mgr = jb_fs.ModelManager(meta_model_name)
 
         # Load the meta model config and set its training and validation dataset files to the expected values.
         meta_model_cfg = ModelConfig.load(meta_model_mgr.get_model_config())
@@ -598,11 +598,11 @@ def main():
     # Setup and parse all arguments.
     parser = argparse.ArgumentParser(description="")
     setup_args(parser)
-    jbscripting.setup_args(parser)
+    jb_scripting.setup_args(parser)
     args = parser.parse_args()
 
     # Set up logging.
-    jbscripting.setup_logging_for_script(args)
+    jb_scripting.setup_logging_for_script(args)
 
     # Setup an attack maker, construct the experiment datasets, and create the experiment rules.
     maker = AttackMaker(args)

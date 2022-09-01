@@ -23,16 +23,17 @@
 # ======================================================================================================================
 
 import json
-import hjson
-import numpy as np
 from pathlib import Path
 
-import juneberry.filesystem as jbfs
+import hjson
+import numpy as np
+
+import juneberry.filesystem as jb_fs
 from juneberry.platform import PlatformDefinitions
 
 
 def test_eval_dir():
-    mm = jbfs.ModelManager('TestModel')
+    mm = jb_fs.ModelManager('TestModel')
     root = Path('models') / 'TestModel'
     eval_dir_root = root / 'eval' / 'TestDataset'
 
@@ -67,7 +68,7 @@ class DummyPlatformDefinitions(PlatformDefinitions):
 
 
 def test_model_manager():
-    mm = jbfs.ModelManager('TestModel')
+    mm = jb_fs.ModelManager('TestModel')
     root = Path('models') / 'TestModel'
     plots = root / 'plots'
 
@@ -87,7 +88,7 @@ def test_model_manager():
 
 
 def test_experiment_manager():
-    em = jbfs.ExperimentManager("millikan_oil_drop")
+    em = jb_fs.ExperimentManager("millikan_oil_drop")
     root = Path('experiments') / "millikan_oil_drop"
 
     assert em.get_experiment_name() == "millikan_oil_drop"
@@ -98,7 +99,7 @@ def test_experiment_manager():
 
 
 def test_experiment_manager_clean():
-    em = jbfs.ExperimentManager("millikan_oil_drop")
+    em = jb_fs.ExperimentManager("millikan_oil_drop")
     root = Path('experiments') / "millikan_oil_drop"
 
     test_dir = root / 'test_dir'
@@ -150,14 +151,14 @@ def test_hash_function(tmp_path):
     with open(file_path, 'w') as tmp_file:
         tmp_file.write("Hello World\n")
 
-    out_str = jbfs.generate_file_hash(file_path)
+    out_str = jb_fs.generate_file_hash(file_path)
     assert "d2a84f4b8b650937ec8f73cd8be2c74add5a911ba64df27458ed8229da804a26" == out_str
 
 
 def test_json_cleaner():
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
-    str_results = json.dumps(data, indent=4, default=jbfs.json_cleaner)
-    # TODO: Should this be routed through the jbfs load chokepoint?
+    str_results = json.dumps(data, indent=4, default=jb_fs.json_cleaner)
+    # TODO: Should this be routed through the jb_fs load chokepoint?
     results = hjson.loads(str_results)
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
@@ -168,7 +169,7 @@ def test_open_file():
     file = cwd / "test.json"
     with open(file, "w") as f:
         f.write("test")
-    with jbfs.open_file(file, "r") as f:
+    with jb_fs.open_file(file, "r") as f:
         assert f.read() == "test"
     file.unlink()
 
@@ -178,7 +179,7 @@ def test_save_json():
     cwd = Path.cwd()
 
     path = cwd / "test_save_json.json"
-    jbfs.save_json(data, path)
+    jb_fs.save_json(data, path)
     assert path.exists()
     path.unlink(True)
 
@@ -188,7 +189,7 @@ def test_save_hjson():
     cwd = Path.cwd()
 
     path = cwd / "test_save_hjson.hjson"
-    jbfs.save_hjson(data, path)
+    jb_fs.save_hjson(data, path)
     assert path.exists()
     path.unlink(True)
 
@@ -198,12 +199,12 @@ def test_save_yaml():
     cwd = Path.cwd()
 
     path = cwd / "test_save_yaml.yaml"
-    jbfs.save_yaml(data, path)
+    jb_fs.save_yaml(data, path)
     assert path.exists()
     path.unlink(True)
 
     path = cwd / "test_save_yaml.yml"
-    jbfs.save_yaml(data, path)
+    jb_fs.save_yaml(data, path)
     assert path.exists()
     path.unlink(True)
 
@@ -213,17 +214,17 @@ def test_save_toml():
     cwd = Path.cwd()
 
     path = cwd / "test_save_toml.toml"
-    jbfs.save_toml(data, path)
+    jb_fs.save_toml(data, path)
     assert path.exists()
     path.unlink(True)
 
     path = cwd / "test_save_toml.tml"
-    jbfs.save_toml(data, path)
+    jb_fs.save_toml(data, path)
     assert path.exists()
     path.unlink(True)
 
     path = cwd / "test_save_toml.toml.gz"
-    jbfs.save_toml(data, path)
+    jb_fs.save_toml(data, path)
     assert path.exists()
     path.unlink(True)
 
@@ -234,35 +235,35 @@ def test_save_file():
     # JSON case
     path = cwd / "test_save_file.json"
     path.unlink(missing_ok=True)
-    jbfs.save_file(data, path)
+    jb_fs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
     # HJSON case
     path = cwd / "test_save_file.hjson"
     path.unlink(missing_ok=True)
-    jbfs.save_file(data, path)
+    jb_fs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
     # GZIP case
     path = cwd / "test_save_file.json.gzip"
     path.unlink(missing_ok=True)
-    jbfs.save_file(data, path)
+    jb_fs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
     # YAML case
     path = cwd / "test_save_file.yaml"
     path.unlink(missing_ok=True)
-    jbfs.save_file(data, path)
+    jb_fs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
     # TOML case
     path = cwd / "test_save_file.toml"
     path.unlink(missing_ok=True)
-    jbfs.save_file(data, path)
+    jb_fs.save_file(data, path)
     assert path.exists()
     path.unlink()
     assert not path.exists()
@@ -273,44 +274,44 @@ def test_load_file():
     cwd = Path.cwd()
     # JSON case
     path = cwd / "test_save_file.json"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     path.unlink()
     # HJSON case
     path = cwd / "test_save_file.hjson"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     path.unlink()
     # GZIP case
     path = cwd / "test_save_file.json.gz"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     path.unlink()
     # YAML case
     path = cwd / "test_save_file.yaml"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == data['path']
     path.unlink()
     # TOML case
     path = cwd / "test_save_file.toml"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
     # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
     # assert loaded_data['path'] == str(data['path']) 
     path.unlink()
     # TOML.GZ case
     path = cwd / "test_save_file.toml.gz"
-    jbfs.save_file(data, path)
-    loaded_data = jbfs.load_file(path)
+    jb_fs.save_file(data, path)
+    loaded_data = jb_fs.load_file(path)
     assert np.array_equal(list(map(int, loaded_data['np'])), data['np'])
     # TOML converty the object PosixPath('models') into the string "PosixPath('models')"
     # assert loaded_data['path'] == str(data['path']) 
@@ -327,9 +328,9 @@ def test_load_file_look_for_gz():
     # load 'test_save_file.json.gzip' instead
     gz_path = cwd / "test_save_file.json.gz"
     json_path = cwd / "test_save_file.json"
-    jbfs.save_file(data, gz_path)
+    jb_fs.save_file(data, gz_path)
     assert not json_path.exists()
-    loaded_data = jbfs.load_file(json_path)
+    loaded_data = jb_fs.load_file(json_path)
     assert np.array_equal(loaded_data['np'], data['np'])
     assert loaded_data['path'] == str(data['path'])
     gz_path.unlink()

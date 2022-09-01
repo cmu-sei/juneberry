@@ -23,23 +23,20 @@
 # ======================================================================================================================
 
 import logging
-import random
 import sys
-import torch
 
+import torch
 from torch.utils import data
 
-from juneberry.config.dataset import DataType, DatasetConfig, TaskType
+from juneberry.config.dataset import DataType, DatasetConfig, SamplingConfig, TaskType, TorchvisionData
+from juneberry.config.model import ModelConfig, SplittingAlgo, SplittingConfig
+import juneberry.data as jb_data
 from juneberry.lab import Lab
+import juneberry.loader as jb_loader
 from juneberry.pytorch.image_dataset import ImageDataset
 from juneberry.pytorch.tabular_dataset import TabularDataset
 import juneberry.pytorch.utils as pyt_utils
-
-from juneberry.config.dataset import SamplingConfig, TorchvisionData
-from juneberry.config.model import ModelConfig, SplittingAlgo, SplittingConfig
-import juneberry.data as jb_data
-import juneberry.loader as jbloader
-from juneberry.transform_manager import TransformManager
+from juneberry.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -396,4 +393,4 @@ def construct_torchvision_dataset(lab, fqcn: str, data_path: str, kwargs: dict, 
 
     logger.info(f"Constructing torchvision dataset: '{fqcn}' with args: {kwargs}, {opt_args}")
     # Load the module with the args
-    return jbloader.construct_instance(fqcn, kwargs, opt_args)
+    return jb_loader.construct_instance(fqcn, kwargs, opt_args)

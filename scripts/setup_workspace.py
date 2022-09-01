@@ -23,10 +23,10 @@
 # ======================================================================================================================
 
 import argparse
+import json
 import logging
 from pathlib import Path
 import sys
-import json
 
 logging.basicConfig(level=logging.INFO, format="%(filename)s:%(levelname)s - %(message)s")
 
