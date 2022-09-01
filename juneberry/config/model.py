@@ -225,22 +225,20 @@ class ModelConfig(Prodict):
         if self.training_dataset_config_path is not None:
             self.training_dataset_config_path = Path(self.training_dataset_config_path)
 
-        # For model_architecture if they specified model/args convert to fqcn and kwargs and provide info message
+        # For model_architecture if they specified model/args, convert to fqcn/kwargs and provide a warning.
         model_arch = self.model_architecture
         if model_arch.module is not None:
             if model_arch.fqcn is not None:
-                logger.warning("In the model_architecture 'module' (deprecated) AND 'fqcn' are both pecified. "
-                               "Using new 'fqcn.'")
+                logger.warning("The model_architecture contains both 'module' (deprecated) AND 'fqcn'. Using 'fqcn.'")
             else:
-                logger.warning("Found use of deprecated 'module' on model_architecture. Switch to using 'fqcn'")
+                logger.warning("Found 'module' (deprecated) in the model_architecture. Converting it to 'fqcn'.")
                 model_arch.fqcn = model_arch.module
 
         if model_arch.args is not None:
             if model_arch.kwargs is not None:
-                logger.warning("In the model_architecture 'args' (deprecated) AND 'kwargs' are both specified. "
-                               "Using new 'kwargs.'")
+                logger.warning("The model_architecture contains 'args' (deprecated) AND 'kwargs'. Using 'kwargs.'")
             else:
-                logger.warning("Found use of deprecated 'args' on model_architecture. Switch to using 'kwargs'")
+                logger.warning("Found 'args' (deprecated) in the model_architecture. Converting it to 'kwargs'.")
                 model_arch.kwargs = model_arch.args
 
 
