@@ -60,7 +60,7 @@ from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.training.trainer import Trainer
-from juneberry.transform_manager import TransformManager
+from juneberry.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
