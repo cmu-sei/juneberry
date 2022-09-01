@@ -91,7 +91,7 @@ class TestTrainerFactory(TestCase):
             # Verify that the TrainerFactory's model_config attribute has been set and that the
             # model_config's attributes match expectations.
             assert self.trainer_factory.model_config is not None
-            assert self.trainer_factory.model_config.model_architecture.module == "COCO-Detection/faster_rcnn_R_50_" \
+            assert self.trainer_factory.model_config.model_architecture.fqcn == "COCO-Detection/faster_rcnn_R_50_" \
                                                                                   "FPN_1x.yaml"
             assert self.trainer_factory.model_config.epochs == 1
             assert self.trainer_factory.model_config.validation.arguments.seed == 3554237221
@@ -99,7 +99,7 @@ class TestTrainerFactory(TestCase):
             # Create a variation of the previous ModelConfig and make slight adjustments to some of
             # its attributes.
             model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
-            model_config.model_architecture.module = "new_value"
+            model_config.model_architecture.fqcn = "new_value"
             model_config.epochs = 10
             model_config.validation.arguments.seed = 1234
 
@@ -110,7 +110,7 @@ class TestTrainerFactory(TestCase):
             # Confirm the model_config associated with the TrainerFactory reflects the previously
             # adjusted values.
             assert self.trainer_factory.model_config is not None
-            assert self.trainer_factory.model_config.model_architecture.module == "new_value"
+            assert self.trainer_factory.model_config.model_architecture.fqcn == "new_value"
             assert self.trainer_factory.model_config.epochs == 10
             assert self.trainer_factory.model_config.validation.arguments.seed == 1234
 

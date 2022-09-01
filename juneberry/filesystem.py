@@ -672,7 +672,6 @@ class ModelManager:
         self.model_name = model_name
         self.model_dir_path = Path('models') / self.model_name
         self.model_log_dir_path = self.model_dir_path / 'logs'
-        self.model_task = self.set_model_task()
 
     def setup(self):
         """ Prepares a directory for use. """
@@ -829,22 +828,6 @@ class ModelManager:
         for item in eval_dir.iterdir():
             if item.is_dir():
                 yield EvalDirMgr(self.model_dir_path, item.name)
-
-    # ============ Misc ============
-
-    def set_model_task(self):
-        """: return: The task the model is for, e.g. classification, objectDetection."""
-        # Load the model config (if it exists).
-        if self.get_model_config().exists():
-            data = load_file(self.get_model_config())
-
-            # Get the value for the task property (if it exists).
-            task = data.get('task', None)
-
-            # Log a warning if a task type wasn't found and return the task.
-            if task is None:
-                logger.warning(f"Task was not found in {self.get_model_config()}")
-            return task
 
     # ============ MMDetection ============
 

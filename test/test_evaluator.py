@@ -47,7 +47,7 @@ class EvalTestHelper:
         self.model_config = ModelConfig()
 
         # The TensorFlow evaluator needs these to be defined.
-        self.model_config.model_architecture = {'args': {'img_height': 0, 'img_width': 0, 'channels': 0}}
+        self.model_config.model_architecture = {'kwargs': {'img_height': 0, 'img_width': 0, 'channels': 0}}
 
         platform_map = {
             "pytorch": "juneberry.pytorch.evaluation.evaluator.Evaluator",

@@ -74,7 +74,6 @@ tabular_model_config = {
         'optimizer_fn': 'torch.optim.SGD'
     },
     'seed': 4210592948,
-    'task': 'classification',
     'timestamp': '2021-03-01T10:00:00',
     'trainer': {
         'fqcn': 'juneberry.dummy.trainer'
@@ -115,7 +114,6 @@ text_detect_dt2_config = {
     'platform': 'detectron2',
     'pytorch': {'deterministic': True},
     'seed': 4210592948,
-    'task': 'objectDetection',
     'timestamp': '2021-03-03T10:00:00',
     'trainer': {'fqcn': 'juneberry.detectron2.trainer.Detectron2Trainer'},
     'training_dataset_config_path': 'data_sets/text_detect_val.json',

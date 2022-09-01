@@ -166,7 +166,7 @@ class Evaluator(EvaluatorBase):
 
         # Load cfg based on what they said in the model.
         # TODO: Should we read in the one we __actually__ saved during training if available?
-        cfg = mmcv.Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture['module']))
+        cfg = mmcv.Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture.fqcn))
         cfg.work_dir = str(self.working_dir)
 
         # Get rid of any training config bits.

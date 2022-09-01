@@ -218,7 +218,7 @@ class Evaluator(EvaluatorBase):
 
     def obtain_model(self) -> None:
         # Set up the predictor
-        model_arch_name = self.model_config.model_architecture['module']
+        model_arch_name = self.model_config.model_architecture.fqcn
 
         self.cfg = get_cfg()
 

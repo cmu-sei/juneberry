@@ -60,6 +60,7 @@ from juneberry.lab import Lab
 from juneberry.plotting import plot_training_summary_chart
 import juneberry.pytorch.processing as processing
 from juneberry.training.trainer import Trainer
+from juneberry.transform_manager import TransformManager
 
 logger = logging.getLogger(__name__)
 
@@ -507,6 +508,11 @@ class Detectron2Trainer(Trainer):
         # Set up the model
         self.model = build_model(cfg)
 
+        # Apply model transforms.
+        if self.model_config.model_transforms is not None:
+            transforms = TransformManager(self.model_config.model_transforms)
+            self.model = transforms.transform(self.model)
+
         # If we are using DDP we don't want to serialize the fields added by DDP, so save
         # a reference to a raw model
         self.save_model = self.model
@@ -596,7 +602,7 @@ class Detectron2Trainer(Trainer):
         # Loads whatever is in the 'module' property of the model architecture into the config
         # First, see if the module is in the workspace
         # Else, try the model zoo
-        model_arch_name = self.model_config.model_architecture['module']
+        model_arch_name = self.model_config.model_architecture.fqcn
 
         ws_path = Path(self.lab.workspace())
         cfg_ws_path = ws_path / model_arch_name

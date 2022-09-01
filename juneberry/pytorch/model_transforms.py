@@ -179,7 +179,7 @@ class SaveModel:
                 sys.exit(-1)
 
             torch.save(model.state_dict(), self.model_path)
-        
+
         return model
 
 
@@ -205,39 +205,57 @@ class LogModelSummary:
         return model
 
 
+class PrintModel:
+    """
+    Transform to do a plain print of the model object
+    """
+
+    def __init__(self):
+        """
+        Prints the model object
+        """
+
+    def __call__(self, model):
+        with torch.no_grad():
+            print(model)
+        return model
+
+
 class ReplaceFC:
     """
     A transform for replacing the fully connected layer. Useful for pre-trained models.
-    """    
+    """
 
     def __init__(self, num_classes, fc_name='fc', fc_bias=True):
         self.num_classes = num_classes
         self.fc_name = fc_name
         self.fc_bias = fc_bias
-        
-    def get_module_by_name(self, module, access_string):
+
+    @staticmethod
+    def get_module_by_name(module, access_string):
         names = access_string.split(sep='.')
         return reduce(getattr, names, module)
 
-    def set_module_by_name(self, module, access_string, value):
+    @staticmethod
+    def set_module_by_name(module, access_string, value):
         names = access_string.split(sep='.')
         x = module
         for (i, name) in enumerate(names):
-            if (i == len(names)-1):
-                x = setattr( x, name, value )
+            if i == len(names) - 1:
+                setattr(x, name, value)
             else:
-                x = getattr( x, name )
+                x = getattr(x, name)
         return module
 
     def __call__(self, model):
-        
+
         # Find the last linear layer
-        original_layer = self.get_module_by_name(model, self.fc_name) 
+        original_layer = self.get_module_by_name(model, self.fc_name)
         in_features = original_layer.in_features
         new_layer = torch.nn.modules.linear.Linear(in_features=in_features, out_features=self.num_classes,
                                                    bias=self.fc_bias)
         model = self.set_module_by_name(model, self.fc_name, new_layer)
-        
+
         return model
 
 
