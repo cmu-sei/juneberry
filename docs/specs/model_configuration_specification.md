@@ -57,8 +57,8 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         ]
     }
     "model_architecture": {
-        "module": <Fully qualified class name to the model architecture class>,
-        "args": <Data structure passed to the model construction using keyword expansion>,
+        "fqcn": <Fully qualified class name to the model architecture class>,
+        "kwargs": <Data structure passed to the model construction using keyword expansion>,
         "previous_model": <OPTIONAL: name of model directory from which to load weights before training>,
     },  
     "model_transforms" : [ <array of plugins - see below> ],

@@ -187,7 +187,7 @@ class MMDTrainer(Trainer):
             self.native = True
 
         # Load cfg based on what they said in the model.
-        cfg = Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture['module']))
+        cfg = Config.fromfile(str(self.mm_home / "configs" / self.model_config.model_architecture.fqcn))
         cfg.work_dir = str(self.working_dir)
 
         # ============ Extract the MMD configuration

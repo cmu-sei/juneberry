@@ -481,8 +481,8 @@ class ClassifierTrainer(EpochTrainer):
                 self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
 
     def setup_model(self):
-        logger.info(f"Constructing the model {self.model_config.model_architecture['module']} "
-                    f"with args: {self.model_config.model_architecture['args']} ...")
+        logger.info(f"Constructing the model {self.model_config.model_architecture.fqcn} "
+                    f"with args: {self.model_config.model_architecture.kwargs} ...")
         self.model = pyt_utils.construct_model(self.model_config.model_architecture,
                                                self.dataset_config.num_model_classes)
 

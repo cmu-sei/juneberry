@@ -61,13 +61,15 @@ class SplittingAlgo(str, Enum):
 
 
 class ModelArchitecture(Prodict):
+    fqcn: str
+    kwargs: Prodict
     module: str
     args: Prodict
     previous_model: typing.Union[str, None]
 
     def get_shape_hwc(self):
         """ :return The height, width and channels in a named tuple. """
-        return ShapeHWC(self.args['img_height'], self.args['img_width'], self.args['channels'])
+        return ShapeHWC(self.kwargs['img_height'], self.kwargs['img_width'], self.kwargs['channels'])
 
 
 class StoppingCriteria(Prodict):
@@ -222,6 +224,25 @@ class ModelConfig(Prodict):
         # If present, the training_dataset_config_path should be converted from string to Path.
         if self.training_dataset_config_path is not None:
             self.training_dataset_config_path = Path(self.training_dataset_config_path)
+
+        # For model_architecture if they specified model/args convert to fqcn and kwargs and provide info message
+        model_arch = self.model_architecture
+        if model_arch.module is not None:
+            if model_arch.fqcn is not None:
+                logger.warning("In the model_architecture 'module' (deprecated) AND 'fqcn' are both pecified. "
+                               "Using new 'fqcn.'")
+            else:
+                logger.warning("Found use of deprecated 'module' on model_architecture. Switch to using 'fqcn'")
+                model_arch.fqcn = model_arch.module
+
+        if model_arch.args is not None:
+            if model_arch.kwargs is not None:
+                logger.warning("In the model_architecture 'args' (deprecated) AND 'kwargs' are both specified. "
+                               "Using new 'kwargs.'")
+            else:
+                logger.warning("Found use of deprecated 'args' on model_architecture. Switch to using 'kwargs'")
+                model_arch.kwargs = model_arch.args
+
 
     @staticmethod
     def construct(data: dict, file_path: str = None):

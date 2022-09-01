@@ -72,10 +72,12 @@
             "type": "object",
             "properties": {
                 "args": { "type": "object" },
+                "fqcn": { "type": "string" },
+                "kwargs": { "type": "object" },
                 "module": { "type": "string" },
-                "previous_model": { "type": "string" },
+                "previous_model": { "type": "string" }
             },
-            "required": [ "module" ]
+            "required": [  ]
         },
         "model_transforms": {
             "type": "array",

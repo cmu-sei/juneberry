@@ -604,7 +604,7 @@ class Detectron2Trainer(Trainer):
         # Loads whatever is in the 'module' property of the model architecture into the config
         # First, see if the module is in the workspace
         # Else, try the model zoo
-        model_arch_name = self.model_config.model_architecture['module']
+        model_arch_name = self.model_config.model_architecture.fqcn
 
         ws_path = Path(self.lab.workspace())
         cfg_ws_path = ws_path / model_arch_name
