@@ -34,6 +34,10 @@ from juneberry.reporting.report import Report
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PC_FILENAME = "pc_curve.png"
+DEFAULT_PR_FILENAME = "pr_curve.png"
+DEFAULT_RC_FILENAME = "rc_curve.png"
+
 
 class PRCurve(Report):
     """
@@ -99,6 +103,6 @@ class PRCurve(Report):
 
         # Save the figures.
         logger.info(f"Saving plot files to {self.output_dir}")
-        pr_plot.save(self.output_dir / "pr_curve.png")
-        pc_plot.save(self.output_dir / "pc_curve.png")
-        rc_plot.save(self.output_dir / "rc_curve.png")
+        pr_plot.save(self.output_dir / DEFAULT_PR_FILENAME)
+        pc_plot.save(self.output_dir / DEFAULT_PC_FILENAME)
+        rc_plot.save(self.output_dir / DEFAULT_RC_FILENAME)

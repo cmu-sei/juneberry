@@ -234,16 +234,16 @@ class MMDTrainer(Trainer):
                         classes=classes)
 
         # Wrap if needed
-        if 'trainDatasetWrapper' in mmd_config:
-            wrapper_cfg = mmd_config['trainDatasetWrapper']
-            logger.info(f"Wrapping training dataset with {wrapper_cfg['type']}")
+        if mmd_config.train_dataset_wrapper is not None:
+            wrapper_cfg = mmd_config.train_dataset_wrapper
+            logger.info(f"Wrapping training dataset with {wrapper_cfg.fqcn}")
             # Make sure to move the pipeline "down"
             train_ds['pipeline'] = cfg.data.train.pipeline
-            train_ds = dict(type=wrapper_cfg['type'],
+            train_ds = dict(type=wrapper_cfg.fqcn,
                             ann_file="",
                             img_prefix="",
                             dataset=train_ds)
-            train_ds.update(wrapper_cfg['kwargs'])
+            train_ds.update(wrapper_cfg.kwargs)
             cfg.data.train.pipeline = []
 
         # Now nest it at the right "level" and merge it in
@@ -272,8 +272,8 @@ class MMDTrainer(Trainer):
         # The user can specify a set of weights to load from, such as pretrained model.
         # TODO: Use 'previous model' here?
         if hasattr(self.model_config, "mmdetection"):
-            if "load_from" in self.model_config.mmdetection:
-                cfg.load_from = self.model_config.mmdetection['load_from']
+            if self.model_config.mmdetection.load_from is not None:
+                cfg.load_from = self.model_config.mmdetection.load_from
                 logger.info(f"Adding load_from model load from: {cfg.load_from}")
 
         # The original learning rate (LR) is set for 8-GPU training. (reference)

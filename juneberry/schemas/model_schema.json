@@ -51,7 +51,20 @@
             "properties": {
                 "load_from": { "type": "string" },
                 "overrides": { "type": "object" },
-                "test_pipeline_stages": { "type": "array" },
+                "test_pipeline_stages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "mode": { "type": "string" },
+                            "name": { "type": "string" },
+                            "stage": { "type": "object" },
+                            "tupleize": { "type": "boolean" }
+                        },
+                        "required": [ "name", "stage" ]
+                    }
+                },
+                "train_dataset_wrapper": { "$ref": "#/definitions/plugin_item" },
                 "train_pipeline_stages": {
                     "type": "array",
                     "items": {
@@ -64,7 +77,21 @@
                         },
                         "required": [ "name", "stage" ]
                     }
+                },
+                "val_pipeline_stages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "mode": { "type": "string" },
+                            "name": { "type": "string" },
+                            "stage": { "type": "object" },
+                            "tupleize": { "type": "boolean" }
+                        },
+                        "required": [ "name", "stage" ]
+                    }
                 }
+
             },
             "required": [ "load_from" ]
         },

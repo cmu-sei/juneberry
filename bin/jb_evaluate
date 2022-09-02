@@ -37,12 +37,13 @@ import juneberry.scripting.utils as jb_scripting
 logger = logging.getLogger("juneberry.jb_evaluate")
 
 
-def setup_eval_options(top_k=0, use_train_split=False, use_val_split=False):
+def setup_eval_options(top_k=0, use_train_split=False, use_val_split=False, onnx_graph=False):
     """
     This function converts a set of input arguments into a SimpleNameSpace representing the selected evaluator options.
     :param top_k: An integer that controls how many of the top-K predicted classes to record in the output.
     :param use_train_split: Flag that indicates if the training portion of the dataset should be evaluated.
     :param use_val_split: Flag that indicates if the validation portion of the dataset should be evaluated.
+    :param onnx_graph: Flag that indicates if a graph of the ONNX model should be logged during the evaluation.
     :return: eval_options: A SimpleNamespace representing the Evaluator options that were set via
     command line arguments.
     """
@@ -57,6 +58,7 @@ def setup_eval_options(top_k=0, use_train_split=False, use_val_split=False):
     eval_options.top_k = top_k
     eval_options.use_train_split = use_train_split
     eval_options.use_val_split = use_val_split
+    eval_options.onnx_graph = onnx_graph
 
     return eval_options
 
@@ -97,6 +99,9 @@ def setup_args(parser) -> None:
     parser.add_argument('--skip-exists', default=False, action="store_true",
                         help='If set to true, will skip the evaluation if a predictions file exists.')
 
+    parser.add_argument('--onnx-graph', default=False, action="store_true",
+                        help='When evaluating an ONNX model, this option will log a graph of the ONNX model.')
+
 
 def main():
     # Typical argparse operations to gather the command line arguments.
@@ -114,7 +119,7 @@ def main():
     model_manager = jb_fs.ModelManager(model_name)
     eval_dir_mgr = model_manager.get_eval_dir_mgr(first_dataset_name)
     eval_dir_mgr.setup()
-    eval_options = setup_eval_options(args.topK, args.useTrainSplit, args.useValSplit)
+    eval_options = setup_eval_options(args.topK, args.useTrainSplit, args.useValSplit, args.onnx_graph)
 
     # Convert verbose argument to proper logging level.
     level = logging.DEBUG if args.verbose else logging.INFO
@@ -155,7 +160,6 @@ def main():
         if args.dryrun:
             # Perform the dry run for the Evaluator.
             evaluator.dry_run()
-            # TODO: Add dry run support for additional evals
 
         else:
             # Perform the evaluation.
@@ -180,9 +184,10 @@ def main():
                     if eval_dir_mgr.predictions_exists() and args.skip_exists:
                         logger.info(f"--skip-exists is true and {eval_dir_mgr.get_predictions_path()} found. Skipping.")
                     else:
-                        evaluator.perform_additional_eval(eval_dir_mgr.get_log_path(args.dryrun), dataset, eval_dir_mgr)
+                        evaluator.perform_additional_eval(eval_dir_mgr.get_log_path(args.dryrun), dataset,
+                                                          eval_dir_mgr, dryrun=args.dryrun)
 
-            logger.info(f"Evaluation complete.")
+            logger.info(f"jb_evaluate is done.")
 
 
 if __name__ == "__main__":
