@@ -100,8 +100,7 @@ class DatasetPathHelper:
         if not self.test_anno_path:
             self.anno_sources.remove('test')
 
-    @staticmethod
-    def _fix_file_paths(paths):
+    def _fix_file_paths(self, paths):
         return [path if (path is not None and path.exists() and path.is_file) else None for path in paths]
 
     def get_workspace(self):
@@ -235,8 +234,7 @@ class DatasetDataframe:
         self._build_image_df()
         self._build_anno_df()
 
-    @staticmethod
-    def _load_json(path):
+    def _load_json(self, path):
         return jb_fs.load_file(path)
 
     def _build_image_df(self):
@@ -412,14 +410,12 @@ class FigureManager:
                 axes[r, c] = ax
         return axes
 
-    @staticmethod
-    def _add_line_to_plot(ax, x_pos, text):
+    def _add_line_to_plot(self, ax, x_pos, text):
         line = ax.axvline(x=x_pos)
         ax.annotate(text, xy=line.get_xydata(),
                     xytext=(0, 4), textcoords='offset points', ha='center', va='bottom')
 
-    @staticmethod
-    def _set_fig_constrained(fig):
+    def _set_fig_constrained(self, fig):
         fig.set_tight_layout(True)
         fig.tight_layout(pad=1.1)
 
@@ -510,8 +506,7 @@ class FigureManager:
         self._add_line_to_plot(ax, mean, f'mean: {mean}')
         self._add_line_to_plot(ax, median, f'mean: {median}')
 
-    @staticmethod
-    def plot_x_turn_off_scientific_notation(ax):
+    def plot_x_turn_off_scientific_notation(self, ax):
         ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
         ax.xaxis.get_major_formatter().set_scientific(False)
         ax.xaxis.set_minor_formatter(mticker.ScalarFormatter())
