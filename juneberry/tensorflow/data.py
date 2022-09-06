@@ -235,10 +235,10 @@ def _prep_tfds_load_args(tf_stanza):
 def _make_image_dataset(model_config: ModelConfig, ds_cfg: DatasetConfig, data_list,
                         val_set: bool) -> TFImageDataSequence:
     """
-    Creates a TF data sequence wrapping out prepared data list. This is used to provided identical
-    inputs to how we do pytorch.
+    Creates a TF data sequence wrapping for the prepared data list. This is used to provide identical
+    inputs like Juneberry does for PyTorch.
     :param model_config: The model config
-    :param ds_cfg: The data set
+    :param ds_cfg: The dataset config
     :param data_list: The data list
     :param val_set: True if the validation set, else the training set
     :return: The constructed data sequence
@@ -248,16 +248,12 @@ def _make_image_dataset(model_config: ModelConfig, ds_cfg: DatasetConfig, data_l
     shape_hwc = model_config.model_architecture.get_shape_hwc()
     opt_args = {'path_label_list': list(data_list)}
     transform_manager = make_transform_manager(model_config, ds_cfg, len(data_list), opt_args, val_set)
-    image_ds = TFImageDataSequence(
-        data_list,
-        model_config.batch_size,
-        transform_manager,
-        shape_hwc)
-    logging_name = "training" if not val_set else "validation"
+    image_ds = TFImageDataSequence(data_list, model_config.batch_size, transform_manager, shape_hwc)
+    logging_name = "validation" if val_set else "training"
     logger.info(f"Constructed {logging_name} dataset with {len(image_ds)} items.")
 
     tmp_data, tmp_labels = image_ds[0]
-    logging_name = "Train" if not val_set else "Val"
+    logging_name = "Val" if val_set else "Train"
     logger.info(f"{logging_name}: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
 
     return image_ds
@@ -337,7 +333,7 @@ def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelC
             preprocessors=TransformManager(model_config.preprocessors))
 
         # Shuffle the datasets so that the manifests can be used directly.
-        logger.info(f"...shuffling manifests with seed {model_config.seed} ...")
+        logger.info(f"...shuffling manifests with seed {model_config.seed}...")
         jb_data.shuffle_manifests(model_config.seed, train_list, val_list)
 
         # Save the manifests
@@ -349,13 +345,16 @@ def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelC
         train_ds = _make_image_dataset(model_config, ds_config, train_list, False)
         val_ds = _make_image_dataset(model_config, ds_config, val_list, True)
         return train_ds, val_ds
+
     elif ds_config.data_type == jb_dataset.DataType.TABULAR:
-        logger.error("TensorFlow is currently not ready to support tabular data sets. EXITING.")
+        logger.error("TensorFlow is currently not ready to support tabular data sets. Exiting.")
         sys.exit(-1)
+
     elif ds_config.data_type == jb_dataset.DataType.TENSORFLOW:
         return _load_tfds_split_dataset(ds_config, model_config)
+
     elif ds_config.data_type == jb_dataset.DataType.TORCHVISION:
-        logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
+        logger.error("Torchvision datasets cannot be used with tensorflow. Exiting.")
         sys.exit(-1)
 
 

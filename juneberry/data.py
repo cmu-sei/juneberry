@@ -1227,9 +1227,9 @@ def check_num_classes(args: dict, num_model_classes: int) -> None:
 
 def shuffle_manifests(seed: int, *data_lists: list) -> None:
     """
-    Shuffles the specified data lists based on the random seed.  NOTE: The random seed is NOT reset
-    between so that the seletion is not weighted similarly (e.g. early, late) in case lists are
-    correlated.
+    Shuffles the specified data lists based on the random seed. NOTE: The random seed is NOT reset
+    between data lists, so that the selection is not weighted similarly (e.g. early, late) in case
+    lists are correlated.
     :param seed: The random seed to use for shuffling.
     :param data_lists: The data lists to shuffle.
     :return: None
