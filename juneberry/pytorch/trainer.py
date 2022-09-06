@@ -445,9 +445,8 @@ class ClassifierTrainer(EpochTrainer):
                 preprocessors=TransformManager(self.model_config.preprocessors))
 
             # Shuffle the data sets
-            logger.info(f"...shuffling manifests with seed {self.model_config.seed}...")
-            jb_data.shuffle_manifest(self.model_config.seed, train_list)
-            jb_data.shuffle_manifest(self.model_config.seed, val_list)
+            logger.info(f"...shuffling manifests with seed {self.model_config.seed} ...")
+            jb_data.shuffle_manifests(self.model_config.seed, train_list, val_list)
 
             if self.dataset_config.is_image_type():
                 # Save the manifest files for traceability
