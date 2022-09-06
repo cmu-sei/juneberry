@@ -1225,15 +1225,18 @@ def check_num_classes(args: dict, num_model_classes: int) -> None:
             sys.exit(-1)
 
 
-def shuffle_manifest(seed: int, data_list: list) -> None:
+def shuffle_manifests(seed: int, *data_lists: list) -> None:
     """
-    Shuffles the specified data list based on the random seed.
+    Shuffles the specified data lists based on the random seed.  NOTE: The random seed is NOT reset
+    between so that the seletion is not weighted similarly (e.g. early, late) in case lists are
+    correlated.
     :param seed: The random seed to use for shuffling.
-    :param data_list: The data list to shuffle.
+    :param data_lists: The data lists to shuffle.
     :return: None
     """
     randomizer = random.Random(seed)
-    randomizer.shuffle(data_list)
+    for data_list in data_lists:
+        randomizer.shuffle(data_list)
 
 
 def save_path_label_manifest(data_list, filename, relative_to: Path = None) -> None:

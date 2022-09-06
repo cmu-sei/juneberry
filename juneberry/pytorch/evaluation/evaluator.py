@@ -247,7 +247,7 @@ class Evaluator(EvaluatorBase):
             self.eval_name_targets = eval_list
 
             logger.info(f"...shuffling manifest with seed {self.model_config.seed}...")
-            jb_data.shuffle_manifest(self.model_config.seed, eval_list)
+            jb_data.shuffle_manifests(self.model_config.seed, eval_list)
 
             # Save the manifest
             if self.eval_dataset_config.is_image_type():
