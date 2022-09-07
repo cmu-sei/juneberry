@@ -263,7 +263,7 @@ class RuleMaker:
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
                     # Dry run rule
-                    workflow = self.builder.get_workflow("dryrun")
+                    dryrun_workflow = self.builder.get_workflow("dryrun")
                     if model.train:
                         inputs = [test.dataset_path]
                     else:
@@ -293,8 +293,8 @@ class RuleMaker:
                         requirements = []
 
                     # Add a temporary property for now
-                    model['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
-                                                                requirements)
+                    model['dryrun_rule_id'] = dryrun_workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                                       requirements)
 
                     # Save the rule id and file for the report
                     eval_dir_mgr = model_mgr.get_eval_dir_mgr(test.dataset_path)
