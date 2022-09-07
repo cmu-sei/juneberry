@@ -384,6 +384,7 @@ def test_add_image_data_sources(monkeypatch, tmp_path):
 
 # ==============================================================================
 
+
 def test_generate_metadata_list(monkeypatch, tmp_path):
     """
     This test is responsible for checking that lists of metadata files are being created properly.

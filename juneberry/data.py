@@ -574,9 +574,9 @@ def apply_function(source_list, fn):
     :return:
     """
     # TODO: This doesn't pass in the labels and can't relabel the data because the label
-    # is associated with the source. We would need to flatten the entire list then relabel
-    # so the preprocess would need to happen after merge and this is NOT the right place for
-    # that.
+    #  is associated with the source. We would need to flatten the entire list then relabel
+    #  so the preprocess would need to happen after merge and this is NOT the right place for
+    #  that.
     for source in source_list:
         for dataset_type in ['train', 'valid']:
             new_list = [fn(x) for x in source[dataset_type]]
@@ -876,11 +876,11 @@ def load_labeled_csvs(file_list, label_index):
 def add_image_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_type) -> None:
     """
     This call creates an entry in the source_list for each image source and adds all the items to the
-    entry for that set typ.e.
+    entry for that set type.
     :param lab: The lab from which to gather data
     :param dataset_config: The dataset config to load.
-    :param source_list: The data set type.  "train" or "valid".
-    :param set_type: train or valid
+    :param source_list: The list of sources receiving the new image source.
+    :param set_type: The data set type. "train" or "valid".
     :return:
     """
     for source in dataset_config.image_data.sources:
