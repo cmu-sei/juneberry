@@ -339,6 +339,52 @@ def assert_correct_metadata_list(test_list, id_map):
 
 # ==============================================================================
 
+def make_dir_and_items(the_dir: Path, items: list):
+    the_dir.mkdir()
+    for item in items:
+        (the_dir / item).touch()
+
+
+def test_list_or_glob_dir(tmp_path):
+    print("Running test")
+    # First we need to make a sample structure
+    plain_items = ['one', 'two', 'three']
+    make_dir_and_items(Path(tmp_path) / "plain", plain_items)
+
+    items = jb_data.list_or_glob_dir(Path(tmp_path), "plain")
+    assert len(items) == len(plain_items)
+    for item in plain_items:
+        assert Path(tmp_path) / "plain" / item in items
+
+    # =====
+
+    all_items = ['item1.txt', 'item2.txt', 'item3.png']
+    text_items = ['item1.txt', 'item2.txt']
+    make_dir_and_items(Path(tmp_path) / "glob", all_items)
+
+    items = jb_data.list_or_glob_dir(Path(tmp_path), "glob/*.txt")
+    assert len(items) == len(text_items)
+    for item in text_items:
+        assert Path(tmp_path) / "glob" / item in items
+
+
+def test_add_image_data_sources(monkeypatch, tmp_path):
+    # This gives use two directories of six items each
+    monkeypatch.setattr(juneberry.data, 'list_or_glob_dir', mock_list_or_glob_dir)
+
+    lab = Lab(workspace='.', data_root=tmp_path)
+    dataset_struct = make_image_classification_config()
+    dataset_config = DatasetConfig.construct(dataset_struct)
+    sources_list = []
+    jb_data.add_image_data_sources(lab, dataset_config, sources_list, 'train')
+
+    assert len(sources_list) == 2
+    assert len(sources_list[0]['train']) == 6
+    assert len(sources_list[1]['train']) == 6
+
+# ==============================================================================
+
+
 def test_generate_metadata_list(monkeypatch, tmp_path):
     """
     This test is responsible for checking that lists of metadata files are being created properly.

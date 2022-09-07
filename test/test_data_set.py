@@ -173,7 +173,7 @@ def test_image_data():
 
     ds = DatasetConfig.construct(config, Path('.'))
     assert ds.is_image_type()
-    assert len(ds.get_image_sources()) == 1
+    assert len(ds.image_data.sources) == 1
 
 
 def test_obj_detection_data():
@@ -195,7 +195,7 @@ def test_obj_detection_data():
     ds = DatasetConfig.construct(config, Path('.'))
     assert ds.is_image_type()
     assert ds.is_object_detection_task()
-    assert len(ds.get_image_sources()) == 2
+    assert len(ds.image_data.sources) == 2
 
 
 def test_tabular_data_data_root(tmp_path):
