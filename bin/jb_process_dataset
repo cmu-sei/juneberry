@@ -301,8 +301,8 @@ class TFDSProcessor(DatasetProcessor):
 
         # TODO: This should ALL go into the tensorflow data module.
         # Walk through the loader batches, sampling one from each.
-        idx = 0
         for ds_idx, ds in enumerate(self.datasets):
+            idx = 0
             ten_percent = len(ds) / 10
 
             # Set up the output path based on root, output dir and if we have multiple sets
