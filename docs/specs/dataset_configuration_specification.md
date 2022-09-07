@@ -26,9 +26,9 @@ configuration file as part of the input.
         "task_type": <Task to be performed [classification | objectDetection]>,
         "sources": [
             {
-                "directory": <glob style path within the dataroot>,l
-                "remove_image_ids": <OPTIONAL list of image ids to ignore>
-                "label":<integer - the class label associated with the directory>,
+                "directory": <glob style path within the dataroot>,
+                "remove_image_ids": <OPTIONAL list of image ids to ignore>,
+                "label": <integer - the class label associated with the directory>,
                 "root": <OPTIONAL: [ dataroot (default) | workspace | relative ]>,
                 "sampling_count": <OPTIONAL number of files to use from this source>,
                 "sampling_fraction": <OPTIONAL file fraction to use from this source> 

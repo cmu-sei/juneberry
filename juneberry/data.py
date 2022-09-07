@@ -227,6 +227,26 @@ def make_eval_manifest_file(lab: Lab, dataset_config: DatasetConfig,
 # | |_| | (_| | || (_| \__ \  __/ |_| |  | | (_| | |  \__ \ | | | (_| | |
 # |____/ \__,_|\__\__,_|___/\___|\__|_|  |_|\__,_|_|  |___/_| |_|\__,_|_|
 
+"""
+Sources List
+The sources_list is a copy of the "image_sources" entry from the dataset config with the addition 
+of two fields: "train" and "valid". During loading the directory is iterated or globbed and the contents
+are placed into the "train" field. Later, during splitting, some of the actual contents are moved 
+into the val field.
+
+So after load the sources list (with a data root of /var/dataroot might look like:
+
+[
+    {
+        "directory": "my_images",
+        "label": 42
+        "train": [ '/var/dataroot/image1.png', '/var/dataroot/image3.png' ]
+        "valid": [ '/var/dataroot/image2.png' ]
+    }
+]
+
+"""
+
 
 class DatasetMarshal:
     """
@@ -292,7 +312,7 @@ class DatasetMarshal:
         pass
 
     def make_source_list(self):
-        add_data_sources(self.lab, self.ds_config, self._source_list, 'train')
+        add_image_data_sources(self.lab, self.ds_config, self._source_list, 'train')
 
     def validation_from_file(self):
         if self._splitting_config.algo == 'from_file':
@@ -553,6 +573,10 @@ def apply_function(source_list, fn):
     :param fn: The function to apply
     :return:
     """
+    # TODO: This doesn't pass in the labels and can't relabel the data because the label
+    # is associated with the source. We would need to flatten the entire list then relabel
+    # so the preprocess would need to happen after merge and this is NOT the right place for
+    # that.
     for source in source_list:
         for dataset_type in ['train', 'valid']:
             new_list = [fn(x) for x in source[dataset_type]]
@@ -849,16 +873,17 @@ def load_labeled_csvs(file_list, label_index):
     return data
 
 
-def add_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_type):
+def add_image_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_type) -> None:
     """
-    Adds data sources and the items from the dataset_config to the source_list of the appropriate type
+    This call creates an entry in the source_list for each image source and adds all the items to the
+    entry for that set typ.e.
     :param lab: The lab from which to gather data
     :param dataset_config: The dataset config to load.
-    :param source_list: The source list to add the data
+    :param source_list: The data set type.  "train" or "valid".
     :param set_type: train or valid
     :return:
     """
-    for source in dataset_config.get_image_sources():
+    for source in dataset_config.image_data.sources:
         source_list.append(source)
         source['train'] = []
         source['valid'] = []
@@ -884,7 +909,7 @@ def add_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_t
 def validation_from_file(lab, source_list, splitting_config: SplittingConfig):
     # Read the indicated dataset config file
     validation_dataset_config = DatasetConfig.load(splitting_config.args['file_path'])
-    add_data_sources(lab, validation_dataset_config, source_list, 'valid')
+    add_image_data_sources(lab, validation_dataset_config, source_list, 'valid')
 
     # Return how they want the validation data sampled
     return validation_dataset_config.get_sampling_config()

@@ -264,10 +264,6 @@ class DatasetConfig(Prodict):
         else:
             return False
 
-    def get_image_sources(self):
-        """ :return: Image sources. """
-        return self.image_data.sources
-
     def _resolve_tabular_source_path(self, lab, source):
         """
         "root": <OPTIONAL: [ dataroot (default) | workspace | relative ] >
