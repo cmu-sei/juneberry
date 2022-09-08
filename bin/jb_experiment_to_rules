@@ -263,7 +263,7 @@ class RuleMaker:
                     cmd_id = workflow.add_rule(inputs, outputs, command, doc, clean_extras, requirements)
 
                     # Dry run rule
-                    workflow = self.builder.get_workflow("dryrun")
+                    dryrun_workflow = self.builder.get_workflow("dryrun")
                     if model.train:
                         inputs = [test.dataset_path]
                     else:
@@ -293,8 +293,8 @@ class RuleMaker:
                         requirements = []
 
                     # Add a temporary property for now
-                    model['dryrun_rule_id'] = workflow.add_rule(inputs, outputs, command, doc, clean_extras,
-                                                                requirements)
+                    model['dryrun_rule_id'] = dryrun_workflow.add_rule(inputs, outputs, command, doc, clean_extras,
+                                                                       requirements)
 
                     # Save the rule id and file for the report
                     eval_dir_mgr = model_mgr.get_eval_dir_mgr(test.dataset_path)
@@ -622,7 +622,6 @@ class RuleMaker:
             # Determine the filename for this report's individual report.json file stored in the experiment
             # directory. Load the contents of that JSON file.
             report_file_path = self.experiment_manager.get_experiment_report_file(index)
-            inputs.append(str(report_file_path))
 
             # Load the individual Report file and fetch (what should be) the only Report in the "reports" list.
             report_config = ReportConfig.load(report_file_path)
@@ -633,6 +632,7 @@ class RuleMaker:
                 plot_file = current_report.kwargs.output_filename
                 if plot_file not in plot_files:
                     plot_files.append(current_report.kwargs.output_filename)
+                    inputs.append(current_report.kwargs.output_filename)
 
             # Add any PR plots to the summary file, if necessary.
             elif current_report.fqcn == ReportFQCN.PLOT_PR:
@@ -644,6 +644,7 @@ class RuleMaker:
                     plot_file = str(Path(current_report.kwargs.output_dir) / file_name)
                     if plot_file not in plot_files:
                         plot_files.append(plot_file)
+                        inputs.append(plot_file)
 
             # This is where you could do some work to include plot_files from other Report types, but
             # for now just continue on if the Report's fqcn is unfamiliar.
@@ -669,9 +670,9 @@ class RuleMaker:
         :return: Nothing.
         """
         # Set up some lists to track some information for pydoit.
-        inputs = [str(report_json_path)]
+        inputs = []
         requirements = []
-        outputs = []
+        outputs = [str(report_json_path)]
 
         # Create the individual JSON file for this report and add the rule to the workflow.
         self._finalize_report(report, report_json_path, inputs, requirements, outputs)
@@ -704,8 +705,9 @@ class RuleMaker:
             json.dump(json_content, file, indent=4)
         logger.info(f"Saved individual report JSON to {json_path}")
 
-        # Add the newly created JSON file to the list of outputs for this rule.
-        outputs.append(str(json_path))
+        # Add the newly created JSON file to the list of outputs for this rule (if it's not already there).
+        if str(json_path) not in outputs:
+            outputs.append(str(json_path))
 
         # Group the lists into a tuple since that's the format the next method expects.
         workflow_components = (inputs, requirements, outputs)
