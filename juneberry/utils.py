@@ -159,6 +159,38 @@ def none_stripper(obj):
         return obj
 
 
+def compute_accuracy_np(predictions_np, labels):
+    """
+    Converts the continuous predictions to classes, compares with truth labels and returns per-class accuracies.
+    :param predictions_np: Array of arrays as predictions.
+    :param labels: The "true" labels to use in the accuracy calculation.
+    :return: A float indicating the accuracy.
+    """
+    np_labels = np.asarray(labels)
+
+    # Argmax finds the highest entry for each image and returns the index (class / label_index) for that.
+    # Then we simple check to see if it got it right and see how many were right.
+    outputs = np.argmax(predictions_np, axis=1)
+    labels_size = np_labels.shape[0]
+    return np.sum(outputs == np_labels) / float(labels_size)
+
+
+def compute_accuracy_one_class(y_scores_np, target_class):
+    """
+    Converts the continuous predictions to classes, and finds out how many were correct for that class.
+    :param y_scores_np: Array of arrays as predictions.
+    :param target_class: An integer indicated the target class.
+    :return: An accuracy value for the indicated class.
+    """
+    # Convert continuous predictions to the highest entry which is the predicted class
+    outputs = np.argmax(y_scores_np, axis=1)
+
+    # Find how many ended up in the target class
+    correct = np.sum(outputs == target_class)
+
+    return correct / len(outputs)
+
+
 #  ____       _                       _
 # |  _ \  ___| |__  _   _  __ _  __ _(_)_ __   __ _
 # | | | |/ _ \ '_ \| | | |/ _` |/ _` | | '_ \ / _` |
@@ -216,12 +248,7 @@ def show_list(rhs, indent=0) -> None:
 # |_| \_\__,_|_| |_|\__,_|\___/|_| |_| |_|
 
 
-
 def wrap_seed(seed: int):
     """ :return: A numerically wraps the seed if it exceeds the maximum value. """
     # Some system has a maximum value of 32 bits
     return seed & 0xFFFFFFFF
-
-
-
-

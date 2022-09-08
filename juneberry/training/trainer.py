@@ -42,7 +42,7 @@ from tqdm import tqdm
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-from juneberry.config.training_output import Options, Results, Times, TrainingOutput
+from juneberry.config.training_output import TrainingOutputBuilder
 from juneberry.filesystem import ModelManager
 import juneberry.filesystem as jb_fs
 from juneberry.logging import log_banner
@@ -96,11 +96,8 @@ class Trainer:
 
         # This is where all the results of the training process are placed
         # that we can serialize at the end.
-        self.results = TrainingOutput()
-        self.results.options = Options()
-        self.results.times = Times()
-        self.results.times.epoch_duration_sec = []
-        self.results.results = Results()
+        self.results_builder = TrainingOutputBuilder()
+        self.results = self.results_builder.output
 
         # These booleans control which format(s) will be used when saving the trained model. All Trainers support
         # some kind of native format, but not all trainers will support the ONNX format.
@@ -251,31 +248,15 @@ class Trainer:
     def _finalize_results_prep(self):
         end_time = datetime.datetime.now().replace(microsecond=0)
 
-        duration = end_time - self.train_start_time
+        # Record the training times in the training output.
+        self.results_builder.set_times(start_time=self.train_start_time, end_time=end_time)
 
-        model_config = self.model_config
-        dataset_config = self.dataset_config
+        # Capture the relevant properties from the model config in the training options.
+        self.results_builder.set_from_model_config(model_name=self.model_manager.model_name,
+                                                   model_config=self.model_config)
 
-        # Add all the times.
-        # TODO Switch to use the new training_output script
-        self.results['times']['start_time'] = self.train_start_time.isoformat()
-        self.results['times']['end_time'] = end_time.isoformat()
-        self.results['times']['duration'] = duration.total_seconds()
-
-        # Copy in relevant parts of our training options.
-        self.results['options']['training_dataset_config_path'] = str(model_config.training_dataset_config_path)
-        self.results['options']['model_architecture'] = model_config.model_architecture
-        self.results['options']['epochs'] = model_config.epochs
-        self.results['options']['batch_size'] = model_config.batch_size
-        self.results['options']['seed'] = model_config.seed
-
-        # This couples us to one dataset.
-        self.results['options']['data_type'] = dataset_config.data_type
-
-        # This should move into the training options.
-        self.results['results']['model_name'] = self.model_manager.model_name
-
-        self.results['format_version'] = TrainingOutput.FORMAT_VERSION
+        # Capture the relevant properties from the dataset config in the training options.
+        self.results_builder.set_from_dataset_config(dataset_config=self.dataset_config)
 
     def _serialize_results(self):
 
@@ -308,9 +289,6 @@ class EpochTrainer(Trainer):
         # Set to true for dry run mode
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
-        # TODO: Should we just call dry run externally?
-        self.do_dry_run = False
-
         # Maximum number of epochs.  We may stop earlier if we meet other criteria
         self.max_epochs = model_config.epochs
 
@@ -324,6 +302,10 @@ class EpochTrainer(Trainer):
         # These must be initialized during setup.
         self.training_iterable = None
         self.evaluation_iterable = None
+
+        # Establish an empty list to track how long it takes to train each epoch. Failing to do this
+        # will result in the EpochTrainer attempting to append duration values to a 'NoneType' object.
+        self.results.times.epoch_duration_sec = []
 
     # -----------------------------------------------
     #  _____     _                 _              ______     _       _
@@ -465,7 +447,7 @@ class EpochTrainer(Trainer):
         with self.timer("end_epoch"):
             epoch_tracker = self.timer('epoch')
             msg = self.end_epoch()
-            self.results['times']['epoch_duration_sec'].append(epoch_tracker.last_elapsed())
+            self.results_builder.record_epoch_duration(epoch_tracker.last_elapsed())
 
         # Deal with timing and logs
         epoch_tracker = self.timer('epoch')
