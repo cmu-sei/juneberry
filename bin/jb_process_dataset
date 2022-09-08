@@ -301,8 +301,9 @@ class TFDSProcessor(DatasetProcessor):
 
         # TODO: This should ALL go into the tensorflow data module.
         # Walk through the loader batches, sampling one from each.
+        idx = 0
         for ds_idx, ds in enumerate(self.datasets):
-            idx = 0
+            log_idx = 0
             ten_percent = len(ds) / 10
 
             # Set up the output path based on root, output dir and if we have multiple sets
@@ -332,11 +333,12 @@ class TFDSProcessor(DatasetProcessor):
                 img.save(str(path))
 
                 # Some status logging
-                if idx % ten_percent == 0:
-                    logger.info(f"Finished {idx}/{len(ds)}...")
+                if log_idx % ten_percent == 0:
+                    logger.info(f"Finished {log_idx}/{len(ds)}...")
 
                 # Next image
                 idx += 1
+                log_idx += 1
 
             # Say we are done
             logger.info("Finished processing images.")

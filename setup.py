@@ -69,6 +69,7 @@ bin_scripts = [
     'bin/jb_generate_experiments',
     'bin/jb_generate_watermark_eval',
     'bin/jb_gpu_runner',
+    'bin/jb_process_dataset',
     'bin/jb_report',
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',

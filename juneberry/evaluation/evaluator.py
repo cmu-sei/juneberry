@@ -299,7 +299,7 @@ class EvaluatorBase:
         :param log_file: The file to log to
         :param dataset: The dataset to evaluate
         :param eval_dir_mgr: Where to place the evaluation
-        :param dryrun: Boolean indicating whether or not to conduct a dryrun of ethe eval.
+        :param dryrun: Boolean indicating whether or not to conduct a dryrun of the eval.
         :return: Nothing
         """
         # This is all reinit stuff that we could factor out of __init__

@@ -165,14 +165,15 @@ class TrainingOutputBuilder:
         # Recording the model_architecture is a little more involved. If the model_architecture contains
         # kwargs, there's a chance a "labels" kwarg could be introduced (particularly in TensorFlow trainers)
         # which may have integer keys. Integer keys would cause problems for Prodict and JSON, so it's best
-        # to eliminate the "labels" kwarg if one is present. Historically, labels weren't included in the
-        # Juneberry's TrainingOutput anyway.
-        if model_config.model_architecture.kwargs is not None:
-            kwarg_dict = {k: v for k, v in model_config.model_architecture.kwargs.items() if k != "labels"}
-            self.output.options.model_architecture = {"fqcn": model_config.model_architecture.fqcn,
-                                                      "kwargs": kwarg_dict}
-        else:
-            self.output.options.model_architecture = model_config.model_architecture
+        # to eliminate the "labels" kwarg if one is present. Historically, when the labels were included in
+        # the TrainingOutput, they had a dedicated key and were not associated with the model architecture.
+        kwargs = model_config.model_architecture.kwargs
+        labels = kwargs.pop('labels') if "labels" in kwargs.keys() else None
+        self.output.options.model_architecture = model_config.model_architecture
+
+        # Restore the labels if they were removed.
+        if labels:
+            kwargs['labels'] = labels
 
         self.output.options.model_name = model_name
         self.output.options.seed = model_config.seed
