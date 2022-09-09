@@ -168,7 +168,7 @@ class TrainingOutputBuilder:
         # to eliminate the "labels" kwarg if one is present. Historically, when the labels were included in
         # the TrainingOutput, they had a dedicated key and were not associated with the model architecture.
         kwargs = model_config.model_architecture.kwargs
-        labels = kwargs.pop('labels') if "labels" in kwargs.keys() else None
+        labels = kwargs.pop('labels') if kwargs is not None and "labels" in kwargs.keys() else None
         self.output.options.model_architecture = model_config.model_architecture
 
         # Restore the labels if they were removed.
