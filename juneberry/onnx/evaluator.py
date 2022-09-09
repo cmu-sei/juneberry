@@ -55,6 +55,7 @@ class Evaluator(EvaluatorBase):
         self.ort_session = None
         self.raw_output = []
         self.eval_loader = None
+        self.graph_model = eval_options.onnx_graph
 
     # ==========================================================================
 
@@ -136,8 +137,8 @@ class Evaluator(EvaluatorBase):
         # Check that the ONNX model is well formed.
         onnx.checker.check_model(self.onnx_model)
 
-        # TODO: Decide if this graph adds any value to the evaluation process.
-        # logger.info(f"Graph of the ONNX model:\n{onnx.helper.printable_graph(self.onnx_model.graph)}")
+        if self.graph_model:
+            logger.info(f"Graph of the ONNX model:\n{onnx.helper.printable_graph(self.onnx_model.graph)}")
 
     def evaluate_data(self) -> None:
         """

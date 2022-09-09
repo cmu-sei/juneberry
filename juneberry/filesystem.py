@@ -589,7 +589,7 @@ class EvalDirMgr:
     def get_log_dir_path(root, dataset_name):
         return EvalDirMgr.get_base_log_path(root) / dataset_name if dataset_name else Path(root) / 'logs' / 'eval'
 
-    def __init__(self, root: str, dataset_name: str = None) -> None:
+    def __init__(self, root: str, dataset_name: str) -> None:
         """
         Constructs an EvalDirMgr object rooted at the root path for the specified platform
         with the given name.
@@ -802,23 +802,15 @@ class ModelManager:
 
     # ============ Evaluation ============
 
-    def get_eval_dir_mgr(self, dataset_path: str = None) -> EvalDirMgr:
+    def get_eval_dir_mgr(self, dataset_path: str) -> EvalDirMgr:
         """
         Construct an EvalDirMgr object based on the current model and the provided dataset path.
         :param dataset_path: The path to the dataset file.
         :return: An EvalDirMgr object.
         """
-        # TODO: Why do we support dataset_path of None?
-        #  This seems like an error somewhere else
-        # dataset_arg = Path(dataset_path).stem if dataset_path else None
-        dataset_arg = None
-        if dataset_path is not None:
-            p = Path(dataset_path)
-            if p.parts[0] == "data_sets":
-                dataset_arg = Path(*p.parts[1:-1]) / p.stem
-            else:
-                dataset_arg = Path(*p.parts[:-1]) / p.stem
-        return EvalDirMgr(self.model_dir_path, dataset_arg)
+        p = Path(dataset_path)
+        dataset_arg = Path(*p.parts[1:-1]) / p.stem if p.parts[0] == "data_sets" else Path(*p.parts[:-1]) / p.stem
+        return EvalDirMgr(self.model_dir_path, str(dataset_arg))
 
     def iter_eval_dirs(self):
         """

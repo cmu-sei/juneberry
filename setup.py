@@ -63,12 +63,13 @@ install_requires = [
 
 bin_scripts = [
     'bin/jb_attack_to_rules',
-    'bin/jb_clean_predictions',
+    'bin/jb_clean_experiment_evals',
     'bin/jb_evaluate',
     'bin/jb_experiment_to_rules',
     'bin/jb_generate_experiments',
     'bin/jb_generate_watermark_eval',
     'bin/jb_gpu_runner',
+    'bin/jb_process_dataset',
     'bin/jb_report',
     'bin/jb_rules_to_pydoit',
     'bin/jb_run_experiment',

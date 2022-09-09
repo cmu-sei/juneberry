@@ -123,6 +123,15 @@ class Detectron2(Prodict):
         self.metric_interval = 1
 
 
+class MMDetection(Prodict):
+    load_from: str
+    overrides: Prodict
+    test_pipeline_stages: List[Prodict]
+    train_dataset_wrapper: Plugin
+    train_pipeline_stages: List[Prodict]
+    val_pipeline_stages: List[Prodict]
+
+
 class TensorFlow(Prodict):
     callbacks: List[Plugin]
     loss_args: Prodict
@@ -150,8 +159,7 @@ class ModelConfig(Prodict):
     format_version: str
     lab_profile: LabProfile
     label_mapping: typing.Union[Prodict, str]
-    # TODO: Define mmdetection
-    mmdetection: Prodict
+    mmdetection: MMDetection
     model_architecture: ModelArchitecture
     model_transforms: List[Plugin]
     preprocessors: List[Plugin]

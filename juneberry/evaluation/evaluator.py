@@ -291,13 +291,15 @@ class EvaluatorBase:
 
         self.format_evaluation()
 
-    def perform_additional_eval(self, log_file, dataset: DatasetConfig, eval_dir_mgr: EvalDirMgr) -> None:
+    def perform_additional_eval(self, log_file, dataset: DatasetConfig, eval_dir_mgr: EvalDirMgr,
+                                dryrun: bool = False) -> None:
         """
         Allows the evaluation of a different dataset that has the same basic characteristics
         as the original data set, in terms of model layer sizes, etc.
         :param log_file: The file to log to
         :param dataset: The dataset to evaluate
         :param eval_dir_mgr: Where to place the evaluation
+        :param dryrun: Boolean indicating whether or not to conduct a dryrun of the eval.
         :return: Nothing
         """
         # This is all reinit stuff that we could factor out of __init__
@@ -307,6 +309,11 @@ class EvaluatorBase:
         self.eval_dataset_config = dataset
         self.eval_dir_mgr = eval_dir_mgr
         self.log_file_path = log_file
+
+        # Perform the dry run if one was requested.
+        if dryrun:
+            self.dry_run()
+            return
 
         # Set up the eval output
         self._init_output()

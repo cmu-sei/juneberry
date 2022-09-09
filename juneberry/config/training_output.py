@@ -22,7 +22,7 @@
 #
 # ======================================================================================================================
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import sys
 from typing import Union
@@ -59,7 +59,6 @@ class Results(Prodict):
     loss_rpn_cls: list
     loss_rpn_loc: list
     model_hash: str
-    model_name: str
     num_bg_samples: list
     num_fg_samples: list
     num_neg_anchors: list
@@ -79,12 +78,13 @@ class Results(Prodict):
 
 class Options(Prodict):
     batch_size: int
+    data_type: str
     epochs: int
+    label_mapping: Union[dict, str]
     model_architecture: Prodict
-    # model_name should go here
+    model_name: str
     num_training_images: int
     num_validation_images: int
-    label_mapping: Union[dict, str]
     seed: int
     training_dataset_config_path: str
     validation_dataset_config_path: str
@@ -158,11 +158,26 @@ class TrainingOutputBuilder:
         :param model_config: The model config object.
         :return: None
         """
-        self.output.results.model_name = model_name
 
         self.output.options.batch_size = model_config.batch_size
         self.output.options.epochs = model_config.epochs
+
+        # Recording the model_architecture is a little more involved. If the model_architecture contains
+        # kwargs, there's a chance a "labels" kwarg could be introduced (particularly in TensorFlow trainers)
+        # which may have integer keys. Integer keys would cause problems for Prodict and JSON, so it's best
+        # to eliminate the "labels" kwarg if one is present. Historically, when the labels were included in
+        # the TrainingOutput, they had a dedicated key and were not associated with the model architecture.
+        kwargs = model_config.model_architecture.kwargs
+        labels = kwargs.pop('labels') if kwargs is not None and "labels" in kwargs.keys() else None
         self.output.options.model_architecture = model_config.model_architecture
+
+        # Restore the labels if they were removed. self.output.options.model_architecture and
+        # model_config.model_architecture have different IDs, so restoring the labels in
+        # model_config.model_architecture will not affect self.output.options.model_architecture.
+        if labels:
+            kwargs['labels'] = labels
+
+        self.output.options.model_name = model_name
         self.output.options.seed = model_config.seed
         self.output.options.training_dataset_config_path = model_config.training_dataset_config_path
         # self.output.options.label_mapping = model_config.label_mapping
@@ -180,6 +195,7 @@ class TrainingOutputBuilder:
         :return: None
         """
         self.output.options.training_dataset_config_path = dataset_config.file_path
+        self.output.options.data_type = dataset_config.data_type
 
     def set_times(self, start_time: datetime, end_time: datetime) -> None:
         """
@@ -191,6 +207,15 @@ class TrainingOutputBuilder:
         self.output.times.start_time = start_time.isoformat()
         self.output.times.end_time = end_time.isoformat()
         self.output.times.duration = (end_time - start_time).total_seconds()
+
+    def record_epoch_duration(self, duration: timedelta) -> None:
+        """
+        Appends a duration to the list in the Training Output that tracks epoch durations.
+        :param duration: The duration (as a datetime timedelta) in seconds to store in the
+        times.epoch_duration_sec list in the Training Output.
+        :return: Nothing.
+        """
+        self.output.times.epoch_duration_sec.append(duration)
 
     def to_dict(self) -> dict:
         """ :return: Returns a pure version of the data structure as a dict. """

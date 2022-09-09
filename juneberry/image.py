@@ -352,6 +352,49 @@ def rotate_image(src_image: Image, rotation_degrees: int) -> Image:
     return src_image.rotate(rotation_amount, expand=True)
 
 
+def blur_image(src_image: Image, blur_max_radius: int) -> Image:
+    """
+    This function is responsible for applying a Gaussian blur to an image.
+    :param src_image: The image receiving the Gaussian blur.
+    :param blur_max_radius: The maximum radius to use when applying the Gaussian blur.
+    :return: The Image with the Gaussian blur applied.
+    """
+    # The blur_max_radius is treated as the ceiling for the amount to use for the radius in
+    # a Gaussian blur.
+    blur_radius = random.randint(0, blur_max_radius)
+    logging.debug(f"Applying Gaussian blur to the image using radius {blur_radius}.")
+    return src_image.filter(ImageFilter.GaussianBlur(blur_radius))
+
+
+def scale_image(src_image: Image, scale_range: tuple) -> Image:
+    """
+    This function is responsible for scaling the size of an image.
+    :param src_image: The image whose size is being adjusted.
+    :param scale_range: A tuple indicating the range of values to consider when scaling the image. scale_range[0]
+    represents the lower boundary for the scale value, while scale_range[1] represents the upper boundary.
+    :return: A scaled version of the original source image.
+    """
+    # A random scale value between scale_range[0] and scale_range[1] is chosen for the amount by which to scale
+    # the Image's area. Scale values less than 1.0 will shrink the Image, while scale values greater than 1.0
+    # will increase the size of the Image.
+
+    logging.debug(f"Scaling the image size...")
+    watermark_width, watermark_height = src_image.size
+    logging.debug(f"  original image dimensions: width = {watermark_width}, height = {watermark_height}, "
+                  f"area = {watermark_width * watermark_height}")
+
+    scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
+    logging.debug(f"  applying a scale factor of {scale} to the area of the watermark.")
+    src_image = src_image.resize((int(watermark_width * np.sqrt(scale)), int(watermark_height * np.sqrt(scale))),
+                                 Image.ANTIALIAS)
+
+    watermark_width, watermark_height = src_image.size
+    logging.debug(f"  new image dimensions: width = {watermark_width}, height = {watermark_height}, "
+                  f"area = {watermark_width * watermark_height}")
+
+    return src_image
+
+
 def transform_image(src_image: Image, scale_range: tuple = (None, None), rotation: int = 0, blur: int = 0):
     """
     This function is responsible for applying transformations to the provided image.
@@ -363,32 +406,13 @@ def transform_image(src_image: Image, scale_range: tuple = (None, None), rotatio
     :return: The transformed image.
     """
 
-    # When a maxBlur value is provided, it is treated as the ceiling for the amount to use for the radius in
-    # a Gaussian blur. If the value is zero, then no blur is applied.
-    # TODO Refactor out
+    # If a blur radius was provided, attempt to apply a Gaussian blur to the image.
     if blur:
-        blur_radius = random.randint(0, blur)
-        logging.debug(f"Applying Gaussian blur to the image using radius {blur_radius}.")
-        src_image = src_image.filter(ImageFilter.GaussianBlur(blur_radius))
+        src_image = blur_image(src_image=src_image, blur_max_radius=blur)
 
-    # When a scale range is provided, a random scale value between scale_range[0] and scale_range[1] is chosen
-    # for the amount by which to scale the watermark's area. Scale values less than 1.0 will shrink the watermark,
-    # while scale values greater than 1.0 will increase the size of the watermark.
-    # TODO Refactor out
+    # Scale the image if a scale_range was provided that would actually adjust the image size.
     if scale_range != (None, None) and scale_range != (1.0, 1.0):
-        logging.debug(f"Scaling the image size...")
-        watermark_width, watermark_height = src_image.size
-        logging.debug(f"...original dimensions: width = {watermark_width}, height = {watermark_height}, "
-                      f"area = {watermark_width * watermark_height}")
-
-        scale = round(random.uniform(scale_range[0], scale_range[1]), 1)
-        logging.debug(f"...applying a scale factor of {scale} to the area of the watermark.")
-        src_image = src_image.resize((int(watermark_width * np.sqrt(scale)), int(watermark_height * np.sqrt(scale))),
-                                     Image.ANTIALIAS)
-
-        watermark_width, watermark_height = src_image.size
-        logging.debug(f"...new image dimensions: width = {watermark_width}, height = {watermark_height}, "
-                      f"area = {watermark_width * watermark_height}")
+        src_image = scale_image(src_image=src_image, scale_range=scale_range)
 
     # When a rotation value is provided, this transform will randomly select a value between
     # -rotationAmount and +rotationAmount and apply that rotation to the watermark image. The

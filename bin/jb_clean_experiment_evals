@@ -28,23 +28,41 @@ This script cleans all of the predictions files produced by jb_evaluate.
 """
 
 import argparse
-from pathlib import Path
+import logging
 import subprocess
 
 from juneberry.config.rule_list import RulesList
+from juneberry.filesystem import ExperimentManager
+import juneberry.scripting.utils as jb_scripting
+
+logger = logging.getLogger("juneberry.jb_clean_experiment_evals")
+
+
+def setup_args(parser) -> None:
+    """
+    Adds arguments to the parser
+    :param parser: The parser in which to add arguments.
+    """
+    parser.add_argument("experimentName", help='Name of the experiment in the experiments directory whose eval '
+                                               'directories should be cleaned.')
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Clean the predictions files produced by an experiment.")
-    parser.add_argument("experimentName", help='Name of experiment.')
+    parser = argparse.ArgumentParser(description="Cleans the eval directories in an experiment.")
+    setup_args(parser)
+    jb_scripting.setup_args(parser)
     args = parser.parse_args()
 
-    # TODO: use normal script start-up to get the workspace and data roots
-    workspace_root = Path(__file__).parents[1].absolute()
-    json_path = workspace_root / 'experiments' / args.experimentName / 'rules.json'
-    experiments_dir = workspace_root / 'experiments' / args.experimentName / 'main_dodo.py'
+    experiment_manager = ExperimentManager(args.experimentName)
+    log_file = experiment_manager.get_log_path()
+    banner_msg = f">>> Juneberry Experiment Eval Cleaner - {args.experimentName} <<<"
 
-    rules = RulesList.load(json_path)
+    lab = jb_scripting.setup_workspace(args, log_file=log_file, log_prefix="<<LIVE>> ", banner_msg=banner_msg)
+    workspace_root = lab.workspace()
+    rules_file = experiment_manager.get_experiment_rules()
+    dodo_file = experiment_manager.get_experiment_dodo(workflow="main")
+
+    rules = RulesList.load(rules_file)
 
     tasks = []
     for workflow in rules.workflows:
@@ -53,8 +71,10 @@ def main():
                 tasks.append(rule.id)
 
     for task in tasks:
-        cmd = ["doit", "-f", experiments_dir, "--dir", workspace_root, "clean", str(task)]
+        cmd = ["doit", "-f", dodo_file, "--dir", workspace_root, "clean", str(task)]
         subprocess.run(cmd)
+
+    logger.info("jb_clean_experiment_evals is done.")
 
 
 if __name__ == "__main__":

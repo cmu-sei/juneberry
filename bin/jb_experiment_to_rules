@@ -36,6 +36,7 @@ from juneberry.config.report import ReportConfig
 from juneberry.config.rule_list import RuleListBuilder
 from juneberry.filesystem import ExperimentManager, ModelManager
 import juneberry.loader as jb_loader
+from juneberry.reporting.pr import DEFAULT_PC_FILENAME, DEFAULT_PR_FILENAME, DEFAULT_RC_FILENAME
 from juneberry.reporting.summary import REPORT_FILES_DIRNAME
 
 logger = logging.getLogger(__name__)
@@ -637,8 +638,7 @@ class RuleMaker:
             # Add any PR plots to the summary file, if necessary.
             elif current_report.fqcn == ReportFQCN.PLOT_PR:
 
-                # TODO: These names should come from the plotting curve code once we refactor jb_plot_pr
-                plot_filenames = ["pr_curve.png", "pc_curve.png", "rc_curve.png"]
+                plot_filenames = [DEFAULT_PC_FILENAME, DEFAULT_PR_FILENAME, DEFAULT_RC_FILENAME]
 
                 for file_name in plot_filenames:
                     plot_file = str(Path(current_report.kwargs.output_dir) / file_name)
