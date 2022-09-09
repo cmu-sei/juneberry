@@ -171,7 +171,9 @@ class TrainingOutputBuilder:
         labels = kwargs.pop('labels') if kwargs is not None and "labels" in kwargs.keys() else None
         self.output.options.model_architecture = model_config.model_architecture
 
-        # Restore the labels if they were removed.
+        # Restore the labels if they were removed. self.output.options.model_architecture and
+        # model_config.model_architecture have different IDs, so restoring the labels in
+        # model_config.model_architecture will not affect self.output.options.model_architecture.
         if labels:
             kwargs['labels'] = labels
 
