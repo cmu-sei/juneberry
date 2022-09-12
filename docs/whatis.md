@@ -15,7 +15,7 @@ models which may have different architectures, datasets, and/or hyperparameters.
 format, control the characteristics of the experiment, such as which models to use, training datasets, evaluation
 datasets, and the types of reports and graphics to generate for comparison purposes.
 
-Some of the key features of Juneberry:
+Some key features of Juneberry:
 * Primarily config driven, so users spend more time designing experiments in a platform independent way and less time writing/testing/debugging code
 * Support for multiple backends, providing a level playing field suitable for making comparisons
 * An emphasis on reproducible results
@@ -40,7 +40,7 @@ Juneberry is a configuration based experiment management system used to ease the
 learning models. Juneberry use platform independent model configuration files that specify the architecture, 
 hyperparameters and training data pipelines to invoke various machine learning backends such as PyTorch, Detectron2, 
 MMDetection or Tensorflow to produce trained models and prediction results.  Juneberry then uses supplied experiment 
-outlines to train many of these models with different data sets and hyper parameters and produces sets of output that 
+outlines to train many of these models with different data sets and hyperparameters and produces sets of output that 
 are combined into unified reports.
 
 Juneberry experiment workflows can be exported to other workflow automation systems for integration into larger 
@@ -58,15 +58,15 @@ the training process Juneberry organizes and marshals all the various outputs.
 * Data sets - List of input data elements such as images or tabular data and their associated meta data such as labels, bounding boxes, and segmentation masks.
 * Architectures (Algorithms) and functions - Code that describes the neural network(s) to be used to produce the model and their associated functions.
 * Hyperparameters - Configurations of models, functions and like.
-* Models - Compositions of architectures, data sets, hyper parameters and data transforms.
+* Models - Compositions of architectures, data sets, hyperparameters and data transforms.
 * Experiments - Associations of data sets (training, retraining and test), models and the subsequent outputs.
 
 # What Juneberry Isn't
 
-The machine learning discipline is complex and needs a wide variety of tools. Sometimes it is easier to understaned
+The machine learning discipline is complex and needs a wide variety of tools. Sometimes it is easier to understand
 what something does, rather than what it does. One of the core design principles of Juneberry is to not reinvent the
 wheel, but to use what already exists and fill the existing gaps. As the tool space evolves and new capabilities
-become avalaible we repalce our existing custom code with other open source.
+become available we repalce our existing custom code with other open source.
 
 Juneberry does not do this things but relies on other open source projects for this support:
 
