@@ -13,6 +13,8 @@ Python plugins for features such as model construction and transformation.
 
 If you're looking for a slightly more in depth descripts of Juneberry see [What Is Juneberry](docs/whatis.md).
 
+Other resources can be found at the [Juneberry Home Page](https://www.sei.cmu.edu/our-work/projects/display.cfm?customel_datapageid_4050=334902) 
+
 # Supporting Documentation
 
 ## How to Install Juneberry
