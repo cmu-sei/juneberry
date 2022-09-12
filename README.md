@@ -11,6 +11,8 @@ This README describes how to use the Juneberry framework to execute machine lear
 declarative programming model composed of sets of config files (dataset, model, and experiment configurations) and
 Python plugins for features such as model construction and transformation.
 
+If you're looking for a slightly more in depth descripts of Juneberry see [What Is Juneberry](docs/whatis.md).
+
 # Supporting Documentation
 
 ## How to Install Juneberry
