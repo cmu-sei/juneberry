@@ -1,8 +1,5 @@
 What Is Juneberry?
-
 ===========
-
-# Introduction
 
 Juneberry improves the experience of machine learning experimentation by providing a framework for automating the 
 training, evaluation and comparison of multiple models against multiple datasets, reducing errors and improving 
