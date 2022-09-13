@@ -103,7 +103,6 @@ def make_eval_data_loader(lab, dataset_config, model_config, data_lst):
     :param data_lst: The data list to load, shuffled.
     :return: Returns the data loader.
     """
-    # TODO: Should we use collate and sampler?
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing data loader from EVALUATION data set using prediction transforms.")
     return make_data_loader(lab, dataset_config, data_lst,
