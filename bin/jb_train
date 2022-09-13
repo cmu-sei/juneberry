@@ -103,8 +103,6 @@ def main():
     # Now load the dataset
     dataset_config = lab.load_dataset_config(model_config.training_dataset_config_path)
 
-    # TODO: Reimplement no_paging via lab profile
-
     # Create a TrainerFactory to generate the Trainer.
     trainer_factory = TrainerFactory(dataset_config=dataset_config, lab=lab, log_level=sprout.log_level,
                                      model_config=model_config, model_manager=model_manager)

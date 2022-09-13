@@ -72,12 +72,7 @@ class ClassifierTrainer(EpochTrainer):
         # construction of the ONNX model.
         self.input_sample = None
 
-        # Should we load all the data at one time.  Edge case optimization.
-        self.no_paging = False
-        if "JB_NO_PAGING" in os.environ and os.environ['JB_NO_PAGING'] == "1":
-            logger.info("Setting to no paging mode.")
-            self.no_paging = True
-
+        # Tensorboard manager
         self.tb_mgr = None
 
         # This model is for saving
@@ -463,7 +458,6 @@ class ClassifierTrainer(EpochTrainer):
                                                     self.model_config,
                                                     train_list,
                                                     val_list,
-                                                    no_paging=self.no_paging,
                                                     sampler_args=sampler_args)
 
             # Sample a single item from the input dataset.

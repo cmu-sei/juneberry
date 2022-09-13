@@ -109,7 +109,10 @@ class Lab:
             errors += Lab.check_path(tensorboard, "tensorboard directory")
 
         # Try to load the lab profile from the workspace config
-        # TODO once lab profile is finished
+        ws_config = WorkspaceConfig.load()
+        if not ws_config.has_profile(profile_name):
+            logger.error(f"Profile '{profile_name}' does not exist in the workspace config file.")
+            errors += 1
 
         if errors > 0:
             logger.error(f"Identified {errors} configuration errors. See log for details. Exiting.")
