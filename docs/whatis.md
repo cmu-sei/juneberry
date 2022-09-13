@@ -66,9 +66,9 @@ the training process Juneberry organizes and marshals all the various outputs.
 The machine learning discipline is complex and needs a wide variety of tools. Sometimes it is easier to understand
 what something does, rather than what it does. One of the core design principles of Juneberry is to not reinvent the
 wheel, but to use what already exists and fill the existing gaps. As the tool space evolves and new capabilities
-become available we repalce our existing custom code with other open source.
+become available we replace our existing custom code with other open source.
 
-Juneberry does not do this things but relies on other open source projects for this support:
+Juneberry does not do these things but relies on other open source projects for this support:
 
 * A math or statistics package like numpy or pandas
 * A machine learning package like pytorch, tensorflow, or scikit-learn
