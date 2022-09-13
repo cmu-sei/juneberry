@@ -110,7 +110,7 @@ class Lab:
 
         # Try to load the lab profile from the workspace config
         ws_config = WorkspaceConfig.load()
-        if not ws_config.has_profile(profile_name):
+        if not profile_name == "default" and not ws_config.has_profile(profile_name):
             logger.error(f"Profile '{profile_name}' does not exist in the workspace config file.")
             errors += 1
 
