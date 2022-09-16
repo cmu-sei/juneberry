@@ -62,7 +62,7 @@ RUN pip3 install adversarial-robustness-toolbox \
     opencv-python==4.5.5.62 \
     tqdm \
     pytest pylint \
-    ray jsonpath-ng
+    ray==1.13.0 jsonpath-ng
 
 # Necessary to install Pillow.libs?
 RUN pip3 install --upgrade Pillow
