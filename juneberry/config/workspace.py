@@ -33,7 +33,6 @@ from prodict import Prodict, List
 import juneberry.config.util as jb_conf_utils
 import juneberry.filesystem as jb_fs
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -218,3 +217,15 @@ class WorkspaceConfig(Prodict):
             lab_profile.no_paging = False
 
         return lab_profile
+
+    def has_profile(self, profile_name: str) -> bool:
+        """
+        Looks through the profiles for a profile with the provided name.
+        :param profile_name: The profile name in question.
+        :return: True if that profile name found.
+        """
+        for profile in self.profiles:
+            if profile.name == profile_name:
+                return True
+
+        return False

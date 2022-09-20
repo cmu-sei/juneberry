@@ -66,7 +66,7 @@ def make_transform_manager(model_cfg: ModelConfig, ds_cfg: DatasetConfig, set_si
 
 
 def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
-                               no_paging=False, collate_fn=None, sampler_args=None):
+                               collate_fn=None, sampler_args=None):
     """
     Creates the appropriate data loaders from the training and validation data sets.
     :param lab: The Juneberry Lab in which this operation occurs.
@@ -74,7 +74,6 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     :param model_cfg: A Juneberry ModelConfig object that may contain transforms and validation options.
     :param data_lst: The data list to load, shuffled.
     :param split_lst: The list of data to load that was split from the main dataset.
-    :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
     :param collate_fn: Function that controls how samples are collated into batches.
     :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used; None for no sampler
     :return: Returns the training and validation data loaders.
@@ -83,41 +82,36 @@ def make_training_data_loaders(lab, ds_cfg, model_cfg, data_lst, split_lst, *,
     logger.info("Constructing TRAINING data loader.")
     data_loader = make_data_loader(lab, ds_cfg, data_lst,
                                    make_transform_manager(model_cfg, ds_cfg, len(data_lst), opt_args, False),
-                                   model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn,
+                                   model_cfg.batch_size, collate_fn=collate_fn,
                                    sampler_args=sampler_args)
 
     logger.info("Constructing VALIDATION data loader.")
     opt_args = {'path_label_list': list(split_lst)}
     split_loader = make_data_loader(lab, ds_cfg, split_lst,
                                     make_transform_manager(model_cfg, ds_cfg, len(split_lst), opt_args, True),
-                                    model_cfg.batch_size, no_paging=no_paging, collate_fn=collate_fn)
+                                    model_cfg.batch_size, collate_fn=collate_fn)
 
     return data_loader, split_loader
 
 
-def make_eval_data_loader(lab, dataset_config, model_config, data_lst, *,
-                          no_paging=False, collate_fn=None, sampler_args=None):
+def make_eval_data_loader(lab, dataset_config, model_config, data_lst):
     """
     Constructs the appropriate data loader for evaluation
     :param lab: The Juneberry Lab in which this operation occurs.
     :param dataset_config: The data set config that describes the data.
     :param model_config: A Juneberry ModelConfig object that may contain transforms and validation options.
     :param data_lst: The data list to load, shuffled.
-    :param no_paging: Set to true to read all the data at once. Good for small data sets or large memory.
-    :param collate_fn: Function that controls how samples are collated into batches.
-    :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used; None for no sampler
     :return: Returns the data loader.
     """
-    # TODO: Should we use collate and sampler?
     opt_args = {'path_label_list': list(data_lst)}
     logger.info("Constructing data loader from EVALUATION data set using prediction transforms.")
     return make_data_loader(lab, dataset_config, data_lst,
                             make_transform_manager(model_config, dataset_config, len(data_lst), opt_args, True),
-                            model_config.batch_size, no_paging=no_paging)
+                            model_config.batch_size)
 
 
 def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transform_manager, batch_size,
-                     *, no_paging=False, collate_fn=None, sampler_args=None):
+                     *, collate_fn=None, sampler_args=None):
     """
     A convenience method to:
     1) Construct the appropriate pytorch data set with a transform manager
@@ -127,14 +121,13 @@ def make_data_loader(lab: Lab, dataset_config: DatasetConfig, data_list, transfo
     :param data_list: The data list to load, shuffled.
     :param transform_manager: A transform manager to use.
     :param batch_size: The batch size.
-    :param no_paging: Should the loader not page data
     :param collate_fn: Function that controls how samples are collated into batches.
     :param sampler_args: Tuple of integers (world_size, rank) if a sampler is to be used, else None
     :return: PyTorch DataLoader
     """
 
     # Convenience function to wrap these
-    dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=no_paging)
+    dataset = manifest_to_pytorch_dataset(dataset_config, data_list, transform_manager, no_paging=lab.profile.no_paging)
     # NOTE: We do not shuffle since the dataset conversion above already did
     return wrap_dataset_in_dataloader(lab, dataset, batch_size, collate_fn=collate_fn, sampler_args=sampler_args)
 
