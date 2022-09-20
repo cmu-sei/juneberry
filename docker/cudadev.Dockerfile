@@ -62,7 +62,7 @@ RUN pip3 install adversarial-robustness-toolbox \
     opencv-python==4.5.5.62 \
     tqdm \
     pytest pylint \
-    ray jsonpath-ng
+    ray==1.13.0 jsonpath-ng
 
 # Necessary to install Pillow.libs?
 RUN pip3 install --upgrade Pillow
@@ -97,7 +97,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v12.1"
+ENV JUNEBERRY_CONTAINER_VERSION="cudadev:v12.2"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
