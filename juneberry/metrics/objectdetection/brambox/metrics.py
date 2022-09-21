@@ -34,7 +34,7 @@ from typing import Dict
 import brambox as bb
 from pandas.core.frame import DataFrame
 
-from juneberry.metrics.utils import get_df
+from juneberry.metrics.objectdetection.brambox.utils import get_df
 
 logger = logging.getLogger(__name__)
 

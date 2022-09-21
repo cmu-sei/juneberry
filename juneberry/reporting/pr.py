@@ -28,8 +28,8 @@ from prodict import Prodict
 
 from juneberry.config.plugin import Plugin
 from juneberry.filesystem import ModelManager
-import juneberry.metrics.metrics_manager as metrics_manager
-from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
+import juneberry.metrics.objectdetection.metrics_manager as metrics_manager
+from juneberry.metrics.objectdetection.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
 from juneberry.reporting.report import Report
 
 logger = logging.getLogger(__name__)
