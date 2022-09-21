@@ -71,7 +71,6 @@ class EvaluatorBase:
 
         # Stash the eval directory manager.
         self.eval_dir_mgr = eval_dir_mgr
-        self.eval_dir_mgr.setup()
 
         # Stash the location of the log file.
         self.log_file_path = log_file

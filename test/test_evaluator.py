@@ -64,7 +64,6 @@ class EvalTestHelper:
         self.dataset.file_path = ""
         self.model_manager = self.lab.model_manager("test")
         self.eval_dir_mgr = self.model_manager.get_eval_dir_mgr("test_dataset")
-        self.eval_dir_mgr.setup()
         self.eval_options = SimpleNamespace()
         self.log_file = ""
 

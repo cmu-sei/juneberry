@@ -21,7 +21,7 @@
 # DM21-0884
 #
 # ======================================================================================================================
-
+import os
 from pathlib import Path
 
 import torch
@@ -32,14 +32,14 @@ import juneberry.pytorch.model_transforms
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 
 
-def make_dummy_resent_18(model_mgr):
+def make_dummy_resnet_18(model_mgr):
     model = torchvision.models.resnet18()
     state_dict = model.state_dict()
     half_bias = torch.full(state_dict['fc.bias'].size(), 0.5)
     state_dict['fc.bias'] = half_bias
 
     if not model_mgr.get_model_dir().exists():
-        model_mgr.get_model_dir().mkdir()
+        model_mgr.get_model_dir().mkdir(parents=True)
 
     torch.save(state_dict, model_mgr.get_model_path(PyTorchPlatformDefinitions()))
     return half_bias
@@ -71,7 +71,8 @@ def test_load_model_from_url():
     assert not torch.any(nan_bias.eq(model.state_dict()['fc.bias']))
 
 
-def test_load_model_from_model_name():
+def test_load_model_from_model_name(tmp_path):
+    os.chdir(tmp_path)
     model_mgr = jb_fs.ModelManager("model_transform_test")
     kwargs = {
         "modelName": "model_transform_test",
@@ -80,7 +81,7 @@ def test_load_model_from_model_name():
     }
 
     # Make the dummy model to load
-    dummy_bias = make_dummy_resent_18(model_mgr)
+    dummy_bias = make_dummy_resnet_18(model_mgr)
 
     # Make a new model
     model = torchvision.models.resnet18()
@@ -168,8 +169,8 @@ def test_log_model_summary():
     model = transform(model)
 
 
-def test_save_model_path(tmpdir):
-    path = Path(tmpdir) / "junkmodel.pt"
+def test_save_model_path(tmp_path):
+    path = Path(tmp_path) / "junkmodel.pt"
     str_path = str(path.resolve())
     kwargs = {
         "modelPath": str_path,
@@ -185,10 +186,12 @@ def test_save_model_path(tmpdir):
     assert path.exists()
 
 
-def test_save_model_name(tmpdir):
+def test_save_model_name(tmp_path):
+    os.chdir(tmp_path)
     model_mgr = jb_fs.ModelManager("model_transform_test")
+
     if not model_mgr.get_model_dir().exists():
-        model_mgr.get_model_dir().mkdir()
+        model_mgr.get_model_dir().mkdir(parents=True)
 
     model_path = model_mgr.get_model_path(PyTorchPlatformDefinitions())
 

@@ -48,8 +48,6 @@ class Evaluator(EvaluatorBase):
                  dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
-        # TODO: This should be in base
-        self.dataset_config = dataset
         self.eval_loader = None
         self.eval_labels = None
 

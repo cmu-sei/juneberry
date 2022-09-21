@@ -583,11 +583,11 @@ class EvalDirMgr:
 
     @staticmethod
     def get_path(root, dataset_name):
-        return EvalDirMgr.get_base_path(root) / dataset_name if dataset_name else Path(root) / 'eval'
+        return EvalDirMgr.get_base_path(root) / dataset_name
 
     @staticmethod
     def get_log_dir_path(root, dataset_name):
-        return EvalDirMgr.get_base_log_path(root) / dataset_name if dataset_name else Path(root) / 'logs' / 'eval'
+        return EvalDirMgr.get_base_log_path(root) / dataset_name
 
     def __init__(self, root: str, dataset_name: str) -> None:
         """
@@ -597,8 +597,6 @@ class EvalDirMgr:
         :param root: The root directory.
         :param dataset_name: The name of the evaluation dataset.
         """
-        # TODO: Why should the eval dir manager point to the root eval directory?
-        #  This seems like an error somewhere else
         self.root = EvalDirMgr.get_path(root, dataset_name)
         self.log_dir = EvalDirMgr.get_log_dir_path(root, dataset_name)
 

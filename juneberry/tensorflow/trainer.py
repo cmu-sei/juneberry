@@ -157,7 +157,6 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
         # Setup the model and dump the summary.
         self.setup_model()
 
-        # TODO: Change "get_pytorch_model_summary_path"
         tf_utils.save_summary(self.model, self.model_manager.get_model_summary_path())
 
     # ==========================

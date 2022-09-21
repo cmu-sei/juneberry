@@ -38,7 +38,6 @@ def test_eval_dir():
     eval_dir_root = root / 'eval' / 'TestDataset'
 
     eval_dir_mgr = mm.get_eval_dir_mgr('TestDataset')
-    eval_dir_mgr.setup()
 
     assert eval_dir_mgr.get_dir() == eval_dir_root
     assert eval_dir_mgr.get_scratch_dir() == eval_dir_root / 'scratch'

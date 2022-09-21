@@ -109,7 +109,7 @@ class AttackSummary(Report):
 
         # Construct an eval directory manager for the model, focusing on the evaluation of the
         # query dataset. Load the eval output file and retrieve the accuracy value inside.
-        eval_dir_mgr = jb_fs.EvalDirMgr(model_mgr.model_dir_path, dataset_name="query_dataset_config")
+        eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path="query_dataset_config")
         eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
         test_acc = eval_output.results.metrics.accuracy
 
@@ -158,7 +158,7 @@ class AttackSummary(Report):
         for dataset in datasets:
             # Construct the dataset name and use it to build the correct eval directory manager.
             dataset_name = f"in_out_{dataset}_private_test_dataset_config"
-            eval_dir_mgr = jb_fs.EvalDirMgr(model_mgr.model_dir_path, dataset_name=dataset_name)
+            eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path=dataset_name)
 
             # Load the eval output file, retrieve the accuracy value, and write the data to the row.
             eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
