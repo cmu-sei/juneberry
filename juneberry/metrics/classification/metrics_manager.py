@@ -44,7 +44,7 @@ class MetricsManager:
                      kwargs: dict = None) -> None:
             """
             Initialize an Entry with the fully-qualified class name and kwargs
-            for an "evaluation_metrics" entry in the config.
+            for a metrics entry in the config.
             :param fqcn: The fully-qualified class name for this entry.
             :param kwargs: The keyword args given with this entry.
             :return: None
@@ -78,16 +78,17 @@ class MetricsManager:
         Compute metrics given target and preds in numpy arrays.
         :param anno: target array
         :param det: preds array
-        :return: the metrics calculations in a numpy array
+        :return: the metrics calculations
         """
         results = {}
 
-        if not target.any():
+        if target is None:
             logger.info("There are no annotations; cannot populate metrics output!")
         else:
             # For each metrics plugin we've created, use the target and
             # preds to compute the metrics and add to our results.
             for entry in self.metrics_entries:
-                results[entry.kwargs["name"]] = entry.metrics(target, preds, binary)
+                logger.info(f"Computing metrics for {entry.kwargs.name} using {entry.kwargs.fqn}.")
+                results[entry.kwargs.name] = entry.metrics(target, preds, binary)
 
         return results
