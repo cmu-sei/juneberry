@@ -1,5 +1,3 @@
-import torch
-
 from juneberry.evaluation import utils as jb_eval_utils
 
 
@@ -12,5 +10,6 @@ def format_input(y_true, y_pred, binary):
     return y_true, singular_y_pred
 
 
+# TODO don't call formatting functions that noop
 def format_output(result):
     return result
