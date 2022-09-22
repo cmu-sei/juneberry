@@ -23,17 +23,14 @@
 # ======================================================================================================================
 
 """
-This module provides object detection plugin classes to be used with Juneberry.
-Add one or more of these plugins to the "evaluation_metrics" section of your
-model config. When the MetricsManager is called with annotations and detections,
-the metrics will be computed.
+This module provides a torchnn classification metric plugin to be used with Juneberry.
 """
 import logging
 from typing import Dict
 
 import torch
 
-from juneberry.loader import construct_instance, load_verify_fqn_function
+from juneberry.loader import construct_instance
 import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
@@ -48,7 +45,6 @@ class Metrics:
         self.fqn = fqn
         self.name = name
         self.kwargs = kwargs
-
 
     def __call__(self, target, preds, binary=False):
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)

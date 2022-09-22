@@ -22,6 +22,9 @@
 #
 # ======================================================================================================================
 
+"""
+This module provides a sklearn classification metric plugin to be used with Juneberry.
+"""
 import logging
 from typing import Dict
 
