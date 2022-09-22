@@ -37,6 +37,26 @@
         "name": "loss",
         "kwargs": {}
       }
+    },
+    {
+      "fqcn": "juneberry.metrics.classification.tensorflow.metrics.Metrics",
+      "kwargs": {
+        "fqn": "tensorflow.keras.metrics.Accuracy",
+        "name": "tf_accuracy",
+        "kwargs": {
+          "standalone": true
+        }
+      }
+    },
+    {
+      "fqcn": "juneberry.metrics.classification.tensorflow.metrics.Metrics",
+      "kwargs": {
+        "fqn": "tensorflow.keras.metrics.binary_accuracy",
+        "name": "tf_binary_accuracy",
+        "kwargs": {
+          "standalone": true
+        }
+      }
     }
   ]
 }

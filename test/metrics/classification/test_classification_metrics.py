@@ -73,3 +73,8 @@ def test_torchnn():
 def test_sklearn_metrics():
     assert metrics["accuracy_score"] == approx(10)
 
+def test_tensorflow_classbased():
+    assert metrics["tf_accuracy"] == 0.5
+
+def test_tensorflow_functional():
+    assert metrics["tf_binary_accuracy"] == approx(0.1)
