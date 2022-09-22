@@ -32,8 +32,9 @@ import inspect
 import logging
 from typing import Dict
 
+import torch
+
 from juneberry.loader import construct_instance, load_verify_fqn_function
-import juneberry.metrics.classification.torchmetrics.formatter as formatter
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class Metrics:
     def __call__(self, target, preds, binary):
         result = None
 
-        target, preds = formatter.format_input(target, preds)
+        target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
 
         # Torchmetrics has class-based and functional versions of its metrics.
         # If we fail to instantiate self.fqn as a function, try to construct a class instance instead.
@@ -69,6 +70,5 @@ class Metrics:
                 result = metrics_function(preds, target, **self.kwargs)
             else:
                 result = metrics_function(preds, target)
-            result = formatter.format_output(result)
 
-        return result
+        return result.numpy()

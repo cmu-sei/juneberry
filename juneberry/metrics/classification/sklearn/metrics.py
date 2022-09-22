@@ -25,8 +25,8 @@
 import logging
 from typing import Dict
 
+from juneberry.evaluation import utils as jb_eval_utils
 from juneberry.loader import load_verify_fqn_function
-import juneberry.metrics.classification.sklearn.formatter as formatter
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,7 @@ class Metrics:
         self.name = name
         self.kwargs = kwargs
 
-
     def __call__(self, target, preds, binary=False):
-        y_true, y_pred = formatter.format_input(target, preds, binary)
-        metrics_function = load_verify_fqn_function(self.fqn, { **{ "y_pred": [], "y_true": [] }, **self.kwargs })
-        result = metrics_function(y_true, y_pred, **self.kwargs)
-        return formatter.format_output(result)
+        singular_preds = jb_eval_utils.continuous_predictions_to_class(preds, binary)
+        metrics_function = load_verify_fqn_function(self.fqn, {**{"y_true": [], "y_pred": []}, **self.kwargs})
+        return metrics_function(target, singular_preds, **self.kwargs)

@@ -28,12 +28,12 @@ Add one or more of these plugins to the "evaluation_metrics" section of your
 model config. When the MetricsManager is called with annotations and detections,
 the metrics will be computed.
 """
-import inspect
 import logging
 from typing import Dict
 
+import torch
+
 from juneberry.loader import construct_instance, load_verify_fqn_function
-import juneberry.metrics.classification.torchmetrics.formatter as formatter
 import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,9 @@ class Metrics:
 
 
     def __call__(self, target, preds, binary=False):
-        target, preds = formatter.format_input(target, preds)
+        target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
         metrics_function = construct_instance(self.fqn, self.kwargs)
         if binary:
             metrics_function = pyt_utils.function_wrapper_unsqueeze_1(metrics_function)
         result = metrics_function(preds, target, **self.kwargs)
-        return formatter.format_output(result)
+        return result.numpy()

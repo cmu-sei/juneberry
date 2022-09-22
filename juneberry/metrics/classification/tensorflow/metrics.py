@@ -32,8 +32,8 @@ import inspect
 import logging
 from typing import Dict
 
+from juneberry.evaluation import utils as jb_eval_utils
 from juneberry.loader import construct_instance, load_verify_fqn_function
-import juneberry.metrics.classification.tensorflow.formatter as formatter
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,9 @@ class Metrics:
         result = None
 
         if self.kwargs.standalone:
-            target, preds = formatter.format_input(target, preds, binary)
+            # Convert the continuous predictions to single class predictions
+            singular_preds = jb_eval_utils.continuous_predictions_to_class(preds, binary)
+
             logger.info(f"Standalone mode: computing {self.fqn}.")
             del self.kwargs["standalone"]
 
@@ -69,10 +71,10 @@ class Metrics:
                 logger.info(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
             else:
                 if inspect.isfunction(metrics_function):
-                    result = metrics_function(target, preds, **self.kwargs)
+                    result = metrics_function(target, singular_preds, **self.kwargs)
                 else:
-                    result = metrics_function(target, preds)
-                result = formatter.format_output(result)
+                    result = metrics_function.update_state(target, singular_preds)
+                result = result.numpy()
         else:
             logger.info(f"Compile mode: deferring computation of {self.fqn}.")
 
