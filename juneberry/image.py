@@ -472,3 +472,20 @@ def insert_watermark_at_position(image: Image, watermark: Image, position_xy):
         image.paste(watermark, position_xy)
 
     return image
+
+
+def random_sharpen(image: Image):
+    """
+    Randomly blur or sharpen an image.
+    """
+    scale = random.uniform(0.8,1.1)
+    transform = None
+    if scale < 1:
+        scale = (1.0-scale) * 50.0
+        transform = A.augmentations.transforms.Blur(blur_limit=scale, p=1)
+    elif scale > 1:
+        scale = scale - 1.0
+        transform = A.augmentations.transforms.Sharpen(alpha= (scale,scale), lightness=(1.0,1.0), p=1)
+    else:
+        return image
+    return transform(image=image)['image']
