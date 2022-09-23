@@ -69,7 +69,7 @@ class Metrics:
             # If metrics_function doesn't exist now, we were unable to instantiate either
             # a class instance or a functional version of the metric.
             if not metrics_function:
-                logger.info(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
+                raise ValueError(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
             else:
                 # If metrics_function is a function, call it directly. If it's a class instance,
                 # call update_state on it.

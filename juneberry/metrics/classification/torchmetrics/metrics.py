@@ -47,8 +47,6 @@ class Metrics:
         self.kwargs = kwargs
 
     def __call__(self, target, preds, binary):
-        result = None
-
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
 
         # Torchmetrics has class-based and functional versions of its metrics.
@@ -60,11 +58,10 @@ class Metrics:
         # If metrics_function doesn't exist now, we were unable to instantiate either
         # a class instance or a functional version of the metric.
         if not metrics_function:
-            logger.info(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
+            raise ValueError(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
         else:
             if inspect.isfunction(metrics_function):
                 result = metrics_function(preds, target, **self.kwargs)
             else:
                 result = metrics_function(preds, target)
-
-        return result.numpy()
+            return result.numpy()
