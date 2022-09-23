@@ -48,6 +48,11 @@ class Metrics:
     def __call__(self, target, preds, binary=False):
         result = None
 
+        # Tensorflow metrics may be called in "standalone" or "compile" mode. If called in standalone mode,
+        # the target and preds are sent to the metrics function, the answer is computed and sent back to
+        # the caller immediately. If called in "compile" mode, the metrics are not computed immediately; rather,
+        # the fqcn and kwargs are passed to the tensorflow model, which computes the metrics during training or
+        # evaluation.
         if self.kwargs.standalone:
             # Convert the continuous predictions to single class predictions
             singular_preds = jb_eval_utils.continuous_predictions_to_class(preds, binary)
@@ -66,12 +71,17 @@ class Metrics:
             if not metrics_function:
                 logger.info(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
             else:
+                # If metrics_function is a function, call it directly. If it's a class instance,
+                # call update_state on it.
                 if inspect.isfunction(metrics_function):
                     result = metrics_function(target, singular_preds, **self.kwargs)
                 else:
                     result = metrics_function.update_state(target, singular_preds)
                 result = result.numpy()
         else:
+            # Since we're not in standalone mode, do not compute the metrics now, it will
+            # be done later.
             logger.info(f"Compile mode: deferring computation of {self.fqn}.")
+            del self.kwargs["standalone"]
 
         return result
