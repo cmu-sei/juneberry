@@ -464,7 +464,7 @@ class TestPRReport(TestCase):
         assert pr_report.output_dir == Path.cwd()
         assert pr_report.iou == 0.5
         assert pr_report.tp_threshold == 0.8
-        assert pr_report.stats_fqcn == "juneberry.metrics.metrics.Summary"
+        assert pr_report.stats_fqcn == "juneberry.metrics.objectdetection.brambox.metrics.Summary"
         assert pr_report.curve_sources is None
 
     def test_report_init_values(self):
