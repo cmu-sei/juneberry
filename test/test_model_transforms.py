@@ -21,7 +21,6 @@
 # DM21-0884
 #
 # ======================================================================================================================
-import os
 from pathlib import Path
 
 import torch
@@ -30,6 +29,7 @@ import torchvision
 from juneberry import filesystem as jb_fs
 import juneberry.pytorch.model_transforms
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
+import utils
 
 
 def make_dummy_resnet_18(model_mgr):
@@ -72,36 +72,36 @@ def test_load_model_from_url():
 
 
 def test_load_model_from_model_name(tmp_path):
-    os.chdir(tmp_path)
-    model_mgr = jb_fs.ModelManager("model_transform_test")
-    kwargs = {
-        "modelName": "model_transform_test",
-        "excludePatterns": ['fc.weight'],
-        "strict": False
-    }
+    with utils.set_directory(tmp_path):
+        model_mgr = jb_fs.ModelManager("model_transform_test")
+        kwargs = {
+            "modelName": "model_transform_test",
+            "excludePatterns": ['fc.weight'],
+            "strict": False
+        }
 
-    # Make the dummy model to load
-    dummy_bias = make_dummy_resnet_18(model_mgr)
+        # Make the dummy model to load
+        dummy_bias = make_dummy_resnet_18(model_mgr)
 
-    # Make a new model
-    model = torchvision.models.resnet18()
+        # Make a new model
+        model = torchvision.models.resnet18()
 
-    # The weights should be unchanged, so stash off a copy
-    fc_weights = model.state_dict()['fc.weight'].clone()
+        # The weights should be unchanged, so stash off a copy
+        fc_weights = model.state_dict()['fc.weight'].clone()
 
-    # Clear out the bias in this model so we can check to see it is set
-    zero_bias = torch.zeros_like(model.state_dict()['fc.bias'])
-    state_dict = model.state_dict()
-    state_dict['fc.bias'] = zero_bias
-    model.load_state_dict(state_dict)
+        # Clear out the bias in this model so we can check to see it is set
+        zero_bias = torch.zeros_like(model.state_dict()['fc.bias'])
+        state_dict = model.state_dict()
+        state_dict['fc.bias'] = zero_bias
+        model.load_state_dict(state_dict)
 
-    # Let the transform do its work
-    transform = juneberry.pytorch.model_transforms.LoadModel(**kwargs)
-    model = transform(model)
+        # Let the transform do its work
+        transform = juneberry.pytorch.model_transforms.LoadModel(**kwargs)
+        model = transform(model)
 
-    # Check that the new values are as we expected
-    assert torch.all(fc_weights.eq(model.state_dict()['fc.weight']))
-    assert torch.all(dummy_bias.eq(model.state_dict()['fc.bias']))
+        # Check that the new values are as we expected
+        assert torch.all(fc_weights.eq(model.state_dict()['fc.weight']))
+        assert torch.all(dummy_bias.eq(model.state_dict()['fc.bias']))
 
 
 def test_include_pattern():
@@ -187,26 +187,26 @@ def test_save_model_path(tmp_path):
 
 
 def test_save_model_name(tmp_path):
-    os.chdir(tmp_path)
-    model_mgr = jb_fs.ModelManager("model_transform_test")
+    with utils.set_directory(tmp_path):
+        model_mgr = jb_fs.ModelManager("model_transform_test")
 
-    if not model_mgr.get_model_dir().exists():
-        model_mgr.get_model_dir().mkdir(parents=True)
+        if not model_mgr.get_model_dir().exists():
+            model_mgr.get_model_dir().mkdir(parents=True)
 
-    model_path = model_mgr.get_model_path(PyTorchPlatformDefinitions())
+        model_path = model_mgr.get_model_path(PyTorchPlatformDefinitions())
 
-    # If one already exists, delete it
-    if model_path.exists():
-        model_path.unlink()
+        # If one already exists, delete it
+        if model_path.exists():
+            model_path.unlink()
 
-    kwargs = {
-        "modelName": "model_transform_test",
-        "overwrite": False
-    }
+        kwargs = {
+            "modelName": "model_transform_test",
+            "overwrite": False
+        }
 
-    model = torchvision.models.resnet18()
-    transform = juneberry.pytorch.model_transforms.SaveModel(**kwargs)
-    model = transform(model)
+        model = torchvision.models.resnet18()
+        transform = juneberry.pytorch.model_transforms.SaveModel(**kwargs)
+        model = transform(model)
 
-    # Now, we should have a file in the spot
-    assert model_path.exists()
+        # Now, we should have a file in the spot
+        assert model_path.exists()

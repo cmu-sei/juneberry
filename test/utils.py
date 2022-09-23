@@ -63,8 +63,8 @@ tabular_model_config = {
     'format_version': '0.2.0',
     'lab_profile': {'max_gpus': 1},
     'model_architecture': {
-        'args': {'num_classes': 2},
-        'module': 'juneberry-example-workspace.architectures.pytorch.sample_tabular_nn.BinaryModel'
+        'fqcn': 'juneberry-example-workspace.architectures.pytorch.sample_tabular_nn.BinaryModel',
+        'kwargs': {'num_classes': 2}
     },
     'platform': 'pytorch',
     'pytorch': {
@@ -109,8 +109,10 @@ text_detect_dt2_config = {
     'evaluation_transforms': [],
     'evaluator': {'fqcn': 'juneberry.detectron2.evaluator.Evaluator'},
     'format_version': '0.2.0',
-    'model_architecture': {'args': {'num_classes': 3},
-                           'module': 'COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml'},
+    'model_architecture': {
+        'fqcn': 'COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml',
+        'kwargs': {'num_classes': 3}
+    },
     'platform': 'detectron2',
     'pytorch': {'deterministic': True},
     'seed': 4210592948,
@@ -156,6 +158,28 @@ text_detect_dataset_config = {
     'sampling': {'algorithm': 'none', 'arguments': {}},
     'timestamp': '2021-03-05T10:00:00',
     'url': 'https://cocodataset.org/#download'
+}
+
+training_output = {
+    'format_version': "0.2.0",
+    'options': {
+        'batch_size': 0,
+        'epochs': 0,
+        'model_architecture': {
+            "fqcn": "test_arch",
+            "kwargs": {}
+        },
+        'model_name': "TBD",
+        'seed': 12345,
+        'training_dataset_config_path': "TBD"
+    },
+    'results': {
+        'accuracy': [],
+        'loss': [],
+        'val_accuracy': [],
+        'val_loss': [],
+
+    }
 }
 
 

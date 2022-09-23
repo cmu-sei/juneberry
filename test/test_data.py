@@ -31,6 +31,7 @@ from unittest import mock, TestCase
 import juneberry
 from juneberry.config.dataset import DatasetConfig, SamplingAlgo
 from juneberry.config.model import ModelConfig
+from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
@@ -210,13 +211,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
     dataset_config = DatasetConfig.construct(dataset_struct)
 
     config = test_model_config.make_basic_config()
-    config_path = Path(tmp_path, "config.json")
-
-    with open(config_path, 'w') as out_file:
-        json.dump(config, out_file, indent=4)
-
-    # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(str(config_path))
+    model_config = ModelConfig.construct(data=config)
     model_config.validation = {
         "algorithm": "random_fraction",
         "arguments": {
@@ -469,14 +464,7 @@ def test_generate_image_metadata_validation_split(monkeypatch, tmp_path):
 
     model_config_dict = test_model_config.make_basic_config()
     model_config_dict.update(test_model_config.make_transforms())
-
-    config_path = Path(tmp_path, "config.json")
-
-    with open(config_path, 'w') as out_file:
-        json.dump(model_config_dict, out_file, indent=4)
-
-    # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(str(config_path))
+    model_config = ModelConfig.construct(data=model_config_dict)
     model_config.validation = {
         "algorithm": "random_fraction",
         "arguments": {
@@ -687,13 +675,7 @@ def test_load_tabular_data_with_validation(tmp_path):
     dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
 
     model_config_dict = test_model_config.make_basic_config()
-    config_path = Path(tmp_path, "config.json")
-
-    with open(config_path, 'w') as out_file:
-        json.dump(model_config_dict, out_file, indent=4)
-
-    # TODO: Switch this to just use the internal data structure.
-    model_config = ModelConfig.load(str(config_path))
+    model_config = ModelConfig.construct(data=model_config_dict)
     train_list, val_list = jb_data.load_tabular_data(lab,
                                                      dataset_config,
                                                      splitting_config=model_config.get_validation_split_config())
@@ -848,18 +830,22 @@ def mock_load_tabular_data(mc):
 
 def test_get_label_mapping(tmp_path):
     with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
-
         # Binary sample files
         model_name = "tabular_binary_sample"
+        model_config = utils.tabular_model_config
         model_manager = ModelManager(model_name)
-        model_config = ModelConfig.load(model_manager.get_model_config())
-        train_config = DatasetConfig.load("data_sets/train_data_config.json")
+        model_manager.get_model_config().parent.mkdir(parents=True)
+
+        mc = ModelConfig.construct(data=model_config)
+        mc.save(data_path=model_manager.get_model_config())
+
+        dataset_config = utils.tabular_dataset_config
+        ds = DatasetConfig.construct(data=dataset_config)
+        Path(mc.training_dataset_config_path).parent.mkdir(parents=True)
+        ds.save(mc.training_dataset_config_path)
+
         test_labels = {0: "outer", 1: "inner"}
         test_stanza = {"0": "outer", "1": "inner"}
-
         assert isinstance(jb_data.convert_dict(test_stanza), dict)
 
         # Unit tests
@@ -868,28 +854,46 @@ def test_get_label_mapping(tmp_path):
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
 
-        # TODO: write a unit test for the training output case
+        # TODO: A unit test for the training output case. Note: This won't work because Prodict doesn't
+        #  like integers (e.g. '1') to serve as attribute names, even though they're valid keys in a dict.
+        # # Create the training output file.
+        # to_data = utils.training_output
+        # to_data['options']['label_mapping'] = test_stanza
+        # training_output = TrainingOutput.construct(data=to_data)
 
-        func_labels = jb_data.get_label_mapping(model_config=model_config, show_source=True)
+        # test_source = "training output"
+        # training_output.save(model_manager.get_training_out_file())
+        # func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
+        # TestCase().assertDictEqual(func_labels, test_labels)
+        # assert test_source == func_source
+        # model_manager.get_training_out_file().unlink()
+
+        func_labels = jb_data.get_label_mapping(model_config=mc, show_source=True)
         assert func_labels is None
 
         test_source = "training dataset config"
-        func_labels, func_source = jb_data.get_label_mapping(train_config=train_config, show_source=True)
+        func_labels, func_source = jb_data.get_label_mapping(train_config=ds, show_source=True)
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
 
         # Now include a model_config with no label mapping and confirm the label mapping still
         # comes from the training dataset config.
         test_source = "training dataset config"
-        func_labels, func_source = jb_data.get_label_mapping(model_config=model_config, train_config=train_config,
-                                                             show_source=True)
+        func_labels, func_source = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=True)
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
 
-        # TODO: Write a test for retrieving the label mapping from a model config that contains a label mapping.
-
-        func_labels = jb_data.get_label_mapping(model_config=model_config, train_config=train_config, show_source=False)
+        func_labels = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=False)
         TestCase().assertDictEqual(func_labels, test_labels)
+
+        # TODO: A test for retrieving the label mapping from a model config that contains a label mapping. Note: This
+        #  won't work because Prodict doesn't like integers (e.g. '1') to serve as attribute names, even though they're
+        #  valid keys in a dict.
+        # test_source = "model config"
+        # mc.label_mapping = test_stanza
+        # func_labels, func_source = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=True)
+        # TestCase().assertDictEqual(func_labels, test_labels)
+        # assert test_source == func_source
 
 
 def make_sample_manifest(manifest_path, category_list):

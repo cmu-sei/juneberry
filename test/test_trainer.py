@@ -28,9 +28,7 @@ Unit test for the trainer base class.
 
 import functools
 import inspect
-import json
 import logging
-from pathlib import Path
 import time
 
 from juneberry.config.dataset import DatasetConfig
@@ -248,14 +246,9 @@ def test_epoch_trainer(tmp_path):
     lab = Lab(workspace='.', data_root=',')
     dsc = test_data_set.make_basic_config()
     data_set_config = DatasetConfig.construct(dsc)
-    tc = test_model_config.make_basic_config()
-    config_path = Path(tmp_path, "config.json")
 
-    with open(config_path, 'w') as out_file:
-        json.dump(tc, out_file, indent=4)
-
-    # TODO: Switch this to just use the internal data structure
-    model_config = ModelConfig.load(str(config_path))
+    mc = test_model_config.make_basic_config()
+    model_config = ModelConfig.construct(mc)
 
     model_manager = jb_fs.ModelManager("foo")
     lab.setup_lab_profile(model_config=model_config)

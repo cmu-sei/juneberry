@@ -51,12 +51,7 @@ def load_coco_truth(gt_path, wanted_images):
     #             "segmentation": [ [ <floats> ] ]
     #         },
 
-    if gt_path.endswith(".gz"):
-        # TODO: Switch over to using jb_fs.load_file once gzip support has been implemented.
-        with gzip.open(gt_path) as json_file:
-            data = json.load(json_file, 'json')
-    else:
-        data = jb_fs.load_file(gt_path)
+    data = jb_fs.load_file(gt_path)
 
     truths = []
     for item in data['annotations']:
@@ -85,12 +80,7 @@ def load_coco_truth(gt_path, wanted_images):
 def load_coco_results(results_path):
     results = []
 
-    if results_path.endswith(".gz"):
-        # TODO: Switch over to using jb_fs.load_file once gzip support has been implemented.
-        with gzip.open(results_path) as json_file:
-            data = json.load(json_file)
-    else:
-        data = jb_fs.load_file(results_path)
+    data = jb_fs.load_file(results_path)
 
     #     {
     #         "image_id": 42,

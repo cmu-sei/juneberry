@@ -67,8 +67,8 @@ def make_basic_config():
         "format_version": ModelConfig.FORMAT_VERSION,
         "platform": "pytorch",
         "model_architecture": {
-            "module": "sample.module",
-            "args": {"num_classes": 1000}
+            "fqcn": "sample.module",
+            "kwargs": {"num_classes": 1000}
         },
         "seed": 1234,
         "timestamp": "optional ISO time stamp for when this was generated generated",

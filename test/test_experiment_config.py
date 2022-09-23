@@ -23,6 +23,7 @@
 # ======================================================================================================================
 from unittest import TestCase
 
+from pathlib import Path
 import pytest
 
 from juneberry.config.experiment import ExperimentConfig
@@ -75,19 +76,21 @@ def make_basic_config():
 
 # TODO: Refactor for maintenance
 
-def test_config_basics(tmp_path):
+def test_basic_construction(tmp_path):
     with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_tabular_workspace(tmp_path)
+        experiment_config = make_basic_config()
+        dc_loc = Path(experiment_config['models'][0]['tests'][0]['dataset_path'])
+        dc_loc.parent.mkdir(parents=True)
+        dc_loc.touch()
 
-        config = make_basic_config()
+        model_dir = Path.cwd() / "models" / experiment_config['models'][0]['name']
+        model_dir.mkdir(parents=True)
 
         # Most of the real functionality is in the checks
-        exp_conf = ExperimentConfig.construct(config)
-        assert len(config['models']) == len(exp_conf['models'])
-        assert len(config['reports']) == len(exp_conf['reports'])
-        assert len(config['tuning']) == len(exp_conf['tuning'])
+        ec = ExperimentConfig.construct(data=experiment_config)
+        assert len(experiment_config['models']) == len(ec['models'])
+        assert len(experiment_config['reports']) == len(ec['reports'])
+        assert len(experiment_config['tuning']) == len(ec['tuning'])
 
 
 class TestExperimentModels(TestCase):
@@ -105,57 +108,52 @@ class TestExperimentModels(TestCase):
         self.tmp_path = tmp_path
         self.caplog = caplog
 
-        with utils.set_directory(self.tmp_path):
-            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_tabular_workspace(self.tmp_path)
-
     def test_model_bad_name(self):
-            config = make_basic_config()
-            config['models'][0]['name'] = "bad name"
+        config = make_basic_config()
+        config['models'][0]['name'] = "bad name"
 
-            with pytest.raises(SystemExit) as exc_info:
-                ExperimentConfig.construct(config)
+        with pytest.raises(SystemExit) as exc_info:
+            ExperimentConfig.construct(config)
 
-            assert "Model not found" in self.caplog.text
+        assert "Model not found" in self.caplog.text
 
     def test_model_duplicate_tag(self):
-            config = make_basic_config()
-            config['models'][0]['tests'].append({
-                "tag": "pyt50",
-                "dataset_path": "data_sets/imagenette_unit_test.json",
-            })
+        config = make_basic_config()
+        config['models'][0]['tests'].append({
+            "tag": "pyt50",
+            "dataset_path": "data_sets/imagenette_unit_test.json",
+        })
 
-            with pytest.raises(SystemExit) as exc_info:
-                ExperimentConfig.construct(config)
+        with pytest.raises(SystemExit) as exc_info:
+            ExperimentConfig.construct(config)
 
-            assert "Found duplicate tag" in self.caplog.text
+        assert "Found duplicate tag" in self.caplog.text
 
     def test_model_duplicate_tag_2(self):
-            config = make_basic_config()
-            config['models'].append({
-                "name": "tabular_binary_sample",
-                "tests": [
-                    {
-                        "tag": "pyt50",
-                        "dataset_path": "data_sets/imagenette_unit_test.json",
-                    }
-                ]
-            })
+        config = make_basic_config()
+        config['models'].append({
+            "name": "tabular_binary_sample",
+            "tests": [
+                {
+                    "tag": "pyt50",
+                    "dataset_path": "data_sets/imagenette_unit_test.json",
+                }
+            ]
+        })
 
-            with pytest.raises(SystemExit) as exc_info:
-                ExperimentConfig.construct(config)
+        with pytest.raises(SystemExit) as exc_info:
+            ExperimentConfig.construct(config)
 
-            assert "Found duplicate tag" in self.caplog.text
+        assert "Found duplicate tag" in self.caplog.text
 
     def test_model_bad_dataset_path(self):
-            config = make_basic_config()
-            config['models'][0]['tests'][0]['dataset_path'] = "bad name"
+        config = make_basic_config()
+        config['models'][0]['tests'][0]['dataset_path'] = "bad name"
 
-            with pytest.raises(SystemExit) as exc_info:
-                ExperimentConfig.construct(config)
+        with pytest.raises(SystemExit) as exc_info:
+            ExperimentConfig.construct(config)
 
-            assert "Dataset not found" in self.caplog.text
+        assert "Dataset not found" in self.caplog.text
 
 
 class TestExperimentReports(TestCase):
@@ -173,19 +171,14 @@ class TestExperimentReports(TestCase):
         self.tmp_path = tmp_path
         self.caplog = caplog
 
-        with utils.set_directory(self.tmp_path):
-            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_tabular_workspace(self.tmp_path)
-
     def test_report_bad_tag(self):
-            config = make_basic_config()
-            config['reports'][0]['tests'][0]['tag'] = "wrong tag"
+        config = make_basic_config()
+        config['reports'][0]['tests'][0]['tag'] = "wrong tag"
 
-            with pytest.raises(SystemExit) as exc_info:
-                ExperimentConfig.construct(config)
+        with pytest.raises(SystemExit) as exc_info:
+            ExperimentConfig.construct(config)
 
-            assert "Unknown report tag" in self.caplog.text
+        assert "Unknown report tag" in self.caplog.text
 
 
 class TestExperimentTuning(TestCase):
@@ -202,11 +195,6 @@ class TestExperimentTuning(TestCase):
         """
         self.tmp_path = tmp_path
         self.caplog = caplog
-
-        with utils.set_directory(self.tmp_path):
-            # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need a better approach.
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_tabular_workspace(self.tmp_path)
 
     def test_tuning_bad_model(self):
         config = make_basic_config()
