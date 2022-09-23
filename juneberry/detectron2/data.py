@@ -153,7 +153,7 @@ def create_mapper(cfg, transforms, is_train: bool) -> DatasetMapper:
                 aug_list.append(transform)
             else:
                 adapter = TransformAdapter(transform)
-                adapter.check_for_methods()
+                #adapter.check_for_methods()
                 aug_list.append(adapter)
 
     return DatasetMapper(**args)
