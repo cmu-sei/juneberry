@@ -72,12 +72,11 @@ def require_tags(label, data: dict, tags: list) -> int:
 
 def validate_schema(data, schema_name, die_on_error=False):
     # Load the schema.
-    # TODO: Should this be routed through the jb_fs load chokepoint?
-    schema = hjson.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
+    schema_filename = pkg_resources.resource_filename('juneberry', f"schemas/{schema_name}")
+    schema = jb_fs.load_file(schema_filename)
 
     # Set up a reference resolver to simplify how Juneberry schema files reference each other.
-    resource = pkg_resources.resource_filename('juneberry', f"schemas/{schema_name}")
-    schema_path = f"file:{resource}"
+    schema_path = f"file:{schema_filename}"
     resolver = jsonschema.RefResolver(schema_path, schema)
 
     # While we are trying to use the latest, jsonschema seems to only have 7.

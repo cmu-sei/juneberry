@@ -854,19 +854,20 @@ def test_get_label_mapping(tmp_path):
         TestCase().assertDictEqual(func_labels, test_labels)
         assert test_source == func_source
 
-        # TODO: A unit test for the training output case. Note: This won't work because Prodict doesn't
-        #  like integers (e.g. '1') to serve as attribute names, even though they're valid keys in a dict.
-        # # Create the training output file.
-        # to_data = utils.training_output
-        # to_data['options']['label_mapping'] = test_stanza
-        # training_output = TrainingOutput.construct(data=to_data)
+        # Test the training output case.
 
-        # test_source = "training output"
-        # training_output.save(model_manager.get_training_out_file())
-        # func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
-        # TestCase().assertDictEqual(func_labels, test_labels)
-        # assert test_source == func_source
-        # model_manager.get_training_out_file().unlink()
+        # Create the training output file.
+        to_data = utils.training_output
+        training_output = TrainingOutput.construct(data=to_data)
+        training_output.options.label_mapping = {str(k): v for k, v in test_stanza.items()}
+        model_manager.get_training_out_file().parent.mkdir(parents=True)
+        training_output.save(model_manager.get_training_out_file())
+
+        test_source = "training output"
+        func_labels, func_source = jb_data.get_label_mapping(model_manager=model_manager, show_source=True)
+        TestCase().assertDictEqual(func_labels, test_labels)
+        assert test_source == func_source
+        model_manager.get_training_out_file().unlink()
 
         func_labels = jb_data.get_label_mapping(model_config=mc, show_source=True)
         assert func_labels is None
@@ -886,14 +887,12 @@ def test_get_label_mapping(tmp_path):
         func_labels = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=False)
         TestCase().assertDictEqual(func_labels, test_labels)
 
-        # TODO: A test for retrieving the label mapping from a model config that contains a label mapping. Note: This
-        #  won't work because Prodict doesn't like integers (e.g. '1') to serve as attribute names, even though they're
-        #  valid keys in a dict.
-        # test_source = "model config"
-        # mc.label_mapping = test_stanza
-        # func_labels, func_source = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=True)
-        # TestCase().assertDictEqual(func_labels, test_labels)
-        # assert test_source == func_source
+        # Test retrieving the label mapping from a model config that contains a label mapping.
+        test_source = "model config"
+        mc.label_mapping = test_stanza
+        func_labels, func_source = jb_data.get_label_mapping(model_config=mc, train_config=ds, show_source=True)
+        TestCase().assertDictEqual(func_labels, test_labels)
+        assert test_source == func_source
 
 
 def make_sample_manifest(manifest_path, category_list):
@@ -916,14 +915,15 @@ def make_sample_manifest(manifest_path, category_list):
 
 def test_get_category_list(monkeypatch, tmp_path):
     with utils.set_directory(tmp_path):
-        # TODO: Just creating the files in a fake workspace is a little heavy-handed. We need to have a better approach.
-        utils.setup_test_workspace(tmp_path)
-        utils.make_dt2_workspace(tmp_path)
 
         # Grab args
         model_name = "text_detect/dt2/ut"
         model_manager = ModelManager(model_name)
-        train_config = DatasetConfig.load("data_sets/text_detect_val.json")
+
+        # Construct a dataset config and make sure the file exists in the tmp_path.
+        ds = DatasetConfig.construct(data=utils.text_detect_dataset_config, file_path='test.json')
+        ds.save(data_path=ds.file_path)
+
         data_root = Path(tmp_path)
         test_list_1 = [{'id': 0, 'name': 'HINDI'},
                        {'id': 1, 'name': 'ENGLISH'},
@@ -950,7 +950,7 @@ def test_get_category_list(monkeypatch, tmp_path):
         # Train config case
         with TestCase().assertLogs(level='WARNING') as cm:
             category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
-                                                              train_config=train_config,
+                                                              train_config=ds,
                                                               data_root=data_root,
                                                               show_source=True)
         assert test_list_2 == category_list
@@ -964,7 +964,7 @@ def test_get_category_list(monkeypatch, tmp_path):
         # Train manifest case
         category_list, source = jb_data.get_category_list(eval_manifest_path=train_manifest_path,
                                                           model_manager=model_manager,
-                                                          train_config=train_config,
+                                                          train_config=ds,
                                                           data_root=data_root,
                                                           show_source=True)
         assert test_list_1 == category_list

@@ -26,6 +26,8 @@ import logging
 import sys
 from typing import Any
 
+from prodict import Prodict
+
 import juneberry.loader as jb_loader
 import juneberry.utils as jb_utils
 
@@ -101,10 +103,11 @@ class TransformManager:
             # pruned_args = {k: kwargs[k] for k in self.extra_params}
             return self.transform(obj, **pruned_args)
 
-    def __init__(self, config: list, opt_args: dict = None):
+    def __init__(self, transform_list: list, opt_args: dict = None):
         """
         Initializer that takes the transform stanza as configuration
-        :param config: A configuration list of dicts of name, args.
+        :param transform_list: A list of transforms, where each transform is described by
+        its fqcn and (optional) kwargs.
         :param opt_args: A series of optional arguments to pass in during CONSTRUCTION.
         """
         self.config = []
@@ -112,13 +115,13 @@ class TransformManager:
         # A set of all the optional arguments wanted by all the transforms for preflight verification
         self.all_opt_args = set()
 
-        # TODO: Switch to prodict
-        for i in config:
-            if 'fqcn' not in i:
-                logger.error(f"Transform entry does not have required key 'fqcn' {i}")
+        for transform in transform_list:
+            pro_transform = Prodict.from_dict(transform)
+            if not pro_transform.fqcn:
+                logger.error(f"The following transform does not have the required key 'fqcn' - {transform}")
                 sys.exit(-1)
 
-            entry = TransformManager.Entry(i['fqcn'], i.get('kwargs', None), opt_args)
+            entry = TransformManager.Entry(pro_transform.fqcn, pro_transform.get('kwargs', None), opt_args)
 
             # Keep a master list (set) of all the extra params wanted
             self.all_opt_args.update(entry.extra_params)
