@@ -45,6 +45,7 @@ class DataType(str, Enum):
     TENSORFLOW = 'tensorflow'
     TORCHVISION = 'torchvision'
     TABULAR = 'tabular'
+    AUDIO = 'audio'
 
 
 class TaskType(str, Enum):
@@ -115,6 +116,20 @@ class Sampling(Prodict):
     algorithm: str
     arguments: Prodict
 
+class AudioSource(Prodict):
+    description: str
+    url: str
+    remove_image_ids: List[int]
+    directory: str
+    label: int
+    sampling_count: int
+    sampling_fraction: float
+
+
+class AudioData(Prodict):
+    task_type: str
+    sources: List[AudioSource]
+
 
 class DatasetConfig(Prodict):
     FORMAT_VERSION = '0.3.0'
@@ -135,6 +150,7 @@ class DatasetConfig(Prodict):
     timestamp: str
     torchvision_data: TorchvisionData
     url: str
+    audio_data: AudioData
 
     def _finish_init(self, relative_path: Path = None, file_path: str = None):
         """
@@ -246,11 +262,17 @@ class DatasetConfig(Prodict):
     def is_tabular_type(self):
         """ :return: True if this configuration is for a tabular dataset."""
         return self.data_type == DataType.TABULAR
+    
+    def is_audio_type(self):
+        """ :return: True if this configuration is for a tabular dataset."""
+        return self.data_type == DataType.AUDIO
 
     def is_classification_task(self):
         """ :return: True if this configuration is for a classifications task."""
         if self.is_image_type():
             return self.image_data.task_type == TaskType.CLASSIFICATION
+        elif self.is_audio_type():
+            return self.audio_data.task_type == TaskType.CLASSIFICATION
         else:
             return False
 
@@ -264,6 +286,10 @@ class DatasetConfig(Prodict):
     def get_image_sources(self):
         """ :return: Image sources. """
         return self.image_data.sources
+    
+    def get_audio_sources(self):
+        """ :return: Audio sources. """
+        return self.audio_data.sources
 
     def _resolve_tabular_source_path(self, lab, source):
         """

@@ -14,12 +14,35 @@
     "properties": {
         "data_type": {
             "type": "string",
-            "enum": [ "image", "tabular", "tensorflow", "torchvision" ]
+            "enum": [ "image", "tabular", "tensorflow", "torchvision", "audio" ]
         },
         "description": { "type": "string" },
         "format_version": { "type": "string" },
         "url": { "type": "string" },
         "image_data": {
+            "type": "object",
+            "properties": {
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "directory": { "type": "string" },
+                            "label": { "type": "integer" },
+                            "sampling_count": { "type": "integer" },
+                            "sampling_fraction": { "type": "number" }
+                        },
+                        "required": [ "directory" ]
+                    }
+                },
+                "task_type": {
+                    "type": "string",
+                    "enum": [ "classification", "object_detection" ]
+                }
+            },
+            "required": [ "sources", "task_type" ]
+        },
+        "audio_data": {
             "type": "object",
             "properties": {
                 "sources": {
@@ -124,6 +147,10 @@
         {
             "properties": { "data_type": { "const": "torchvision" } },
             "required": [ "data_type", "label_names", "num_model_classes", "torchvision_data" ]
+        },
+        {
+            "properties": { "data_type": { "const": "audio" } },
+            "required": [ "data_type", "label_names", "num_model_classes", "audio_data" ]
         }
     ]
 }

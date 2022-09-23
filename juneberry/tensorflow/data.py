@@ -30,9 +30,11 @@ from pathlib import Path
 from PIL import Image
 import random
 import sys
+from scipy.io.wavfile import read
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from torch import Tensor
 
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
@@ -106,6 +108,68 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
             else:
                 image = self.transforms(image)
         return np.array(image)
+
+class TFAudioDataSequence(tf.keras.utils.Sequence):
+    """
+    A keras data sequence to be used directly as a data source for training on tensorflow.
+    https://www.tensorflow.org/api_docs/python/tf/keras/utils/Sequence
+    """
+
+    def __init__(self, data_list, batch_size, transforms, shape_hwc: ShapeHWC):
+        """
+        Construct a keras sequence that delivers the images and labels as batches
+        :param data_list: List of pairs of [filepath, label]
+        :param batch_size: The size of each batch
+        :param transforms: Optional callable to be applied to each image
+        :param shape_hwc: Image shape as height, width, channels
+        """
+        # TODO: Consider preload, caching, trunc-oversample
+        self.data_list = data_list
+        self.batch_size = batch_size
+        self.transforms = transforms
+        self.shape_hwc = shape_hwc
+        # This give us floor, so we lose some of the last entries.  We could implement an oversample.
+        self.len = len(self.data_list) // self.batch_size
+
+        self.extended_signature = False
+        self.epoch = 0
+        if transforms is not None:
+            params = inspect.signature(transforms).parameters.keys()
+            self.extended_signature = set(params) == {'item', 'index', 'epoch'}
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, index):
+        start = index * self.batch_size
+        samples = []
+        labels = []
+
+        for i in range(start, start + self.batch_size):
+            samples.append(self._load_sample(i))
+            labels.append(self.data_list[i][1])
+
+        # REMEMBER TensorFlow is all HWC
+        # import pdb; pdb.set_trace()
+        np_samples = np.array(samples).reshape(-1, self.shape_hwc.height, self.shape_hwc.width, self.shape_hwc.channels)
+        np_labels = np.array(labels)
+        return np_samples, np_labels
+
+    def on_epoch_end(self):
+        # TODO: We want the random seed to be different every epoch.
+        #       We need to check to see what is going on with the random numbers here...
+        self.epoch += 1
+
+    def _load_sample(self, index: int) -> Tensor:
+        sample = tf.io.read_file(self.data_list[index][0])
+        sample, default_audio_rate = tf.audio.decode_wav(contents=sample, desired_samples=16000)
+        sample = tf.squeeze(sample, axis=-1)
+        if self.transforms is not None:
+            if self.extended_signature:
+                sample = self.transforms(sample, index, self.epoch)
+            else:
+                sample = self.transforms(sample)
+        return np.array(sample)
 
 
 #  _____                     __                        ____                               _
@@ -262,6 +326,40 @@ def _make_image_datasets(model_config: ModelConfig, ds_cfg: DatasetConfig, train
 
     return train_ds, val_ds
 
+def _make_audio_datasets(model_config: ModelConfig, ds_cfg: DatasetConfig, train_list, val_list):
+    shape_hwc = model_config.model_architecture.get_shape_hwc()
+
+    # TODO: Make sure have the right control of the shuffling seed
+    # TODO: Check sampling and validation split seeds
+    logger.info(f"...shuffling data...")
+    random.shuffle(train_list)
+    random.shuffle(val_list)
+
+    opt_args = {'path_label_list': list(train_list)}
+    transform_manager = make_transform_manager(model_config, ds_cfg, len(train_list), opt_args, False)
+    train_ds = TFAudioDataSequence(
+        train_list,
+        model_config.batch_size,
+        transform_manager,
+        shape_hwc)
+    logger.info(f"Constructed training dataset with {len(train_ds)} items.")
+
+    opt_args = {'path_label_list': list(val_list)}
+    transform_manager = make_transform_manager(model_config, ds_cfg, len(val_list), opt_args, True)
+    val_ds = TFAudioDataSequence(
+        val_list,
+        model_config.batch_size,
+        transform_manager,
+        shape_hwc)
+    logger.info(f"Constructed validation dataset with {len(val_ds)} items.")
+
+    tmp_data, tmp_labels = train_ds[0]
+    logger.info(f"Train: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
+    tmp_data, tmp_labels = val_ds[0]
+    logger.info(f"Val: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
+
+    return train_ds, val_ds
+
 
 def _make_tfds_split_args(val_stanza, load_args):
     # Custom args based on algorithm.
@@ -350,6 +448,19 @@ def load_split_datasets(lab: Lab, ds_config: DatasetConfig, model_config: ModelC
     elif ds_config.data_type == jb_dataset.DataType.TORCHVISION:
         logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
+    elif ds_config.data_type == jb_dataset.DataType.AUDIO:
+        train_list, val_list = jb_data.dataspec_to_manifests(
+            lab,
+            dataset_config=ds_config,
+            splitting_config=model_config.get_validation_split_config(),
+            preprocessors=TransformManager(model_config.preprocessors))
+
+        # Save the manifests
+        jb_data.save_path_label_manifest(train_list, model_manager.get_training_data_manifest_path(), lab.data_root())
+        jb_data.save_path_label_manifest(val_list, model_manager.get_validation_data_manifest_path(), lab.data_root())
+
+        # Now make the loaders
+        return _make_audio_datasets(model_config, ds_config, train_list, val_list)
 
 
 #  _____            _
@@ -370,6 +481,19 @@ def _make_image_eval_dataset(model_config: ModelConfig, ds_cfg: DatasetConfig, e
     opt_args = {'path_label_list': list(eval_list)}
     transforms = make_transform_manager(model_config, ds_cfg, len(eval_list), opt_args, True)
     eval_ds = TFImageDataSequence(eval_list, model_config.batch_size, transforms, shape_hwc)
+    logger.info(f"Constructed evaluation dataset with {len(eval_ds)} items.")
+
+    tmp_data, tmp_labels = eval_ds[0]
+    logger.info(f"Eval: data.shape={tmp_data.shape}, label.shape={tmp_labels.shape}")
+
+    return eval_ds
+
+def _make_audio_eval_dataset(model_config: ModelConfig, ds_cfg: DatasetConfig, eval_list):
+    shape_hwc = model_config.model_architecture.get_shape_hwc()
+
+    opt_args = {'path_label_list': list(eval_list)}
+    transforms = make_transform_manager(model_config, ds_cfg, len(eval_list), opt_args, True)
+    eval_ds = TFAudioDataSequence(eval_list, model_config.batch_size, transforms, shape_hwc)
     logger.info(f"Constructed evaluation dataset with {len(eval_ds)} items.")
 
     tmp_data, tmp_labels = eval_ds[0]
@@ -466,6 +590,30 @@ def load_eval_dataset(lab: Lab, ds_config: DatasetConfig, model_config: ModelCon
     elif ds_config.data_type == jb_dataset.DataType.TORCHVISION:
         logger.error("Torchvision datasets cannot be used with tensorflow. EXITING.")
         sys.exit(-1)
+    elif ds_config.data_type == jb_dataset.DataType.AUDIO:
+        splitting_config = None
+        if use_train_split or use_val_split:
+            logger.info(f"Splitting the dataset according to the model's validation split instructions.")
+            splitting_config = model_config.get_validation_split_config()
+
+        eval_list, split = jb_data.dataspec_to_manifests(
+            lab,
+            dataset_config=ds_config,
+            splitting_config=splitting_config,
+            preprocessors=TransformManager(model_config.preprocessors))
+
+        if use_train_split:
+            logger.info("Evaluating using ONLY the training portion of the split data.")
+
+        elif use_val_split:
+            logger.info("Evaluating using ONLY the validation portion of the split data.")
+            eval_list = split
+
+        # Save the manifest
+        jb_data.save_path_label_manifest(eval_list, eval_dir_mgr.get_manifest_path(), lab.data_root())
+
+        # Now make the loaders returning the loader and labels
+        return _make_audio_eval_dataset(model_config, ds_config, eval_list), [x[1] for x in eval_list]
 
 
 #  _   _ _   _ _

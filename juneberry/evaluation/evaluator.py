@@ -52,7 +52,7 @@ class Evaluator:
     """
 
     def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None):
+                 dataset: DatasetConfig = None, eval_options: SimpleNamespace = None, logdir = None): 
         """
         Construct an Evaluator based on command line arguments and a Juneberry ModelManager object.
         :param model_config: The model config used to train the model.

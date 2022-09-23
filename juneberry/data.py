@@ -85,9 +85,15 @@ def dataspec_to_manifests(lab: Lab, dataset_config, *,
     elif dataset_config.is_tabular_type():
         logger.info("Loading tabular data...")
         return load_tabular_data(lab, dataset_config, splitting_config=splitting_config)
+    
+    elif dataset_config.is_audio_type():
+        # for audio classification
+        logger.info(f"Generating image lists...")
+        loader = ListMarshall(lab, dataset_config, splitting_config=splitting_config, preprocessors=preprocessors)
+        return loader.load()
 
     else:
-        logger.error("We currently do NOT support any data type but IMAGE or TABULAR.")
+        logger.error("We currently do NOT support any data type but IMAGE, TABULAR, or AUDIO.")
         sys.exit(-1)
 
 
@@ -359,7 +365,7 @@ class ListMarshall(DatasetMarshal):
                     ", ".join([f"{k}: {train_class_counts[k]}" for k in sorted(train_class_counts.keys())]))
         logger.info(f"Labels and counts in split dataset: " +
                     ", ".join([f"{k}: {validation_class_counts[k]}" for k in sorted(validation_class_counts.keys())]))
-        logger.info(f"Total Image count: {len(self.train)} main dataset images, {len(self.val)} split dataset images")
+        logger.info(f"Total sample count: {len(self.train)} main dataset samples, {len(self.val)} split dataset samples")
 
 
 class CocoMetadataMarshal(DatasetMarshal):
@@ -835,7 +841,11 @@ def add_data_sources(lab: Lab, dataset_config: DatasetConfig, source_list, set_t
     :param set_type: train or valid
     :return:
     """
-    for source in dataset_config.get_image_sources():
+    if dataset_config.data_type == 'audio':
+        sources = dataset_config.get_audio_sources()
+    elif dataset_config.data_type == 'image':
+        sources = dataset_config.get_image_sources()
+    for source in sources:
         source_list.append(source)
         source['train'] = []
         source['valid'] = []
