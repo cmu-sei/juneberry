@@ -172,6 +172,7 @@ class ModelConfig(Prodict):
     timestamp: str
     trainer: Plugin
     training_dataset_config_path: str
+    training_metrics: List[Plugin]
     training_transforms: List[Plugin]
     training_target_transforms: List[Plugin]
     validation: Validation
