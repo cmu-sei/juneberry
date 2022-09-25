@@ -43,8 +43,7 @@ class Dataset(Prodict):
 
 
 class Metrics(Prodict):
-    accuracy: float
-    balanced_accuracy: float
+    classification: Any
     bbox: Any
     bbox_per_class: Any
     summary: Any
