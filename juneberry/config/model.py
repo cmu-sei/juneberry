@@ -97,8 +97,6 @@ class Validation(Prodict):
 
 
 class PytorchOptions(Prodict):
-    accuracy_args: Prodict
-    accuracy_fn: str
     loss_args: Prodict
     loss_fn: str
     lr_schedule_args: Prodict

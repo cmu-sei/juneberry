@@ -58,6 +58,7 @@ class ClassifierTrainer(EpochTrainer):
         super().__init__(lab, model_manager, model_config, dataset_config, log_level)
 
         # Assigned during setup
+        self.loss_function = None
         self.lr_scheduler = None
         self.optimizer = None
         self.evaluator = None
@@ -91,7 +92,8 @@ class ClassifierTrainer(EpochTrainer):
         self.memory_summary_freq = int(os.environ.get("JUNEBERRY_CUDA_MEMORY_SUMMARY_PERIOD", 0))
 
         # These properties are used for DistributedDataParallel (if necessary)
-        self.training_list = {}
+        self.training_loss_list = None
+        self.training_metrics_lists = {}
 
         self.lr_step_frequency = LRStepFrequency.EPOCH
 
@@ -188,6 +190,7 @@ class ClassifierTrainer(EpochTrainer):
         self.setup_data_loaders()
         self.setup_model()
 
+        self.loss_function = pyt_utils.make_loss(self.pytorch_options, self.model, self.binary)
         self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
         self.lr_scheduler = pyt_utils.make_lr_scheduler(self.pytorch_options, self.optimizer, self.model_config.epochs)
         self.setup_acceptance_checker()
@@ -196,9 +199,15 @@ class ClassifierTrainer(EpochTrainer):
 
         self.num_batches = len(self.training_iterable)
 
-        for tm in self.metrics_plugins:
-            self.history[tm["kwargs"]["name"]] = []
-            self.history["val_" + tm["kwargs"]["name"]] = []
+        self.history = {'loss': [], 'val_loss': []}
+
+        # Create an entry in the history for each metrics plugin in the config.
+        # TODO what if one of our metrics is called "loss?" That will step on the already
+        #  existing "loss" entry in self.history.
+        #  For now, log an error if "loss" is specified in the training_metrics section.
+        for plugin in self.metrics_plugins:
+            self.history[plugin["kwargs"]["name"]] = []
+            self.history["val_" + plugin["kwargs"]["name"]] = []
 
         self.history['epoch_duration'] = []
         self.history['lr'] = []
@@ -227,9 +236,19 @@ class ClassifierTrainer(EpochTrainer):
             if isinstance(self.evaluation_iterable.dataset, pyt_utils.EpochDataset):
                 self.evaluation_iterable.dataset.set_epoch(self.epoch)
 
+        if self.distributed:
+            self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
+            # TODO: Unlike when we were only storing accuracy, I don't know that we can automatically
+            #  initialize to float64 tensors for every kind of metric
+            for plugin in self.metrics_plugins:
+                self.training_metrics_lists[plugin["kwargs"]["name"] + "_list"] = \
+                    [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
+
+        result["loss_list"] = []
+
         # Start off with empty metrics
-        for m in self.metrics_plugins:
-            result[m["kwargs"]["name"] + "_list"] = []
+        for plugin in self.metrics_plugins:
+            result[plugin["kwargs"]["name"] + "_list"] = []
 
         return result
 
@@ -241,57 +260,57 @@ class ClassifierTrainer(EpochTrainer):
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
+        # Compute and store loss based on the provided function
+        loss = self.loss_function(output, local_labels)
+
+        # Compute and store metrics based on metrics plugin functions
         metrics_mgr = mm.MetricsManager(self.metrics_plugins)
-
         preds_np, target_np = _tensors_to_numpy(output, local_labels)
-
         metrics = metrics_mgr(target_np, preds_np, self.dataset_config.is_binary)
 
-        return metrics
+        return loss, metrics
 
     def update_metrics(self, train: bool, metrics, results) -> None:
-        tensor_results = {}
+        # Unpack the loss and metrics we returned on process batch
+        current_loss, current_metrics = results
 
         # In distributed training, each process will have a different loss/accuracy value. These lists are used to
         # collect the values from each process, so we need one tensor in the list for every process in the "world".
-        # TODO I need to know the value type before initializing the training list. I don't like it.
         if self.distributed:
-            for k, v in results.items():
-                if torch.is_tensor(v):
-                    if k not in self.training_list:
-                        self.training_list[k] = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
-                    tensor_results[k] = results[k].to(self.device)
-                else:
-                    if k not in self.training_list:
-                        self.training_list[k] = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
-                    tensor_results[k] = torch.from_numpy(np.asarray(results[k], dtype=float)).to(self.device)
+            tensor_metrics_results = {}
+            # TODO Assuming data type (float) for an unknown metric
+            for k, v in current_metrics.items():
+                tensor_metrics_results[k] = torch.from_numpy(np.asarray(current_metrics[k], dtype=float)).to(self.device)
+
+            loss_on_device = current_loss.to(self.device)
 
             # Create a barrier to wait for all processes to reach this point. Once they do, gather up
             # the loss and accuracy from each process and place it in the appropriate tensor list.
             dist.barrier()
-            for k, v in tensor_results.items():
-                dist.all_gather(self.training_list[k], tensor_results[k])
+            dist.all_gather(self.training_loss_list, loss_on_device)
+            for k, v in tensor_metrics_results.items():
+                dist.all_gather(self.training_metrics_lists[k], tensor_metrics_results[k])
 
             # Take the value from each tensor in the tensor list and place it in the corresponding metric.
-            for k, v in self.training_list.items():
-                for val in self.training_list[k]:
+            for tensor in self.training_loss_list:
+                metrics['loss_list'].append(tensor.item())
+            for k, v in self.training_metrics_lists.items():
+                for val in self.training_metrics_lists[k]:
                     metrics[f"{k}_list"].append(val.item())
             return
 
-        # Record the values in the metrics dictionary.
-        for k, v in results.items():
-            metrics[f"{k}_list"].append(results[k].item())
+        # Record the values in the metrics dictionary (non-distributed case).
+        metrics["loss_list"].append(current_loss.item())
+        for k, v in current_metrics.items():
+            metrics[f"{k}_list"].append(current_metrics[k].item())
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
-        # TODO hardcoded loss here; but loss is absolutely necessary for training, right?
-        loss = results["loss"]
+        # We don't need the metrics here
+        loss, _ = results
 
         self.optimizer.zero_grad()
-
-        loss_tensor = torch.from_numpy(loss)
-        loss_tensor.backward()
-
+        loss.backward()
         self.optimizer.step()
 
         if self.lr_scheduler is not None and self.lr_step_frequency == LRStepFrequency.BATCH:
