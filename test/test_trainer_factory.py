@@ -22,6 +22,7 @@
 #
 # ======================================================================================================================
 
+from pathlib import Path
 from unittest import TestCase
 
 import pytest
@@ -80,12 +81,21 @@ class TestTrainerFactory(TestCase):
         # Create a temporary workspace in order to exercise the TrainerFactory's ability to load a
         # ModelConfig using the ModelManager.
         with utils.set_directory(self.tmp_path):
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_dt2_workspace(self.tmp_path)
 
-            # Create a ModelManager and associate it with the TrainerFactory and attempt to
-            # set the model config again.
+            # Create a ModelManager and associate it with the TrainerFactory.
             self.trainer_factory.model_manager = ModelManager('text_detect/dt2/ut')
+
+            # Create a ModelConfig.
+            model_config = utils.text_detect_dt2_config
+            mc = ModelConfig.construct(data=model_config)
+
+            # Save the model config file to the location that the ModelManager expects
+            mc_path = self.trainer_factory.model_manager.get_model_config()
+            mc_path.parent.mkdir(parents=True)
+            mc.save(data_path=self.trainer_factory.model_manager.get_model_config())
+
+            # Now attempt to set the model_config attribute again via the TrainerFactory. Since
+            # the model config file exists, it should work.
             self.trainer_factory.set_model_config()
 
             # Verify that the TrainerFactory's model_config attribute has been set and that the
@@ -126,14 +136,17 @@ class TestTrainerFactory(TestCase):
 
         # Create a temporary workspace so that the file loading operations will work.
         with utils.set_directory(self.tmp_path):
-            utils.setup_test_workspace(self.tmp_path)
-            utils.make_dt2_workspace(self.tmp_path)
 
             # Now set the TrainerFactory attributes which are used to produce Trainers.
             self.trainer_factory.lab = Lab(workspace=self.tmp_path, data_root=self.tmp_path)
             self.trainer_factory.model_manager = ModelManager('text_detect/dt2/ut')
-            self.trainer_factory.model_config = ModelConfig.load(self.trainer_factory.model_manager.get_model_config())
-            self.trainer_factory.dataset_config = DatasetConfig.load("data_sets/text_detect_val.json")
+            self.trainer_factory.model_config = ModelConfig.construct(data=utils.text_detect_dt2_config)
+            self.trainer_factory.dataset_config = DatasetConfig.construct(data=utils.text_detect_dataset_config)
+
+            # In order to assemble the Trainer, the dataset file will need to be read from the expected location.
+            # ds_path = self.trainer_factory.model_config.training_dataset_config_path
+            # Path(ds_path).parent.mkdir(parents=True)
+            # self.trainer_factory.dataset_config.save(data_path=ds_path)
 
             # Get a Trainer from the TrainerFactory and verify some of its properties.
             trainer = self.trainer_factory.get_trainer()

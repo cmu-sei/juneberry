@@ -23,7 +23,6 @@
 # ======================================================================================================================
 
 from contextlib import contextmanager
-import json
 import os
 from pathlib import Path
 
@@ -181,54 +180,3 @@ training_output = {
 
     }
 }
-
-
-def setup_test_workspace(tmp_path) -> None:
-    """
-    Creates a test workspace *structure* within tmp_path.
-    :param tmp_path: Path to where to setup the temporary workspace.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
-    model_dir_path = ws_path / "models"
-    tbs_dir_path = model_dir_path / "tabular_binary_sample"
-    tbs_dir_path.mkdir(parents=True, exist_ok=True)
-
-    dt_conf_path = model_dir_path / "text_detect" / "dt2" / "ut"
-    dt_conf_path.mkdir(parents=True, exist_ok=True)
-
-    data_sets_path = ws_path / "data_sets"
-    data_sets_path.mkdir(exist_ok=True)
-
-
-def make_tabular_workspace(tmp_path) -> None:
-    """
-    Creates a sample model config and dataset config for the tabular model.
-    :param tmp_path: Path to workspace directory.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
-    model_conf_path = ws_path / "models" / "tabular_binary_sample" / "config.json"
-    with open(str(model_conf_path), "w") as out_file:
-        json.dump(tabular_model_config, out_file)
-
-    ds_conf_path = ws_path / "data_sets" / "train_data_config.json"
-    with open(str(ds_conf_path), "w") as out_file:
-        json.dump(tabular_dataset_config, out_file)
-
-
-def make_dt2_workspace(tmp_path) -> None:
-    """
-    Creates a sample model config and dataset config for the detectron2 text detection model.
-    :param tmp_path: Path to workspace directory.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
-
-    model_conf_path = ws_path / "models" / "text_detect" / "dt2" / "ut" / "config.json"
-    with open(str(model_conf_path), "w") as out_file:
-        json.dump(text_detect_dt2_config, out_file)
-
-    ds_conf_path = ws_path / "data_sets" / "text_detect_val.json"
-    with open(str(ds_conf_path), "w") as out_file:
-        json.dump(text_detect_dataset_config, out_file)
