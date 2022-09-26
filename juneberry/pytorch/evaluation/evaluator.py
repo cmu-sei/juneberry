@@ -42,6 +42,7 @@ import juneberry.pytorch.processing as processing
 import juneberry.pytorch.utils as pyt_utils
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 from juneberry.transforms.transform_manager import TransformManager
+import juneberry.zoo as jb_zoo
 
 logger = logging.getLogger(__name__)
 
@@ -291,6 +292,14 @@ class Evaluator(EvaluatorBase):
 
         # If the model file exists, load the weights.
         if model_path.exists():
+            # Check to see if we can load it
+            image_shape = pyt_utils.get_image_shape(self.eval_loader)
+            if not jb_zoo.check_allow_load_model(self.model_manager,
+                                             lambda: pyt_utils.hash_summary(self.model, image_shape)):
+                logger.error("Cannot load model because of ARCHITECTURE hash mismatch. "
+                             "Either delete the hash, retrain or get the correct model. Exiting")
+                raise RuntimeError("Model architecture does not match hash. See log for details.")
+
             logger.info(f"Loading model weights...")
             self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)
 

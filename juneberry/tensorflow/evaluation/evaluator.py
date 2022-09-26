@@ -39,6 +39,7 @@ import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
 from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 import juneberry.utils
+import juneberry.zoo as jb_zoo
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,13 @@ class Evaluator(EvaluatorBase):
             logger.info(f"Loading model {hdf5_file}...")
             self.model = tf.keras.models.load_model(hdf5_file)
             logger.info("...complete")
+
+            if not jb_zoo.check_allow_load_model(self.model_manager,
+                                                 lambda: tf_utils.hash_summary(self.model)):
+                msg = "The hash of the tensorflow model ARCHITECTURE did not match the expected hash in " \
+                      "hashes.json. Either delete the hash, retrain or get the correct model. Exiting Exiting"
+                logger.error(msg)
+                raise RuntimeError(msg)
 
         # If the model file doesn't exist...
         else:

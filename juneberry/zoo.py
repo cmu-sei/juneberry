@@ -31,6 +31,7 @@ from zipfile import ZipFile
 
 import requests
 
+from juneberry.config.hashes import Hashes
 import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 from juneberry.onnx.utils import ONNXPlatformDefinitions
@@ -148,9 +149,9 @@ def _install_from_cache(lab: Lab, model_name: str) -> bool:
 
     # Make the model path in the models dir - Path.mkdir
     model_mgr = lab.model_manager(model_name)
-    model_mgr.model_dir_path.mkdir(parents=True)
+    model_mgr.model_dir_path.mkdir(parents=True, exist_ok=True)
 
-    # Unzip the contents into that directory - extract all
+    # The contents are in.
     with ZipFile(cache_zip_path) as myzip:
         myzip.extractall(model_mgr.model_dir_path)
 
@@ -162,7 +163,7 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
     :param lab: The lab that contains the cache directory and model zoo url
     :param model_name: The model name to download.
     :param no_cache: Set to true to ignore what is in the cache and download again
-    :return:
+    :return: None
     """
     # Set up the proper zoo and model names
     zoo_url, model_name = _setup_zoo_and_model_name(lab, model_name)
@@ -170,6 +171,10 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
     # If the model config exists, we are done
     model_mgr = lab.model_manager(model_name)
     if model_mgr.get_model_config().exists():
+        return
+
+    if zoo_url is None:
+        logger.info("No juneberry zoo specified, cannot download model.")
         return
 
     # By this point we are going to pull things and put into the cache.
@@ -185,6 +190,39 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
 
     # Install from cache
     _install_from_cache(lab, model_name)
+
+
+def check_allow_load_model(model_manager, summary_hash_fn) -> bool:
+    """
+    Checks to see if the model should be installed. If a hashes config file exists and
+    it has a model_archiecture key and that matchs the archiecture, then we are good to
+    go.
+    :param lab: The lab that contains the cache directory and model zoo url
+    :param model_name: The name of the model
+    :param summary_hash_fn: A function to call that will return the appropriate hash
+    value of the model summary. This will only be called if the a hash value exists to
+    compare agaist.
+    :return:
+    """
+    hashes_path = Path(model_manager.get_hashes_config())
+    if not hashes_path.exists():
+        # If no hashes config file exists just return.
+        logger.debug("No hashes.json file found, approving model load.")
+        return True
+
+    hashes = Hashes.load(hashes_path)
+    if hashes.model_architecture is None:
+        # No model architecture hash exists, retrn
+        logger.debug("No model_archirecture found in hashes.json, approving model load.")
+        return True
+
+    # Okay, now compare
+    if summary_hash_fn() == hashes.model_architecture:
+        logger.info("Model architecture hash found and matches architecture allow load.")
+        return True
+    else:
+        logger.info("Model architecture hash found and DOES NOT matches architecture, preventing load.")
+        return False
 
 
 def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = True) -> str:
@@ -208,7 +246,7 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
     model_mgr = jb_fs.ModelManager(model_name)
 
     with ZipFile(model_zip_path, "w") as zip_file:
-        zip_file.write(model_mgr.get_model_config(), "config.json")
+        zip_file.write(model_mgr.get_model_config(), model_mgr.get_model_config_filename())
 
         # TODO: This is fragile in that we won't zip just anything. We need some better way
         #  to do this. Of course, the user can just zip it themselves, so this is just a convenience.
@@ -225,7 +263,36 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
             if path.exists():
                 zip_file.write(path, ONNXPlatformDefinitions().get_model_filename())
 
+        # Add the hash file if it exists
+        hashes_path = model_mgr.get_hashes_config()
+        if hashes_path.exists():
+            zip_file.write(hashes_path, model_mgr.get_hashes_config_filename())
+        else:
+            # If we have a latest hashes, then use it.
+            latest_hashes_path = model_mgr.get_latest_hashes_config()
+            if latest_hashes_path.exists():
+                zip_file.write(latest_hashes_path, model_mgr.get_hashes_config_filename())
+
     return str(model_zip_path.absolute())
+
+
+def update_hashes_file(hashes_path, model_architecture_hash: str = None):
+    if hashes_path.exists():
+        hashes = Hashes.load(hashes_path)
+    else:
+        hashes = Hashes()
+
+    if model_architecture_hash is not None:
+        hashes.model_architecture = model_architecture_hash
+    hashes.save(hashes_path)
+
+def update_hashes_after_training(model_mgr, model_architecture_hash: str = None):
+    # If we have an existing hash file, update it.
+    # Always update 'latest' as it is what we use when package a model for the zoo.
+    hashes_path = model_mgr.get_hashes_config()
+    if hashes_path.exists():
+        update_hashes_file(hashes_path, model_architecture_hash)
+    update_hashes_file(model_mgr.get_latest_hashes_config(), model_architecture_hash)
 
 
 def package_model():

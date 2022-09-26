@@ -22,6 +22,8 @@
 #
 # ======================================================================================================================
 
+import hashlib
+import io
 import logging
 import sys
 
@@ -44,6 +46,25 @@ def save_summary(model, summary_file_path):
     sys.stdout = open(summary_file_path, 'w+', encoding="utf-8")
     model.summary()
     sys.stdout = orig
+
+
+def hash_summary(model):
+    # Swap out a string buffer, and capture the summary to it
+    output = io.StringIO()
+    orig = sys.stdout
+    sys.stdout = output
+    model.summary()
+    sys.stdout = orig
+
+    # Hash it and stash off the digest before we destroy the buffer
+    hasher = hashlib.sha256()
+    hasher.update(output.getvalue().encode('utf-8'))
+    digest = hasher.hexdigest()
+
+    # Close object and discard memory buffer
+    output.close()
+
+    return digest
 
 
 def set_tensorflow_seeds(seed: int):
