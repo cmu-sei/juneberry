@@ -31,58 +31,7 @@ from pathlib import Path
 
 from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jb_fs
-
-
-def make_basic_config_old():
-    return {
-        "batchSize": 16,
-        "trainingDatasetConfigPath": "path/to/data/set",
-        "epochs": 50,
-        "formatVersion": "0.1.0",
-        "platform": "pytorch",
-        "modelArchitecture": {
-            "module": "sample.module",
-            "args": {"num_classes": 1000}
-        },
-        "seed": 6789,
-        "timestamp": "optional ISO time stamp for when this was generated generated",
-        "validation": {
-            "algorithm": "randomFraction",
-            "arguments": {
-                "seed": 1234,
-                "fraction": 0.5
-            }
-        }
-    }
-
-
-def make_basic_config():
-    return {
-        "batch_size": 16,
-        "training_dataset_config_path": "path/to/data/set",
-        "epochs": 50,
-        'evaluator': {
-            'fqcn': 'juneberry.dummy.evaluator'
-        },
-        "format_version": ModelConfig.FORMAT_VERSION,
-        "platform": "pytorch",
-        "model_architecture": {
-            "fqcn": "sample.module",
-            "kwargs": {"num_classes": 1000}
-        },
-        "seed": 1234,
-        "timestamp": "optional ISO time stamp for when this was generated generated",
-        'trainer': {
-            'fqcn': 'juneberry.dummy.evaluator'
-        },
-        "validation": {
-            "algorithm": "random_fraction",
-            "arguments": {
-                "seed": 1234,
-                "fraction": 0.5
-            }
-        }
-    }
+from utils import make_basic_model_config
 
 
 def add_optional_args(config):
@@ -108,23 +57,6 @@ def make_pytorch_args():
     }
 
 
-def make_transforms():
-    return {
-        "training_transforms": [
-            {
-                "fqcn": "my.fqg",
-                "kwargs": {"arg1": "hello"}
-            }
-        ],
-        "evaluation_transforms": [
-            {
-                "fqcn": "my.fqg",
-                "kwargs": {"arg1": "hello"}
-            }
-        ]
-    }
-
-
 def assert_is_subset(expected, test):
     if isinstance(expected, (list, tuple)):
         for i1, i2 in zip(expected, test):
@@ -139,9 +71,8 @@ def assert_is_subset(expected, test):
 
 def test_basic_loading(tmp_path):
     # Do a basic construction and see that all the keys we identified
-    config = make_basic_config()
+    config = make_basic_model_config(add_transforms=True)
     add_optional_args(config)
-    config.update(make_transforms())
     config['pytorch'] = make_pytorch_args()
 
     config_path = Path(tmp_path, "config.json")
@@ -189,7 +120,7 @@ def test_basic_loading(tmp_path):
 #         self.assertIn(message, cm.output[0])
 #
 #     def test_data_type_error(self):
-#         config = make_basic_config()
+#         config = make_basic_model_config()
 #         config['imageData']['sources'] = {"label": 0}
 #
 #         with self.assertLogs(level='ERROR') as cm:

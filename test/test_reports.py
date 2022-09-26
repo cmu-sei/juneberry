@@ -39,8 +39,7 @@ from juneberry.config.report import ReportConfig
 from juneberry.reporting.report import Report
 from juneberry.reporting.summary import REPORT_FILES_DIRNAME
 import juneberry.reporting.utils as jb_report_utils
-from test_experiment_config import make_basic_config as make_experiment_config
-from test_model_config import make_basic_config as make_model_config
+import utils
 
 
 def make_generic_report(description: str = "", fqcn: str = "custom.report", kwargs: dict = None) -> dict:
@@ -301,7 +300,7 @@ def test_experiment_reports(tmp_path):
     os.chdir(tmp_path)
 
     # Create a sample experiment config using the function from the experiment config unit tests.
-    exp_config = make_experiment_config()
+    exp_config = utils.make_basic_experiment_config()
 
     # Determine the location for the experiment config, create the directory, and save the
     # data to the config file.
@@ -345,7 +344,7 @@ def test_model_reports(tmp_path):
 
     # Create a sample model config using the function from the model config unit tests. Add
     # a reports stanza to the model config.
-    model_config_dict = make_model_config()
+    model_config_dict = utils.make_basic_model_config()
     model_config_dict["reports"] = [make_roc_report(), make_pr_report(), make_generic_report(), make_summary_report()]
 
     # Determine the location for the model config, create the directory, and save the

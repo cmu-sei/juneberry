@@ -37,7 +37,6 @@ from juneberry.filesystem import ModelManager
 from juneberry.lab import Lab
 from juneberry.transforms.transform_manager import TransformManager
 from test_coco_utils import make_sample_coco
-import test_model_config
 import utils
 
 
@@ -210,7 +209,7 @@ def test_generate_image_validation_split(monkeypatch, tmp_path):
     dataset_struct = make_image_classification_config()
     dataset_config = DatasetConfig.construct(dataset_struct)
 
-    config = test_model_config.make_basic_config()
+    config = utils.make_basic_model_config()
     model_config = ModelConfig.construct(data=config)
     model_config.validation = {
         "algorithm": "random_fraction",
@@ -462,8 +461,7 @@ def test_generate_image_metadata_validation_split(monkeypatch, tmp_path):
     dataset_struct = make_image_object_detection_config()
     dataset_config = DatasetConfig.construct(dataset_struct)
 
-    model_config_dict = test_model_config.make_basic_config()
-    model_config_dict.update(test_model_config.make_transforms())
+    model_config_dict = utils.make_basic_model_config(add_transforms=True)
     model_config = ModelConfig.construct(data=model_config_dict)
     model_config.validation = {
         "algorithm": "random_fraction",
@@ -674,7 +672,7 @@ def test_load_tabular_data_with_validation(tmp_path):
     dataset_struct = make_basic_data_set_tabular_config()
     dataset_config = DatasetConfig.construct(dataset_struct, Path(tmp_path) / 'myrelative')
 
-    model_config_dict = test_model_config.make_basic_config()
+    model_config_dict = utils.make_basic_model_config()
     model_config = ModelConfig.construct(data=model_config_dict)
     train_list, val_list = jb_data.load_tabular_data(lab,
                                                      dataset_config,
@@ -978,7 +976,7 @@ def test_get_category_list(monkeypatch, tmp_path):
             assert True
 
         # Test ModelConfig function
-        model_config = test_model_config.make_basic_config()
+        model_config = utils.make_basic_model_config()
         model_config["preprocessors"] = [{"fqcn": "juneberry.transforms.metadata_preprocessors.ObjectRelabel",
                                           "kwargs": {
                                               "key": "orig",

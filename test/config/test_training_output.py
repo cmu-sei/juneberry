@@ -26,13 +26,13 @@ from pathlib import Path
 
 from juneberry.config.training_output import TrainingOutputBuilder
 from juneberry.config.model import ModelConfig
-import test_model_config
+import test.utils as utils
 
 
 def test_builder(tmp_path):
     builder = TrainingOutputBuilder()
 
-    mc = ModelConfig.from_dict(test_model_config.make_basic_config())
+    mc = ModelConfig.from_dict(utils.make_basic_model_config())
 
     builder.set_from_model_config("test_config", mc)
 

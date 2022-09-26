@@ -144,9 +144,9 @@ class TestTrainerFactory(TestCase):
             self.trainer_factory.dataset_config = DatasetConfig.construct(data=utils.text_detect_dataset_config)
 
             # In order to assemble the Trainer, the dataset file will need to be read from the expected location.
-            # ds_path = self.trainer_factory.model_config.training_dataset_config_path
-            # Path(ds_path).parent.mkdir(parents=True)
-            # self.trainer_factory.dataset_config.save(data_path=ds_path)
+            ds_path = self.trainer_factory.model_config.training_dataset_config_path
+            Path(ds_path).parent.mkdir(parents=True)
+            self.trainer_factory.dataset_config.save(data_path=ds_path)
 
             # Get a Trainer from the TrainerFactory and verify some of its properties.
             trainer = self.trainer_factory.get_trainer()

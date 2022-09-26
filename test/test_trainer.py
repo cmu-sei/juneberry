@@ -26,8 +26,6 @@
 Unit test for the trainer base class.
 """
 
-import functools
-import inspect
 import logging
 import time
 
@@ -36,32 +34,7 @@ from juneberry.config.model import ModelConfig
 import juneberry.filesystem as jb_fs
 from juneberry.lab import Lab
 from juneberry.training.trainer import EpochTrainer
-import test_data_set
-import test_model_config
-
-
-def get_fn_name(fn):
-    for k, v in inspect.getmembers(fn):
-        if k == "__name__":
-            return v
-    return "Unknown"
-
-
-log_step = 0
-
-
-def log_func(func):
-    func_name = get_fn_name(func)
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        global log_step
-        # Use this to get a list of all calls in order
-        # print(f">> {log_step} {func_name}")
-        log_step += 1
-        return func(*args, **kwargs)
-
-    return wrapper
+import utils
 
 
 class EpochTrainerHarness(EpochTrainer):
@@ -86,7 +59,7 @@ class EpochTrainerHarness(EpochTrainer):
 
         self.step = 0
 
-    @log_func
+    @utils.log_func
     def setup(self):
         self.setup_calls.append(self.step)
         self.step += 1
@@ -103,7 +76,7 @@ class EpochTrainerHarness(EpochTrainer):
             [[11, 22], [0, 1]]
         ]
 
-    @log_func
+    @utils.log_func
     def start_epoch_phase(self, train: bool):
         if train:
             self.start_epoch_phase_calls.append(self.step)
@@ -113,7 +86,7 @@ class EpochTrainerHarness(EpochTrainer):
         self.expected_metrics = "DummyTrainMetrics"
         return self.expected_metrics
 
-    @log_func
+    @utils.log_func
     def process_batch(self, train, data, targets):
         time.sleep(0.1)
 
@@ -134,7 +107,7 @@ class EpochTrainerHarness(EpochTrainer):
         self.expected_results = data[0] * 3
         return self.expected_results
 
-    @log_func
+    @utils.log_func
     def update_metrics(self, train, metrics, results) -> None:
         self.update_metrics_calls.append(self.step)
         self.step += 1
@@ -142,19 +115,19 @@ class EpochTrainerHarness(EpochTrainer):
         assert self.expected_metrics == metrics
         assert self.expected_results == results
 
-    @log_func
+    @utils.log_func
     def update_model(self, results) -> None:
         self.update_model_calls.append(self.step)
         self.step += 1
 
         assert self.expected_results == results
 
-    @log_func
+    @utils.log_func
     def summarize_metrics(self, train: bool, metrics) -> None:
         self.summarize_metrics_calls.append(self.step)
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def end_epoch(self) -> None:
         self.checkpoint_calls.append(self.step)
         self.step += 1
@@ -162,18 +135,18 @@ class EpochTrainerHarness(EpochTrainer):
         if self.epochs == 0:
             self.done = True
 
-    @log_func
+    @utils.log_func
     def finalize_results(self):
         self.finalize_results_calls.append(self.step)
         self.step += 1
 
     # -----------------------------------------------
     # Utility functions I don't know what to do with
-    @log_func
+    @utils.log_func
     def get_labels(self, targets):
         return []
 
-    @log_func
+    @utils.log_func
     def _serialize_results(self):
         # override so we don't actually write to disk
         self.serialize_results_calls.append(self.step)
@@ -244,10 +217,10 @@ def test_epoch_trainer(tmp_path):
     print("Starting")
     logging.basicConfig(level=logging.INFO)
     lab = Lab(workspace='.', data_root=',')
-    dsc = test_data_set.make_basic_config()
+    dsc = utils.make_basic_dataset_config()
     data_set_config = DatasetConfig.construct(dsc)
 
-    mc = test_model_config.make_basic_config()
+    mc = utils.make_basic_model_config()
     model_config = ModelConfig.construct(mc)
 
     model_manager = jb_fs.ModelManager("foo")

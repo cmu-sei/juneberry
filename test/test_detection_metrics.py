@@ -23,8 +23,6 @@
 # ======================================================================================================================
 
 from collections import defaultdict
-import gzip
-import json
 
 import juneberry.filesystem as jb_fs
 import juneberry.metrics.detection_metrics
