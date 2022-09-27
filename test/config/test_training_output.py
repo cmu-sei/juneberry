@@ -26,7 +26,7 @@ from pathlib import Path
 
 from juneberry.config.training_output import TrainingOutputBuilder
 from juneberry.config.model import ModelConfig
-import test.utils as utils
+import utils
 
 
 def test_builder(tmp_path):
