@@ -58,7 +58,8 @@ install_requires = [
     "hjson",
     "natsort",
     "ray",
-    "jsonpath-ng"
+    "jsonpath-ng",
+    "torchmetrics"
 ]
 
 bin_scripts = [
