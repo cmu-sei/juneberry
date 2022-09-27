@@ -22,6 +22,7 @@
 #
 # ======================================================================================================================
 
+from email.mime import audio
 from functools import partial
 import inspect
 import logging
@@ -31,10 +32,11 @@ from PIL import Image
 import random
 import sys
 from scipy.io.wavfile import read
+import scipy.signal
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from torch import Tensor
+from tensorflow import Tensor
 
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
@@ -109,6 +111,11 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
                 image = self.transforms(image)
         return np.array(image)
 
+class AudioSample:
+    def __init__(self, sample, filename):
+        self.sample: np.ndarray = sample
+        self.filenamez: str = filename
+
 class TFAudioDataSequence(tf.keras.utils.Sequence):
     """
     A keras data sequence to be used directly as a data source for training on tensorflow.
@@ -150,7 +157,6 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
             labels.append(self.data_list[i][1])
 
         # REMEMBER TensorFlow is all HWC
-        # import pdb; pdb.set_trace()
         np_samples = np.array(samples).reshape(-1, self.shape_hwc.height, self.shape_hwc.width, self.shape_hwc.channels)
         np_labels = np.array(labels)
         return np_samples, np_labels
@@ -160,16 +166,32 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
         #       We need to check to see what is going on with the random numbers here...
         self.epoch += 1
 
-    def _load_sample(self, index: int) -> Tensor:
+    def _load_sample(self, index: int):
         sample = tf.io.read_file(self.data_list[index][0])
         sample, default_audio_rate = tf.audio.decode_wav(contents=sample, desired_samples=16000)
         sample = tf.squeeze(sample, axis=-1)
+        sample = AudioSample(sample, self.data_list[index][0])
+
         if self.transforms is not None:
             if self.extended_signature:
                 sample = self.transforms(sample, index, self.epoch)
             else:
                 sample = self.transforms(sample)
-        return np.array(sample)
+        return sample
+
+        # spec = audio_to_spec(self.data_list, index)
+        # sample = tf.io.read_file(self.data_list[index][0])
+        # sample, default_audio_rate = tf.audio.decode_wav(contents=sample, desired_samples=16000)
+        # sample = tf.squeeze(sample, axis=-1)
+        # sample = AudioSample(sample, self.data_list[index][0])
+        # frame_length = 255
+        # frame_step = 128
+        # spectrogram = tf.signal.stft(sample.sample, frame_length=frame_length, frame_step=frame_step)
+        # spectrogram = tf.abs(spectrogram)
+        # spectrogram = spectrogram[..., tf.newaxis]
+        # spectrogram = np.array(spectrogram, dtype='float32')
+
+        # return spectrogram
 
 
 #  _____                     __                        ____                               _
