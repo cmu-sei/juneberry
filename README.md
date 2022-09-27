@@ -1,6 +1,8 @@
 README
 ==========
 
+![Logo](docs/logo.png)
+
 # Introduction
 
 Juneberry improves the experience of machine learning experimentation by providing a framework for automating 
