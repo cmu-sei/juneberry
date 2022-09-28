@@ -48,6 +48,7 @@ from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 import juneberry.tensorboard as jb_tb
 from juneberry.training.trainer import EpochTrainer
 from juneberry.transforms.transform_manager import TransformManager
+import juneberry.zoo as jb_zoo
 
 logger = logging.getLogger(__name__)
 
@@ -364,6 +365,9 @@ class ClassifierTrainer(EpochTrainer):
         logger.info("Generating summary plot...")
         juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
+        logger.info("Updating model_architecture hash...")
+        self._updated_hashes()
+
     # ==========================================================================
 
     def check_gpu_availability(self, required: int = None):
@@ -544,6 +548,15 @@ class ClassifierTrainer(EpochTrainer):
         else:
             logger.error(f"acceptance_comparator requires a direction of 'ge' or 'le'.")
             sys.exit(-1)
+
+    # ==========================================================================
+
+    def _updated_hashes(self):
+        # If we have an existing hash file, update it.
+        # Always update 'latest' as it is what gets used when packaging a model for the zoo.
+        image_shape = pyt_utils.get_image_shape(self.training_iterable)
+        model_arch_hash = pyt_utils.hash_summary(self.model, image_shape)
+        jb_zoo.update_hashes_after_training(self.model_manager, model_arch_hash)
 
 
 # ==================================================================================================

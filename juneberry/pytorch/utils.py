@@ -23,6 +23,8 @@
 # ======================================================================================================================
 
 from collections import namedtuple
+import hashlib
+import io
 import logging
 from pathlib import Path
 import random
@@ -427,12 +429,48 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
     sys.stdout = orig
 
 
+def hash_summary(model, image_shape):
+    """
+    Returns a digest (hash) of the model summary file.
+    :param model: The model to hash.
+    :param image_shape: The shape of the model.
+    :return: The digest.
+    """
+
+    # Swap out a string buffer and capture the summary in the buffer.
+    output = io.StringIO()
+    orig = sys.stdout
+    sys.stdout = output
+    summary(model, image_shape)
+    sys.stdout = orig
+
+    # Hash the model summary and stash off the digest before destroying the buffer.
+    hasher = hashlib.sha256()
+    hasher.update(output.getvalue().encode('utf-8'))
+    digest = hasher.hexdigest()
+
+    # Close the object and discard the memory buffer.
+    output.close()
+
+    return digest
+
+
 def un_normalize_imagenet_norms(x):
     # TODO: Generalize to arbitrary values and numbers of channels 
     x_r = x[0, :, :] * 0.229 + 0.485
     x_g = x[1, :, :] * 0.224 + 0.456
     x_b = x[2, :, :] * 0.225 + 0.406
     return torch.stack([x_r, x_g, x_b])
+
+
+def get_image_shape(data_loader):
+    """
+    Returns the shape of the first item in the loader. All inputs are assumed to be the same size.
+    :param data_loader: The data loader to examine.
+    :return: The image shape.
+    """
+    # We need the first item and first part (image)
+    return next(iter(data_loader))[0][0].shape
 
 
 def generate_sample_images(data_loader, quantity, img_path: Path):

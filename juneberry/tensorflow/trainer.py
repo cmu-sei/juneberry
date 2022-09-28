@@ -46,6 +46,7 @@ import juneberry.tensorflow.data as tf_data
 import juneberry.tensorflow.utils as tf_utils
 from juneberry.tensorflow.utils import TensorFlowPlatformDefinitions
 import juneberry.training.trainer
+import juneberry.zoo as jb_zoo
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,6 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
         # Setup the model and dump the summary.
         self.setup_model()
 
-        # TODO: Change "get_pytorch_model_summary_path"
         tf_utils.save_summary(self.model, self.model_manager.get_model_summary_path())
 
     # ==========================
@@ -251,6 +251,10 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
             juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
         self._serialize_results()
+
+        logger.info("Updating hashes file...")
+        model_arch_hash = tf_utils.hash_summary(self.model)
+        jb_zoo.update_hashes_after_training(self.model_manager, model_arch_hash)
 
     # ==========================
 

@@ -31,6 +31,7 @@ import sys
 
 import juneberry.logging as jb_logging
 from juneberry.lab import Lab
+import juneberry.zoo as jb_zoo
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +238,8 @@ def setup_workspace(args, *, log_file, log_prefix="", name="juneberry", banner_m
     logger.info(f"Using data root:    {lab.data_root()}")
     logger.info(f"Using tensorboard:  {lab.tensorboard}")
     logger.info(f"Using profile name: {lab.profile_name}")
+    logger.info(f"Using zoo:          {lab.model_zoo}")
+    logger.info(f"Using cache:        {lab.cache}")
     logger.info(f"Hostname:           {platform.uname().node}")
 
     return lab
@@ -267,12 +270,18 @@ def setup_logging_for_script(args, script_name: str = None):
     logger.info(f"Log messages are beings saved to {log_file}")
 
 
-def setup_workspace_and_model(args, *, log_file, model_name, log_prefix="", banner_msg=None):
+def setup_workspace_and_model(args, *, log_file, model_name, log_prefix="", banner_msg=None,
+                              download: bool = False):
     # Setup up the workspace like normal
     lab = setup_workspace(args, log_file=log_file, log_prefix=log_prefix, banner_msg=banner_msg)
 
     # Double check the model.
     mm = lab.model_manager(model_name)
+    if not mm.get_model_config().exists() and download:
+        # Attempt to use the model zoo.
+        jb_zoo.ensure_model(lab, model_name)
+
+    # At this point either the model exists or a failure occurred.
     mm.ensure_model_directory()
     mm.setup()
     return lab
