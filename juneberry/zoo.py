@@ -276,8 +276,8 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
     return str(model_zip_path.absolute())
 
 
-def update_hashes_file(hashes_path, model_architecture_hash: str = None):
-    if hashes_path.exists():
+def update_hashes_file(hashes_path: str, model_architecture_hash: str = None) -> None:
+    if Path(hashes_path).exists():
         hashes = Hashes.load(hashes_path)
     else:
         hashes = Hashes()
@@ -286,12 +286,13 @@ def update_hashes_file(hashes_path, model_architecture_hash: str = None):
         hashes.model_architecture = model_architecture_hash
     hashes.save(hashes_path)
 
-def update_hashes_after_training(model_mgr, model_architecture_hash: str = None):
+
+def update_hashes_after_training(model_mgr, model_architecture_hash: str = None) -> None:
     # If we have an existing hash file, update it.
     # Always update 'latest' as it is what we use when package a model for the zoo.
     hashes_path = model_mgr.get_hashes_config()
     if hashes_path.exists():
-        update_hashes_file(hashes_path, model_architecture_hash)
+        update_hashes_file(str(hashes_path), model_architecture_hash)
     update_hashes_file(model_mgr.get_latest_hashes_config(), model_architecture_hash)
 
 

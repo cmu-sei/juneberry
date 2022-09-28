@@ -723,7 +723,7 @@ class ModelManager:
         """ :return: The path to the model's latest results file. """
         return self.model_dir_path / 'latest_ut_results.json'
 
-    def get_hashes_config_filename(self):
+    def get_hashes_config_filename(self) -> str:
         """ :return: The path to the optional hashes config file. """
         return 'hashes.json'
 
@@ -731,11 +731,12 @@ class ModelManager:
         """ :return: The path to the optional hashes config file. """
         return self.model_dir_path / self.get_hashes_config_filename()
 
-    def get_latest_hashes_config_filename(self):
+    def get_latest_hashes_config_filename(self) -> str:
+        """ :return: The file name of the latest (generated) optional hashes config file. """
         return 'hashes-latest.json'
 
     def get_latest_hashes_config(self):
-        """ :return: The path to the optional hashes config file. """
+        """ :return: The path to the latest (generated)  optional hashes config file. """
         return self.model_dir_path / self.get_latest_hashes_config_filename()
 
     # ============ TRAINING ============
