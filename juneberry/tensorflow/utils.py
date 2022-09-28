@@ -49,19 +49,19 @@ def save_summary(model, summary_file_path):
 
 
 def hash_summary(model):
-    # Swap out a string buffer, and capture the summary to it
+    # Swap out a string buffer and capture the summary in the buffer.
     output = io.StringIO()
     orig = sys.stdout
     sys.stdout = output
     model.summary()
     sys.stdout = orig
 
-    # Hash it and stash off the digest before we destroy the buffer
+    # Hash the model summary and stash off the digest before destroying the buffer.
     hasher = hashlib.sha256()
     hasher.update(output.getvalue().encode('utf-8'))
     digest = hasher.hexdigest()
 
-    # Close object and discard memory buffer
+    # Close the object and discard the memory buffer.
     output.close()
 
     return digest

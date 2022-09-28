@@ -151,7 +151,7 @@ def _install_from_cache(lab: Lab, model_name: str) -> bool:
     model_mgr = lab.model_manager(model_name)
     model_mgr.model_dir_path.mkdir(parents=True, exist_ok=True)
 
-    # The contents are in.
+    # Extract the model from the cache.
     with ZipFile(cache_zip_path) as myzip:
         myzip.extractall(model_mgr.model_dir_path)
 
@@ -174,7 +174,7 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
         return
 
     if zoo_url is None:
-        logger.info("No juneberry zoo specified, cannot download model.")
+        logger.info("No Juneberry zoo specified. Cannot download model.")
         return
 
     # By this point we are going to pull things and put into the cache.
@@ -195,33 +195,32 @@ def ensure_model(lab: Lab, model_name: str, no_cache: bool = False) -> None:
 def check_allow_load_model(model_manager, summary_hash_fn) -> bool:
     """
     Checks to see if the model should be installed. If a hashes config file exists and
-    it has a model_archiecture key and that matchs the archiecture, then we are good to
-    go.
-    :param lab: The lab that contains the cache directory and model zoo url
-    :param model_name: The name of the model
-    :param summary_hash_fn: A function to call that will return the appropriate hash
+    it has a model_architecture key which matches the architecture, then the model can
+    be installed.
+    :param model_manager: A model manager for the target model.
+    :param summary_hash_fn: A function to call that returns the appropriate hash
     value of the model summary. This will only be called if the a hash value exists to
-    compare agaist.
+    compare against.
     :return:
     """
     hashes_path = Path(model_manager.get_hashes_config())
     if not hashes_path.exists():
         # If no hashes config file exists just return.
-        logger.debug("No hashes.json file found, approving model load.")
+        logger.debug("No hashes.json file found. Approving model load.")
         return True
 
-    hashes = Hashes.load(hashes_path)
+    hashes = Hashes.load(str(hashes_path))
     if hashes.model_architecture is None:
-        # No model architecture hash exists, retrn
-        logger.debug("No model_archirecture found in hashes.json, approving model load.")
+        # No model architecture hash exists, return.
+        logger.debug("No model_architecture found in hashes.json. Approving model load.")
         return True
 
-    # Okay, now compare
+    # If there was a hash, compare them.
     if summary_hash_fn() == hashes.model_architecture:
-        logger.info("Model architecture hash found and matches architecture allow load.")
+        logger.info("Model architecture hash found and matches architecture. Approving model load.")
         return True
     else:
-        logger.info("Model architecture hash found and DOES NOT matches architecture, preventing load.")
+        logger.info("Model architecture hash found and DOES NOT match architecture. Model load denied.")
         return False
 
 
@@ -263,12 +262,12 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
             if path.exists():
                 zip_file.write(path, ONNXPlatformDefinitions().get_model_filename())
 
-        # Add the hash file if it exists
+        # If the hash file exists, add it to the zip.
         hashes_path = model_mgr.get_hashes_config()
         if hashes_path.exists():
             zip_file.write(hashes_path, model_mgr.get_hashes_config_filename())
         else:
-            # If we have a latest hashes, then use it.
+            # If a 'latest' hashes file exists, add it to the zip as a renamed file.
             latest_hashes_path = model_mgr.get_latest_hashes_config()
             if latest_hashes_path.exists():
                 zip_file.write(latest_hashes_path, model_mgr.get_hashes_config_filename())
@@ -277,6 +276,12 @@ def prepare_model_for_zoo(model_name: str, staging_zoo_dir: str, onnx: bool = Tr
 
 
 def update_hashes_file(hashes_path: str, model_architecture_hash: str = None) -> None:
+    """
+    Updates the hash in a hashes file.
+    :param hashes_path: A string indicating the location of the hashes file to update.
+    :param model_architecture_hash:
+    :return: None
+    """
     if Path(hashes_path).exists():
         hashes = Hashes.load(hashes_path)
     else:

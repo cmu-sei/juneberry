@@ -2,6 +2,6 @@
     "$schema": "https://json-schema.org/draft-07/schema",
     "description": "A configuration storing model hashes",
     "properties": {
-        "model_architecture": { "type" :  "string"}
+        "model_architecture": { "type" :  "string" }
     }
 }

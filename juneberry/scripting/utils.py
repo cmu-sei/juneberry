@@ -271,18 +271,17 @@ def setup_logging_for_script(args, script_name: str = None):
 
 
 def setup_workspace_and_model(args, *, log_file, model_name, log_prefix="", banner_msg=None,
-                              download:bool = False):
+                              download: bool = False):
     # Setup up the workspace like normal
     lab = setup_workspace(args, log_file=log_file, log_prefix=log_prefix, banner_msg=banner_msg)
 
     # Double check the model.
     mm = lab.model_manager(model_name)
     if not mm.get_model_config().exists() and download:
-        # See if we can use the zoo
+        # Attempt to use the model zoo.
         jb_zoo.ensure_model(lab, model_name)
 
-    # Now, the model should be there or have failed
+    # At this point either the model exists or a failure occurred.
     mm.ensure_model_directory()
     mm.setup()
     return lab
-

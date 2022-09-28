@@ -708,7 +708,7 @@ class ModelManager:
         return self.model_dir_path / 'model_summary.txt'
 
     def get_model_config_filename(self):
-        """ :return: The path to the model's config file. """
+        """ :return: The filename of the model config. """
         return 'config.json'
 
     def get_model_config(self):
@@ -724,19 +724,19 @@ class ModelManager:
         return self.model_dir_path / 'latest_ut_results.json'
 
     def get_hashes_config_filename(self) -> str:
-        """ :return: The path to the optional hashes config file. """
+        """ :return: The filename of the (optional) hashes config file. """
         return 'hashes.json'
 
     def get_hashes_config(self):
-        """ :return: The path to the optional hashes config file. """
+        """ :return: The path to the (optional) hashes config file. """
         return self.model_dir_path / self.get_hashes_config_filename()
 
     def get_latest_hashes_config_filename(self) -> str:
-        """ :return: The file name of the latest (generated) optional hashes config file. """
+        """ :return: The filename of the latest (generated) optional hashes config file. """
         return 'hashes-latest.json'
 
     def get_latest_hashes_config(self):
-        """ :return: The path to the latest (generated)  optional hashes config file. """
+        """ :return: The path to the latest (generated) optional hashes config file. """
         return self.model_dir_path / self.get_latest_hashes_config_filename()
 
     # ============ TRAINING ============

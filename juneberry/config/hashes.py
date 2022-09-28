@@ -23,12 +23,10 @@
 # ======================================================================================================================
 
 import logging
-from pathlib import Path
 import sys
 
-from prodict import Prodict, List
+from prodict import Prodict
 
-from juneberry.config.plugin import Plugin
 import juneberry.config.util as jb_conf_utils
 import juneberry.filesystem as jb_fs
 
@@ -52,7 +50,7 @@ class Hashes(Prodict):
 
         # Validate with our schema
         if not jb_conf_utils.validate_schema(data, Hashes.SCHEMA_NAME):
-            logger.error(f"Validation errors in DatasetConfig from {file_path}. See log. EXITING!")
+            logger.error(f"Validation errors in Hashes object from {file_path}. See log. Exiting!")
             sys.exit(-1)
 
         # Finally, construct the object
@@ -61,7 +59,7 @@ class Hashes(Prodict):
     @staticmethod
     def load(data_path: str):
         """
-        Load the config from the provided path, validate and construct the config.
+        Load the config from the provided path, validate, and construct the config.
         :param data_path: Path to config.
         :return: Loaded, validated, and constructed object.
         """
@@ -78,7 +76,7 @@ class Hashes(Prodict):
 
     def save(self, data_path: str) -> None:
         """
-        Save the DatasetConfig to the specified resource path.
+        Save the HashesConfig to the specified resource path.
         :param data_path: The path to the resource.
         :return: None
         """

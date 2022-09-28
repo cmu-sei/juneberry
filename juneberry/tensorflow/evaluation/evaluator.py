@@ -152,8 +152,8 @@ class Evaluator(EvaluatorBase):
 
             if not jb_zoo.check_allow_load_model(self.model_manager,
                                                  lambda: tf_utils.hash_summary(self.model)):
-                msg = "The hash of the tensorflow model ARCHITECTURE did not match the expected hash in " \
-                      "hashes.json. Either delete the hash, retrain or get the correct model. Exiting Exiting"
+                msg = "The hash of the TensorFlow MODEL ARCHITECTURE did not match the expected hash in " \
+                      "hashes.json. Either delete the hash, retrain, or get the correct model. Exiting."
                 logger.error(msg)
                 raise RuntimeError(msg)
 

@@ -432,24 +432,24 @@ def output_summary_file(model, image_shape, summary_file_path) -> None:
 def hash_summary(model, image_shape):
     """
     Returns a digest (hash) of the model summary file.
-    :param model: The model to hash
+    :param model: The model to hash.
     :param image_shape: The shape of the model.
-    :return: The digest
+    :return: The digest.
     """
 
-    # Swap out a string buffer, and capture the summary to it
+    # Swap out a string buffer and capture the summary in the buffer.
     output = io.StringIO()
     orig = sys.stdout
     sys.stdout = output
     summary(model, image_shape)
     sys.stdout = orig
 
-    # Hash it and stash off the digest before we destroy the buffer
+    # Hash the model summary and stash off the digest before destroying the buffer.
     hasher = hashlib.sha256()
     hasher.update(output.getvalue().encode('utf-8'))
     digest = hasher.hexdigest()
 
-    # Close object and discard memory buffer
+    # Close the object and discard the memory buffer.
     output.close()
 
     return digest
@@ -465,9 +465,9 @@ def un_normalize_imagenet_norms(x):
 
 def get_image_shape(data_loader):
     """
-    Returns the shape of the first item in the loader.  We assume they are all the same.
+    Returns the shape of the first item in the loader. All inputs are assumed to be the same size.
     :param data_loader: The data loader to examine.
-    :return: The image shape
+    :return: The image shape.
     """
     # We need the first item and first part (image)
     return next(iter(data_loader))[0][0].shape
