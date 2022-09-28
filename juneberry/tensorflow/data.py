@@ -113,8 +113,8 @@ class TFImageDataSequence(tf.keras.utils.Sequence):
 
 class AudioSample:
     def __init__(self, sample, filename):
-        self.sample: np.ndarray = sample
-        self.filenamez: str = filename
+        self.sample = sample
+        self.filename: str = filename
 
 class TFAudioDataSequence(tf.keras.utils.Sequence):
     """
@@ -171,6 +171,7 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
         sample, default_audio_rate = tf.audio.decode_wav(contents=sample, desired_samples=16000)
         sample = tf.squeeze(sample, axis=-1)
         sample = AudioSample(sample, self.data_list[index][0])
+        # import pdb; pdb.set_trace()
 
         if self.transforms is not None:
             if self.extended_signature:
@@ -178,6 +179,12 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
             else:
                 sample = self.transforms(sample)
         return sample
+
+        # frame_length = 255
+        # frame_step = 128
+        # spectrogram = tf.signal.stft(np.random.rand(16000), frame_length=frame_length, frame_step=frame_step)
+        
+        # return np.random.rand(129,124,1)
 
         # spec = audio_to_spec(self.data_list, index)
         # sample = tf.io.read_file(self.data_list[index][0])
