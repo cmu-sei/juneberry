@@ -104,7 +104,7 @@ class Trainer:
         self.native = True
         self.onnx = False
 
-        self.metrics_plugins = self.model_config.training_metrics
+        self.metrics_plugins = self.model_config.training_metrics or []
 
         if self.metrics_plugins:
             for plugin in self.metrics_plugins:
