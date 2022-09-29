@@ -1,3 +1,5 @@
+<img align="right" src="docs/logo.png">
+
 README
 ==========
 
