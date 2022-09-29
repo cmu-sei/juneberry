@@ -28,8 +28,8 @@ from prodict import Prodict
 
 from juneberry.config.plugin import Plugin
 from juneberry.filesystem import ModelManager
-import juneberry.metrics.metrics_manager as metrics_manager
-from juneberry.metrics.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
+import juneberry.metrics.objectdetection.metrics_manager as metrics_manager
+from juneberry.metrics.objectdetection.metrics_plot import PrecisionRecallPlot, PrecisionConfidencePlot, RecallConfidencePlot
 from juneberry.reporting.report import Report
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class PRCurve(Report):
       3) A Recall-Confidence plot, containing one or more curves.
     """
     def __init__(self, output_dir: str = "", iou: float = 0.5, curve_sources: dict = None,
-                 tp_threshold: float = 0.8, stats_fqcn: str = "juneberry.metrics.metrics.Summary"):
+                 tp_threshold: float = 0.8, stats_fqcn: str = "juneberry.metrics.objectdetection.brambox.metrics.Summary"):
         super().__init__(output_str=output_dir)
 
         # Store some attributes for various parameters that affect the curves.

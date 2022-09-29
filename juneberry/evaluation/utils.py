@@ -260,7 +260,7 @@ def verify_model_hash(evaluator: Evaluator, evaluated_model_hash, onnx=False):
 #   as a more general get_default_metrics_config
 def get_default_od_metrics_config() -> List[Plugin]:
     default_metrics_config = {
-        "fqcn": "juneberry.metrics.metrics.Coco",
+        "fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Coco",
         "kwargs": {
             "iou_threshold": 0.5,
             "max_det": 100,
@@ -268,14 +268,14 @@ def get_default_od_metrics_config() -> List[Plugin]:
         }
     }
     default_summary_config = {
-        "fqcn": "juneberry.metrics.metrics.Summary",
+        "fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Summary",
         "kwargs": {
             "iou_threshold": 0.5,
             "tp_threshold": 0.8
         }
     }
     default_tide_config = {
-        "fqcn": "juneberry.metrics.metrics.Tide",
+        "fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Tide",
         "kwargs": {
             "pos_thresh": 0.5,
             "bg_thresh": 0.5,
@@ -297,7 +297,7 @@ def get_default_od_metrics_config() -> List[Plugin]:
 #   as a more general get_default_metrics_formatter
 def get_default_od_metrics_formatter() -> Plugin:
     default_metrics_formatter = {
-        "fqcn": "juneberry.metrics.format.DefaultFormatter",
+        "fqcn": "juneberry.metrics.objectdetection.brambox.format.DefaultFormatter",
         "kwargs": {
         }
     }

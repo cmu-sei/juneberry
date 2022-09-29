@@ -46,7 +46,7 @@ from juneberry.evaluation.utils import get_histogram, get_default_od_metrics_con
 from juneberry.filesystem import EvalDirMgr, ModelManager
 from juneberry.logging import setup_logger as jb_setup_logger, RemoveDuplicatesFilter
 from juneberry.lab import Lab
-from juneberry.metrics.metrics_manager import MetricsManager
+from juneberry.metrics.objectdetection.metrics_manager import MetricsManager
 import juneberry.pytorch.processing as processing
 from juneberry.pytorch.utils import PyTorchPlatformDefinitions
 

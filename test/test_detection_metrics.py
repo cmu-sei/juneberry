@@ -27,7 +27,7 @@ import gzip
 import json
 
 import juneberry.filesystem as jb_fs
-import juneberry.metrics.detection_metrics
+import juneberry.metrics.objectdetection.detection_metrics
 
 
 def ltwh2ltrb(ltwh):
@@ -164,7 +164,7 @@ def test_iou():
     union = 100 + 100 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.objectdetection.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Not at origin
@@ -174,7 +174,7 @@ def test_iou():
     union = 100 + 100 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.objectdetection.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Different sizes
@@ -184,7 +184,7 @@ def test_iou():
     union = 100 + 121 - 81
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.objectdetection.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
     # Pure overlay
@@ -194,7 +194,7 @@ def test_iou():
     union = 100 + 100 - 100
     iou = round(intersect / float(union), 6)
 
-    iou2 = juneberry.metrics.detection_metrics.iou_bbox(bb1, bb2)
+    iou2 = juneberry.metrics.objectdetection.detection_metrics.iou_bbox(bb1, bb2)
     assert iou == iou2
 
 
@@ -262,7 +262,7 @@ def test_find_detect():
     truths = make_test_truths()
     detects = make_test_detect()
 
-    evals = juneberry.metrics.detection_metrics.find_best_detects(truths, detects)
+    evals = juneberry.metrics.objectdetection.detection_metrics.find_best_detects(truths, detects)
     # DEBUGGING
     # print(f"truths: {json.dumps(truths, indent=4)}")
     # print(f"detects: {json.dumps(detects, indent=4)}")
@@ -270,7 +270,7 @@ def test_find_detect():
 
     # Check results
     for i in range(3):
-        iou = juneberry.metrics.detection_metrics.iou_bbox(truths[0]['ltrb'], detects[i]['ltrb'])
+        iou = juneberry.metrics.objectdetection.detection_metrics.iou_bbox(truths[0]['ltrb'], detects[i]['ltrb'])
         assert evals[i]['detect_id'] == i
         assert evals[i]['score'] == detects[i]['confidence']
         assert evals[i]['iou'] == iou
@@ -285,7 +285,7 @@ def test_find_detect():
 
 
 def test_evaluator_single():
-    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.objectdetection.detection_metrics.MAPEvaluator()
     evaluator.add_ground_truth([make_truth(1817255, 42, 18, [214.15, 41.29, 348.26, 243.78])])
     evaluator.add_detections([make_detect(0, 42, 18, 0.236, [258.15, 41.29, 348.26, 243.78])])
     assert round(evaluator.mean_average_precision(), 5) == 1.0
@@ -293,7 +293,7 @@ def test_evaluator_single():
 
 def test_evaluator_two_truth_one_detect():
     print("TWO TRUTH, one DETECT")
-    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.objectdetection.detection_metrics.MAPEvaluator()
 
     # Two motorcycle (cat4) truths
     evaluator.add_ground_truth([
@@ -306,7 +306,7 @@ def test_evaluator_two_truth_one_detect():
 
 
 def test_evaluator_two_truth_one_detect_one_bogus():
-    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.objectdetection.detection_metrics.MAPEvaluator()
 
     # Two motorcycle (cat4) truths
     evaluator.add_ground_truth([
@@ -325,7 +325,7 @@ def evalutor_test_from_files(gt_path, dt_path, map50):
     truth = load_coco_truth(gt_path, wanted)
 
     # Build evaluator
-    evaluator = juneberry.metrics.detection_metrics.MAPEvaluator()
+    evaluator = juneberry.metrics.objectdetection.detection_metrics.MAPEvaluator()
 
     # Add in ground truths
     evaluator.add_ground_truth(truth)
@@ -358,7 +358,7 @@ def test_compute_precision_and_recall():
         {'true_positive': 1},
         {'true_positive': 0},
     ]
-    juneberry.metrics.detection_metrics.compute_precision_and_recall(evals, 5)
+    juneberry.metrics.objectdetection.detection_metrics.compute_precision_and_recall(evals, 5)
     assert evals[0]['precision'] == 1.0
     assert evals[0]['recall'] == 0.2
     assert evals[1]['precision'] == 0.5
@@ -401,7 +401,7 @@ def test_convert_to_thresholds():
         },
     ]
     # This is (0.0 * 5 + 1.0 * 6)/11
-    assert round(juneberry.metrics.detection_metrics.interpolated_stepped_average(data, 11), 6) == round(0.5454545454545454, 6)
+    assert round(juneberry.metrics.objectdetection.detection_metrics.interpolated_stepped_average(data, 11), 6) == round(0.5454545454545454, 6)
 
 
 def main():
