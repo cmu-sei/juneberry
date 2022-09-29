@@ -410,10 +410,20 @@ class EpochTrainer(Trainer):
         """
         pass
 
-    def end_epoch(self, tuning_mode: bool = False) -> str:
+    def end_epoch(self, tuning_mode: bool = False) -> dict:
         """
         Called at the end of epoch for model saving, external telemetry, etc.
         :param tuning_mode: Boolean indicating if the epoch is being used to tune the model.
+        :return: A dictionary containing information about the training results after the
+        latest epoch.
+        """
+        return {}
+
+    def summarize_epoch(self) -> str:
+        """
+        Called after end_epoch. Typically produces a message string summarizing the results of
+        the epoch. The message is usually logged.
+        :return: A string which summarizes the training results, which can be used for logging.
         """
         return ""
 
@@ -455,7 +465,8 @@ class EpochTrainer(Trainer):
         # This is outside of the epoch timer so the end has access to the time.
         with self.timer("end_epoch"):
             epoch_tracker = self.timer('epoch')
-            msg = self.end_epoch()
+            self.end_epoch()
+            msg = self.summarize_epoch()
             self.results_builder.record_epoch_duration(epoch_tracker.last_elapsed())
 
         # Deal with timing and logs

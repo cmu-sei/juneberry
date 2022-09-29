@@ -23,9 +23,12 @@
 # ======================================================================================================================
 
 from contextlib import contextmanager
-import json
+import functools
+import inspect
 import os
 from pathlib import Path
+
+from juneberry.config.model import ModelConfig
 
 
 @contextmanager
@@ -63,8 +66,8 @@ tabular_model_config = {
     'format_version': '0.2.0',
     'lab_profile': {'max_gpus': 1},
     'model_architecture': {
-        'args': {'num_classes': 2},
-        'module': 'juneberry-example-workspace.architectures.pytorch.sample_tabular_nn.BinaryModel'
+        'fqcn': 'juneberry-example-workspace.architectures.pytorch.sample_tabular_nn.BinaryModel',
+        'kwargs': {'num_classes': 2}
     },
     'platform': 'pytorch',
     'pytorch': {
@@ -109,8 +112,10 @@ text_detect_dt2_config = {
     'evaluation_transforms': [],
     'evaluator': {'fqcn': 'juneberry.detectron2.evaluator.Evaluator'},
     'format_version': '0.2.0',
-    'model_architecture': {'args': {'num_classes': 3},
-                           'module': 'COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml'},
+    'model_architecture': {
+        'fqcn': 'COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml',
+        'kwargs': {'num_classes': 3}
+    },
     'platform': 'detectron2',
     'pytorch': {'deterministic': True},
     'seed': 4210592948,
@@ -158,53 +163,190 @@ text_detect_dataset_config = {
     'url': 'https://cocodataset.org/#download'
 }
 
+training_output = {
+    'format_version': "0.2.0",
+    'options': {
+        'batch_size': 0,
+        'epochs': 0,
+        'model_architecture': {
+            "fqcn": "test_arch",
+            "kwargs": {}
+        },
+        'model_name': "TBD",
+        'seed': 12345,
+        'training_dataset_config_path': "TBD"
+    },
+    'results': {
+        'accuracy': [],
+        'loss': [],
+        'val_accuracy': [],
+        'val_loss': [],
 
-def setup_test_workspace(tmp_path) -> None:
-    """
-    Creates a test workspace *structure* within tmp_path.
-    :param tmp_path: Path to where to setup the temporary workspace.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
-    model_dir_path = ws_path / "models"
-    tbs_dir_path = model_dir_path / "tabular_binary_sample"
-    tbs_dir_path.mkdir(parents=True, exist_ok=True)
-
-    dt_conf_path = model_dir_path / "text_detect" / "dt2" / "ut"
-    dt_conf_path.mkdir(parents=True, exist_ok=True)
-
-    data_sets_path = ws_path / "data_sets"
-    data_sets_path.mkdir(exist_ok=True)
-
-
-def make_tabular_workspace(tmp_path) -> None:
-    """
-    Creates a sample model config and dataset config for the tabular model.
-    :param tmp_path: Path to workspace directory.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
-    model_conf_path = ws_path / "models" / "tabular_binary_sample" / "config.json"
-    with open(str(model_conf_path), "w") as out_file:
-        json.dump(tabular_model_config, out_file)
-
-    ds_conf_path = ws_path / "data_sets" / "train_data_config.json"
-    with open(str(ds_conf_path), "w") as out_file:
-        json.dump(tabular_dataset_config, out_file)
+    }
+}
 
 
-def make_dt2_workspace(tmp_path) -> None:
-    """
-    Creates a sample model config and dataset config for the detectron2 text detection model.
-    :param tmp_path: Path to workspace directory.
-    :return: Nothing.
-    """
-    ws_path = Path(tmp_path)
+def make_basic_model_config(add_transforms: bool = False) -> dict:
+    mc = {
+        "batch_size": 16,
+        "training_dataset_config_path": "path/to/data/set",
+        "epochs": 50,
+        'evaluator': {
+            'fqcn': 'juneberry.dummy.evaluator'
+        },
+        "format_version": ModelConfig.FORMAT_VERSION,
+        "platform": "pytorch",
+        "model_architecture": {
+            "fqcn": "sample.module",
+            "kwargs": {"num_classes": 1000}
+        },
+        "seed": 1234,
+        "timestamp": "optional ISO time stamp for when this was generated generated",
+        'trainer': {
+            'fqcn': 'juneberry.dummy.evaluator'
+        },
+        "validation": {
+            "algorithm": "random_fraction",
+            "arguments": {
+                "seed": 1234,
+                "fraction": 0.5
+            }
+        }
+    }
 
-    model_conf_path = ws_path / "models" / "text_detect" / "dt2" / "ut" / "config.json"
-    with open(str(model_conf_path), "w") as out_file:
-        json.dump(text_detect_dt2_config, out_file)
+    if add_transforms:
+        transform_dict = {
+            "training_transforms": [
+                {
+                    "fqcn": "my.fqg",
+                    "kwargs": {"arg1": "hello"}
+                }
+            ],
+            "evaluation_transforms": [
+                {
+                    "fqcn": "my.fqg",
+                    "kwargs": {"arg1": "hello"}
+                }
+            ]
+        }
+        mc.update(transform_dict)
 
-    ds_conf_path = ws_path / "data_sets" / "text_detect_val.json"
-    with open(str(ds_conf_path), "w") as out_file:
-        json.dump(text_detect_dataset_config, out_file)
+    return mc
+
+
+def make_basic_dataset_config(image_data=True, classification=True, torchvision=False):
+    config = {
+        "num_model_classes": 4,
+        "description": "Unit test",
+        "timestamp": "never",
+        "format_version": "3.2.0",
+        "label_names": {"0": "frodo", "1": "sam"},
+    }
+
+    if image_data:
+        config['data_type'] = 'image'
+        if classification:
+            config['image_data'] = {
+                "task_type": "classification",
+                "sources": [{"directory": "some/path", "label": 0}]
+            }
+        else:
+            config['image_data'] = {
+                "task_type": "object_detection",
+                "sources": [{"directory": "some/path"}]
+            }
+    elif torchvision:
+
+        kwargs = {
+            "size": 2,
+            "image_size": (1, 2, 2),
+            "num_classes": 4,
+        }
+
+        config['data_type'] = 'torchvision'
+        config['torchvision_data'] = {
+            "eval_kwargs": kwargs,
+            "fqcn": "torchvision.datasets.FakeData",  # A fake dataset that returns randomly generated PIL images.
+            "root": "",
+            "train_kwargs": kwargs,
+            "val_kwargs": kwargs
+        }
+
+        config['torchvision_data']['task_type'] = 'classification' if classification else 'object_detection'
+
+    else:
+        config['data_type'] = 'tabular'
+        config['tabular_data'] = {
+            "sources": [{"path": "some/path"}],
+            "label_index": 0
+        }
+
+    return config
+
+
+def make_basic_experiment_config():
+    return {
+        "description": "simple description",
+        "models": [
+            {
+                "name": "tabular_binary_sample",
+                "tests": [
+                    {
+                        "tag": "pyt50",
+                        "dataset_path": "data_sets/train_data_config.json",
+                        "classify": 3
+                    }
+                ]
+            }
+        ],
+        "reports": [
+            {
+                "description": "basic description",
+                "fqcn": 'juneberry.reporting.roc.ROCPlot',
+                "kwargs": {
+                    "output_filename": "sample_roc_1.png",
+                    "plot_title": "Sample ROC Plot"
+                },
+                "tests": [
+                    {
+                        "tag": "pyt50",
+                        "classes": "0"
+                    }
+                ],
+            }
+        ],
+        "tuning": [
+            {
+                "model": "",
+                "tuning_config": ""
+            }
+
+        ],
+        "format_version": "1.5.0"
+    }
+    # NOTE: We provide the formatVersion manually to force an update of the unit test when
+    # the version changes.
+
+
+def get_fn_name(fn):
+    for k, v in inspect.getmembers(fn):
+        if k == "__name__":
+            return v
+    return "Unknown"
+
+
+log_step = 0
+
+
+def log_func(func):
+    func_name = get_fn_name(func)
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        global log_step
+        # Use this to get a list of all calls in order
+        # print(f">> {log_step} {func_name}")
+        log_step += 1
+        return func(*args, **kwargs)
+
+    return wrapper

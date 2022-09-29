@@ -38,7 +38,6 @@ def setup_args(parser) -> None:
     Adds arguments to the parser
     :param parser: The parser in which to add arguments.
     """
-    # TODO:
     parser.add_argument('annotationsFile',
                         help="COCO annotations file describing both the raw images, and the bounding boxes around "
                              "the objects that were detected in each image. ")

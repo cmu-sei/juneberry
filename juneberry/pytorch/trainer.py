@@ -324,7 +324,7 @@ class ClassifierTrainer(EpochTrainer):
                 history_key = f"val_{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
 
-    def end_epoch(self, tuning_mode: bool = False) -> Union[str, dict]:
+    def end_epoch(self, tuning_mode: bool = False) -> dict:
         if self.lr_scheduler is not None:
             if self.lr_step_frequency == LRStepFrequency.EPOCH:
                 self.lr_scheduler.step()
@@ -348,18 +348,15 @@ class ClassifierTrainer(EpochTrainer):
 
         self.show_memory_summary(False)
 
-        # When tuning a PyTorch classifier, the tuner should receive a dictionary of metrics and not the
-        # formatted metric string.
-        # TODO: Maybe it's a good idea to return the metrics dictionary in all cases?
-        if tuning_mode:
-            return_val = {}
-            for x in self.history:
-                if len(self.history[x]) > 0:
-                    return_val[x] = self.history[x][-1]
+        # Construct the dictionary of metrics and return the result.
+        return_val = {}
+        for x in self.history:
+            if len(self.history[x]) > 0:
+                return_val[x] = self.history[x][-1]
 
-            return return_val
+        return return_val
 
-        # Make a nice metric message for the epoch output
+    def summarize_epoch(self) -> str:
         metric_str = ""
         metrics_history, non_metrics_history = _separate_metrics_history(self.history)
         for x in metrics_history:

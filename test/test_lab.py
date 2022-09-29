@@ -29,9 +29,7 @@ from pathlib import Path
 from juneberry.lab import Lab
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
-
-import test_model_config
-import test_data_set
+import utils
 
 
 def create_tmp_model(lab: Lab, tmp_path, model_name) -> dict:
@@ -39,7 +37,7 @@ def create_tmp_model(lab: Lab, tmp_path, model_name) -> dict:
     model_path = Path(tmp_path) / mm.get_model_dir()
     model_path.mkdir(parents=True)
 
-    data = test_model_config.make_basic_config()
+    data = utils.make_basic_model_config()
     with open(Path(tmp_path) / mm.get_model_config(), "w") as json_file:
         json.dump(data, json_file)
 
@@ -50,7 +48,7 @@ def create_tmp_dataset(tmp_path, dataset_name) -> dict:
     ds_path = Path(tmp_path) / dataset_name
     ds_path.parent.mkdir(parents=True)
 
-    data = test_data_set.make_basic_config(image_data=True, classification=True)
+    data = utils.make_basic_dataset_config(image_data=True, classification=True)
     with open(ds_path, "w") as json_file:
         json.dump(data, json_file)
 
@@ -105,7 +103,7 @@ def test_dataset_loading(tmp_path):
 
 
 def test_model_config_saving(tmp_path):
-    model_data = ModelConfig.construct(test_model_config.make_basic_config())
+    model_data = ModelConfig.construct(utils.make_basic_model_config())
     model_data.timestamp = datetime.datetime.now
 
     lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')
@@ -116,7 +114,7 @@ def test_model_config_saving(tmp_path):
 
 
 def test_dataset_config_saving(tmp_path):
-    data = DatasetConfig.construct(test_data_set.make_basic_config(image_data=True, classification=False))
+    data = DatasetConfig.construct(utils.make_basic_dataset_config(image_data=True, classification=False))
     data.timestamp = datetime.datetime.now
 
     lab = Lab(workspace=tmp_path / 'workspace', data_root=tmp_path / 'data_root')

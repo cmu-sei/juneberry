@@ -156,7 +156,7 @@ class ModelConfig(Prodict):
     file_path: Path
     format_version: str
     lab_profile: LabProfile
-    label_mapping: typing.Union[Prodict, str]
+    label_mapping: object
     mmdetection: MMDetection
     model_architecture: ModelArchitecture
     model_transforms: List[Plugin]

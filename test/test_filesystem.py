@@ -38,7 +38,6 @@ def test_eval_dir():
     eval_dir_root = root / 'eval' / 'TestDataset'
 
     eval_dir_mgr = mm.get_eval_dir_mgr('TestDataset')
-    eval_dir_mgr.setup()
 
     assert eval_dir_mgr.get_dir() == eval_dir_root
     assert eval_dir_mgr.get_scratch_dir() == eval_dir_root / 'scratch'
@@ -155,11 +154,11 @@ def test_hash_function(tmp_path):
     assert "d2a84f4b8b650937ec8f73cd8be2c74add5a911ba64df27458ed8229da804a26" == out_str
 
 
-def test_json_cleaner():
+def test_json_cleaner(tmp_path):
+    out_file = tmp_path / "out.json"
     data = {"np": np.array([1, 2, 3]), "path": Path('models')}
-    str_results = json.dumps(data, indent=4, default=jb_fs.json_cleaner)
-    # TODO: Should this be routed through the jb_fs load chokepoint?
-    results = hjson.loads(str_results)
+    jb_fs.save_json(data=data, json_path=out_file)
+    results = jb_fs.load_json(json_path=str(out_file))
     assert results['path'] == 'models'
     assert results['np'] == [1, 2, 3]
 

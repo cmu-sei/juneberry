@@ -26,8 +26,6 @@
 Unit tests for operations related to model evaluation.
 """
 
-import functools
-import inspect
 from types import SimpleNamespace
 
 from juneberry.config.dataset import DatasetConfig
@@ -40,6 +38,7 @@ from juneberry.lab import Lab
 from juneberry.mmdetection.evaluator import Evaluator as MMDEvaluator
 from juneberry.pytorch.evaluation.evaluator import Evaluator as PyTorchEvaluator
 from juneberry.tensorflow.evaluation.evaluator import Evaluator as TFEvaluator
+import utils
 
 
 class EvalTestHelper:
@@ -64,37 +63,12 @@ class EvalTestHelper:
         self.dataset.file_path = ""
         self.model_manager = self.lab.model_manager("test")
         self.eval_dir_mgr = self.model_manager.get_eval_dir_mgr("test_dataset")
-        self.eval_dir_mgr.setup()
         self.eval_options = SimpleNamespace()
         self.log_file = ""
 
     def build_evaluator(self):
         return create_evaluator(self.model_config, self.lab, self.model_manager, self.eval_dir_mgr, self.dataset,
                                 self.eval_options, self.log_file)
-
-
-def get_fn_name(fn):
-    for k, v in inspect.getmembers(fn):
-        if k == "__name__":
-            return v
-    return "Unknown"
-
-
-log_step = 0
-
-
-def log_func(func):
-    func_name = get_fn_name(func)
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        global log_step
-        # Use this to get a list of all calls in order
-        # print(f">> {log_step} {func_name}")
-        log_step += 1
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 class EvaluatorHarness(EvaluatorBase):
@@ -112,31 +86,31 @@ class EvaluatorHarness(EvaluatorBase):
 
     # TODO: This really isn't checking much, just that the correct calls are made.
 
-    @log_func
+    @utils.log_func
     def check_gpu_availability(self):
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def setup(self):
         self.setup_calls.append(self.step)
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def obtain_dataset(self):
         self.obtain_dataset_calls.append(self.step)
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def obtain_model(self):
         self.obtain_model_calls.append(self.step)
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def evaluate_data(self):
         self.evaluate_data_calls.append(self.step)
         self.step += 1
 
-    @log_func
+    @utils.log_func
     def format_evaluation(self):
         self.format_evaluation_calls.append(self.step)
         self.step += 1
