@@ -72,7 +72,7 @@ def require_tags(label, data: dict, tags: list) -> int:
 
 def validate_schema(data, schema_name, die_on_error=False):
     # Load the schema.
-    # TODO: Use the standard python package resource loading instead of our file loaders because they are
+    # We use the standard python package resource loading instead of our file loaders because they are
     #  package resources.
     schema = hjson.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
 
