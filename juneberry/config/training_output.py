@@ -25,7 +25,6 @@
 from datetime import datetime, timedelta
 import logging
 import sys
-from typing import Union
 
 from prodict import Prodict
 
@@ -80,7 +79,7 @@ class Options(Prodict):
     batch_size: int
     data_type: str
     epochs: int
-    label_mapping: Union[dict, str]
+    label_mapping: object
     model_architecture: Prodict
     model_name: str
     num_training_images: int

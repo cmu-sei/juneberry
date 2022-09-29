@@ -33,57 +33,7 @@ from juneberry.config.dataset import DatasetConfigBuilder, DatasetConfig, DataTy
 from juneberry.config.model import ModelConfig
 from juneberry.lab import Lab
 import juneberry.pytorch.data as pyt_data
-import test_model_config
-
-
-def make_basic_config(image_data=True, classification=True, torchvision=False):
-    config = {
-        "num_model_classes": 4,
-        "description": "Unit test",
-        "timestamp": "never",
-        "format_version": "3.2.0",
-        "label_names": {"0": "frodo", "1": "sam"},
-    }
-
-    if image_data:
-        config['data_type'] = 'image'
-        if classification:
-            config['image_data'] = {
-                "task_type": "classification",
-                "sources": [{"directory": "some/path", "label": 0}]
-            }
-        else:
-            config['image_data'] = {
-                "task_type": "object_detection",
-                "sources": [{"directory": "some/path"}]
-            }
-    elif torchvision:
-
-        kwargs = {
-            "size": 2,
-            "image_size": (1, 2, 2),
-            "num_classes": 4,
-        }
-
-        config['data_type'] = 'torchvision'
-        config['torchvision_data'] = {
-            "eval_kwargs": kwargs,
-            "fqcn": "torchvision.datasets.FakeData",  # A fake dataset that returns randomly generated PIL images.
-            "root": "",
-            "train_kwargs": kwargs,
-            "val_kwargs": kwargs
-        }
-
-        config['torchvision_data']['task_type'] = 'classification' if classification else 'object_detection'
-
-    else:
-        config['data_type'] = 'tabular'
-        config['tabular_data'] = {
-            "sources": [{"path": "some/path"}],
-            "label_index": 0
-        }
-
-    return config
+import utils
 
 
 def make_sample_data(tmp_path):
@@ -103,7 +53,7 @@ def make_sample_data(tmp_path):
 
 
 def test_config_basics():
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
 
     ds = DatasetConfig.construct(config, Path("."))
     assert ds.is_image_type() is True
@@ -118,12 +68,12 @@ def test_config_basics():
     assert ds.label_names['0'] == "frodo"
     assert ds.label_names['1'] == "sam"
 
-    config = make_basic_config(True, False)
+    config = utils.make_basic_dataset_config(True, False)
     ds = DatasetConfig.construct(config, Path("."))
     assert ds.data_type == DataType.IMAGE
     assert ds.image_data.task_type == TaskType.OBJECT_DETECTION
 
-    config = make_basic_config(False)
+    config = utils.make_basic_dataset_config(False)
     ds = DatasetConfig.construct(config, Path("."))
     assert ds.data_type == DataType.TABULAR
 
@@ -158,7 +108,7 @@ def test_config_builder_basic(tmp_path):
 
 
 def test_image_data():
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     image_data = {
         "image_data": {
             "task_type": "classification",
@@ -177,7 +127,7 @@ def test_image_data():
 
 
 def test_obj_detection_data():
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     image_data = {
         "image_data": {
             "task_type": "object_detection",
@@ -199,7 +149,7 @@ def test_obj_detection_data():
 
 
 def test_tabular_data_data_root(tmp_path):
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     data_dir, file_names = make_sample_data(tmp_path)
 
     config["data_type"] = "tabular"
@@ -228,7 +178,7 @@ def test_tabular_data_data_root(tmp_path):
 
 
 def test_csv_data_workspace(tmp_path):
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     data_dir, file_names = make_sample_data(tmp_path)
 
     config["data_type"] = "tabular"
@@ -265,7 +215,7 @@ def test_csv_data_workspace(tmp_path):
 
 
 def test_csv_data_relative(tmp_path):
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     data_dir, file_names = make_sample_data(tmp_path)
 
     config["data_type"] = "tabular"
@@ -297,7 +247,7 @@ def test_csv_glob(tmp_path):
     # The path structure should support globbing
     # So, use the tmp_path as the dataroot and slap in some files
 
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     data_dir, file_names = make_sample_data(tmp_path)
 
     config["data_type"] = "tabular"
@@ -333,7 +283,7 @@ def test_csv_glob(tmp_path):
 
 def test_torchvision():
     # Make a basic torchvision dataset config.
-    config = make_basic_config(image_data=False, torchvision=True)
+    config = utils.make_basic_dataset_config(image_data=False, torchvision=True)
     ds = DatasetConfig.construct(config, Path('.'))
 
     # Confirm the DatasetConfig is the TORCHVISION type and for a CLASSIFICATION task.
@@ -343,7 +293,7 @@ def test_torchvision():
     # Build a Lab and basic ModelConfig (required for building the torchvision dataloader).
     lab = Lab(workspace='ws', data_root='dr')
     lab.setup_lab_profile()
-    model_config_data = test_model_config.make_basic_config()
+    model_config_data = utils.make_basic_model_config()
     mc = ModelConfig.from_dict(model_config_data)
 
     # Get the training and evaluation torchvision data loaders.
@@ -391,7 +341,7 @@ class TestFormatErrors(unittest.TestCase):
         self.assertIn(message, cm.output[0])
 
     def test_image_data_missing_directory(self):
-        config = make_basic_config()
+        config = utils.make_basic_dataset_config()
         config['image_data']['sources'] = [{"label": 0}]
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -400,7 +350,7 @@ class TestFormatErrors(unittest.TestCase):
 
     # TODO: This is only valid if the task type is classification.
     # def test_image_data_missing_label(self):
-    #     config = make_basic_config()
+    #     config = make_basic_model_config()
     #     config['image_data']['sources'] = [{"directory": "some/path"}]
     #
     #     with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -408,7 +358,7 @@ class TestFormatErrors(unittest.TestCase):
     #     self.assert_error(log, "label")
 
     def test_csv_data_missing_path(self):
-        config = make_basic_config(False)
+        config = utils.make_basic_dataset_config(False)
         config['tabular_data']['sources'] = [{"root": "dataroot"}]
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -416,7 +366,7 @@ class TestFormatErrors(unittest.TestCase):
         self.assert_error(log, "path")
 
     def test_csv_data_bad_root(self):
-        config = make_basic_config(False)
+        config = utils.make_basic_dataset_config(False)
         config['tabular_data']['sources'] = [{"root": "foobar", "path": "dataroot"}]
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -424,7 +374,7 @@ class TestFormatErrors(unittest.TestCase):
         self.assert_error(log, "foobar")
 
     def test_csv_bad_label_index(self):
-        config = make_basic_config(False)
+        config = utils.make_basic_dataset_config(False)
         del config['tabular_data']['label_index']
 
         with self.assertRaises(SystemExit), self.assertLogs(level='ERROR') as log:
@@ -433,7 +383,7 @@ class TestFormatErrors(unittest.TestCase):
 
 
 def test_sampling():
-    config = make_basic_config()
+    config = utils.make_basic_dataset_config()
     sampling_data = {
         "sampling": {
             "algorithm": "random_fraction",
