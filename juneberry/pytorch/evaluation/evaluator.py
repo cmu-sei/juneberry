@@ -78,6 +78,9 @@ class Evaluator(EvaluatorBase):
         # These attributes relate to Pytorch's way of loading data from a dataloader.
         self.eval_loader = None
 
+        if not self.metrics_plugins:
+            self.metrics_plugins = _get_default_metrics_plugins()
+
     # ==========================================================================
 
     @classmethod
@@ -353,3 +356,31 @@ class Evaluator(EvaluatorBase):
         logger.info(f"Formatting raw EVALUATION data according to {self.eval_output_method}")
 
         pyt_utils.invoke_evaluator_method(self, self.eval_output_method)
+
+
+def _get_default_metrics_plugins():
+    evaluation_metrics = [
+        {
+            "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+            "kwargs": {
+                "fqn": "sklearn.metrics.accuracy_score",
+                "name": "accuracy",
+                "kwargs": {
+                    "sample_weight": None,
+                    "normalize": True
+                }
+            }
+        },
+        {
+            "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+            "kwargs": {
+                "fqn": "sklearn.metrics.balanced_accuracy_score",
+                "name": "balanced_accuracy",
+                "kwargs": {
+                    "sample_weight": None,
+                    "adjusted": True
+                }
+            }
+        }
+    ]
+    return evaluation_metrics

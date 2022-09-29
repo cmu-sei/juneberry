@@ -104,15 +104,7 @@ class Trainer:
         self.native = True
         self.onnx = False
 
-        self.metrics_plugins = self.model_config.training_metrics or []
-
-        if self.metrics_plugins:
-            for plugin in self.metrics_plugins:
-                if plugin["kwargs"]["name"] == "loss":
-                    error_msg = f"'loss' should be listed in the pytorch stanza of the model config, not the metrics stanza."
-                    logger.error(error_msg)
-                    raise RuntimeError(error_msg)
-
+        self.metrics_plugins = self.model_config.training_metrics
 
     # ==========================
 

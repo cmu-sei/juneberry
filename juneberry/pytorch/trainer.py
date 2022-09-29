@@ -103,6 +103,15 @@ class ClassifierTrainer(EpochTrainer):
         self.direction = None
         self.abs_tol = None
 
+        if not self.metrics_plugins:
+            self.metrics_plugins = _get_default_metrics_plugins()
+
+        for plugin in self.metrics_plugins:
+            if plugin["kwargs"]["name"] == "loss":
+                error_msg = f"'loss' should be listed in the pytorch stanza of the model config, not the metrics stanza."
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+
     # ==========================================================================
 
     @classmethod
@@ -632,6 +641,21 @@ def _tensors_to_numpy(preds, target):
         preds_np = preds.cpu().numpy()
         target_np = target.cpu().detach().numpy()
     return preds_np, target_np
+
+def _get_default_metrics_plugins():
+    training_metrics = [
+        {
+            "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+            "kwargs": {
+                "fqn": "sklearn.metrics.accuracy_score",
+                "name": "accuracy",
+                "kwargs": {
+                    "normalize": True
+                }
+            }
+        }
+    ]
+    return training_metrics
 
 def main():
     print("Nothing to see here.")
