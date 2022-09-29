@@ -38,6 +38,7 @@ from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCrit
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs
 from juneberry.logging import setup_logger
+import juneberry.metrics.classification.metrics_manager as mm
 from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
@@ -59,7 +60,6 @@ class ClassifierTrainer(EpochTrainer):
 
         # Assigned during setup
         self.loss_function = None
-        self.accuracy_function = None
         self.lr_scheduler = None
         self.optimizer = None
         self.evaluator = None
@@ -94,7 +94,7 @@ class ClassifierTrainer(EpochTrainer):
 
         # These properties are used for DistributedDataParallel (if necessary)
         self.training_loss_list = None
-        self.training_accuracy_list = None
+        self.training_metrics_lists = {}
 
         self.lr_step_frequency = LRStepFrequency.EPOCH
 
@@ -194,14 +194,24 @@ class ClassifierTrainer(EpochTrainer):
         self.loss_function = pyt_utils.make_loss(self.pytorch_options, self.model, self.binary)
         self.optimizer = pyt_utils.make_optimizer(self.pytorch_options, self.model)
         self.lr_scheduler = pyt_utils.make_lr_scheduler(self.pytorch_options, self.optimizer, self.model_config.epochs)
-        self.accuracy_function = pyt_utils.make_accuracy(self.pytorch_options, self.binary)
         self.setup_acceptance_checker()
         if self.pytorch_options.lr_step_frequency == LRStepFrequency.BATCH:
             self.lr_step_frequency = LRStepFrequency.BATCH
 
         self.num_batches = len(self.training_iterable)
 
-        self.history = {'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': [], 'epoch_duration': [], 'lr': []}
+        self.history = {'loss': [], 'val_loss': []}
+
+        # Create an entry in the history for each metrics plugin in the config.
+        # TODO what if one of our metrics is called "loss?" That will step on the already
+        #  existing "loss" entry in self.history.
+        #  For now, log an error if "loss" is specified in the training_metrics section.
+        for plugin in self.metrics_plugins:
+            self.history[plugin["kwargs"]["name"]] = []
+            self.history["val_" + plugin["kwargs"]["name"]] = []
+
+        self.history['epoch_duration'] = []
+        self.history['lr'] = []
 
     def finish(self):
         super().finish()
@@ -212,6 +222,8 @@ class ClassifierTrainer(EpochTrainer):
     # ==========================================================================
 
     def start_epoch_phase(self, train: bool):
+        result = {}
+
         if train:
             self.model.train()
             torch.set_grad_enabled(True)
@@ -225,14 +237,21 @@ class ClassifierTrainer(EpochTrainer):
             if isinstance(self.evaluation_iterable.dataset, pyt_utils.EpochDataset):
                 self.evaluation_iterable.dataset.set_epoch(self.epoch)
 
-        # In distributed training, each process will have a different loss/accuracy value. These lists are used to
-        # collect the values from each process, so we need one tensor in the list for every process in the "world".
         if self.distributed:
             self.training_loss_list = [torch.Tensor(1).cuda() for i in range(self.num_gpus)]
-            self.training_accuracy_list = [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
+            # TODO: Unlike when we were only storing accuracy, I don't know that we can automatically
+            #  initialize to float64 tensors for every kind of metric
+            for plugin in self.metrics_plugins:
+                self.training_metrics_lists[plugin["kwargs"]["name"] + "_list"] = \
+                    [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
+
+        result["loss_list"] = []
 
         # Start off with empty metrics
-        return {'losses': [], 'accuracies': []}
+        for plugin in self.metrics_plugins:
+            result[plugin["kwargs"]["name"] + "_list"] = []
+
+        return result
 
     def process_batch(self, train: bool, data, targets):
 
@@ -242,43 +261,53 @@ class ClassifierTrainer(EpochTrainer):
         # Forward pass: Pass in the batch of images for it to do its thing
         output = self.model(local_batch)
 
-        # Compute and store loss and accuracy based on the provided functions
+        # Compute and store loss based on the provided function
         loss = self.loss_function(output, local_labels)
-        accuracy = self.accuracy_function(output, local_labels)
 
-        return loss, accuracy
+        # Compute and store metrics based on metrics plugin functions
+        metrics_mgr = mm.MetricsManager(self.metrics_plugins)
+        preds_np, target_np = _tensors_to_numpy(output, local_labels)
+        metrics = metrics_mgr(target_np, preds_np, self.dataset_config.is_binary)
+
+        return loss, metrics
 
     def update_metrics(self, train: bool, metrics, results) -> None:
-        # Unpack the results we returned on process batch
-        loss, accuracy = results
+        # Unpack the loss and metrics we returned on process batch
+        current_loss, current_metrics = results
 
-        # If we're doing distributed training, the process is a little different.
+        # In distributed training, each process will have a different loss/accuracy value. These lists are used to
+        # collect the values from each process, so we need one tensor in the list for every process in the "world".
         if self.distributed:
-            # Convert the accuracy to a tensor, so it can be gathered.
-            acc_tensor = torch.from_numpy(np.asarray(accuracy, dtype=float)).to(self.device)
+            tensor_metrics_results = {}
+            # TODO Assuming data type (float) for an unknown metric
+            for k, v in current_metrics.items():
+                tensor_metrics_results[k] = torch.from_numpy(np.asarray(current_metrics[k], dtype=float)).to(self.device)
 
-            # Make sure the loss can be gathered
-            loss_on_device = loss.to(self.device)
+            loss_on_device = current_loss.to(self.device)
 
             # Create a barrier to wait for all processes to reach this point. Once they do, gather up
             # the loss and accuracy from each process and place it in the appropriate tensor list.
             dist.barrier()
             dist.all_gather(self.training_loss_list, loss_on_device)
-            dist.all_gather(self.training_accuracy_list, acc_tensor)
+            for k, v in tensor_metrics_results.items():
+                dist.all_gather(self.training_metrics_lists[k], tensor_metrics_results[k])
 
             # Take the value from each tensor in the tensor list and place it in the corresponding metric.
             for tensor in self.training_loss_list:
-                metrics['losses'].append(tensor.item())
-            for tensor in self.training_accuracy_list:
-                metrics['accuracies'].append(tensor.item())
+                metrics['loss_list'].append(tensor.item())
+            for k, v in self.training_metrics_lists.items():
+                for val in self.training_metrics_lists[k]:
+                    metrics[f"{k}_list"].append(val.item())
             return
 
-        # Record the loss/accuracy values in the metrics dictionary.
-        metrics['losses'].append(loss.item())
-        metrics['accuracies'].append(accuracy)
+        # Record the values in the metrics dictionary (non-distributed case).
+        metrics["loss_list"].append(current_loss.item())
+        for k, v in current_metrics.items():
+            metrics[f"{k}_list"].append(current_metrics[k].item())
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
+        # We don't need the metrics here
         loss, _ = results
 
         self.optimizer.zero_grad()
@@ -289,12 +318,11 @@ class ClassifierTrainer(EpochTrainer):
             self.lr_scheduler.step()
 
     def summarize_metrics(self, train, metrics) -> None:
-        if train:
-            self.history['loss'].append(float(np.mean(metrics['losses'])))
-            self.history['accuracy'].append(float(np.mean(metrics['accuracies'])))
-        else:
-            self.history['val_loss'].append(float(np.mean(metrics['losses'])))
-            self.history['val_accuracy'].append(float(np.mean(metrics['accuracies'])))
+        for k, v in metrics.items():
+            history_key = k[:-5] # strip off the ending "_list" in key
+            if not train:
+                history_key = f"val_{history_key}"
+            self.history[history_key].append(float(np.mean(metrics[k])))
 
     def end_epoch(self, tuning_mode: bool = False) -> Union[str, dict]:
         if self.lr_scheduler is not None:
@@ -333,14 +361,15 @@ class ClassifierTrainer(EpochTrainer):
 
         # Make a nice metric message for the epoch output
         metric_str = ""
-        for x in self.history:
-            if len(self.history[x]) > 0:
-                if 'accuracy' in x or 'loss' in x:
-                    metric_str += f"{x}: {self.history[x][-1]:.4f}, "
-                else:
-                    metric_str += f"{x}: {self.history[x][-1]:.2E}, "
+        metrics_history, non_metrics_history = _separate_metrics_history(self.history)
+        for x in metrics_history:
+            if metrics_history[x] and len(metrics_history[x]) > 0:
+                metric_str += f"{x}: {metrics_history[x][-1]:.4f}, "
+        for x in non_metrics_history:
+            if non_metrics_history[x] and len(non_metrics_history[x]) > 0:
+                metric_str += f"{x}: {non_metrics_history[x][-1]:.2E}, "
 
-        return metric_str
+        return metric_str[:-2]  # remove trailing ", "
 
     def finalize_results(self) -> None:
         # If we're in distributed mode, only one process needs to perform these actions (since all processes should
@@ -590,12 +619,22 @@ def history_to_results(history, results, native, onnx):
     if onnx:
         results['results']['onnx_model_hash'] = history['onnx_model_hash']
 
-    results['results']['loss'] = history['loss']
-    results['results']['accuracy'] = history['accuracy']
+    metrics_history, _ = _separate_metrics_history(history)
+    for k in metrics_history.keys():
+        results['results'][k] = metrics_history[k]
 
-    results['results']['val_loss'] = history['val_loss']
-    results['results']['val_accuracy'] = history['val_accuracy']
+def _separate_metrics_history(history):
+    non_metrics_keys = {"lr", "model_hash", "onnx_model_hash", "epoch_duration"}
+    metrics_keys = history.keys() - non_metrics_keys
+    metrics_history = {k: history.get(k) for k in metrics_keys}
+    non_metrics_history = {k: history.get(k) for k in non_metrics_keys}
+    return metrics_history, non_metrics_history
 
+def _tensors_to_numpy(preds, target):
+    with torch.set_grad_enabled(False):
+        preds_np = preds.cpu().numpy()
+        target_np = target.cpu().detach().numpy()
+    return preds_np, target_np
 
 def main():
     print("Nothing to see here.")
