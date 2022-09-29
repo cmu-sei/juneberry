@@ -72,11 +72,13 @@ def require_tags(label, data: dict, tags: list) -> int:
 
 def validate_schema(data, schema_name, die_on_error=False):
     # Load the schema.
-    schema_filename = pkg_resources.resource_filename('juneberry', f"schemas/{schema_name}")
-    schema = jb_fs.load_file(schema_filename)
+    # TODO: Use the standard python package resource loading instead of our file loaders because they are
+    #  package resources.
+    schema = hjson.loads(pkgutil.get_data('juneberry', f"schemas/{schema_name}"))
 
     # Set up a reference resolver to simplify how Juneberry schema files reference each other.
-    schema_path = f"file:{schema_filename}"
+    resource = pkg_resources.resource_filename('juneberry', f"schemas/{schema_name}")
+    schema_path = f"file:{resource}"
     resolver = jsonschema.RefResolver(schema_path, schema)
 
     # While we are trying to use the latest, jsonschema seems to only have 7.
