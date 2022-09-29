@@ -1,7 +1,7 @@
+<img align="right" src="docs/logo.png">
+
 README
 ==========
-
-![Logo](docs/logo.png)
 
 # Introduction
 
