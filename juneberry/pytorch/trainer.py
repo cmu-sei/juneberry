@@ -34,7 +34,7 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
 import juneberry.config.dataset as jb_dataset
-from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
+from juneberry.config.model import LRStepFrequency, Plugin, PytorchOptions, StoppingCriteria
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs
 from juneberry.logging import setup_logger
@@ -643,6 +643,7 @@ def _tensors_to_numpy(preds, target):
     return preds_np, target_np
 
 def _get_default_metrics_plugins():
+    result = []
     training_metrics = [
         {
             "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
@@ -655,7 +656,9 @@ def _get_default_metrics_plugins():
             }
         }
     ]
-    return training_metrics
+    for metric in training_metrics:
+        result.append(Plugin.from_dict(metric))
+    return result
 
 def main():
     print("Nothing to see here.")

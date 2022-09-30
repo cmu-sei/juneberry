@@ -32,7 +32,7 @@ import torch
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
-from juneberry.config.model import ModelConfig
+from juneberry.config.model import ModelConfig, Plugin
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager
@@ -359,6 +359,7 @@ class Evaluator(EvaluatorBase):
 
 
 def _get_default_metrics_plugins():
+    result = []
     evaluation_metrics = [
         {
             "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
@@ -383,4 +384,6 @@ def _get_default_metrics_plugins():
             }
         }
     ]
-    return evaluation_metrics
+    for metric in evaluation_metrics:
+        result.append(Plugin.from_dict(metric))
+    return result
