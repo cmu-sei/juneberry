@@ -25,21 +25,21 @@
 from collections import defaultdict, namedtuple
 import copy
 from datetime import datetime as dt
+import gzip
+import json
 import logging
+import os
 from pathlib import Path
 from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
-import gzip
-import json
-import os
 
 import numpy as np
 from PIL import Image, ImageDraw
 
-from juneberry.config.dataset import DatasetConfig
 from juneberry.config.coco_anno import CocoAnnotations
-import juneberry.filesystem as jbfs
+from juneberry.config.dataset import DatasetConfig
+import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
 
@@ -339,12 +339,15 @@ def remove_indents_from_json(output_file: Path):
     :return: Nothing.
     """
 
-    f_in = open(str(output_file), "r")
-    predict_data = json.load(f_in)
-    os.remove(str(output_file))
-    f_out = open(str(output_file), "w")
-    json.dump(predict_data, f_out, indent=0)
+    # f_in = open(str(output_file), "r")
+    # predict_data = json.load(f_in)
+    # os.remove(str(output_file))
+    # f_out = open(str(output_file), "w")
+    # json.dump(predict_data, f_out, indent=0)
 
+    predict_data = jb_fs.load_json(str(output_file))
+    os.unlink(output_file)
+    jb_fs.save_json(predict_data, str(output_file), indent=0)
 
 def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
                              output_file: Path = None, eval_manifest_path: Path = None):
@@ -379,7 +382,7 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
         coco_path = dataset.image_data.sources[0]['directory']
         coco_data = CocoAnnotations.load(data_root / coco_path)
 
-    predictions = jbfs.load_file(predict_file)
+    predictions = jb_fs.load_file(predict_file)
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
     coco_out.save(str(output_file))
