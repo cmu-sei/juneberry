@@ -377,10 +377,7 @@ def _get_default_metrics_plugins():
             "kwargs": {
                 "fqn": "sklearn.metrics.balanced_accuracy_score",
                 "name": "balanced_accuracy",
-                "kwargs": {
-                    "sample_weight": None,
-                    "adjusted": True
-                }
+                "kwargs": {}
             }
         }
     ]

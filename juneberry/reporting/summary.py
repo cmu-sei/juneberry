@@ -245,12 +245,13 @@ class Summary(Report):
             # Identify the metrics.  In the case of the classification metrics, both may be there
             # so we need to count them.
             found = False
-            if "accuracy" in eval_data.results.metrics.classification:
-                counts['Acc'].append(metrics_file)
-                found = True
-            if "balanced_accuracy" in eval_data.results.metrics.classification:
-                counts['BalAcc'].append(metrics_file)
-                found = True
+            if eval_data.results.metrics.classification is not None:
+                if "accuracy" in eval_data.results.metrics.classification:
+                    counts['Acc'].append(metrics_file)
+                    found = True
+                if "balanced_accuracy" in eval_data.results.metrics.classification:
+                    counts['BalAcc'].append(metrics_file)
+                    found = True
             if eval_data.results.metrics.bbox is not None:
                 counts['mAP'].append(metrics_file)
                 found = True
