@@ -216,8 +216,13 @@ class ClassifierTrainer(EpochTrainer):
         #  existing "loss" entry in self.history.
         #  For now, log an error if "loss" is specified in the training_metrics section.
         for plugin in self.metrics_plugins:
-            self.history[plugin["kwargs"]["name"]] = []
-            self.history["val_" + plugin["kwargs"]["name"]] = []
+            if "name" in plugin["kwargs"]:
+                self.history[plugin["kwargs"]["name"]] = []
+                self.history["val_" + plugin["kwargs"]["name"]] = []
+            else:
+                error_msg = f"Metrics plugin {plugin} requires a 'name' field to continue."
+                logger.error(error_msg)
+                raise ValueError(error_msg)
 
         self.history['epoch_duration'] = []
         self.history['lr'] = []

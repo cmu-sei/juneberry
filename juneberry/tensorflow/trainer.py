@@ -361,9 +361,9 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
         # Let's walk through the metrics in the list and build them.
         self.metrics = []
         for item in self.metrics_plugins:
-            if item.kwargs["fqn"]:
+            if "fqn" in item.kwargs and item.kwargs["fqn"]:
                 self.metrics.append(jb_loader.construct_instance(item.kwargs["fqn"], item.kwargs["kwargs"]))
-            elif item.kwargs["name"]:
+            elif "name" in item.kwargs and item.kwargs["name"]:
                 self.metrics.append(item.kwargs["name"])
             else:
                 logger.error(f"Unknown metric {item}. Should be string or pair of FQCN and args. EXITING.")
