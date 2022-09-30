@@ -47,7 +47,6 @@ class Metrics(Prodict):
     bbox: Any
     bbox_per_class: Any
     summary: Any
-    loss: float
 
 
 class Model(Prodict):

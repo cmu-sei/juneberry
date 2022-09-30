@@ -81,8 +81,12 @@ class TFEvaluationOutput:
         evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
 
         evaluator.output.results.labels = evaluator.eval_labels
-        evaluator.output.results.metrics.loss = evaluator.eval_results[0]
-        evaluator.output.results.metrics.accuracy = evaluator.eval_results[1]
+
+        if evaluator.output.results.metrics.classification == None:
+            evaluator.output.results.metrics.classification = {}
+
+        evaluator.output.results.metrics.classification["loss"] = evaluator.eval_results[0]
+        evaluator.output.results.metrics.classification["accuracy"] = evaluator.eval_results[1]
         evaluator.output.results.predictions = evaluator.predictions.tolist()
         evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
         evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())

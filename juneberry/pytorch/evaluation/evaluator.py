@@ -130,7 +130,7 @@ class Evaluator(EvaluatorBase):
     @classmethod
     def get_default_metric_value(cls, eval_data: EvaluationOutput):
         """ :return: The value of the Evaluator's default metric as found in the results structure """
-        return eval_data.results.metrics.balanced_accuracy, "balanced_accuracy"
+        return eval_data.results.metrics.classification["balanced_accuracy"], "balanced_accuracy"
 
     # ==========================================================================
     def dry_run(self) -> None:
