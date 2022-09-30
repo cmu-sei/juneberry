@@ -339,12 +339,6 @@ def remove_indents_from_json(output_file: Path):
     :return: Nothing.
     """
 
-    # f_in = open(str(output_file), "r")
-    # predict_data = json.load(f_in)
-    # os.remove(str(output_file))
-    # f_out = open(str(output_file), "w")
-    # json.dump(predict_data, f_out, indent=0)
-
     predict_data = jb_fs.load_json(str(output_file))
     os.unlink(output_file)
     jb_fs.save_json(predict_data, str(output_file), indent=0)
