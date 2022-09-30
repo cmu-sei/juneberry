@@ -251,7 +251,7 @@ class ClassifierTrainer(EpochTrainer):
             # TODO: Unlike when we were only storing accuracy, I don't know that we can automatically
             #  initialize to float64 tensors for every kind of metric
             for plugin in self.metrics_plugins:
-                self.training_metrics_lists[plugin["kwargs"]["name"] + "_list"] = \
+                self.training_metrics_lists[plugin["kwargs"]["name"]] = \
                     [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
 
         result["loss_list"] = []
