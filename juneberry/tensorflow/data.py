@@ -143,6 +143,14 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
         if transforms is not None:
             params = inspect.signature(transforms).parameters.keys()
             self.extended_signature = set(params) == {'item', 'index', 'epoch'}
+        
+        samples = []
+        for index in range(len(self.data_list)):
+            sample = tf.io.read_file(self.data_list[index][0])
+            samples.append(sample)
+        
+        self.samples = samples
+
 
     def __len__(self):
         return self.len
@@ -167,11 +175,11 @@ class TFAudioDataSequence(tf.keras.utils.Sequence):
         self.epoch += 1
 
     def _load_sample(self, index: int):
-        sample = tf.io.read_file(self.data_list[index][0])
+        sample = self.samples[index]
+        # sample = tf.io.read_file(self.data_list[index][0])
         sample, default_audio_rate = tf.audio.decode_wav(contents=sample, desired_samples=16000)
-        sample = tf.squeeze(sample, axis=-1)
+        sample = np.squeeze(sample, axis=-1)
         sample = AudioSample(sample, self.data_list[index][0])
-        # import pdb; pdb.set_trace()
 
         if self.transforms is not None:
             if self.extended_signature:
