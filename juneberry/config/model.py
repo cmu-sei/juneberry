@@ -136,7 +136,6 @@ class TensorFlow(Prodict):
     loss_fn: str
     lr_schedule_args: Prodict
     lr_schedule_fn: str
-    metrics: list
     optimizer_args: Prodict
     optimizer_fn: str
 
