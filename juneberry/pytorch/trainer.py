@@ -331,7 +331,7 @@ class ClassifierTrainer(EpochTrainer):
 
     def summarize_metrics(self, train, metrics) -> None:
         for k, v in metrics.items():
-            history_key = k.rstrip(METRICS_LIST_SUFFIX)  # strip off the ending METRICS_LIST_SUFFIX in key
+            history_key = k[:-len(METRICS_LIST_SUFFIX)]  # strip off the ending METRICS_LIST_SUFFIX in key
             if not train:
                 history_key = f"val_{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
@@ -378,7 +378,7 @@ class ClassifierTrainer(EpochTrainer):
             if non_metrics_history[x] and len(non_metrics_history[x]) > 0:
                 metric_str += f"{x}: {non_metrics_history[x][-1]:.2E}, "
 
-        return metric_str.rstrip(", ")  # remove trailing comma from output
+        return metric_str[:-2]  # remove trailing ", "
 
     def finalize_results(self) -> None:
         # If we're in distributed mode, only one process needs to perform these actions (since all processes should
