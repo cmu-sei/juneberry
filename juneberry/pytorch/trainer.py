@@ -219,7 +219,7 @@ class ClassifierTrainer(EpochTrainer):
         #  For now, log an error if "loss" is specified in the training_metrics section.
         for plugin in self.metrics_plugins:
             self.history[plugin.kwargs["name"]] = []
-            self.history[f"{VALIDATION_METRIC_PREFIX}plugin.kwargs['name']"] = []
+            self.history[f"{VALIDATION_METRIC_PREFIX}{plugin.kwargs['name']}"] = []
 
         self.history['epoch_duration'] = []
         self.history['lr'] = []
