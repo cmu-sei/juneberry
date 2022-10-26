@@ -30,24 +30,18 @@ from typing import Dict
 
 from juneberry.evaluation import utils as jb_eval_utils
 from juneberry.loader import load_verify_fqn_function
+from juneberry.metrics.classification.metrics import MetricsBase
 
 logger = logging.getLogger(__name__)
 
 
-class Metrics:
+class Metrics(MetricsBase):
 
     def __init__(self,
                  fqn: str,
                  name: str,
                  kwargs: Dict = None) -> None:
-        self.fqn = fqn
-        self.name = name
-        self.kwargs = kwargs
-
-        if not name or name == "":
-            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
-            logger.error(log_msg)
-            raise ValueError(log_msg)
+        super().__init__(fqn, name, kwargs)
 
     def __call__(self, target, preds, binary=False):
         singular_preds = jb_eval_utils.continuous_predictions_to_class(preds, binary)

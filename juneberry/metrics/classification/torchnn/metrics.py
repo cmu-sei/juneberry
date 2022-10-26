@@ -31,25 +31,19 @@ from typing import Dict
 import torch
 
 from juneberry.loader import construct_instance
+from juneberry.metrics.classification.metrics import MetricsBase
 import juneberry.pytorch.utils as pyt_utils
 
 logger = logging.getLogger(__name__)
 
 
-class Metrics:
+class Metrics(MetricsBase):
 
     def __init__(self,
                  fqn: str,
                  name: str,
                  kwargs: Dict = None) -> None:
-        self.fqn = fqn
-        self.name = name
-        self.kwargs = kwargs
-
-        if not name or name == "":
-            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
-            logger.error(log_msg)
-            raise ValueError(log_msg)
+        super().__init__(fqn, name, kwargs)
 
     def __call__(self, target, preds, binary=False):
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
