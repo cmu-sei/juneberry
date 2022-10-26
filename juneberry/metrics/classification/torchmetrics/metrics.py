@@ -46,6 +46,11 @@ class Metrics:
         self.name = name
         self.kwargs = kwargs
 
+        if not name or name == "":
+            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
     def __call__(self, target, preds, binary):
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
 
@@ -58,7 +63,9 @@ class Metrics:
         # If metrics_function doesn't exist now, we were unable to instantiate either
         # a class instance or a functional version of the metric.
         if not metrics_function:
-            raise ValueError(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
+            log_msg = f"Unable to create metrics function: fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
         else:
             if inspect.isfunction(metrics_function):
                 result = metrics_function(preds, target, **self.kwargs)

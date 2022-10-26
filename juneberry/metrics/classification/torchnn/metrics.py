@@ -46,9 +46,20 @@ class Metrics:
         self.name = name
         self.kwargs = kwargs
 
+        if not name or name == "":
+            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
     def __call__(self, target, preds, binary=False):
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
         metrics_function = construct_instance(self.fqn, self.kwargs)
+
+        if not metrics_function:
+            log_msg = f"Unable to create metrics function: fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
         if binary:
             metrics_function = pyt_utils.function_wrapper_unsqueeze_1(metrics_function)
         result = metrics_function(preds, target, **self.kwargs)

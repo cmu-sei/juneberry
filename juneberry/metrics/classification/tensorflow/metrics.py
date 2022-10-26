@@ -45,6 +45,11 @@ class Metrics:
         self.name = name
         self.kwargs = kwargs
 
+        if not name or name == "":
+            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
     def __call__(self, target, preds, binary=False):
         result = None
 
@@ -64,12 +69,16 @@ class Metrics:
             # If we fail to instantiate self.fqn as a function, try to construct a class instance instead.
             metrics_function = load_verify_fqn_function(self.fqn, {**{"y_true": [], "y_pred": []}, **self.kwargs})
             if not metrics_function:
+                # Keras metrics classes take "name" as a kwarg parameter.
+                self.kwargs["name"] = self.name
                 metrics_function = construct_instance(self.fqn, self.kwargs)
 
             # If metrics_function doesn't exist now, we were unable to instantiate either
             # a class instance or a functional version of the metric.
             if not metrics_function:
-                raise ValueError(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
+                log_msg = f"Unable to create metrics function: fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}."
+                logger.error(log_msg)
+                raise ValueError(log_msg)
             else:
                 # If metrics_function is a function, call it directly. If it's a class instance,
                 # call update_state on it.
@@ -81,7 +90,7 @@ class Metrics:
         else:
             # Since we're not in standalone mode, do not compute the metrics now, it will
             # be done later.
-            logger.info(f"Compile mode: deferring computation of {self.fqn}.")
+            logger.info(f"Compile mode: deferring computation of metrics with fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}.")
             del self.kwargs["standalone"]
 
         return result

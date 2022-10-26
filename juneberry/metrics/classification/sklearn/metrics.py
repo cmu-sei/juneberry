@@ -44,7 +44,18 @@ class Metrics:
         self.name = name
         self.kwargs = kwargs
 
+        if not name or name == "":
+            log_msg = f"Unable to init metrics: fqn={self.fqn}, kwargs={self.kwargs}. Missing 'name' parameter."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
     def __call__(self, target, preds, binary=False):
         singular_preds = jb_eval_utils.continuous_predictions_to_class(preds, binary)
         metrics_function = load_verify_fqn_function(self.fqn, {**{"y_true": [], "y_pred": []}, **self.kwargs})
+
+        if not metrics_function:
+            log_msg = f"Unable to create metrics function: fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
+
         return metrics_function(target, singular_preds, **self.kwargs)
