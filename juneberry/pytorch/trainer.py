@@ -331,7 +331,7 @@ class ClassifierTrainer(EpochTrainer):
 
     def summarize_metrics(self, train, metrics) -> None:
         for k, v in metrics.items():
-            history_key = history_key.rstrip(METRICS_LIST_SUFFIX)  # strip off the ending METRICS_LIST_SUFFIX in key
+            history_key = k.rstrip(METRICS_LIST_SUFFIX)  # strip off the ending METRICS_LIST_SUFFIX in key
             if not train:
                 history_key = f"val_{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
