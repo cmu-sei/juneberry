@@ -360,14 +360,16 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
     def make_metrics(self):
         # Let's walk through the metrics in the list and build them.
         self.metrics = []
+
+        # A Tensorflow metric plugin may not have an 'fqn' field. They can be specified in
+        # the model compile with a default string name only.
         for item in self.metrics_plugins:
             if "fqn" in item.kwargs and item.kwargs["fqn"]:
+                # Pass the string name to construct instance.
+                item.kwargs["kwargs"]["name"] = item.kwargs["name"]
                 self.metrics.append(jb_loader.construct_instance(item.kwargs["fqn"], item.kwargs["kwargs"]))
-            elif "name" in item.kwargs and item.kwargs["name"]:
-                self.metrics.append(item.kwargs["name"])
             else:
-                logger.error(f"Unknown metric {item}. Should be string or pair of FQCN and args. EXITING.")
-                sys.exit(-1)
+                self.metrics.append(item.kwargs["name"])
 
     def compile_model(self):
         logger.info("Compiling the model")

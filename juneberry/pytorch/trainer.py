@@ -107,7 +107,7 @@ class ClassifierTrainer(EpochTrainer):
             self.metrics_plugins = _get_default_metrics_plugins()
 
         for plugin in self.metrics_plugins:
-            if plugin["kwargs"]["name"] == "loss":
+            if plugin.kwargs["name"] == "loss":
                 error_msg = f"'loss' should be listed in the pytorch stanza of the model config, not the metrics stanza."
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
@@ -216,13 +216,8 @@ class ClassifierTrainer(EpochTrainer):
         #  existing "loss" entry in self.history.
         #  For now, log an error if "loss" is specified in the training_metrics section.
         for plugin in self.metrics_plugins:
-            if "name" in plugin["kwargs"]:
-                self.history[plugin["kwargs"]["name"]] = []
-                self.history["val_" + plugin["kwargs"]["name"]] = []
-            else:
-                error_msg = f"Metrics plugin {plugin} requires a 'name' field to continue."
-                logger.error(error_msg)
-                raise ValueError(error_msg)
+            self.history[plugin.kwargs["name"]] = []
+            self.history["val_" + plugin.kwargs["name"]] = []
 
         self.history['epoch_duration'] = []
         self.history['lr'] = []
@@ -256,14 +251,14 @@ class ClassifierTrainer(EpochTrainer):
             # TODO: Unlike when we were only storing accuracy, I don't know that we can automatically
             #  initialize to float64 tensors for every kind of metric
             for plugin in self.metrics_plugins:
-                self.training_metrics_lists[plugin["kwargs"]["name"]] = \
+                self.training_metrics_lists[plugin.kwargs["name"]] = \
                     [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
 
         result["loss_list"] = []
 
         # Start off with empty metrics
         for plugin in self.metrics_plugins:
-            result[plugin["kwargs"]["name"] + "_list"] = []
+            result[plugin.kwargs["name"] + "_list"] = []
 
         return result
 
