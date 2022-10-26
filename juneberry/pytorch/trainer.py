@@ -26,7 +26,6 @@ import logging
 import math
 import os
 import sys
-from typing import Union
 
 import numpy as np
 import torch
@@ -51,6 +50,8 @@ import juneberry.tensorboard as jb_tb
 from juneberry.training.trainer import EpochTrainer
 from juneberry.transforms.transform_manager import TransformManager
 import juneberry.zoo as jb_zoo
+
+VALIDATION_METRIC_PREFIX = "val_"
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +211,7 @@ class ClassifierTrainer(EpochTrainer):
 
         self.num_batches = len(self.training_iterable)
 
-        self.history = {'loss': [], 'val_loss': []}
+        self.history = {'loss': [], f'{VALIDATION_METRIC_PREFIX}loss': []}
 
         # Create an entry in the history for each metrics plugin in the config.
         # TODO what if one of our metrics is called "loss?" That will step on the already
@@ -218,7 +219,7 @@ class ClassifierTrainer(EpochTrainer):
         #  For now, log an error if "loss" is specified in the training_metrics section.
         for plugin in self.metrics_plugins:
             self.history[plugin.kwargs["name"]] = []
-            self.history["val_" + plugin.kwargs["name"]] = []
+            self.history[f"{VALIDATION_METRIC_PREFIX}plugin.kwargs['name']"] = []
 
         self.history['epoch_duration'] = []
         self.history['lr'] = []
@@ -330,7 +331,7 @@ class ClassifierTrainer(EpochTrainer):
         for k, v in metrics.items():
             history_key = k
             if not train:
-                history_key = f"val_{history_key}"
+                history_key = f"{VALIDATION_METRIC_PREFIX}{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
 
     def end_epoch(self, tuning_mode: bool = False) -> dict:
