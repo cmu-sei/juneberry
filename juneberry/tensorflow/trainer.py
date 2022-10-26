@@ -32,7 +32,8 @@ import numpy as np
 import tensorflow as tf
 
 from juneberry.config.dataset import DatasetConfig
-from juneberry.config.model import ModelConfig, Plugin
+from juneberry.config.model import ModelConfig
+from juneberry.config.plugin import Plugin
 from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs

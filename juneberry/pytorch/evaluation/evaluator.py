@@ -32,7 +32,8 @@ import torch
 import juneberry.config.dataset as jb_dataset
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.eval_output import EvaluationOutput
-from juneberry.config.model import ModelConfig, Plugin
+from juneberry.config.model import ModelConfig
+from juneberry.config.plugin import Plugin
 import juneberry.data as jb_data
 from juneberry.evaluation.evaluator import EvaluatorBase
 from juneberry.filesystem import EvalDirMgr, ModelManager

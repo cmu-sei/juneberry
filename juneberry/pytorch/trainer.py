@@ -34,7 +34,8 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
 import juneberry.config.dataset as jb_dataset
-from juneberry.config.model import LRStepFrequency, Plugin, PytorchOptions, StoppingCriteria
+from juneberry.config.model import LRStepFrequency, PytorchOptions, StoppingCriteria
+from juneberry.config.plugin import Plugin
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs
 from juneberry.logging import setup_logger
