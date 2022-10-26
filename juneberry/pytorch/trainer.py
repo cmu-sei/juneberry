@@ -52,6 +52,8 @@ from juneberry.training.trainer import EpochTrainer
 from juneberry.transforms.transform_manager import TransformManager
 import juneberry.zoo as jb_zoo
 
+METRICS_LIST_SUFFIX = "_list"
+
 logger = logging.getLogger(__name__)
 
 
@@ -259,7 +261,7 @@ class ClassifierTrainer(EpochTrainer):
 
         # Start off with empty metrics
         for plugin in self.metrics_plugins:
-            result[plugin.kwargs["name"] + "_list"] = []
+            result[plugin.kwargs["name"] + METRICS_LIST_SUFFIX] = []
 
         return result
 
@@ -307,13 +309,13 @@ class ClassifierTrainer(EpochTrainer):
                 metrics['loss_list'].append(tensor.item())
             for k, v in self.training_metrics_lists.items():
                 for val in self.training_metrics_lists[k]:
-                    metrics[f"{k}_list"].append(val.item())
+                    metrics[f"{k}{METRICS_LIST_SUFFIX}"].append(val.item())
             return
 
         # Record the values in the metrics dictionary (non-distributed case).
         metrics["loss_list"].append(current_loss.item())
         for k, v in current_metrics.items():
-            metrics[f"{k}_list"].append(current_metrics[k].item())
+            metrics[f"{k}{METRICS_LIST_SUFFIX}"].append(current_metrics[k].item())
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
@@ -329,7 +331,7 @@ class ClassifierTrainer(EpochTrainer):
 
     def summarize_metrics(self, train, metrics) -> None:
         for k, v in metrics.items():
-            history_key = k[:-5] # strip off the ending "_list" in key
+            history_key = history_key.rstrip(METRICS_LIST_SUFFIX)  # strip off the ending METRICS_LIST_SUFFIX in key
             if not train:
                 history_key = f"val_{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
@@ -376,7 +378,7 @@ class ClassifierTrainer(EpochTrainer):
             if non_metrics_history[x] and len(non_metrics_history[x]) > 0:
                 metric_str += f"{x}: {non_metrics_history[x][-1]:.2E}, "
 
-        return metric_str[:-2]  # remove trailing ", "
+        return metric_str.rstrip(", ")  # remove trailing comma from output
 
     def finalize_results(self) -> None:
         # If we're in distributed mode, only one process needs to perform these actions (since all processes should

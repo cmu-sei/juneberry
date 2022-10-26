@@ -52,7 +52,7 @@ class TFEvaluationProcedure:
         metrics_results = "  "
         for idx, name in enumerate(evaluator.model.metrics_names):
             metrics_results = metrics_results + f"{name}={evaluator.eval_results[idx]}, "
-        metrics_results = metrics_results[:-2]
+        metrics_results = metrics_results.rstrip(", ")  # remove trailing comma from output
         logger.info(metrics_results)
 
         logger.info(f"...generating predictions...")
