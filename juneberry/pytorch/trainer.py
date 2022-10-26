@@ -52,8 +52,6 @@ from juneberry.training.trainer import EpochTrainer
 from juneberry.transforms.transform_manager import TransformManager
 import juneberry.zoo as jb_zoo
 
-METRICS_LIST_SUFFIX = "_list"
-
 logger = logging.getLogger(__name__)
 
 
@@ -234,7 +232,7 @@ class ClassifierTrainer(EpochTrainer):
     # ==========================================================================
 
     def start_epoch_phase(self, train: bool):
-        result = {}
+        metrics = {}
 
         if train:
             self.model.train()
@@ -257,13 +255,12 @@ class ClassifierTrainer(EpochTrainer):
                 self.training_metrics_lists[plugin.kwargs["name"]] = \
                     [torch.zeros(1, dtype=torch.float64).cuda() for i in range(self.num_gpus)]
 
-        result["loss_list"] = []
-
         # Start off with empty metrics
+        metrics["loss"] = []
         for plugin in self.metrics_plugins:
-            result[plugin.kwargs["name"] + METRICS_LIST_SUFFIX] = []
+            metrics[plugin.kwargs["name"]] = []
 
-        return result
+        return metrics
 
     def process_batch(self, train: bool, data, targets):
 
@@ -306,16 +303,16 @@ class ClassifierTrainer(EpochTrainer):
 
             # Take the value from each tensor in the tensor list and place it in the corresponding metric.
             for tensor in self.training_loss_list:
-                metrics['loss_list'].append(tensor.item())
+                metrics["loss"].append(tensor.item())
             for k, v in self.training_metrics_lists.items():
                 for val in self.training_metrics_lists[k]:
-                    metrics[f"{k}{METRICS_LIST_SUFFIX}"].append(val.item())
+                    metrics[f"{k}"].append(val.item())
             return
 
         # Record the values in the metrics dictionary (non-distributed case).
-        metrics["loss_list"].append(current_loss.item())
+        metrics["loss"].append(current_loss.item())
         for k, v in current_metrics.items():
-            metrics[f"{k}{METRICS_LIST_SUFFIX}"].append(current_metrics[k].item())
+            metrics[f"{k}"].append(current_metrics[k].item())
 
     def update_model(self, results) -> None:
         # Unpack the results we returned on process batch
@@ -331,7 +328,7 @@ class ClassifierTrainer(EpochTrainer):
 
     def summarize_metrics(self, train, metrics) -> None:
         for k, v in metrics.items():
-            history_key = k[:-len(METRICS_LIST_SUFFIX)]  # strip off the ending METRICS_LIST_SUFFIX in key
+            history_key = k
             if not train:
                 history_key = f"val_{history_key}"
             self.history[history_key].append(float(np.mean(metrics[k])))
