@@ -97,8 +97,6 @@ class Validation(Prodict):
 
 
 class PytorchOptions(Prodict):
-    accuracy_args: Prodict
-    accuracy_fn: str
     loss_args: Prodict
     loss_fn: str
     lr_schedule_args: Prodict
@@ -138,7 +136,6 @@ class TensorFlow(Prodict):
     loss_fn: str
     lr_schedule_args: Prodict
     lr_schedule_fn: str
-    metrics: list
     optimizer_args: Prodict
     optimizer_fn: str
 
@@ -172,6 +169,7 @@ class ModelConfig(Prodict):
     timestamp: str
     trainer: Plugin
     training_dataset_config_path: str
+    training_metrics: List[Plugin]
     training_transforms: List[Plugin]
     training_target_transforms: List[Plugin]
     validation: Validation

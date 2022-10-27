@@ -103,12 +103,15 @@ text_detect_dt2_config = {
                                  'SOLVER.REFERENCE_WORLD_SIZE',
                                  1]},
     'epochs': 1,
-    'evaluation_metrics': [{'fqcn': 'juneberry.metrics.metrics.Coco',
-                            'kwargs': {'iou_threshold': 0.5,
-                                       'max_det': 100,
-                                       'tqdm': False}}],
-    'evaluation_metrics_formatter': {'fqcn': 'juneberry.metrics.format.DefaultCocoFormatter',
-                                     'kwargs': {}},
+    "evaluation_metrics": [{"fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Coco",
+                            "kwargs": {"iou_threshold": 0.5, "max_det": 100, "tqdm": False}},
+                           {"fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Summary",
+                            "kwargs": {"iou_threshold": 0.5, "tp_threshold": 0.8}},
+                           {"fqcn": "juneberry.metrics.objectdetection.brambox.metrics.Tide",
+                            "kwargs": {"pos_thresh": 0.5, "bg_thresh": 0.5, "max_det": 100, "area_range_min": 0,
+                                       "area_range_max": 100000, "tqdm": False}}],
+    "evaluation_metrics_formatter": {"fqcn": "juneberry.metrics.objectdetection.brambox.format.DefaultFormatter",
+                                     "kwargs": {}},
     'evaluation_transforms': [],
     'evaluator': {'fqcn': 'juneberry.detectron2.evaluator.Evaluator'},
     'format_version': '0.2.0',
@@ -191,6 +194,30 @@ def make_basic_model_config(add_transforms: bool = False) -> dict:
         "batch_size": 16,
         "training_dataset_config_path": "path/to/data/set",
         "epochs": 50,
+        "evaluation_metrics": [
+            {
+                "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+                "kwargs": {
+                    "fqn": "sklearn.metrics.accuracy_score",
+                    "name": "accuracy",
+                    "kwargs": {
+                        "sample_weight": None,
+                        "normalize": False
+                    }
+                }
+            },
+            {
+                "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+                "kwargs": {
+                    "fqn": "sklearn.metrics.balanced_accuracy_score",
+                    "name": "balanced_accuracy",
+                    "kwargs": {
+                        "sample_weight": None,
+                        "adjusted": False
+                    }
+                }
+            }
+        ],
         'evaluator': {
             'fqcn': 'juneberry.dummy.evaluator'
         },
@@ -205,6 +232,18 @@ def make_basic_model_config(add_transforms: bool = False) -> dict:
         'trainer': {
             'fqcn': 'juneberry.dummy.evaluator'
         },
+        "training_metrics": [
+            {
+                "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+                "kwargs": {
+                    "fqn": "sklearn.metrics.accuracy_score",
+                    "name": "accuracy",
+                    "kwargs": {
+                        "normalize": True
+                    }
+                }
+            }
+        ],
         "validation": {
             "algorithm": "random_fraction",
             "arguments": {

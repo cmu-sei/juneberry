@@ -32,19 +32,18 @@ from typing import Dict
 import torch
 
 from juneberry.loader import construct_instance, load_verify_fqn_function
+from juneberry.metrics.classification.metrics import MetricsBase
 
 logger = logging.getLogger(__name__)
 
 
-class Metrics:
+class Metrics(MetricsBase):
 
     def __init__(self,
                  fqn: str,
                  name: str,
                  kwargs: Dict = None) -> None:
-        self.fqn = fqn
-        self.name = name
-        self.kwargs = kwargs
+        super().__init__(fqn, name, kwargs)
 
     def __call__(self, target, preds, binary):
         target, preds = torch.LongTensor(target), torch.FloatTensor(preds)
@@ -58,7 +57,9 @@ class Metrics:
         # If metrics_function doesn't exist now, we were unable to instantiate either
         # a class instance or a functional version of the metric.
         if not metrics_function:
-            raise ValueError(f"Can't create metrics function {self.fqn}; unable to compute metrics.")
+            log_msg = f"Unable to create metrics function: fqn={self.fqn}, name={self.name}, kwargs={self.kwargs}."
+            logger.error(log_msg)
+            raise ValueError(log_msg)
         else:
             if inspect.isfunction(metrics_function):
                 result = metrics_function(preds, target, **self.kwargs)

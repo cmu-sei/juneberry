@@ -160,15 +160,6 @@
                 "loss_fn": { "type": "string" },
                 "lr_schedule_args": { "type": "object" },
                 "lr_schedule_fn": { "type": "string" },
-                "metrics": {
-                    "type": "array",
-                    "items": {
-                        "oneOf": [
-                            { "type": "string" },
-                            { "$ref": "#/definitions/plugin_item" }
-                        ]
-                    }
-                },
                 "optimizer_args": { "type": "object" },
                 "optimizer_fn": { "type": "string" }
             },
@@ -177,6 +168,10 @@
         "timestamp": { "type": "string" },
         "trainer": { "$ref": "#/definitions/plugin_item" },
         "training_dataset_config_path": { "type": "string" },
+        "training_metrics": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/plugin_item" }
+        },
         "training_transforms": {
             "type": "array",
             "items": { "$ref": "#/definitions/plugin_item" }

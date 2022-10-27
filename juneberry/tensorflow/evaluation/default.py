@@ -48,7 +48,13 @@ class TFEvaluationProcedure:
         # loss, acc
         logger.info("Evaluating...")
         evaluator.eval_results = evaluator.model.evaluate(evaluator.eval_loader)
-        logger.info(f"  loss={evaluator.eval_results[0]}, accuracy={evaluator.eval_results[1]}")
+
+        metrics_results = "  "
+        for idx, name in enumerate(evaluator.model.metrics_names):
+            metrics_results = metrics_results + f"{name}={evaluator.eval_results[idx]}, "
+        metrics_results = metrics_results[:-2]  # remove trailing comma from output
+        logger.info(metrics_results)
+
         logger.info(f"...generating predictions...")
         evaluator.predictions = evaluator.model.predict(evaluator.eval_loader)
         logger.info(f"...evaluation complete.")
@@ -81,8 +87,13 @@ class TFEvaluationOutput:
         evaluator.output.options.model.num_classes = evaluator.eval_dataset_config.num_model_classes
 
         evaluator.output.results.labels = evaluator.eval_labels
-        evaluator.output.results.metrics.loss = evaluator.eval_results[0]
-        evaluator.output.results.metrics.accuracy = evaluator.eval_results[1]
+
+        if evaluator.output.results.metrics.classification == None:
+            evaluator.output.results.metrics.classification = {}
+
+        for idx, name in enumerate(evaluator.model.metrics_names):
+            evaluator.output.results.metrics.classification[name] = evaluator.eval_results[idx]
+
         evaluator.output.results.predictions = evaluator.predictions.tolist()
         evaluator.output_builder.save_predictions(evaluator.eval_dir_mgr.get_predictions_path())
         evaluator.output_builder.save_metrics(evaluator.eval_dir_mgr.get_metrics_path())

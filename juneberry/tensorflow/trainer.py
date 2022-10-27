@@ -33,6 +33,7 @@ import tensorflow as tf
 
 from juneberry.config.dataset import DatasetConfig
 from juneberry.config.model import ModelConfig
+from juneberry.config.plugin import Plugin
 from juneberry.config.training_output import TrainingOutput
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs
@@ -90,6 +91,9 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
 
         # The values generated during train.
         self.history = None
+
+        if not self.metrics_plugins:
+            self.metrics_plugins = _get_default_metrics_plugins()
 
     # ==========================================================================
 
@@ -355,20 +359,18 @@ class ClassifierTrainer(juneberry.training.trainer.Trainer):
         self.optimizer = jb_loader.construct_instance(tf_options.optimizer_fn, tf_options.optimizer_args)
 
     def make_metrics(self):
-        if self.model_config.tensorflow.metrics is None:
-            self.metrics = ['accuracy']
-            return
-
         # Let's walk through the metrics in the list and build them.
         self.metrics = []
-        for item in self.model_config.tensorflow.metrics:
-            if isinstance(item, str):
-                self.metrics.append(item)
-            elif isinstance(item, dict) and len(item) == 2:
-                self.metrics.append(jb_loader.construct_instance(item['fqcn'], item['kwargs']))
+
+        # A Tensorflow metric plugin may not have an 'fqn' field. They can be specified in
+        # the model compile with a default string name only.
+        for item in self.metrics_plugins:
+            if "fqn" in item.kwargs and item.kwargs["fqn"]:
+                # Pass the string name to construct instance.
+                item.kwargs["kwargs"]["name"] = item.kwargs["name"]
+                self.metrics.append(jb_loader.construct_instance(item.kwargs["fqn"], item.kwargs["kwargs"]))
             else:
-                logger.error(f"Unknown metric {item}. Should be string or pair of FQCN and args. EXITING.")
-                sys.exit(-1)
+                self.metrics.append(item.kwargs["name"])
 
     def compile_model(self):
         logger.info("Compiling the model")
@@ -432,3 +434,19 @@ def history_to_results(history, output: TrainingOutput):
     # output.results.val_error = history.get('val_error', None)
 
     # output.results.batch_loss = history['batch_loss']
+
+def _get_default_metrics_plugins():
+    result = []
+    training_metrics = [
+        {
+            "fqcn": "juneberry.metrics.classification.tensorflow.metrics.Metrics",
+            "kwargs": {
+                "fqn": "",
+                "name": "accuracy",
+                "kwargs": {}
+            }
+        }
+    ]
+    for metric in training_metrics:
+        result.append(Plugin.from_dict(metric))
+    return result

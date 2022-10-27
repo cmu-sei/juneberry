@@ -37,6 +37,7 @@ from juneberry.config.model import ModelConfig, Plugin
 from juneberry.config.training_output import TrainingOutput
 from juneberry.evaluation.evaluator import EvaluatorBase as Evaluator
 from juneberry.filesystem import EvalDirMgr, ModelManager
+import juneberry.metrics.classification.metrics_manager as mm
 from juneberry.lab import Lab
 import juneberry.loader as jb_loader
 
@@ -186,24 +187,15 @@ def prepare_classification_eval_output(evaluator: Evaluator):
     labels = [item[1] for item in evaluator.eval_name_targets]
     evaluator.output.results.labels = labels
 
-    # Diagnostic for accuracy
-    # TODO: Switch to configurable and standard accuracy
     is_binary = evaluator.eval_dataset_config.num_model_classes == 2
-    predicted_classes = continuous_predictions_to_class(evaluator.raw_output, is_binary)
 
-    # Calculate the accuracy and add it to the output.
-    logger.info(f"Computing the accuracy.")
-    accuracy = accuracy_score(labels, predicted_classes)
-    evaluator.output.results.metrics.accuracy = accuracy
-
-    # Calculate the balanced accuracy and add it to the output.
-    logger.info(f"Computing the balanced accuracy.")
-    balanced_acc = balanced_accuracy_score(labels, predicted_classes)
-    evaluator.output.results.metrics.balanced_accuracy = balanced_acc
-
-    # Log the the accuracy values.
-    logger.info(f"******          Accuracy: {accuracy:.4f}")
-    logger.info(f"****** Balanced Accuracy: {balanced_acc:.4f}")
+    # Calculate the metrics and add to output.
+    evaluator.output.results.metrics.classification = {}
+    metrics_mgr = mm.MetricsManager(evaluator.metrics_plugins)
+    metrics = metrics_mgr(labels, evaluator.raw_output, is_binary)
+    for k, v in metrics.items():
+        evaluator.output.results.metrics.classification[k] = v
+        logger.info(f"{k}: {v:.4f}")
 
     # Save these as two classes if binary so it's consistent with other outputs.
     if is_binary:

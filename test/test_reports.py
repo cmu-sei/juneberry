@@ -170,8 +170,10 @@ def make_dummy_trained_model(index: int, tmp_path, accuracy_value: float = 0.5, 
         },
         "results": {
             "metrics": {
-                "accuracy": accuracy_value,
-                "balanced_accuracy": accuracy_value
+                "classification": {
+                    "accuracy": accuracy_value,
+                    "balanced_accuracy": accuracy_value
+                }
             }
         },
         "times": {

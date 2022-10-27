@@ -191,9 +191,9 @@ class Summary(Report):
         """
         # Fetch the desired evaluation metric value from the Metrics.
         if self.metric == 'Accuracy':
-            return metric_data.accuracy
+            return metric_data.classification["accuracy"]
         elif self.metric == 'Balanced Accuracy':
-            return metric_data.balanced_accuracy
+            return metric_data.classification["balanced_accuracy"]
         elif self.metric == 'mAP':
             return metric_data.bbox['mAP']
 
@@ -245,12 +245,13 @@ class Summary(Report):
             # Identify the metrics.  In the case of the classification metrics, both may be there
             # so we need to count them.
             found = False
-            if eval_data.results.metrics.accuracy is not None:
-                counts['Acc'].append(metrics_file)
-                found = True
-            if eval_data.results.metrics.balanced_accuracy is not None:
-                counts['BalAcc'].append(metrics_file)
-                found = True
+            if eval_data.results.metrics.classification is not None:
+                if "accuracy" in eval_data.results.metrics.classification:
+                    counts['Acc'].append(metrics_file)
+                    found = True
+                if "balanced_accuracy" in eval_data.results.metrics.classification:
+                    counts['BalAcc'].append(metrics_file)
+                    found = True
             if eval_data.results.metrics.bbox is not None:
                 counts['mAP'].append(metrics_file)
                 found = True

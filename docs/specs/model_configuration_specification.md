@@ -64,8 +64,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
     "model_transforms" : [ <array of plugins - see below> ],
     "preprocessors": [ <array of plugins - see below> ],
     "pytorch": {
-        "accuracy_args": <OPTIONAL kwargs to be passed when calling the accuracy_fn>,
-        "accuracy_fn": <OPTIONAL accuracy function: e.g. sklearn.metrics.balanced_accuracy_score>,
         "loss_args": <OPTIONAL kwargs to pass when constructing the loss_fn>,
         "loss_fn": <FQCN of a loss function: e.g. torch.nn.CrossEntropyLoss>,
         "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
@@ -91,7 +89,6 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "loss_fn": <FQCN of a loss function: e.g. tensorflow.keras.losses.SparseCategoricalCrossentropy>,
         "lr_schedule_args": <OPTIONAL kwargs to pass when constructing lr_scheduler_fn>,
         "lr_schedule_fn": <OPTIONAL FQCN of a learning rate scheduler: e.g. tensorflow.keras.optimizers.schedules.ExponentialDecay>,
-        "metrics": [ <OPTIONAL array of string names of metrics plugins. Default is "accuracy".> ],
         "optimizer_args": <OPTIONAL kwargs to pass when constructing the optimizer_fn>,
         "optimizer_fn": <FQCN of an optimizer: e.g. tensorflow.keras.optimizers.SGD>,
     },
@@ -101,6 +98,7 @@ import space. (e.g., relative to cwd or PYTHONPATH.)
         "kwargs": { <OPTIONAL kwargs to be passed (expanded) to __init__ on construction> }
     }
     "training_dataset_config_path": <The path to a dataset configuration file describing the dataset to use for training.>,
+    "training_metrics" : [ <array of plugins - see below> ],
     "training_transforms": [ <array of plugins - see below> ], 
     "training_target_transforms": [ <array of plugins - see below> ],
     "validation": {
@@ -201,7 +199,7 @@ The number of epochs to train.
 
 ## evaluation_metrics
 This section contains a list of Plugins that compute metrics on the evaluation results. Each plugin follows the general
-schema for a Plugin as described above. An example of a Metrics plugin list is:
+schema for a Plugin as described above. An example of a Metrics plugin list for object detection is:
 
 ```json
 {
@@ -245,6 +243,7 @@ is a Python Dict containing the metrics produced by that plugin. For example:
     }
 }
 ```
+These are examples of object detection metrics. This section can instead contain metrics for classification for pytorch and tensorflow (see [training_metrics](##training_metrics) below).
 
 # evaluation_metrics_formatter
 
@@ -601,14 +600,6 @@ See **evaluation_transforms** for a discussion of how the class is loaded and kw
 ## pytorch
 Specific parameters for the PyTorch model compilation.
 
-### accuracy_args
-A dictionary of optional arguments to be passed to the accuracy function.
-
-### accuracy_fn
-**Optional:** A fully qualified accuracy function. When not specified, sklearn.metrics.accuracy_score is used.
-Any provided accuracy score must take the parameters "y_pred" (array of predicted classes) and 
-"y_true" (array of true classes).
-
 ### deterministic
 This boolean controls two options that need to be set in order for deterministic 
 operation to occur when running PyTorch on a GPU. Setting this to `true` will help with 
@@ -738,9 +729,6 @@ A string indicating which type of learning rate schedule function to use, such a
 ### lr_schedule_args
 Keyword args to be provided to the lr_schedule_fn function during construction.
 
-### metrics
-A list of either metric names (e.g. "accuracy") or plugins that have a FQCN and optional kwargs.
-
 ### optimizer_fn
 The name of an optimizer function, such as "tensorflow.keras.optimizers.SGD." If a learning rate scheduler is
 specified via (lr_schedule_fn), it will be constructed and supplied to the optimizer as `learning_rate` during 
@@ -765,6 +753,37 @@ The basic trainers for the platforms are:
 
 ## training_dataset_config_path
 The path to the dataset configuration file that describe the data to use for training the model.
+
+## training_metrics
+(currently classification only)
+
+**Optional:** Metrics plugins to be used in either the pytorch or tensorflow classifier trainers. For example:
+```json
+{
+  "fqcn": "juneberry.metrics.classification.sklearn.metrics.Metrics",
+  "kwargs": {
+    "fqn": "sklearn.metrics.accuracy_score",
+    "name": "accuracy_score",
+    "kwargs": {
+      "normalize": false
+    }
+  }
+}
+```
+### fqcn
+The name of the Juneberry Metrics plugin to call.
+
+### kwargs
+Keyword arguments to be sent to the Juneberry Metrics plugin.
+
+#### fqn
+The fully-qualified name of a third-party metrics class or function.
+
+#### name
+The name of this metric used in reports.
+
+#### kwargs
+Keyword arguments to be sent to the third-party metrics class or function.
 
 ## training_transforms
 **Optional:** This section includes a **chain** of transforms that should be applied to input data

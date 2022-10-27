@@ -111,7 +111,7 @@ class AttackSummary(Report):
         # query dataset. Load the eval output file and retrieve the accuracy value inside.
         eval_dir_mgr = model_mgr.get_eval_dir_mgr(dataset_path="query_dataset_config")
         eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
-        test_acc = eval_output.results.metrics.accuracy
+        test_acc = eval_output.results.metrics.classification["accuracy"]
 
         # Write the Summary Statistics row to the output file.
         output_file.write(f"{model_name} | {train_acc} | {val_acc} | {test_acc} | [Training Chart]({train_img_str})\n")
@@ -162,7 +162,7 @@ class AttackSummary(Report):
 
             # Load the eval output file, retrieve the accuracy value, and write the data to the row.
             eval_output = EvaluationOutput.load(eval_dir_mgr.get_metrics_path())
-            acc = eval_output.results.metrics.accuracy
+            acc = eval_output.results.metrics.classification["accuracy"]
             output_file.write(f" | {acc}")
 
         # The row must end with a new line character.

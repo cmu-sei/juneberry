@@ -59,8 +59,7 @@
                 "metrics": {
                     "type": "object",
                     "properties": {
-                        "accuracy": { "type": "number" },
-                        "balanced_accuracy": { "type": "number" },
+                        "classification": { "type": "object" },
                         "bbox": { "type": "object" },
                         "bbox_per_class": { "type": "object" }
                     },

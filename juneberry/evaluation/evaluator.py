@@ -146,6 +146,8 @@ class EvaluatorBase:
             except AttributeError:
                 pass
 
+        self.metrics_plugins = self.model_config.evaluation_metrics
+
     # -----------------------------------------------
     #  _____     _                 _              ______     _       _
     # |  ___|   | |               (_)             | ___ \   (_)     | |
