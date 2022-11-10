@@ -1,4 +1,4 @@
-name: Docker Image CI CUDADev
+name: Docker Image CI CUDABricks
 
 on:
   workflow_dispatch:
