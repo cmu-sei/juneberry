@@ -1,6 +1,11 @@
 #! /usr/bin/env bash
 
-TARGET_TAG="juneberry/cudabricks:dev"
+REV="dev"
+if [ $# -eq 1 ]; then
+	REV=${1}
+fi
+
+TARGET_TAG="juneberry/cudabricks:${REV}"
 
 # SCRIPT DIR is our context dir.
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
