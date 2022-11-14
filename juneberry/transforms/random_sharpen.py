@@ -19,6 +19,10 @@ class RandomSharpen:
 		#	logger.error(f"Scale value out of range. Must be between 0.0 and 2.0"
 		#			f"EXITING.")
 		pass
+
+	def apply_image(self, image):
+		return self.__call__(image)
+
 	def __call__(self, image):
 		"""
 		Transformation function that is provided a PIL image.

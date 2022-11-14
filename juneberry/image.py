@@ -33,7 +33,7 @@ import warnings
 
 import numpy as np
 from PIL import Image, ImageFilter, ImageOps
-import albumentations as A
+from albumentations import Blur, Sharpen
 
 logger = logging.getLogger(__name__)
 
@@ -483,10 +483,12 @@ def random_sharpen(image: Image):
     transform = None
     if scale < 1:
         scale = (1.0-scale) * 50.0
-        transform = A.augmentations.transforms.Blur(blur_limit=scale, p=1)
+        if scale < 3:
+            scale = 3
+        transform = Blur(blur_limit=scale, p=1)
     elif scale > 1:
         scale = scale - 1.0
-        transform = A.augmentations.transforms.Sharpen(alpha= (scale,scale), lightness=(1.0,1.0), p=1)
+        transform = Sharpen(alpha= (scale,scale), lightness=(1.0,1.0), p=1)
     else:
         return image
     return transform(image=image)['image']
