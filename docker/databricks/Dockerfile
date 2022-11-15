@@ -19,7 +19,7 @@
 # DM22-0856
 #
 # ======================================================================================================================
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_22-05.html
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_22-04.html
 # CUDA 11.6.2, Driver 510 or later, Python 3.8.?, pytorch 1.12.0a0+bd13bc6
 FROM nvcr.io/nvidia/pytorch:22.04-py3
 
@@ -80,12 +80,14 @@ RUN pip3 install --upgrade Pillow
 
 # ============ DETECTRON2 ============
 
+# Use force cuda so that if built on something like github on a nong gpu machine we still get cuda
+ENV FORCE_CUDA="1"
+
 RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
 
-# We MUST use the FORCE_CUDA=1 to get the MMCV to compile with CUDA and MMDetection to include it.
-# For some reason they can't detect the cuda drivers.
+# Use force cuda so that if built on something like github on a nong gpu machine we still get cuda
 ENV FORCE_CUDA="1"
 
 #RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
@@ -101,6 +103,10 @@ RUN pip3 install -v -e .
 
 # ============ R ============
 # Copied from: https://github.com/databricks/containers/blob/master/ubuntu/R/Dockerfile
+
+# NOTE: If building inside behind a proxy we need to add a proxy option to the keyserver
+# this should go right after "--keyesever <addr>" on the "apt-key adv" line:
+# --keyserver-options "--http-proxy=${http_proxy}"
 
 # We add RStudio's debian source to install the latest r-base version (4.1)
 # We are using the more secure long form of pgp key ID of marutter@gmail.com
@@ -137,7 +143,7 @@ ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudabricks:v12.3"
+ENV JUNEBERRY_CONTAINER_VERSION="cudabricks:v12.4"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaBricks:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
