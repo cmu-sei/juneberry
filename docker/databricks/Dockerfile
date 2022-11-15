@@ -80,14 +80,14 @@ RUN pip3 install --upgrade Pillow
 
 # ============ DETECTRON2 ============
 
-# Use force cuda so that if built on something like github on a nong gpu machine we still get cuda
+# Use force cuda so that if built on something like github on a none-gpu machine we still get cuda
 ENV FORCE_CUDA="1"
 
 RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
 
-# Use force cuda so that if built on something like github on a nong gpu machine we still get cuda
+# Use force cuda so that if built on something like github on a none-gpu machine we still get cuda
 ENV FORCE_CUDA="1"
 
 #RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
