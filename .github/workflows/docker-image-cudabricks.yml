@@ -26,4 +26,4 @@ jobs:
           context: ./docker/databricks
           push: true
           file: docker/databricks/Dockerfile
-          tags: cmusei/juneberry:cudabricks
+          tags: cmusei/juneberry:cudabricks-dev

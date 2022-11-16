@@ -1,0 +1,21 @@
+name: Retag cudadev-dev to cudadev
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - 
+        name: Retag cudadev-dev to cudadev
+        uses: tinact/docker.image-retag@master
+        with:
+          image_name: cmusei/juneberry
+          image_old_tag: cudadev-dev
+          image_new_tag: cudadev
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
