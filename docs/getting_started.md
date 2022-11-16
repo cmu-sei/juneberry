@@ -258,7 +258,7 @@ summarizes the switches, environment variables, and default values.
 | Configuration | switch | environment variable | default value |
 | --- | --- | --- | --- |
 | workspace | -w | JUNEBERRY_WORKSPACE | cwd() |
-| data_root | -d | JUNEBERRY_DATAROOT | -workspace-/../dataroot |
+| data_root | -d | JUNEBERRY_DATA_ROOT | -workspace-/../dataroot |
 | tensorboard | -t | JUNEBERRY_TENSORBOARD | -workspace/../tensorboard |
 
 It is important to note that the default locations for dataroot and tensorboard are workspace relative,

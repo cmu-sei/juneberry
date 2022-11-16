@@ -119,7 +119,7 @@ The data root directory is where all the input data is stored. Juneberry interpr
 as relative to this data root.
 
 By default, the dataroot directory is assumed to be a peer of the workspace.
-The data root directory path can be set via the `-d` command line switch or `JUNEBERRY_DATAROOT` environment
+The data root directory path can be set via the `-d` command line switch or `JUNEBERRY_DATA_ROOT` environment
 variable. Refer to  
 [Getting Started - Specifying the structure manually](getting_started.md#Specifying the structure manually) for details.
 
