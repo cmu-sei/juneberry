@@ -1,0 +1,21 @@
+name: Retag cudabricks-dev to cudabricks
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - 
+        name: Retag cudabricks-dev to cudabricks
+        uses: tinact/docker.image-retag@master
+        with:
+          image_name: cmusei/juneberry
+          image_old_tag: cudabricks-dev
+          image_new_tag: cudabricks
+          registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}

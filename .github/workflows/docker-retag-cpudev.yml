@@ -1,4 +1,4 @@
-name: Docker cudadev to latest
+name: Retag cpudev-dev to cpudev
 
 on:
   workflow_dispatch:
@@ -11,11 +11,11 @@ jobs:
 
     steps:
       - 
-        name: Retag cudadev to latest
+        name: Retag cpudev-dev to cpudev
         uses: tinact/docker.image-retag@master
         with:
           image_name: cmusei/juneberry
-          image_old_tag: cudadev
-          image_new_tag: latest
+          image_old_tag: cpudev-dev
+          image_new_tag: cpudev
           registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
           registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
