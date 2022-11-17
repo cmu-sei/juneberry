@@ -1,4 +1,4 @@
-name: Docker Image CI CUDABricks
+name: Docker Image CI CUDABricksBase
 
 on:
   workflow_dispatch:
@@ -25,5 +25,5 @@ jobs:
         with:
           context: ./docker/databricks
           push: true
-          file: docker/databricks/ganglia.Dockerfile
-          tags: cmusei/juneberry:cudabricks-dev
+          file: docker/databricks/base.Dockerfile
+          tags: cmusei/juneberry:cudabricks-base
