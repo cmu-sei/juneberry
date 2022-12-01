@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 class Evaluator(EvaluatorBase):
     def __init__(self, model_config: ModelConfig, lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
         super().__init__(model_config, lab, model_manager, eval_dir_mgr, dataset, eval_options, log_file)
 
         self.eval_loader = None
