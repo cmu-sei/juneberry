@@ -54,7 +54,7 @@ class Evaluator(EvaluatorBase):
     """
 
     def __init__(self, model_config: ModelConfig, lab: Lab, model_manager: ModelManager, eval_dir_mgr: EvalDirMgr,
-                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None):
+                 dataset: DatasetConfig, eval_options: SimpleNamespace = None, log_file: str = None, **kwargs):
         """
         Creates an Evaluator object based on command line arguments and a Juneberry
         ModelManager object.
