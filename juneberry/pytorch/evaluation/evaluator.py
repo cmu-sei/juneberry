@@ -323,6 +323,7 @@ class Evaluator(EvaluatorBase):
                                f"Expected to find: {model_path}")
 
         # If a GPU is present, wrap the model in DataParallel.
+        self.plain_model = self.model
         if self.use_cuda:
             logger.info(f"Detected CUDA. Wrapping the model in DataParallel.")
             self.model = torch.nn.DataParallel(self.model, device_ids=self.device_ids)

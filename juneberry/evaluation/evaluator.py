@@ -91,6 +91,7 @@ class EvaluatorBase:
         self.model_config_path = model_manager.get_model_config()
         self.model_config = model_config
         self.model = None
+        self.plain_model = None
 
         # These attributes describe the dataset being evaluated. The "eval_dataset_config" is a Juneberry
         # DatasetConfig object.
