@@ -404,8 +404,8 @@ class ClassifierTrainer(EpochTrainer):
         logger.info("Generating summary plot...")
         juneberry.plotting.plot_training_summary_chart(self.results, self.model_manager)
 
-        logger.info("Updating model_architecture hash...")
-        self._updated_hashes()
+        # logger.info("Updating model_architecture hash...")
+        # self._updated_hashes()
 
     # ==========================================================================
 
