@@ -38,7 +38,7 @@ from juneberry.config.plugin import Plugin
 import juneberry.data as jb_data
 import juneberry.filesystem as jb_fs
 from juneberry.logging import setup_logger
-import juneberry.metrics.classification.metrics_manager as mm
+from juneberry.metrics.classification.metrics_manager import MetricsManager
 from juneberry.onnx.utils import ONNXPlatformDefinitions
 import juneberry.plotting
 from juneberry.pytorch.acceptance_checker import AcceptanceChecker
@@ -113,6 +113,8 @@ class ClassifierTrainer(EpochTrainer):
                 error_msg = f"'loss' should be listed in the pytorch stanza of the model config, not the metrics stanza."
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
+
+        self.metrics_mgr = MetricsManager(self.metrics_plugins)
 
     # ==========================================================================
 
@@ -224,6 +226,8 @@ class ClassifierTrainer(EpochTrainer):
         self.history['epoch_duration'] = []
         self.history['lr'] = []
 
+        self.metrics_mgr = MetricsManager(self.metrics_plugins)
+
     def finish(self):
         super().finish()
         if self.tb_mgr is not None:
@@ -275,9 +279,8 @@ class ClassifierTrainer(EpochTrainer):
         loss = self.loss_function(output, local_labels)
 
         # Compute and store metrics based on metrics plugin functions
-        metrics_mgr = mm.MetricsManager(self.metrics_plugins)
         preds_np, target_np = _tensors_to_numpy(output, local_labels)
-        metrics = metrics_mgr(target_np, preds_np, self.dataset_config.is_binary)
+        metrics = self.metrics_mgr(target_np, preds_np, self.dataset_config.is_binary)
 
         return loss, metrics
 
