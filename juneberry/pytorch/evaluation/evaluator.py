@@ -275,21 +275,9 @@ class Evaluator(EvaluatorBase):
         """
         logger.info(f"Building the model for EVALUATION...")
 
-        # Construct the model using the architecture and the number of classes.
         # TODO: If model_mapping becomes a thing, should this change to be the number of classes that the
         #  model is aware of?
-        logger.info(f"Constructing the model...")
-        self.model = pyt_utils.construct_model(self.model_config.model_architecture,
-                                               self.eval_dataset_config.num_model_classes)
-
-        # If the ModelConfig contains model transforms, apply them to the model.
-        logger.info(f"Checking for model transforms...")
-        if self.model_config.model_transforms is not None:
-            transforms = TransformManager(self.model_config.model_transforms)
-            self.model = transforms.transform(self.model)
-            logger.info(f"Successfully applied transforms to the model.")
-        else:
-            logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
+        self.model = pyt_utils.construct_model_with_transforms(self.model_config, self.eval_dataset_config)
 
         # Identify the model file.
         model_path = self.model_manager.get_model_path(PyTorchPlatformDefinitions())
@@ -306,6 +294,7 @@ class Evaluator(EvaluatorBase):
 
             logger.info(f"Loading model weights...")
             self.model = pyt_utils.load_model(model_path, self.model, self.model_config.pytorch.strict)
+            logger.info(f"...done")
 
         # If the model file doesn't exist...
         else:
@@ -324,6 +313,7 @@ class Evaluator(EvaluatorBase):
 
         # If a GPU is present, wrap the model in DataParallel.
         self.plain_model = self.model
+        # TODO: Move this into processing such as calling prepare model
         if self.use_cuda:
             logger.info(f"Detected CUDA. Wrapping the model in DataParallel.")
             self.model = torch.nn.DataParallel(self.model, device_ids=self.device_ids)

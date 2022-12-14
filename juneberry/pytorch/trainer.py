@@ -294,7 +294,8 @@ class ClassifierTrainer(EpochTrainer):
             tensor_metrics_results = {}
             # TODO Assuming data type (float) for an unknown metric
             for k, v in current_metrics.items():
-                tensor_metrics_results[k] = torch.from_numpy(np.asarray(current_metrics[k], dtype=float)).to(self.device)
+                tensor_metrics_results[k] = torch.from_numpy(np.asarray(current_metrics[k], dtype=float)).to(
+                    self.device)
 
             loss_on_device = current_loss.to(self.device)
 
@@ -516,24 +517,15 @@ class ClassifierTrainer(EpochTrainer):
                 self.input_sample = self.input_sample.unsqueeze(0).to(self.device)
 
     def setup_model(self):
-        logger.info(f"Constructing the model {self.model_config.model_architecture.fqcn} "
-                    f"with args: {self.model_config.model_architecture.kwargs} ...")
-        self.model = pyt_utils.construct_model(self.model_config.model_architecture,
-                                               self.dataset_config.num_model_classes)
+        self.model = pyt_utils.construct_model_with_transforms(self.model_config, self.dataset_config)
 
         # If this model is based off another model, then load its weights.
         previous_model = self.model_config.get_previous_model()
         if previous_model is not None:
-            logger.info(f"Loading weights from previous model: {previous_model}")
-
+            logger.info(f"Loading model weights from previous model: {previous_model} ...")
             prev_model_manager = jb_fs.ModelManager(previous_model)
-
             pyt_utils.load_weights_from_model(prev_model_manager, self.model, self.model_config.pytorch.strict)
-
-        # Apply model transforms.
-        if self.model_config.model_transforms is not None:
-            transforms = TransformManager(self.model_config.model_transforms)
-            self.model = transforms.transform(self.model)
+            logger.info(f"...done")
 
         # Save off a reference to the unwrapped model for saving.
         self.unwrapped_model = self.model
@@ -633,6 +625,7 @@ def history_to_results(history, results, native, onnx):
     for k in metrics_history.keys():
         results['results'][k] = metrics_history[k]
 
+
 def _separate_metrics_history(history):
     non_metrics_keys = {"lr", "model_hash", "onnx_model_hash", "epoch_duration"}
     metrics_keys = history.keys() - non_metrics_keys
@@ -640,11 +633,13 @@ def _separate_metrics_history(history):
     non_metrics_history = {k: history.get(k) for k in non_metrics_keys}
     return metrics_history, non_metrics_history
 
+
 def _tensors_to_numpy(preds, target):
     with torch.set_grad_enabled(False):
         preds_np = preds.cpu().numpy()
         target_np = target.cpu().detach().numpy()
     return preds_np, target_np
+
 
 def _get_default_metrics_plugins():
     result = []
@@ -663,6 +658,7 @@ def _get_default_metrics_plugins():
     for metric in training_metrics:
         result.append(Plugin.from_dict(metric))
     return result
+
 
 def main():
     print("Nothing to see here.")

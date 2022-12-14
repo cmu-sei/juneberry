@@ -41,7 +41,8 @@ from torch.utils.data.dataset import T_co
 from torchsummary import summary
 from torchvision import transforms
 
-from juneberry.config.model import PytorchOptions
+from juneberry.config.dataset import DatasetConfig
+from juneberry.config.model import ModelConfig, PytorchOptions
 import juneberry.data as jb_data
 from juneberry.filesystem import ModelManager
 import juneberry.loader as jb_loader
@@ -50,6 +51,9 @@ from juneberry.platform import PlatformDefinitions
 from juneberry.pytorch.evaluation.utils import compute_accuracy
 import juneberry.transforms.transform_manager as jb_tm
 import juneberry.utils as jb_utils
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +154,29 @@ def construct_model(arch_config, num_model_classes):
                                    method_name="__call__",
                                    method_args=args,
                                    dry_run=False)
+
+
+def construct_model_with_transforms(model_config: ModelConfig, dataset_config:DatasetConfig):
+    """
+    Constructs a model from the archiecture and applies transforms. Also does nifty logging.
+    :param model_config: The model config
+    :param dataset_config: The dataset config with num classes
+    :return: The constructed and transformed model
+    """
+    logger.info(f"Constructing the model {model_config.model_architecture.fqcn} "
+                f"with args: {model_config.model_architecture.kwargs} ...")
+    model = construct_model(model_config.model_architecture,
+                            dataset_config.num_model_classes)
+    logger.info(f"...done")
+
+    # If the ModelConfig contains model transforms, apply them to the model.
+    if model_config.model_transforms is not None:
+        logger.info(f"Applying model transforms...")
+        transforms = jb_tm.TransformManager(model_config.model_transforms)
+        model = transforms.transform(model)
+        logger.info(f"...done")
+    else:
+        logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
 
 def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -> None:
