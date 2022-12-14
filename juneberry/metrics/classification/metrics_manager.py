@@ -88,7 +88,7 @@ class MetricsManager:
             # For each metrics plugin we've created, use the target and
             # preds to compute the metrics and add to our results.
             for entry in self.metrics_entries:
-                logger.info(f"Computing metrics for {entry.kwargs.name} using {entry.kwargs.fqn}.")
+                # logger.info(f"Computing metrics for {entry.kwargs.name} using {entry.kwargs.fqn}.")
                 results[entry.kwargs.name] = entry.metrics(target, preds, binary)
 
         return results
