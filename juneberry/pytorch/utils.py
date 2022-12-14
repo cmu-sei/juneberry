@@ -178,6 +178,8 @@ def construct_model_with_transforms(model_config: ModelConfig, dataset_config:Da
     else:
         logger.info(f"Model config does not contain model transforms. Skipping model transform application.")
 
+    return model
+
 
 def save_model(model_manager: ModelManager, model, input_sample, native, onnx) -> None:
     """
