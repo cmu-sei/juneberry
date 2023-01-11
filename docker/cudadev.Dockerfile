@@ -86,8 +86,8 @@ RUN pip3 install -r requirements/build.txt
 RUN pip3 install -v -e .
 
 # ============ JUNEBERRY PATHS ============
-# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 
+# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 ENV JUNEBERRY_DATA_ROOT="/dataroot"
 ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 

@@ -1,5 +1,5 @@
 # ======================================================================================================================
-# Juneberry - Release 0.5
+# Juneberry - Release 0.5.1
 #
 # Copyright 2022 Carnegie Mellon University.
 #
@@ -20,6 +20,8 @@
 #
 # ======================================================================================================================
 
+# Python 3.8.10 is used in our cudadev.Dockerfile from the nvcr.io/nvidia/pytorch:22.11-py3 base container
+# For consistency, we will use this version of Python
 FROM python:3.8.10
 
 # ============ BASE PLATFORM ============
@@ -34,7 +36,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Make sure we are using the latest pip
+# Upgrade pip to latest version
 RUN pip3 install --upgrade pip
 
 # ============ Tensorflow ============
@@ -43,31 +45,35 @@ RUN pip3 install --upgrade pip
 # as numpy. And when other things need numpy (such as to compile against it, such as
 # pycocotools) we can't have tensorflow moving to old versions.
 #RUN pip install tensorflow tensorflow-datasets
-RUN pip install tensorflow==2.7.0 tensorflow-datasets==4.4.0
+# Tensorflow: https://github.com/tensorflow/tensorflow/releases/tag/v2.11.0
+RUN pip install tensorflow==2.11.0 tensorflow-datasets==4.7.0
 
 # ============ JUNEBERRY ============
 
 # Some of these may No-Op because they are in the pytorch distribution
 # Some of these Juneberry may not need, but many tools do.
-# NOTE: We use these torch version because that is what comes with the cuda container.
-RUN pip3 install llvmlite==0.38.0 --ignore-installed
-RUN pip3 install adversarial-robustness-toolbox \
-    doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
-    sklearn tensorboard \
-    torch==1.12.0 torchvision \
-    torch-summary\>=1.4.5 albumentations \
-    pandas brambox pyyaml natsort \
-    opacus==0.14.0 \
-    protobuf==3.16.0 onnx onnxruntime \
-    tf2onnx \
-    opencv-python \
-    tqdm \
-    pytest pylint \
-    ray==1.13.0 jsonpath-ng \
-    torchmetrics
+# NOTE: For consistency, we use these versions because that is how we build our cuda container.
+#RUN pip3 install llvmlite==0.39.1 --ignore-installed
+RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
+    doit==0.36.0 numpy==1.22.2 pycocotools==2.0.6 matplotlib==3.6.2 \
+    pillow==9.3.0 prodict==0.8.18 hjson==3.1.0 jsonschema==4.17.0 \
+    sklearn==0.0.post1 tensorboard==2.11.0 \
+    torch==1.12.0 torchvision==0.14.1 \
+    torch-summary==1.4.5 albumentations==1.3.0 \
+    llvmlite==0.39.1 \
+    pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
+    opacus==1.3.0 \
+    protobuf==3.19.6 onnx==1.12.0 onnxruntime \
+    tf2onnx==1.13.0 \
+    opencv-python==4.6.0.66 \
+    tqdm==4.64.1 \
+    pytest==7.2.0 pylint==2.15.8 \
+    ray==2.1.0 jsonpath-ng==1.5.3 \
+    torchmetrics==0.11.0
 
 # ============ DETECTRON2 ============
 
+# Detectron2 v0.6
 RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION STUFF ============
@@ -75,28 +81,24 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 # We don't force CUDA here because we don't expect any
 # ENV FORCE_CUDA="1"
 
-#RUN pip install mmcv-full
-RUN pip install mmcv-full==1.4.8
-#RUN pip install mmcv-full==1.4.8 https://download.openmmlab.com/mmcv/dist/cpu/torch1.8.0/index.html
+RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.7.0
 
-# This is pretty straightforward
-#RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
-RUN git clone --depth 1 --branch v2.23.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
+# Build MMDetection v2.26.0
+RUN git clone --depth 1 --branch v2.26.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
 WORKDIR /mmdetection
-RUN pip install -r requirements/build.txt
-RUN pip install -v -e .
-WORKDIR /
+RUN pip3 install -r requirements/build.txt
+RUN pip3 install -v -e .
 
 # ============ JUNEBERRY PATHS ============
-# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 
+# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 ENV JUNEBERRY_DATA_ROOT="/dataroot"
 ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v12.3"
+ENV JUNEBERRY_CONTAINER_VERSION="cpudev:v13.0"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
@@ -106,4 +108,3 @@ RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CPUDev:\w\$ '" >> /root/.
     echo "    source ./container_start.sh" >> /root/.bashrc; \
     echo "fi" >> /root/.bashrc; \
     echo "figlet -w 120 CPU - ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc
-
