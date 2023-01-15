@@ -108,7 +108,7 @@ RUN pip3 install -v -e .
 # https://cran.rstudio.com/bin/linux/ubuntu/#secure-apt
 RUN apt-get update \
   && apt-get install --yes software-properties-common apt-transport-https \
-  && sudo apt-key adv --keyserver keyserver.ubuntu.com --keyserver-options http-proxy=http://cloudproxy.sei.cmu.edu:80/ \
+  && sudo apt-key adv --keyserver keyserver.ubuntu.com --keyserver-options http-proxy=${http_proxy} \
     --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
   && sudo apt-key adv -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | sudo apt-key add - \
   && add-apt-repository -y "deb [arch=amd64,i386] https://cran.rstudio.com/bin/linux/ubuntu $(lsb_release -cs)-cran40/" \
