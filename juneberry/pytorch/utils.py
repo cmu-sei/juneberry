@@ -147,7 +147,7 @@ def construct_model(arch_config, num_model_classes):
     module_path = ".".join(class_data[:-1])
     class_str = class_data[-1]
     args = arch_config.get('kwargs', {})
-    jb_data.check_num_classes(args, num_model_classes)
+    # jb_data.check_num_classes(args, num_model_classes)
 
     return jb_loader.invoke_method(module_path=module_path,
                                    class_name=class_str,
