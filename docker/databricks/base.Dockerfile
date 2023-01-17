@@ -99,7 +99,7 @@ RUN pip3 install -v -e .
 # Copied from: https://github.com/databricks/containers/blob/master/ubuntu/R/Dockerfile
 
 # NOTE: If building inside behind a proxy we need to add a proxy option to the keyserver
-# NOTE: This flag will not work with GitHub and is only used build behind the proxy
+# NOTE: This flag will not work with GitHub and is only used to build behind the proxy
 # this should go right after "--keyesever <addr>" on the "apt-key adv" line:
 # --keyserver-options "--http-proxy=${http_proxy}"
 
