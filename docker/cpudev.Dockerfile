@@ -53,14 +53,12 @@ RUN pip install tensorflow==2.11.0 tensorflow-datasets==4.7.0
 # Some of these may No-Op because they are in the pytorch distribution
 # Some of these Juneberry may not need, but many tools do.
 # NOTE: For consistency, we use these versions because that is how we build our cuda container.
-#RUN pip3 install llvmlite==0.39.1 --ignore-installed
 RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     doit==0.36.0 numpy==1.22.2 pycocotools==2.0.6 matplotlib==3.6.2 \
     pillow==9.3.0 prodict==0.8.18 hjson==3.1.0 jsonschema==4.17.0 \
     sklearn==0.0.post1 tensorboard==2.11.0 \
     torch==1.13.0 torchvision==0.14.0 \
     torch-summary==1.4.5 albumentations==1.3.0 \
-    llvmlite==0.39.1 \
     pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
     opacus==1.3.0 \
     protobuf==3.19.6 onnx==1.12.0 onnxruntime \
