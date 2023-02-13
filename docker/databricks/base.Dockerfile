@@ -19,13 +19,16 @@
 # DM22-0856
 #
 # ======================================================================================================================
-# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel_22-04.html
-# CUDA 11.6.2, Driver 510 or later, Python 3.8.?, pytorch 1.12.0a0+bd13bc6
-FROM nvcr.io/nvidia/pytorch:22.04-py3
+# https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-22-11.html#rel-22-11
+# NVIDIA CUDA 11.8.0
+# NVIDIA driver release 450.51(or later R450), 470.57(or later R470), 510.47(or later R510), or 515.65(or later R515)
+# PyTorch container image version 22.11 is based on 1.13.0a0+936e930.
+# GPU Requirements: CUDA compute capability 6.0 and later.
+FROM nvcr.io/nvidia/pytorch:22.11-py3
 
 # ============ BASE PLATFORM ============
-# Took parts of this from https://github.com/databricks/containers/blob/master/ubuntu/gpu/cuda-11/base/Dockerfile
 
+# Took parts of this from https://github.com/databricks/containers/blob/master/ubuntu/gpu/cuda-11/base/Dockerfile
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libgl1-mesa-glx figlet sudo tzdata tmux vim emacs nano \
@@ -40,7 +43,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Make sure we are using the latest pip
+# Upgrade pip to latest version
 RUN pip3 install --upgrade pip
 
 # ============ Tensorflow ============
@@ -48,41 +51,34 @@ RUN pip3 install --upgrade pip
 # We install tensorflow FIRST because it is very picky about versions of things such
 # as numpy. And when other things need numpy (such as to compile against it, such as
 # pycocotools) we can't have tensorflow moving to old versions.
-#RUN pip install tensorflow tensorflow-datasets
-RUN pip install tensorflow==2.7.0 tensorflow-datasets==4.4.0
+# Tensorflow: https://github.com/tensorflow/tensorflow/releases/tag/v2.11.0
+RUN pip install tensorflow==2.11.0 tensorflow-datasets==4.7.0
 
 # ============ JUNEBERRY ============
 
-# NOTE: This container differs in that we don't install torch or torchvision as they
-# come as part of the base install.
-
-# Some of these may No-Op because they are in the pytorch distribution
-# Some of these Juneberry may not need, but many tools do.
-# NOTE: We do NOT install pytorch as it comes in this nvidia base container
-RUN pip3 install llvmlite==0.38.0 --ignore-installed
-RUN pip3 install --root-user-action=ignore \
-    adversarial-robustness-toolbox \
-    doit numpy pycocotools matplotlib pillow prodict hjson jsonschema \
-    sklearn tensorboard \
-    torch-summary\>=1.4.5 albumentations \
-    pandas brambox pyyaml natsort \
-    opacus==0.14.0 \
-    protobuf==3.16.0 onnx onnxruntime-gpu \
-    tf2onnx \
-    opencv-python==4.5.5.62 \
-    tqdm \
-    pytest pylint \
-    ray==1.13.0 jsonpath-ng \
-    torchmetrics
-
-# Necessary to install Pillow.libs?
-RUN pip3 install --upgrade Pillow
+# We do NOT install torch, torchvision as they come as part of the base install.
+# We do NOT install pytorch as it comes in this nvidia base container.
+# Some of these may No-Op because they are in the pytorch distribution.
+# All of these tools are pinned to a specific version to support nvcr.io/nvidia/pytorch:22.11.
+RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
+    doit==0.36.0 numpy==1.22.2 pycocotools==2.0.6 matplotlib==3.6.2 \
+    pillow==9.3.0 prodict==0.8.18 hjson==3.1.0 jsonschema==4.17.0 \
+    sklearn==0.0.post1 tensorboard==2.11.0 \
+    torch-summary==1.4.5 albumentations==1.3.0 \
+    pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
+    opacus==1.3.0 protobuf==3.19.6 onnx==1.12.0 onnxruntime-gpu==1.13.1 \
+    tf2onnx==1.13.0 \
+    opencv-python==4.6.0.66 \
+    tqdm==4.64.1 \
+    pytest==7.2.0 pylint==2.15.8 \
+    ray==2.1.0 jsonpath-ng==1.5.3 \
+    torchmetrics==0.11.0
 
 # ============ DETECTRON2 ============
 
 # Use force cuda so that if built on something like github on a none-gpu machine we still get cuda
 ENV FORCE_CUDA="1"
-
+# Detectron2 v0.6
 RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 
 # ============ MMDETECTION ============
@@ -90,21 +86,20 @@ RUN pip3 install 'git+https://github.com/facebookresearch/detectron2.git@v0.6'
 # Use force cuda so that if built on something like github on a none-gpu machine we still get cuda
 ENV FORCE_CUDA="1"
 
-#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full
-RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8
-#RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.4.8 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
+RUN MMCV_WITH_OPS=1 pip3 install mmcv-full==1.7.0
 
-# Build MMDetection
-#RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection
-RUN git clone --depth 1 --branch v2.23.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
+# Build MMDetection v2.26.0
+RUN git clone --depth 1 --branch v2.26.0 https://github.com/open-mmlab/mmdetection.git /mmdetection
 WORKDIR /mmdetection
 RUN pip3 install -r requirements/build.txt
 RUN pip3 install -v -e .
 
 # ============ R ============
+
 # Copied from: https://github.com/databricks/containers/blob/master/ubuntu/R/Dockerfile
 
 # NOTE: If building inside behind a proxy we need to add a proxy option to the keyserver
+# NOTE: This flag will not work with GitHub and is only used to build behind the proxy
 # this should go right after "--keyesever <addr>" on the "apt-key adv" line:
 # --keyserver-options "--http-proxy=${http_proxy}"
 
@@ -114,7 +109,8 @@ RUN pip3 install -v -e .
 # https://cran.rstudio.com/bin/linux/ubuntu/#secure-apt
 RUN apt-get update \
   && apt-get install --yes software-properties-common apt-transport-https \
-  && sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
+  && sudo apt-key adv --keyserver keyserver.ubuntu.com \
+    --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 \
   && sudo apt-key adv -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | sudo apt-key add - \
   && add-apt-repository -y "deb [arch=amd64,i386] https://cran.rstudio.com/bin/linux/ubuntu $(lsb_release -cs)-cran40/" \
   && apt-get update \
@@ -135,15 +131,15 @@ RUN R -e "options(repos = list(MRAN = 'https://mran.microsoft.com/snapshot/2022-
  && R -e "install.packages('Rserve', repos='http://rforge.net/')"
 
 # ============ JUNEBERRY PATHS ============
-# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 
+# Since everything is mounted to specific directories, we can specify data root and tensorboard.
 ENV JUNEBERRY_DATA_ROOT="/dataroot"
 ENV JUNEBERRY_TENSORBOARD="/tensorboard"
 
 # ============ CONVENIENCE ============
 
 # Add some settings to the bashrc to make it easier for folks to know we are in a container
-ENV JUNEBERRY_CONTAINER_VERSION="cudabricks:v12.4"
+ENV JUNEBERRY_CONTAINER_VERSION="cudabricks:v13.0"
 RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaBricks:\w\$ '" >> /root/.bashrc; \
     echo "alias ll='ls -l --color=auto'" >> /root/.bashrc; \
     echo "alias jb_comp='source /juneberry/scripts/juneberry_completion.sh'" >> /root/.bashrc; \
@@ -153,4 +149,3 @@ RUN echo "PS1='${debian_chroot:+($debian_chroot)}\u@\h+CudaBricks:\w\$ '" >> /ro
     echo "    source ./container_start.sh" >> /root/.bashrc; \
     echo "fi" >> /root/.bashrc; \
     echo "figlet -w 120 CUDA - ${JUNEBERRY_CONTAINER_VERSION}" >> /root/.bashrc
-
