@@ -56,7 +56,7 @@ RUN pip install tensorflow==2.11.0 tensorflow-datasets==4.7.0
 RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     doit==0.36.0 numpy==1.22.2 pycocotools==2.0.6 matplotlib==3.6.2 \
     pillow==9.3.0 prodict==0.8.18 hjson==3.1.0 jsonschema==4.17.0 \
-    sklearn==0.0.post1 tensorboard==2.11.0 \
+    sklearn tensorboard==2.11.0 \
     torch==1.13.0 torchvision==0.14.0 \
     torch-summary==1.4.5 albumentations==1.3.0 \
     pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
@@ -67,7 +67,7 @@ RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     tqdm==4.64.1 \
     pytest==7.2.0 pylint==2.15.8 \
     ray==2.1.0 jsonpath-ng==1.5.3 \
-    torchmetrics==0.11.0
+    torchmetrics==0.10.2
 
 # ============ DETECTRON2 ============
 
