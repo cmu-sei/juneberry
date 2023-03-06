@@ -129,9 +129,9 @@ def setup_cuda_device(num_gpus, gpu):
     else:
         assert gpu < num_gpus
         device = torch.device("cuda:" + str(gpu))
-        torch.cuda.set_device(device)
         # Adding LOCAL_RANK env to support pytorch 22.11 upgrade
-        os.environ['LOCAL_RANK'] = str(device)
+        os.environ['LOCAL_RANK'] = str(gpu)
+        torch.cuda.set_device(device)
 
     return device
 
