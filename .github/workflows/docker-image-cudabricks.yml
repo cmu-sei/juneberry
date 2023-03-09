@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Remove dangling docker images
-        run: docker image prune -f
-      - name: Check docker storage
-        run: docker images
+      - name: Check base machine storage
+        run: df -h /
+      - name: Delete unused dotnet package (15 GB)
+        run: rm -rf /usr/share/dotnet/
       - name: Check base machine storage
         run: df -h /
       -
