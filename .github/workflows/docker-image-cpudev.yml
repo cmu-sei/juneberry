@@ -11,6 +11,18 @@ jobs:
 
     steps:
       -
+        name: Check base machine storage
+        run: df -h /
+      -
+        name: Delete unused packages and tools
+        run: sudo apt-get remove -y azure-cli google-cloud-sdk google-chrome-stable firefox powershell &&
+          sudo apt-get autoremove -y &&
+          sudo apt-get clean &&
+          rm -rf /usr/share/dotnet/
+      -
+        name: Check base machine storage (after delete)
+        run: df -h /
+      -
         name: Checkout
         uses: actions/checkout@v2
       -
