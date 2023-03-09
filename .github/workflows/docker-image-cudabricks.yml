@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Remove dangling docker images
-        run: docker image prune
+        run: docker image prune -f
       - name: Check docker storage
         run: docker images
       - name: Check base machine storage
