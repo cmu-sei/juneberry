@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check docker storage
+        run: docker images
+      - name: Check base machine storage
+        run: df -h /
       -
         name: Checkout
         uses: actions/checkout@v2
