@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Remove dangling docker images
+        run: docker image prune
       - name: Check docker storage
         run: docker images
       - name: Check base machine storage
