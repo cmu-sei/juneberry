@@ -19,6 +19,7 @@ jobs:
              sudo apt-get autoremove -y && 
              sudo apt-get clean && 
              rm -rf /usr/share/dotnet/
+             rm -rf /opt/hostedtoolcache
       -
         name: Check base machine storage (after delete)
         run: df -h /
