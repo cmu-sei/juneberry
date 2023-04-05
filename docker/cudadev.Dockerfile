@@ -43,7 +43,7 @@ RUN pip3 install --upgrade pip
 # as numpy. And when other things need numpy (such as to compile against it, such as
 # pycocotools) we can't have tensorflow moving to old versions.
 # Tensorflow: https://github.com/tensorflow/tensorflow/releases/tag/v2.11.0
-RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0
+RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0 tensorboard==2.12.0
 
 # ============ JUNEBERRY ============
 
@@ -54,7 +54,7 @@ RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0
 RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     doit==0.36.0 numpy==1.22.2 pycocotools==2.0.6 matplotlib==3.6.2 \
     pillow==9.3.0 prodict==0.8.18 hjson==3.1.0 jsonschema==4.17.0 \
-    scikit-learn==0.24.2 tensorboard==2.11.0 \
+    scikit-learn==0.24.2 \
     torch-summary==1.4.5 albumentations==1.3.0 \
     pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
     opacus==1.3.0 protobuf==4.22.1 onnx==1.12.0 onnxruntime-gpu==1.13.1 \
