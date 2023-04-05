@@ -61,7 +61,7 @@ RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     torch-summary==1.4.5 albumentations==1.3.0 \
     pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
     opacus==1.3.0 \
-    protobuf==3.19.6 onnx==1.12.0 onnxruntime \
+    protobuf==4.22.1 onnx==1.12.0 onnxruntime \
     tf2onnx==1.13.0 \
     opencv-python==4.6.0.66 \
     tqdm==4.64.1 \
