@@ -42,8 +42,11 @@ RUN pip3 install --upgrade pip
 # We install tensorflow FIRST because it is very picky about versions of things such
 # as numpy. And when other things need numpy (such as to compile against it, such as
 # pycocotools) we can't have tensorflow moving to old versions.
-# Tensorflow: https://github.com/tensorflow/tensorflow/releases/tag/v2.11.0
-RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0 tensorboard==2.12.0
+# Tensorflow: https://github.com/tensorflow/tensorflow/releases/tag/v2.12.0
+RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0 tensorboard==2.12.0 \
+                tensorrt==8.6.0 tf2onnx==1.13.0
+# Suppress Tensorflow Warnings
+ENV TF_CPP_MIN_LOG_LEVEL = "2"
 
 # ============ JUNEBERRY ============
 
@@ -57,8 +60,7 @@ RUN pip3 install adversarial-robustness-toolbox==1.12.2 \
     scikit-learn==0.24.2 \
     torch-summary==1.4.5 albumentations==1.3.0 \
     pandas==1.4.4 brambox==4.1.1 pyyaml==6.0 natsort==8.2.0 \
-    opacus==1.3.0 protobuf==4.22.1 onnx==1.12.0 onnxruntime-gpu==1.13.1 \
-    tf2onnx==1.13.0 \
+    opacus==1.3.0 protobuf==3.20.3 onnx==1.13.1 onnxruntime-gpu==1.14.1 \
     opencv-python==4.6.0.66 \
     tqdm==4.64.1 \
     pytest==7.2.0 pylint==2.15.8 \
