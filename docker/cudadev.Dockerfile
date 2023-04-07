@@ -46,7 +46,7 @@ RUN pip3 install --upgrade pip
 RUN pip install tensorflow==2.12.0 tensorflow-datasets==4.7.0 tensorboard==2.12.0 \
                 tensorrt==8.6.0 tf2onnx==1.13.0
 # Suppress Tensorflow Warnings
-ENV TF_CPP_MIN_LOG_LEVEL = "2"
+ENV TF_CPP_MIN_LOG_LEVEL = "3"
 
 # ============ JUNEBERRY ============
 
