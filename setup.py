@@ -26,7 +26,7 @@ import setuptools
 
 extras = {
     'tf': ['tensorflow', 'tensorflow-datasets'],
-    'torch': ['torch', 'torchvision', "torch-summary>=1.4.5"],
+    'torch': ['torch', 'torchvision', "torch-summary>=1.4.5", "torchmetrics"],
     'onnx': ['protobuf==3.16.0', 'onnx', 'onnxruntime', 'tf2onnx'],
     'onnx-gpu': ['protobuf==3.16.0', 'onnx', 'onnxruntime-gpu', 'tf2onnx'],
     'opacus': ['opacus']
@@ -49,7 +49,7 @@ install_requires = [
     "prodict",
     "hjson",
     "jsonschema",
-    "sklearn",
+    "scikit-learn",
     "tqdm",
     "tensorboard",
     "pandas",
@@ -58,8 +58,7 @@ install_requires = [
     "hjson",
     "natsort",
     "ray",
-    "jsonpath-ng",
-    "torchmetrics"
+    "jsonpath-ng"
 ]
 
 bin_scripts = [
