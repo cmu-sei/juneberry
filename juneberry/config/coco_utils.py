@@ -24,9 +24,11 @@
 
 from collections import defaultdict, namedtuple
 import copy
+import cv2
 from datetime import datetime as dt
 import logging
 from pathlib import Path
+from pycocotools import mask as mask_util
 from random import shuffle as rand_shuffle
 import sys
 from typing import Dict, List
@@ -206,7 +208,25 @@ def load_from_json_file(file_path) -> COCOImageHelper:
     return COCOImageHelper(CocoAnnotations.load(file_path), file_path)
 
 
-def convert_predictions_to_annotations(predictions: list) -> list:
+def polygon_from_mask(maskedArr):
+    """
+    Converts maskedArr to List of polygon points
+    :param maskedArr:
+    :return: Converted polygon points
+    """
+    contours, _ = cv2.findContours(maskedArr, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    segmentation = []
+    for contour in contours:
+        # Valid polygons have >= 6 coordinates (3 points)
+        if contour.size >= 6:
+            segmentation.append(contour.flatten().tolist())
+    if len(segmentation) == 0:
+        return []
+
+    return segmentation[0]
+
+
+def convert_predictions_to_annotations(predictions: list, img_size: list, use_mask=False) -> list:
     """
     The input is an ARRAY of:
     {
@@ -216,6 +236,9 @@ def convert_predictions_to_annotations(predictions: list) -> list:
             62.832000732421875,
             80.3057861328125
         ],
+        "segmentation" {
+            "counts": 'YW[53o?8N1N3N2M5L3N000000O3N;DTec5'
+        },
         "category_id": 3,
         "image_id": 1,
         "score": 0.9976264834403992
@@ -224,16 +247,27 @@ def convert_predictions_to_annotations(predictions: list) -> list:
     :param predictions:
     :return:
     """
+
     annos = []
     obj_id = 0
-
     for pred in predictions:
         anno = copy.copy(pred)
         anno['area'] = pred['bbox'][2] * pred['bbox'][3]
         anno['id'] = obj_id
         anno['iscrowd'] = 0
-        obj_id += 1
+
+        # Check for segmented predictions
+        if use_mask:
+            mask_str = pred['segmentation']['counts'].encode('utf-8')
+            mask_dict = {'size': img_size, 'counts': mask_str}
+            mask = mask_util.decode(mask_dict)
+            poly = polygon_from_mask(mask)
+        else:
+            poly = []
+
+        anno['segmentation'] = poly
         annos.append(anno)
+        obj_id += 1
 
     return annos
 
@@ -250,14 +284,23 @@ def convert_predictions_to_coco(coco_data: CocoAnnotations, predictions: list,
     if not category_list:
         category_list = coco_data.categories
 
+    # Check for segmentation predictions
+    try:
+        test = predictions[0]['segmentation']
+        use_mask = True
+    except:
+        use_mask = False
+
+    img_size = [coco_data.images[0]['height'], coco_data.images[0]['width']]
     coco_data = {
         "info": {
             "date_created": str(dt.now().replace(microsecond=0).isoformat())
         },
         'images': coco_data.images,
-        'annotations': convert_predictions_to_annotations(predictions),
+        'annotations': convert_predictions_to_annotations(predictions, img_size, use_mask),
         'categories': category_list
     }
+
     return CocoAnnotations.construct(coco_data)
 
 
@@ -418,11 +461,11 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         logger.info(f"Attempting to draw boxes on {img_file}")
 
         # Grab the associated bounding boxes and labels.
-        bbox_labels = [{"bbox": x.bbox, "category_id": x.category_id, "category": legend[x.category_id],
-                        "score": x.score, } for x in coco.annotations if x.image_id == image_id]
+        labels = [{"bbox": x.bbox, "category_id": x.category_id, "category": legend[x.category_id],
+                   "score": x.score, "segmentation": x.segmentation} for x in coco.annotations if x.image_id == image_id]
 
-        box_str = "bounding box" if len(bbox_labels) else "bounding boxes"
-        logger.info(f"    Adding {len(bbox_labels)} {box_str} to the above image.")
+        box_str = "bounding box" if len(labels) else "bounding boxes"
+        logger.info(f"    Adding {len(labels)} {box_str} to the above image.")
 
         # Draw the boxes on the image.
         with Image.open(img_file) as file:
@@ -439,7 +482,7 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
         # colorblind palette: https://davidmathlogic.com/colorblind  IBM version
         palette = ['#648FFF', '#785EF0', '#DC267F', '#FE6100', '#FFB000']
         box_count = 0
-        for obj in bbox_labels:
+        for obj in labels:
             bbox = obj['bbox']
             # We want the rectangle to act as border around bounding box,
             # so shift start and end points one pixel away from bounding box.
@@ -449,6 +492,11 @@ def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limi
             outline = palette[obj['category_id'] % len(palette)]
             draw.rectangle(xy=[start_point, end_point], outline=outline, width=line_width)
             draw.text(start_point, f"{obj['category_id']} - {obj['category']}: {obj['score'] * 100:.2f}%")
+            # Check if we need to draw polygon
+            if obj['segmentation'] != []:
+                xy = [(obj['segmentation'][i], obj['segmentation'][i + 1])
+                      for i in range(0, len(obj['segmentation']), 2)]
+                draw.polygon(xy, outline=outline, width=line_width)
             box_count += 1
 
         if box_count > 0:
