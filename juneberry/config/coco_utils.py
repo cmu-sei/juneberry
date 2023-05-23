@@ -25,7 +25,10 @@
 from collections import defaultdict, namedtuple
 import copy
 from datetime import datetime as dt
+import gzip
+import json
 import logging
+import os
 from pathlib import Path
 from random import shuffle as rand_shuffle
 import sys
@@ -34,8 +37,8 @@ from typing import Dict, List
 import numpy as np
 from PIL import Image, ImageDraw
 
-from juneberry.config.dataset import DatasetConfig
 from juneberry.config.coco_anno import CocoAnnotations
+from juneberry.config.dataset import DatasetConfig
 import juneberry.filesystem as jb_fs
 
 logger = logging.getLogger(__name__)
@@ -229,7 +232,10 @@ def convert_predictions_to_annotations(predictions: list) -> list:
 
     for pred in predictions:
         anno = copy.copy(pred)
-        anno['area'] = pred['bbox'][2] * pred['bbox'][3]
+        for bbox_i in range(len(pred['bbox'])):
+            pred['bbox'][bbox_i] = round(pred['bbox'][bbox_i], 6)
+        anno['score'] = round(pred['score'], 6)
+        anno['area'] = round(pred['bbox'][2] * pred['bbox'][3], 6)
         anno['id'] = obj_id
         anno['iscrowd'] = 0
         obj_id += 1
@@ -324,6 +330,19 @@ def convert_jbmeta_to_coco(metadata_list, categories: Dict[int, str], *, renumbe
     return CocoAnnotations.construct(coco_data)
 
 
+def remove_indents_from_json(output_file: Path):
+    """
+    This function will take a path to a json annotation file (prediction file) and
+    only remove the indents from the file
+    This function is intended to only be used when prediction files are "large".
+    :param output_file: A Path indicating the original json output prediction file
+    :return: Nothing.
+    """
+
+    predict_data = jb_fs.load_json(str(output_file))
+    os.unlink(output_file)
+    jb_fs.save_json(predict_data, str(output_file), indent=0)
+
 def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file: str, category_list: List = False,
                              output_file: Path = None, eval_manifest_path: Path = None):
     """
@@ -361,6 +380,24 @@ def save_predictions_as_anno(data_root: Path, dataset_config: str, predict_file:
 
     coco_out = convert_predictions_to_coco(coco_data, predictions, category_list)
     coco_out.save(str(output_file))
+
+    num_images = len(coco_out['images'])
+    num_categories = len(category_list)
+
+    # Define a "large" prediction files as having images*categories > 1000
+    # Save as a gzip instead of a json file
+    if num_images * num_categories > 1000:
+        logger.info(f"Large file detected: images={num_images} and categories={num_categories}")
+
+        remove_indents_from_json(output_file)
+
+        with gzip.open(str(output_file) + '.gz', 'wb') as f_gzip, open(str(output_file)) as f_in:
+             predict_data = f_in.read()
+             bin_predict_data = bytearray(predict_data, encoding='utf-8')
+             f_gzip.write(bin_predict_data)
+
+        os.remove(str(output_file))
+        logger.info(f"Prediction file gzip successfully created!")
 
 
 def generate_bbox_images(coco_json: Path, lab, dest_dir: str = None, sample_limit: int = None, shuffle: bool = False):
